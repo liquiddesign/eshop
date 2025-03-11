@@ -4,6 +4,47 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.435](https://github.com/liquiddesign/eshop/compare/v2.1.434...v2.1.435) (2025-03-11)
+
+### Features
+
+* Implement TogglePackageItemDropShipping action and refactor order handling ([a4332f](https://github.com/liquiddesign/eshop/commit/a4332f30ffcb4da8aa27e09cf0ddf832ec0310db))
+* Add script to access Docker CLI as www-data user ([5980d9](https://github.com/liquiddesign/eshop/commit/5980d9210f69121395b2d9f344a77a29b553427c))
+* Enhance pricelist retrieval with dynamic discount handling and caching improvements ([de7145](https://github.com/liquiddesign/eshop/commit/de714519b7f7195b2c2447c026dd3ed1121964d4))
+* Merchant can have multiple customer groups ([bb7957](https://github.com/liquiddesign/eshop/commit/bb79578e50498d9e06c653442b6ed7faec7ea086))
+
+### Bug Fixes
+
+* Remove unused migration code for eshop_merchant_nxn_eshop_customergroup ([cf4327](https://github.com/liquiddesign/eshop/commit/cf432701238ff214351a96a454e74a1a04687812))
+* Update merchant price list mode label to indicate it's not recommended ([0b7164](https://github.com/liquiddesign/eshop/commit/0b7164e256d779fd20f6998dce344964e4d583f2))
+* Exclude soft-deleted products from queries in ProductRepository and ProductsCacheWarmUpService ([6af2c5](https://github.com/liquiddesign/eshop/commit/6af2c58958b5162ac3b780fa34bccbf5d9805705))
+* Add coding standards ignore comments for children property in Category.php ([d9745f](https://github.com/liquiddesign/eshop/commit/d9745f97ca12ec4327e4df98e5833849d64c5e01))
+* Simplify children property type declaration for clarity ([7ef264](https://github.com/liquiddesign/eshop/commit/7ef2647dab0b87108472d0f716d234e1d40253bb), [654ba7](https://github.com/liquiddesign/eshop/commit/654ba7d8deac2c6335005a8ea611c39295087fd4))
+* Change children property type to mixed for coding standards compliance ([3f8318](https://github.com/liquiddesign/eshop/commit/3f831814644916e145620731399ce7d5ac1e4b10))
+* Update children property type to mixed for better flexibility ([af72b8](https://github.com/liquiddesign/eshop/commit/af72b8bffdd38bb8a3bf5f817a2cc7c32d7ce8a2), [1119fe](https://github.com/liquiddesign/eshop/commit/1119fe3eaf70e64376267d488456ce61bc68a02b))
+* Update children property type to support ArrayWrapper ([1d0952](https://github.com/liquiddesign/eshop/commit/1d095221f238eb80f038aa365af3442bb1ea2a14))
+* Update RELATION_MAX_ITEMS_COUNT to 100 ([fb2b5f](https://github.com/liquiddesign/eshop/commit/fb2b5f0d1b27043ac7fb0cd6796a796165d59206))
+* Setting RELATION_MAX_ITEMS_COUNT to 30 ([aae034](https://github.com/liquiddesign/eshop/commit/aae034d7037762b82f93c2756d9991e93fe058da))
+
+### Code Refactoring
+
+* Change public properties to typed arrays in multiple classes ([51907a](https://github.com/liquiddesign/eshop/commit/51907a7c54f13045aea22a9e1fa6e1e05c51a19e))
+
+### Styles
+
+* PHPCS ([41df07](https://github.com/liquiddesign/eshop/commit/41df07072bb60ef8c3f78998d65c8ee8f1926667))
+
+### Builds
+
+* Docker ([3bc6da](https://github.com/liquiddesign/eshop/commit/3bc6dad3c9af2dd9e038db5e0080ebcfe11a675b))
+
+### Chores
+
+* Update ([eea600](https://github.com/liquiddesign/eshop/commit/eea600e1ca5a336633f27f5e880144f1a34b5f73), [66d3f6](https://github.com/liquiddesign/eshop/commit/66d3f67835e8ea961557fcc6d8b51ac8a181182a))
+
+
+---
+
 ## [2.1.434](https://github.com/liquiddesign/eshop/compare/v2.1.433...v2.1.434) (2025-03-11)
 
 ### Features
