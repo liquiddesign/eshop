@@ -91,7 +91,15 @@ class MerchantPresenter extends BackendPresenter
 			$grid,
 			'decoratorEmpty',
 		];
-		$grid->addColumnText('Skupina', 'customerGroup.name', '%s', 'customerGroup.name');
+		$grid->addColumn('Skupiny', function (Merchant $object, Datagrid $datagrid) {
+			$htmlToReturn = '';
+
+			foreach ($object->customerGroups->clear()->toArray() as $customerGroup) {
+				$htmlToReturn .= '<span>' . $customerGroup->name . '</span><br>';
+			}
+
+			return $htmlToReturn;
+		});
 
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('', function (Merchant $object, Datagrid $datagrid) use ($btnSecondary) {
@@ -150,11 +158,12 @@ class MerchantPresenter extends BackendPresenter
 
 		$form->addGroup('Další možnosti');
 
-		$form->addDataSelect(
-			'customerGroup',
+		$form->addMultiSelect2(
+			'customerGroups',
 			'Skupina zákazníků',
 			$this->customerGroupRepository->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']),
-		)->setPrompt('Žádná');
+		)->setDefaultValue($merchant->customerGroups->clear()->toArrayOf('uuid'));
+
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepository->getArrayForSelect());
 		$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect());
 
