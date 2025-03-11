@@ -1457,27 +1457,27 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 		$clonedFieldsSelection = $form->addContainer('clonedFieldsSelection');
 
 		// Scalar
-		$clonedFieldsSelection->addCheckbox('producer', 'Výrobce')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('related', 'Související produkty')->setDefaultValue(true);
-//		$clonedFieldsSelection->addCheckbox('alternative', 'Alternativa')->setDefaultValue(true);
-//		$clonedFieldsSelection->addCheckbox('taxes', 'Daně')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('internalRibbons', 'Interní štítky')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('ribbons', 'Veřejné štítky')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('categories', 'Kategorie')->setDefaultValue(true);
-//		$clonedFieldsSelection->addCheckbox('masterProduct', 'Nadřazený produkt')->setDefaultValue(true);
-//		$clonedFieldsSelection->addCheckbox('exportZboziCategory', 'Export Zboží Kategorie')->setDefaultValue(true);
-//		$clonedFieldsSelection->addCheckbox('exportHeurekaCategory', 'Export Heureka Kategorie')->setDefaultValue(true);
-//		$clonedFieldsSelection->addCheckbox('supplierSource', 'Zdroj Dodavatele')->setDefaultValue(true);
-//		$clonedFieldsSelection->addCheckbox('displayAmount', 'Zobrazit Množství')->setDefaultValue(true);
-//		$clonedFieldsSelection->addCheckbox('displayDelivery', 'Zobrazit Dodání')->setDefaultValue(true);
-//		$clonedFieldsSelection->addCheckbox('loyaltyPrograms', 'Věrnostní Programy')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('contents', 'Obsahy')->setDefaultValue(true);
-//		$clonedFieldsSelection->addCheckbox('variants', 'Varianty')->setDefaultValue(true);
-//		$clonedFieldsSelection->addCheckbox('reviews', 'Recenze')->setDefaultValue(true);
-//		$clonedFieldsSelection->addCheckbox('visibilityListItems', 'Položky Seznamu Viditelnosti')->setDefaultValue(true);
-//		$clonedFieldsSelection->addCheckbox('quantityPrices', 'Množstevní Ceny')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('photos', 'Fotografie')->setDefaultValue(true);
-		$clonedFieldsSelection->addCheckbox('files', 'Soubory')->setDefaultValue(true);
+		$clonedFieldsSelection->addCheckbox('producer', 'Výrobce')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('related', 'Související produkty')->setDefaultValue(false);
+//		$clonedFieldsSelection->addCheckbox('alternative', 'Alternativa')->setDefaultValue(false);
+//		$clonedFieldsSelection->addCheckbox('taxes', 'Daně')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('internalRibbons', 'Interní štítky')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('ribbons', 'Veřejné štítky')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('categories', 'Kategorie')->setDefaultValue(false);
+//		$clonedFieldsSelection->addCheckbox('masterProduct', 'Nadřazený produkt')->setDefaultValue(false);
+//		$clonedFieldsSelection->addCheckbox('exportZboziCategory', 'Export Zboží Kategorie')->setDefaultValue(false);
+//		$clonedFieldsSelection->addCheckbox('exportHeurekaCategory', 'Export Heureka Kategorie')->setDefaultValue(false);
+//		$clonedFieldsSelection->addCheckbox('supplierSource', 'Zdroj Dodavatele')->setDefaultValue(false);
+//		$clonedFieldsSelection->addCheckbox('displayAmount', 'Zobrazit Množství')->setDefaultValue(false);
+//		$clonedFieldsSelection->addCheckbox('displayDelivery', 'Zobrazit Dodání')->setDefaultValue(false);
+//		$clonedFieldsSelection->addCheckbox('loyaltyPrograms', 'Věrnostní Programy')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('contents', 'Obsahy')->setDefaultValue(false);
+//		$clonedFieldsSelection->addCheckbox('variants', 'Varianty')->setDefaultValue(false);
+//		$clonedFieldsSelection->addCheckbox('reviews', 'Recenze')->setDefaultValue(false);
+//		$clonedFieldsSelection->addCheckbox('visibilityListItems', 'Položky Seznamu Viditelnosti')->setDefaultValue(false);
+//		$clonedFieldsSelection->addCheckbox('quantityPrices', 'Množstevní Ceny')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('photos', 'Fotografie')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('files', 'Soubory')->setDefaultValue(false);
 
 		// TODO vazby z entity Related
 
