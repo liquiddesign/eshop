@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.437](https://github.com/liquiddesign/eshop/compare/v2.1.436...v2.1.437) (2025-03-11)
+
+### Features
+
+* Enhance CategoryPresenter with ShopperUser integration and category filtering ([547381](https://github.com/liquiddesign/eshop/commit/547381a069b6b2d955f83ab76511c4c137269565))
+
+
+---
+
 ## [2.1.436](https://github.com/liquiddesign/eshop/compare/v2.1.435...v2.1.436) (2025-03-11)
 
 ### Features
