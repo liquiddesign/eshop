@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.438](https://github.com/liquiddesign/eshop/compare/v2.1.437...v2.1.438) (2025-03-12)
+
+### Features
+
+* Refactor EAN handling to use getEan method across product-related files ([c95abb](https://github.com/liquiddesign/eshop/commit/c95abbb51cbf4edd95db4765661864662fad0e86))
+
+
+---
+
 ## [2.1.437](https://github.com/liquiddesign/eshop/compare/v2.1.436...v2.1.437) (2025-03-11)
 
 ### Features
