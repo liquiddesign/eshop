@@ -27,6 +27,7 @@ use Eshop\DB\ProductContentRepository;
 use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\RelatedRepository;
+use Eshop\DB\RelatedType;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\RibbonRepository;
 use Eshop\DB\StoreRepository;
@@ -39,8 +40,10 @@ use Eshop\DB\VisibilityListRepository;
 use Eshop\FormValidators;
 use Eshop\Integration\Integrations;
 use Eshop\ShopperUser;
+use Forms\Container;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
+use Nette\Forms\Form;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\DIConnection;
@@ -51,7 +54,7 @@ use Web\DB\SettingRepository;
 
 class ProductForm extends Control
 {
-	public const RELATION_MAX_ITEMS_COUNT = 10;
+	public const RELATION_EXTRA_ITEMS_COUNT = 5;
 
 	/** @persistent */
 	public string $tab = 'menu0';
@@ -64,7 +67,7 @@ class ProductForm extends Control
 
 	private ?Product $product;
 
-	private int $relationMaxItemsCount;
+	private int $relationExtraItemsCount;
 
 	/**
 	 * @var array<\Eshop\DB\RelatedType>
@@ -109,7 +112,7 @@ class ProductForm extends Control
 		$this->product = $product = $productRepository->get($product);
 		$this->onRenderGetPriceLists = $onRenderGetPriceLists;
 		$this->priceLists = $this->onRenderGetPriceLists ? \call_user_func($this->onRenderGetPriceLists, $this->product) : $this->pricelistRepository->many()->orderBy(['this.priority'])->toArray();
-		$this->relationMaxItemsCount = (int) ($settingRepository->getValueByName('relationMaxItemsCount') ?? $this::RELATION_MAX_ITEMS_COUNT);
+		$this->relationExtraItemsCount = (int) ($settingRepository->getValueByName('relationMaxItemsCount') ?? $this::RELATION_EXTRA_ITEMS_COUNT);
 
 		$form = $adminFormFactory->create(true);
 
@@ -347,29 +350,23 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				$relationsMasterContainer = $form->addContainer('relatedType_master_' . $relatedType->getPK());
 				$relationsSlaveContainer = $form->addContainer('relatedType_slave_' . $relatedType->getPK());
 
-				for ($i = 0; $i < $this->relationMaxItemsCount; $i++) {
-					$relationsMasterContainer->addSelect2Ajax("product_$i", $this->getPresenter()->link('getProductsForSelect2!'), null, [], 'Zvolte produkt');
-					$relationsMasterContainer->addInteger("amount_$i")->setDefaultValue($relatedType->defaultAmount)->setNullable();
-					$relationsMasterContainer->addInteger("priority_$i")->setDefaultValue(10)->setNullable();
-					$relationsMasterContainer->addCheckbox("hidden_$i");
+				$slaveCount = 0;
+				$masterCount = 0;
 
-					$relationsSlaveContainer->addSelect2Ajax("product_$i", $this->getPresenter()->link('getProductsForSelect2!'), null, [], 'Zvolte produkt');
-					$relationsSlaveContainer->addInteger("amount_$i")->setDefaultValue($relatedType->defaultAmount)->setNullable();
-					$relationsSlaveContainer->addInteger("priority_$i")->setDefaultValue(10)->setNullable();
-					$relationsSlaveContainer->addCheckbox("hidden_$i");
+				if ($this->product) {
+					$slaveCount = $this->relatedRepository->many()
+						->where('fk_slave', $this->product->getPK())
+						->where('fk_type', $relatedType->getPK())
+						->count();
 
-					if ($relatedType->defaultDiscountPct) {
-						$relationsMasterContainer->addText("discountPct_$i")->setDefaultValue($relatedType->defaultDiscountPct)->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
-						$relationsSlaveContainer->addText("discountPct_$i")->setDefaultValue($relatedType->defaultDiscountPct)->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
-					}
-
-					if (!$relatedType->defaultMasterPct) {
-						continue;
-					}
-
-					$relationsMasterContainer->addText("masterPct_$i")->setDefaultValue($relatedType->defaultMasterPct)->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
-					$relationsSlaveContainer->addText("masterPct_$i")->setDefaultValue($relatedType->defaultMasterPct)->setNullable()->addCondition($form::FILLED)->addRule($form::FLOAT);
+					$masterCount = $this->relatedRepository->many()
+						->where('fk_master', $this->product->getPK())
+						->where('fk_type', $relatedType->getPK())
+						->count();
 				}
+
+				$this->prepareRelationsContainer($relationsMasterContainer, $relatedType, $this->relationExtraItemsCount + $masterCount);
+				$this->prepareRelationsContainer($relationsSlaveContainer, $relatedType, $this->relationExtraItemsCount + $slaveCount);
 
 				if (!$this->product) {
 					continue;
@@ -383,8 +380,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 				$i = 0;
 
-				/** @var \Eshop\DB\Related $relation
-				 */
+				/** @var \Eshop\DB\Related $relation */
 				foreach ($relations as $relation) {
 					/** @var \Nette\Forms\Controls\SelectBox $productInput */
 					$productInput = $relationsMasterContainer["product_$i"];
@@ -413,10 +409,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 					}
 
 					$i++;
-
-					if ($i === $this->relationMaxItemsCount) {
-						break;
-					}
 				}
 
 				$relations = $this->relatedRepository->many()
@@ -427,8 +419,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 				$i = 0;
 
-				/** @var \Eshop\DB\Related $relation
-				 */
+				/** @var \Eshop\DB\Related $relation */
 				foreach ($relations as $relation) {
 					/** @var \Nette\Forms\Controls\SelectBox $productInput */
 					$productInput = $relationsSlaveContainer["product_$i"];
@@ -457,10 +448,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 					}
 
 					$i++;
-
-					if ($i === $this->relationMaxItemsCount) {
-						break;
-					}
 				}
 			}
 		});
@@ -726,8 +713,21 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			]);
 		}
 
+		$masterCounts = [];
+		$slaveCounts = [];
+
 		if ($this->product) {
 			foreach ($this->relatedTypes as $relatedType) {
+				$slaveCounts[$relatedType->getPK()] = $this->relatedRepository->many()
+					->where('fk_slave', $this->product->getPK())
+					->where('fk_type', $relatedType->getPK())
+					->count();
+
+				$masterCounts[$relatedType->getPK()] = $this->relatedRepository->many()
+					->where('fk_master', $this->product->getPK())
+					->where('fk_type', $relatedType->getPK())
+					->count();
+
 				$this->relatedRepository->many()->where(
 					'this.uuid',
 					\array_values($this->relatedRepository->many()
@@ -735,7 +735,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 						->where('fk_master', $this->product->getPK())
 						->where('fk_type', $relatedType->getPK())
 						->orderBy(['uuid' => 'asc'])
-						->setTake($this->relationMaxItemsCount)
 						->toArrayOf('uuid')),
 				)->delete();
 			}
@@ -743,9 +742,12 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		// Relations
 		foreach ($this->relatedTypes as $relatedType) {
+			$masterCount = $masterCounts[$relatedType->getPK()] ?? 0;
+			$slaveCount = $slaveCounts[$relatedType->getPK()] ?? 0;
+
 			$relatedTypeValues = $values['relatedType_master_' . $relatedType->getPK()];
 
-			for ($i = 0; $i < $this->relationMaxItemsCount; $i++) {
+			for ($i = 0; $i < $this->relationExtraItemsCount + $masterCount; $i++) {
 				if (!isset($data['relatedType_master_' . $relatedType->getPK()]["product_$i"])) {
 					continue;
 				}
@@ -772,7 +774,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 			$relatedTypeValues = $values['relatedType_slave_' . $relatedType->getPK()];
 
-			for ($i = 0; $i < $this->relationMaxItemsCount; $i++) {
+			for ($i = 0; $i < $this->relationExtraItemsCount + $slaveCount; $i++) {
 				if (!isset($data['relatedType_slave_' . $relatedType->getPK()]["product_$i"])) {
 					continue;
 				}
@@ -883,17 +885,17 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		}
 
 		unset($values['prices']);
-		
+
 		if (!$this->shopsConfig->getAvailableShops()) {
 			$conditions = [
 				'product' => $product->getPK(),
 			];
-			
+
 			$conditions['perex'] = $content['perex'];
 			$conditions['content'] = $content['content'];
-			
+
 			$productContent = $this->productContentRepository->many()->where('fk_product', $product->getPK())->first();
-			
+
 			if ($productContent) {
 				$productContent->update($conditions);
 			} else {
@@ -906,7 +908,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				'shop' => $shop->getPK(),
 				'product' => $product->getPK(),
 			];
-			
+
 			$conditions['perex'] = $content['perex_' . $shop->getPK()];
 			$conditions['content'] = $content['content_' . $shop->getPK()];
 
@@ -974,7 +976,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			->where('this.fk_product', \array_keys($mergedProducts))
 			->toArray() : [];
 
-		$this->template->relationMaxItemsCount = $this->relationMaxItemsCount;
+		$this->template->relationMaxItemsCount = $this->relationExtraItemsCount;
 		$this->template->product = $this->getPresenter()->getParameter('product');
 		$this->template->pricelists = $this->priceLists;
 		$this->template->visibilityLists = $this->shopsConfig->selectFullNameInShopEntityCollection($this->visibilityListRepository->many());
@@ -1051,5 +1053,25 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		$this->getPresenter()->flashMessage('Provedeno', 'success');
 		$this->getPresenter()->redirect('this');
+	}
+
+	private function prepareRelationsContainer(Container $formContainer, RelatedType $relatedType, int $entriesCount): void
+	{
+		for ($i = 0; $i < $entriesCount; $i++) {
+			$formContainer->addSelect2Ajax("product_$i", $this->getPresenter()->link('getProductsForSelect2!'), null, [], 'Zvolte produkt');
+			$formContainer->addInteger("amount_$i")->setDefaultValue($relatedType->defaultAmount)->setNullable();
+			$formContainer->addInteger("priority_$i")->setDefaultValue(10)->setNullable();
+			$formContainer->addCheckbox("hidden_$i");
+
+			if ($relatedType->defaultDiscountPct) {
+				$formContainer->addText("discountPct_$i")->setDefaultValue($relatedType->defaultDiscountPct)->setNullable()->addCondition(Form::Filled)->addRule(Form::Float);
+			}
+
+			if (!$relatedType->defaultMasterPct) {
+				continue;
+			}
+
+			$formContainer->addText("masterPct_$i")->setDefaultValue($relatedType->defaultMasterPct)->setNullable()->addCondition(Form::Filled)->addRule(Form::Float);
+		}
 	}
 }

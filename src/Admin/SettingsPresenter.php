@@ -279,7 +279,7 @@ class SettingsPresenter extends BackendPresenter
 				'key' => self::RELATION_MAX_ITEMS_COUNT,
 				'label' => 'Maximální počet relací produktu',
 				'type' => 'int',
-				'info' => 'Zadajte číslo větší než 0! Určuje počet možných relací jednoho typu u produktu. Výchozí hodnota je: ' . ProductForm::RELATION_MAX_ITEMS_COUNT,
+				'info' => 'Zadajte číslo větší než 0! Určuje počet možných relací jednoho typu u produktu. Výchozí hodnota je: ' . ProductForm::RELATION_EXTRA_ITEMS_COUNT,
 			],
 			'Vazby' => [
 				[
