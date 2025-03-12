@@ -782,7 +782,7 @@ CREATE TABLE `$categoriesTableName` (
 		$link->exec("CREATE INDEX idx_externalCode ON `$productsCacheTableName` (externalCode);");
 		$link->exec("CREATE FULLTEXT INDEX idx_name ON `$productsCacheTableName` (name);");
 		$link->exec("CREATE UNIQUE INDEX idx_unique_code ON `$productsCacheTableName` (code);");
-		$link->exec("CREATE UNIQUE INDEX idx_unique_ean ON `$productsCacheTableName` (ean);");
+		$link->exec("CREATE INDEX idx_unique_ean ON `$productsCacheTableName` (ean);");
 		$link->exec("CREATE INDEX idx_masterProduct ON `$productsCacheTableName` (masterProduct);");
 
 		foreach ($allCategoryTypes as $categoryType) {
