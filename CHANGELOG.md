@@ -4,6 +4,21 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.439](https://github.com/liquiddesign/eshop/compare/v2.1.438...v2.1.439) (2025-03-12)
+
+### Features
+
+* Product edit -> relation static extra fields ([2c29f2](https://github.com/liquiddesign/eshop/commit/2c29f27fd5a1279ac49a22cf823800b27dbcc363))
+
+### Bug Fixes
+
+* Removing slave relations ([fe1f38](https://github.com/liquiddesign/eshop/commit/fe1f38b0bc43d313d581f4d9ad92b2a1f54eb6ff))
+* Remove unused RELATION_MAX_ITEMS_COUNT constant and related settings from SettingsPresenter ([998c68](https://github.com/liquiddesign/eshop/commit/998c6819d4586e6c325b3239457735456082ffa4))
+* Update EAN retrieval in heureka.latte to use direct property access ([5d5a2d](https://github.com/liquiddesign/eshop/commit/5d5a2ddb33e59c0fb13a2017773dca07e7cebb71))
+
+
+---
+
 ## [2.1.438](https://github.com/liquiddesign/eshop/compare/v2.1.437...v2.1.438) (2025-03-12)
 
 ### Features
