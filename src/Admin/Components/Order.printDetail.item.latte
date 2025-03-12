@@ -11,7 +11,7 @@
     </td>
     <td>
         {$item->product ? $item->product->getFullCode() : $item->getFullCode()}
-									{if $item->product && $item->product->ean}<br><small>EAN: {$item->product->ean}</small>{/if}
+									{if $item->product && $item->product->getEan()}<br><small>EAN: {$item->product->getEan()}</small>{/if}
     </td>
     <td>
         <div class="d-flex align-items-center">

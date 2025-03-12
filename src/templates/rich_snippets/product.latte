@@ -7,7 +7,7 @@
         "description": {$product->perex},
         "name": {$product->name},
         "image": {$product->getPreviewImage($baseUrl)},
-        "gtin13": {$product->ean},
+        "gtin13": {$product->getEan()},
         "identifier": {
             "@type": "PropertyValue",
             "propertyID": "code",

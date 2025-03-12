@@ -71,6 +71,12 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	 * @column
 	 */
 	public ?bool $productKeepFlat;
+
+	/**
+	 * Ean
+	 * @column
+	 */
+	public string|null $productEan;
 	
 	/**
 	 * Název varianty
@@ -304,5 +310,10 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	public function getKeepFlat(): bool
 	{
 		return $this->productKeepFlat ?? false;
+	}
+
+	public function getProductEan(): string|null
+	{
+		return $this->productEan ?: $this->product?->getEan();
 	}
 }

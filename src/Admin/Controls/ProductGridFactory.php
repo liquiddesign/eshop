@@ -438,7 +438,7 @@ class ProductGridFactory
 	protected function addCodeColumn(AdminGrid $grid): void
 	{
 		$grid->addColumn('Kód a EAN', function (Product $product) {
-			return $product->getFullCode() . ($product->ean ? "<br><small>EAN $product->ean</small>" : '') . ($product->mpn ? "<br><small>P/N $product->mpn</small>" : '');
+			return $product->getFullCode() . ($product->getEan() ? "<br><small>EAN {$product->getEan()}</small>" : '') . ($product->mpn ? "<br><small>P/N $product->mpn</small>" : '');
 		}, '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 	}
 

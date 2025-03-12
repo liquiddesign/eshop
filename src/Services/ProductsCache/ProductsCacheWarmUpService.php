@@ -422,7 +422,7 @@ class ProductsCacheWarmUpService implements AutoWireService
 				'code' => 'this.code',
 				'subCode' => 'this.subCode',
 				'externalCode' => 'this.externalCode',
-				'ean' => 'this.ean',
+				'ean' => 'COALESCE(this.secondaryEan, this.ean)',
 			])
 			->setGroupBy(['this.id']);
 
@@ -619,7 +619,7 @@ CREATE TABLE `$categoriesTableName` (
 				'code' => 'this.code',
 				'subCode' => 'this.subCode',
 				'externalCode' => 'this.externalCode',
-				'ean' => 'this.ean',
+				'ean' => 'COALESCE(this.secondaryEan, this.ean)',
 			])
 			->setGroupBy(['this.id']);
 

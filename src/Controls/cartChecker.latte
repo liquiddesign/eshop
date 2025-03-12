@@ -22,7 +22,7 @@
 			<tbody>
 			<tr n:foreach="$incorrectCartItems as $incorrectCartItem" class="{$iterator->getCounter() % 2 !== 0 ? 'bg-gray-light'}">
 				<td class="px-4 py-2 whitespace-no-wrap">{$incorrectCartItem['object']->getFullCode()}</td>
-{*				<td class="px-4 py-2 whitespace-no-wrap">{$item['object']->product->ean}</td>*}
+{*				<td class="px-4 py-2 whitespace-no-wrap">{$item['object']->product->getEan()}</td>*}
 				<td class="px-4 py-2 whitespace-no-wrap">{$incorrectCartItem['object']->productName}</td>
 				<td class="px-4 py-2 whitespace-no-wrap text-red-normal">
 					{switch $incorrectCartItem['reason']}

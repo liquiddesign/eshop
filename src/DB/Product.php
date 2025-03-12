@@ -92,6 +92,11 @@ class Product extends \StORM\Entity
 	public ?string $ean;
 
 	/**
+	 * @column
+	 */
+	public string|null $secondaryEan = null;
+
+	/**
 	 * Kód výrobce - Manufacturer Part Number
 	 * @column
 	 */
@@ -568,6 +573,11 @@ class Product extends \StORM\Entity
 		return $this->getValue('name', $mutation);
 	}
 
+	public function getEan(): string|null
+	{
+		return $this->secondaryEan ?: $this->ean;
+	}
+
 	/**
 	 * Return all descendant products
 	 * If $onlyDescendants is false, return all descendant and ascendant products
@@ -1020,9 +1030,9 @@ class Product extends \StORM\Entity
 	public function getSimpleFrontendData(): array
 	{
 		return [
-			'name' => $this->name,
+			'name' => $this->getName(),
 			'code' => $this->getFullCode(),
-			'ean' => $this->ean,
+			'ean' => $this->getEan(),
 		];
 	}
 

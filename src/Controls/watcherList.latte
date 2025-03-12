@@ -51,7 +51,7 @@
 							<a n:tag-if="$watcher->getValue('product')" href="{plink :Eshop:Product:detail, $watcher->product->getPK()}" class="font-bold text-main whitespace-pre-wrap hover:text-primary-normal">{$watcher->product->name}</a>
 							<div class="flex">
 								<div n:if="$watcher->getValue('product')" class="text-gray-dark text-sm mr-3"><strong>Kód</strong>: {$watcher->product->getFullCode()}</div>
-								<div n:if="$watcher->getValue('product') && $watcher->product->ean" class="text-gray-dark text-sm"><strong>EAN</strong>: {$watcher->product->ean}</div>
+								<div n:if="$watcher->getValue('product') && $watcher->product->getEan()" class="text-gray-dark text-sm"><strong>EAN</strong>: {$watcher->product->getEan()}</div>
 							</div>
 						</div>
 					</div>

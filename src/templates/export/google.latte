@@ -46,7 +46,7 @@
             <g:price n:if="$mainPrice">{$mainPrice|ceil} {$pricelists[$product->pricelist]->currency->code}</g:price>
             <g:sale_price n:if="$discountPrice && $mainPrice && $discountPrice < $mainPrice">{$discountPrice|ceil} {$pricelists[$product->pricelist]->currency->code}</g:sale_price>
             <g:brand>{$productsFrontendData[$product->getPK()]['producer'] ?? null}</g:brand>
-            <g:gtin n:if="$product->ean">{$product->ean}</g:gtin>
+            <g:gtin n:if="$product->getEan()">{$product->getEan()}</g:gtin>
             <g:mpn n:if="$product->mpn">{$product->mpn}</g:mpn>
             <g:adult>no</g:adult>
             <g:color n:if="$colorAttribute && $colorAttribute->value && isset($attributes[$colorAttribute->value]) && \count($attributes[$colorAttribute->value]) > 0">{foreach $attributes[$colorAttribute->value] as $attribute}{breakIf $iterator->getCounter0() === 3}{$attribute['label']}{sep}/{/sep}{/foreach}</g:color>

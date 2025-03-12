@@ -136,6 +136,7 @@ class ProductPresenter extends BackendPresenter
 		ProductFormConfig::class => [
 			ProductFormAutoPriceConfig::class => ProductFormAutoPriceConfig::NONE,
 		],
+		'secondaryEan' => false,
 	];
 
 	protected const DEFAULT_TEMPLATE = __DIR__ . '/../../_data/newsletterTemplates/newsletter.latte';

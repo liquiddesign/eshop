@@ -183,7 +183,7 @@
                                             </td>
                                             <td>
                                                 {$product ? $product->getFullCode() : $item->getFullCode()}
-									            {if $product && $product->ean}<br><small>EAN: {$product->ean}</small>{/if}
+									            {if $product && $product->getEan()}<br><small>EAN: {$product->getEan()}</small>{/if}
                                             </td>
                                             <td>
                                                 <a n:tag-if="$admin->isAllowed(':Eshop:Admin:Product:default')" href="{plink :Eshop:Admin:Product:default, productGrid-code=>$item->productCode}" target="_blank">

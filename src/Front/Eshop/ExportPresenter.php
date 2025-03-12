@@ -748,6 +748,7 @@ abstract class ExportPresenter extends Presenter
 			$productsCollection = $this->productRepo->getProducts($priceLists, visibilityLists: $visibilityLists)->where('this.exportHeureka', true);
 			$this->productRepo->filterHidden(false, $productsCollection);
 			$this->productRepo->filterUnavailable(false, $productsCollection);
+			$productsCollection->select(['ean' => 'COALESCE(this.secondaryEan, this.ean)']);
 
 			return $productsCollection->fetchArray(\stdClass::class);
 		});

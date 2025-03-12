@@ -16,7 +16,7 @@
         <CODE>{$product->getFullCode()}</CODE>
         <WEIGHT>{$product->weight}</WEIGHT>
         <UNIT>{$product->unit}</UNIT>
-        <EAN>{$product->ean}</EAN>
+        <EAN>{$product->getEan()}</EAN>
         <DESCRIPTION n:if="$product->content"><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
         <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
         {*        <ITEM_TYPE>{$product->type}</ITEM_TYPE>*}

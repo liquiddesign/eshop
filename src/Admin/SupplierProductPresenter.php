@@ -71,7 +71,7 @@ class SupplierProductPresenter extends BackendPresenter
 		$grid->addColumnSelector();
 		$grid->addColumnText('Vytvořeno', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
 		$grid->addColumn('Kód a EAN', function (SupplierProduct $product) {
-			return $product->code . ($product->ean ? "<br><small>EAN $product->ean</small>" : '') . ($product->mpn ? "<br><small>P/N $product->mpn</small>" : '');
+			return $product->code . ($product->ean ? "<br><small>EAN {$product->ean}</small>" : '') . ($product->mpn ? "<br><small>P/N $product->mpn</small>" : '');
 		}, '%s', 'updatedTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
 		$grid->addColumnText('Název', 'name', '%s', 'name');

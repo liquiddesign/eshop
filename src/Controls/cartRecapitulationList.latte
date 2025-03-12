@@ -26,8 +26,8 @@
 
                     <div n:if="$cartItem->getFullCode()" class="text-sm mr-4">{_'cartRe.code','Kód'}:
                         <strong>{$cartItem->getFullCode()}</strong></div>
-                    <div n:if="$cartItem->getValue('product') && $cartItem->product->ean"
-                            class="text-sm">{_'cartRe.ean','EAN'}: <strong>{$cartItem->product->ean}</strong></div>
+                    <div n:if="$cartItem->getValue('product') && $cartItem->product->getEan()"
+                            class="text-sm">{_'cartRe.ean','EAN'}: <strong>{$cartItem->product->getEan()}</strong></div>
                 </div>
             </div>
         </div>
@@ -40,8 +40,8 @@
 
             <div n:if="$cartItem->getFullCode()" class="text-sm mr-4">{_'cartRe.code','Kód'}:
                 <strong>{$cartItem->getFullCode()}</strong></div>
-            <div n:if="$cartItem->getValue('product') && $cartItem->product->ean" class="text-sm">{_'cartRe.ean','EAN'}:
-                <strong>{$cartItem->product->ean}</strong></div>
+            <div n:if="$cartItem->getValue('product') && $cartItem->product->getEan()" class="text-sm">{_'cartRe.ean','EAN'}:
+                <strong>{$cartItem->product->getEan()}</strong></div>
         </div>
 
         <div class="text-xl flex justify-between mt-6 md:mt-0">

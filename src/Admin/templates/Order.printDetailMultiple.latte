@@ -143,7 +143,7 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                                             <tr>
                                                 <td>
                                                     {$slave->getFullCode()}
-									                {if $slave->ean}<br><small>EAN: {$slave->ean}</small>{/if}
+									                {if $slave->getEan()}<br><small>EAN: {$slave->getEan()}</small>{/if}
                                                 </td>
                                                 <td>
                                                     <a n:tag-if="$admin->isAllowed(':Eshop:Admin:Product:default')" href="{plink :Eshop:Admin:Product:default, productGrid-code=>$slave->getFullCode()}" target="_blank">

@@ -51,7 +51,7 @@ use Web\DB\SettingRepository;
 
 class ProductForm extends Control
 {
-	public const RELATION_MAX_ITEMS_COUNT = 100;
+	public const RELATION_MAX_ITEMS_COUNT = 10;
 
 	/** @persistent */
 	public string $tab = 'menu0';
@@ -121,7 +121,12 @@ class ProductForm extends Control
 
 		$form->addText('code', 'Kód a podsklad')->setRequired();
 		$form->addText('subCode', 'Kód podskladu');
-		$form->addText('ean', 'EAN')->setNullable();
+		$form->addText('ean', 'Hlavní EAN (unikátní)')->setNullable();
+
+		if (isset($this->configuration['secondaryEan']) && $this->configuration['secondaryEan']) {
+			$form->addText('secondaryEan', 'Sekundární EAN')->setNullable();
+		}
+
 		$form->addText('mpn', 'P/N')->setNullable();
 
 		if (isset($configuration['externalCode']) && $configuration['externalCode']) {

@@ -48,14 +48,19 @@
                     </tr>
 
 
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label ean/}</th>
+{*                    <tr class="m-0 mt-1 has-danger">*}
+{*                        <th class="col-label col-form-label col">{label ean/}</th>*}
 
-                        <td class="align-middle">
-                            {input ean, class: 'form-control form-control-sm col-label'}
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError ean}</span>
-                        </td>
-                    </tr>
+{*                        <td class="align-middle">*}
+{*                            {input ean, class: 'form-control form-control-sm col-label'}*}
+{*                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError ean}</span>*}
+{*                        </td>*}
+{*                    </tr>*}
+
+                    {$renderer->renderPair($form['ean'])|noescape}
+                    {ifset $form['secondaryEan']}
+                        {$renderer->renderPair($form['secondaryEan'])|noescape}
+                    {/ifset}
 
                     {$renderer->renderPair($form['mpn'])|noescape}
 

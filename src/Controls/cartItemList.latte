@@ -14,7 +14,7 @@
 						<a n:tag-if="$cartItem->getValue('product')" href="{plink :Eshop:Product:detail, $cartItem->product->getPK()}" class="font-bold text-main whitespace-pre-wrap hover:text-primary-normal">{$cartItem->productName}</a>
 						<div class="flex">
                             <div class="text-gray-dark text-sm mr-3"><strong>Kód</strong>: {$cartItem->getFullCode()}</div>
-                            <div n:if="$cartItem->getValue('product') && $cartItem->product->ean" class="text-gray-dark text-sm"><strong>EAN</strong>: {$cartItem->product->ean}</div>
+                            <div n:if="$cartItem->getValue('product') && $cartItem->product->getEan()" class="text-gray-dark text-sm"><strong>EAN</strong>: {$cartItem->product->getEan()}</div>
 						</div>
 					</div>
 				</div>
