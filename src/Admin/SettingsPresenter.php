@@ -7,7 +7,6 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Base\ShopsConfig;
-use Eshop\Admin\Controls\ProductForm;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\CustomerGroupRepository;
@@ -27,7 +26,6 @@ use Web\DB\SettingRepository;
 
 class SettingsPresenter extends BackendPresenter
 {
-	public const RELATION_MAX_ITEMS_COUNT = 'relationMaxItemsCount';
 	public const COD_TYPE = 'codType';
 	public const SUPPLIER_PRODUCT_DUMMY_DEFAULT_CATEGORY = 'supplierProductDummyDefaultCategory';
 	public const PPL_DELIVERY_TYPE = 'pplDeliveryType';
@@ -275,12 +273,6 @@ class SettingsPresenter extends BackendPresenter
 		parent::startup();
 
 		$this->customSettings = [
-			'Produkty' => [
-				'key' => self::RELATION_MAX_ITEMS_COUNT,
-				'label' => 'Maximální počet relací produktu',
-				'type' => 'int',
-				'info' => 'Zadajte číslo větší než 0! Určuje počet možných relací jednoho typu u produktu. Výchozí hodnota je: ' . ProductForm::RELATION_EXTRA_ITEMS_COUNT,
-			],
 			'Vazby' => [
 				[
 					'key' => self::SET_RELATION_TYPE,
