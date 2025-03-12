@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.440](https://github.com/liquiddesign/eshop/compare/v2.1.439...v2.1.440) (2025-03-12)
+
+### Bug Fixes
+
+* Change UNIQUE index to regular index for ean in ProductsCacheWarmUpService ([9de111](https://github.com/liquiddesign/eshop/commit/9de11135acfa51fd4e0d8c9f1308d900017c789e))
+
+
+---
+
 ## [2.1.439](https://github.com/liquiddesign/eshop/compare/v2.1.438...v2.1.439) (2025-03-12)
 
 ### Features
