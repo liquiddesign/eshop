@@ -734,7 +734,15 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 						->setSelect(['uuid' => 'this.uuid'])
 						->where('fk_master', $this->product->getPK())
 						->where('fk_type', $relatedType->getPK())
-						->orderBy(['uuid' => 'asc'])
+						->toArrayOf('uuid')),
+				)->delete();
+
+				$this->relatedRepository->many()->where(
+					'this.uuid',
+					\array_values($this->relatedRepository->many()
+						->setSelect(['uuid' => 'this.uuid'])
+						->where('fk_slave', $this->product->getPK())
+						->where('fk_type', $relatedType->getPK())
 						->toArrayOf('uuid')),
 				)->delete();
 			}
