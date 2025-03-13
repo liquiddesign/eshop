@@ -4,6 +4,17 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.441](https://github.com/liquiddesign/eshop/compare/v2.1.440...v2.1.441) (2025-03-13)
+
+### Bug Fixes
+
+* Correct instance check for InvalidArgumentException in SupplierProductRepository and add class documentation for Algolia ([05d1ae](https://github.com/liquiddesign/eshop/commit/05d1ae71c1a8fc80aa18814f6dada3d93e7d3b8f))
+* Update CSV export to use necessaryEnclosure method instead of EncloseField ([ef155d](https://github.com/liquiddesign/eshop/commit/ef155d14b1f6c0a7f33082d2f66256f90fa1d88e))
+* Improve error logging for unsupported file extensions in SupplierProductRepository ([b68b63](https://github.com/liquiddesign/eshop/commit/b68b63c8916dc997d3127825fc13e193c4f7b287))
+
+
+---
+
 ## [2.1.440](https://github.com/liquiddesign/eshop/compare/v2.1.439...v2.1.440) (2025-03-12)
 
 ### Bug Fixes
