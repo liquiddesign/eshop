@@ -4,7 +4,6 @@ namespace Eshop\Services\Product;
 
 use Base\Bridges\AutoWireService;
 use Eshop\DB\PhotoRepository;
-use League\Csv\EncloseField;
 use League\Csv\Writer;
 use Nette\Utils\Strings;
 use StORM\Collection;
@@ -33,8 +32,7 @@ class PhotoExporterService implements AutoWireService
 
 		$writer->setDelimiter($delimiter);
 		$writer->setFlushThreshold(100);
-
-		EncloseField::addTo($writer, "\t\22");
+		$writer->necessaryEnclosure();
 
 		$writer->insertOne(\array_merge([
 			'Klíč',

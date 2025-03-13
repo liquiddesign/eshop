@@ -13,7 +13,6 @@ use Eshop\Admin\HelperClasses\MultipleOperationResult;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Integration\Integrations;
 use Eshop\ShopperUser;
-use League\Csv\EncloseField;
 use League\Csv\Writer;
 use Messages\DB\Template;
 use Nette\Caching\Cache;
@@ -354,8 +353,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	public function csvPPCExport(ICollection $orders, Writer $writer, array $columns = [], string $delimiter = ';', ?array $header = null): void
 	{
 		$writer->setDelimiter($delimiter);
-
-		EncloseField::addTo($writer, "\t\22");
+		$writer->necessaryEnclosure();
 
 		if ($header) {
 			$writer->insertOne($header);

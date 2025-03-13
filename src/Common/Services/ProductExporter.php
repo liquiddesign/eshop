@@ -16,7 +16,6 @@ use Eshop\DB\SupplierRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\DevelTools;
-use League\Csv\EncloseField;
 use League\Csv\Writer;
 use Nette\Application\LinkGenerator;
 use Nette\Application\Responses\FileResponse;
@@ -247,8 +246,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 
 		$writer->setDelimiter($delimiter);
 		$writer->setFlushThreshold(100);
-
-		EncloseField::addTo($writer, "\t\22");
+		$writer->necessaryEnclosure();
 
 		$completeHeaders = \array_merge($header, $supplierCodes);
 

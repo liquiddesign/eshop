@@ -8,7 +8,6 @@ use Admin\DB\IGeneralAjaxRepository;
 use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Eshop\Providers\Helpers;
-use League\Csv\EncloseField;
 use League\Csv\Writer;
 use Nette\Utils\Strings;
 use Nette\Utils\Validators;
@@ -73,7 +72,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 	public function csvExportTargito(ICollection $customers, Writer $writer, ?string $origin = null): void
 	{
 		$writer->setDelimiter(',');
-		EncloseField::addTo($writer, "\t\x1f");
+		$writer->necessaryEnclosure();
 
 		$writer->insertOne([
 			'email',
