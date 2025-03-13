@@ -7,6 +7,7 @@ namespace Eshop\DB;
 use Base\ShopsConfig;
 use Eshop\Admin\SettingsPresenter;
 use Nette\DI\Container;
+use Nette\InvalidArgumentException;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
@@ -429,7 +430,11 @@ class SupplierProductRepository extends \StORM\Repository
 					$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
 				}
 			} catch (\Throwable $e) {
-				Debugger::log($e, ILogger::WARNING);
+				if ($e instanceOf InvalidArgumentException && \str_starts_with($e->getMessage(), 'Unsupported file extension')) {
+					Debugger::log($e, ILogger::INFO);
+				} else {
+					Debugger::log($e, ILogger::WARNING);
+				}
 			}
 		}
 
