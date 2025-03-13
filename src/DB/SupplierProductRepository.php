@@ -430,7 +430,7 @@ class SupplierProductRepository extends \StORM\Repository
 					$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
 				}
 			} catch (\Throwable $e) {
-				if ($e instanceOf InvalidArgumentException && \str_starts_with($e->getMessage(), 'Unsupported file extension')) {
+				if ($e instanceof InvalidArgumentException && \str_starts_with($e->getMessage(), 'Unsupported file extension')) {
 					Debugger::log($e, ILogger::INFO);
 				} else {
 					Debugger::log($e, ILogger::WARNING);

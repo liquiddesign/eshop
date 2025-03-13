@@ -10,6 +10,9 @@ use Eshop\DB\ProductRepository;
 use Nette\Http\IRequest;
 use Web\DB\SettingRepository;
 
+/**
+ * Algolia v3 client
+ */
 class Algolia
 {
 	protected string $baseUrl;
