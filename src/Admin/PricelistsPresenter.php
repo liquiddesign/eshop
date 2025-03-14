@@ -153,7 +153,7 @@ class PricelistsPresenter extends BackendPresenter
 			return [$pricelist->name, $ribbons];
 		}, '%s&nbsp;%s', 'name');
 		$grid->addColumnText('Popis', 'description', '%s');
-		$grid->addColumn('SLevy', function (Pricelist $object) {
+		$grid->addColumn('Slevy', function (Pricelist $object) {
 			$discounts = $object->getDiscounts()->toArray();
 			$result = [];
 
