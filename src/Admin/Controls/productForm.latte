@@ -638,7 +638,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                                 {if $relatedType->defaultMasterPct}<th class="p-2">Procento z ceny produktu: {$relatedType->getMasterInternalName()} (0-max%)</th>{/if}
                                 </tr>
                                 </thead>
-                                {for $i =0; $i < $relationMaxItemsCount + $masterRelationsCount[$relatedType->getPK()]; $i++}
+                                {for $i =0; $i < $relationMaxItemsCount + ($masterRelationsCount[$relatedType->getPK()] ?? 0); $i++}
                                     <tr>
                                         <td class="p-2" style="min-width: 360px;">{input "product_$i", class: "form-control form-control-sm", style: "width: 100% !important"}</td>
                                         <td class="p-2">{input "amount_$i", class: "form-control form-control-sm"}</td>
@@ -664,7 +664,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                                 {if $relatedType->defaultMasterPct}<th class="p-2">Procento z ceny produktu: {$relatedType->getSlaveInternalName()} (0-max%)</th>{/if}
                                 </tr>
                                 </thead>
-                                {for $i =0; $i < $relationMaxItemsCount + $slaveRelationsCount[$relatedType->getPK()]; $i++}
+                                {for $i =0; $i < $relationMaxItemsCount + ($slaveRelationsCount[$relatedType->getPK()] ?? 0); $i++}
                                     <tr>
                                         <td class="p-2" style="min-width: 360px;">{input "product_$i", class: "form-control form-control-sm", style: "width: 100% !important"}</td>
                                         <td class="p-2">{input "amount_$i", class: "form-control form-control-sm"}</td>
