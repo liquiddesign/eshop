@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.442](https://github.com/liquiddesign/eshop/compare/v2.1.441...v2.1.442) (2025-03-18)
+
+### Bug Fixes
+
+* Handle potential null values in master and slave relations count in product form ([42b5d6](https://github.com/liquiddesign/eshop/commit/42b5d61844334bf4cea874b9bf514bf36c7d69cb))
+
+### Chores
+
+* Typo ([44d311](https://github.com/liquiddesign/eshop/commit/44d31195ee90dfcf91bcb154db92138156b86fb9))
+
+
+---
+
 ## [2.1.441](https://github.com/liquiddesign/eshop/compare/v2.1.440...v2.1.441) (2025-03-13)
 
 ### Bug Fixes
