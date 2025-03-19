@@ -147,6 +147,7 @@ class MerchantPresenter extends BackendPresenter
 
 	public function createComponentForm(): Form
 	{
+		/** @var \Eshop\DB\Merchant|null $merchant */
 		$merchant = $this->getParameter('merchant');
 
 		$form = $this->formFactory->create(false, false, false, false, false);
@@ -162,7 +163,7 @@ class MerchantPresenter extends BackendPresenter
 			'customerGroups',
 			'Skupina zákazníků',
 			$this->customerGroupRepository->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']),
-		)->setDefaultValue($merchant->customerGroups->clear()->toArrayOf('uuid'));
+		)->setDefaultValue($merchant?->customerGroups->clear()->toArrayOf('uuid'));
 
 		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepository->getArrayForSelect());
 		$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect());
