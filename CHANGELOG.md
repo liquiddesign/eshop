@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.443](https://github.com/liquiddesign/eshop/compare/v2.1.442...v2.1.443) (2025-03-19)
+
+### Bug Fixes
+
+* Handle potential null merchant in customerGroups default value assignment ([8a3ab6](https://github.com/liquiddesign/eshop/commit/8a3ab62cf96647849f278056d53e3fe9e752c259))
+
+
+---
+
 ## [2.1.442](https://github.com/liquiddesign/eshop/compare/v2.1.441...v2.1.442) (2025-03-18)
 
 ### Bug Fixes
