@@ -407,20 +407,20 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			}
 		}
 
-		if ($this->shopperUser->getEditOrderAfterCreation() && !$order->receivedTs) {
-			return Order::STATE_OPEN;
+		if ($order->canceledTs) {
+			return Order::STATE_CANCELED;
 		}
 
-		if (!$order->completedTs && !$order->canceledTs) {
-			return Order::STATE_RECEIVED;
-		}
-
-		if ($order->completedTs && !$order->canceledTs) {
+		if ($order->completedTs && $order->receivedTs) {
 			return Order::STATE_COMPLETED;
 		}
 
-		if ($order->canceledTs) {
-			return Order::STATE_CANCELED;
+		if ($order->receivedTs && !$order->completedTs) {
+			return Order::STATE_RECEIVED;
+		}
+
+		if ($this->shopperUser->getEditOrderAfterCreation() && !$order->receivedTs) {
+			return Order::STATE_OPEN;
 		}
 
 		return null;
