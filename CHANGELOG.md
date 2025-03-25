@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.444](https://github.com/liquiddesign/eshop/compare/v2.1.443...v2.1.444) (2025-03-25)
+
+### Bug Fixes
+
+* Refactor order state determination logic for clarity and correctness ([632881](https://github.com/liquiddesign/eshop/commit/6328811492505d0f12c59ae9dff8f8ffa30a2ae1))
+
+
+---
+
 ## [2.1.443](https://github.com/liquiddesign/eshop/compare/v2.1.442...v2.1.443) (2025-03-19)
 
 ### Bug Fixes
