@@ -377,7 +377,7 @@ class ProductImporter
 
 						$valuesToUpdate[$product->uuid] = $newValues;
 					}
-				} elseif (\count($newValues) > 0) {
+				} else {
 					if ($ean) {
 						$newValues['ean'] = $ean;
 					}
