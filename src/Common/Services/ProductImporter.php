@@ -389,7 +389,7 @@ class ProductImporter
 
 				$importedProductsPKs[] = $product->uuid;
 			} catch (\Exception $e) {
-				throw new \Exception('Chyba při zpracování dat!');
+				throw new \Exception('Chyba při zpracování dat! ' . $e->getMessage());
 			}
 
 			Arrays::invoke($onImport, $importedProductsPKs);
