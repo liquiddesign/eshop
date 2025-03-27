@@ -1483,8 +1483,9 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 		$clonedFieldsSelection->addCheckbox('width', 'Šířka')->setDefaultValue(false);
 		$clonedFieldsSelection->addCheckbox('length', 'Délka')->setDefaultValue(false);
 		$clonedFieldsSelection->addCheckbox('depth', 'Hloubka')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('weight', 'Váha')->setDefaultValue(false);
 		$clonedFieldsSelection->addCheckbox('attributes', 'Atributy')->setDefaultValue(false);
-		$clonedFieldsSelection->addCheckbox('algoliaKeywords', 'Algolia klíčový slova')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('algoliaKeywords', 'Algolia klíčová slova')->setDefaultValue(false);
 
 		// TODO vazby z entity Related
 
