@@ -4,6 +4,16 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.447](https://github.com/liquiddesign/eshop/compare/v2.1.446...v2.1.447) (2025-03-27)
+
+### Features
+
+* Add phone, external ID, and external code fields to Merchant; enhance form and grid functionality ([1ce697](https://github.com/liquiddesign/eshop/commit/1ce69771f787ef97ab90016149f501d255089a9e))
+* Adding copy of attributes, algolia keywords and product parameters ([feb37c](https://github.com/liquiddesign/eshop/commit/feb37cfb0803f915367f2f91ca4b913bd51142ca))
+
+
+---
+
 ## [2.1.444](https://github.com/liquiddesign/eshop/compare/v2.1.443...v2.1.444) (2025-03-25)
 
 ### Bug Fixes
