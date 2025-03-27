@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.448](https://github.com/liquiddesign/eshop/compare/v2.1.447...v2.1.448) (2025-03-27)
+
+### Features
+
+* Add weight checkbox to cloned fields selection; correct Algolia keywords label ([360403](https://github.com/liquiddesign/eshop/commit/3604038406eb5c90d3ceffe6bd46adc8eb46b1ca))
+
+
+---
+
 ## [2.1.447](https://github.com/liquiddesign/eshop/compare/v2.1.446...v2.1.447) (2025-03-27)
 
 ### Features
