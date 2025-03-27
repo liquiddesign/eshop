@@ -3,6 +3,7 @@
 namespace Eshop\Services\Product;
 
 use Base\Bridges\AutoWireService;
+use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\File;
 use Eshop\DB\Product;
 use Eshop\DB\RelatedRepository;
@@ -26,6 +27,7 @@ readonly class ProductClonerService implements AutoWireService
 		'loyaltyPrograms',
 		'reviews',
 		'visibilityListItems',
+		'primaryCategories',
 	];
 
 	private const NXN_RELATION_KEYS = [
@@ -37,7 +39,8 @@ readonly class ProductClonerService implements AutoWireService
 	public function __construct(
 		private Container $container,
 		private DIConnection $storm,
-		private RelatedRepository $relatedRepository
+		private RelatedRepository $relatedRepository,
+		private AttributeAssignRepository $attributeAssignRepository,
 	) {
 	}
 
@@ -56,6 +59,8 @@ readonly class ProductClonerService implements AutoWireService
 					$this->cloneFilesRelation($sourceProduct, $targetProduct);
 				} elseif ($clonedField === 'related') {
 					$this->cloneRelated($sourceProduct, $targetProduct);
+				} elseif ($clonedField === 'attributes') {
+					$this->cloneAttributeAssignment($sourceProduct, $targetProduct);
 				} elseif ($clonedField === 'photos' || $clonedField === 'galleryImages') {
 					$this->clonePhotosRelation($sourceProduct, $targetProduct, $clonedField);
 				} elseif (Arrays::contains(self::INVERSE_RELATION_KEYS, $clonedField)) {
@@ -193,6 +198,23 @@ readonly class ProductClonerService implements AutoWireService
 			$relationArray = $relation->toArray(includePK: false);
 			$relationArray['slave'] = $targetProduct->getPK();
 			$this->relatedRepository->createOne($relationArray);
+		}
+	}
+
+	private function cloneAttributeAssignment(Product $sourceProduct, Product $targetProduct): void
+	{
+		$sourceRelatedAttributes = $this->attributeAssignRepository->many()
+			->where('fk_product', $sourceProduct->getPK());
+
+		$this->attributeAssignRepository->many()
+			->where('fk_product', $targetProduct->getPK())
+			->delete();
+
+		foreach ($sourceRelatedAttributes as $attribute) {
+			$this->attributeAssignRepository->createOne([
+				'product' => $targetProduct->getPK(),
+				'value' => $attribute->value->getPK(),
+			]);
 		}
 	}
 }

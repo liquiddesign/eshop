@@ -1479,6 +1479,12 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 //		$clonedFieldsSelection->addCheckbox('quantityPrices', 'Množstevní Ceny')->setDefaultValue(false);
 		$clonedFieldsSelection->addCheckbox('photos', 'Fotografie')->setDefaultValue(false);
 		$clonedFieldsSelection->addCheckbox('files', 'Soubory')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('primaryCategories', 'Primární kategorie')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('width', 'Šířka')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('length', 'Délka')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('depth', 'Hloubka')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('attributes', 'Atributy')->setDefaultValue(false);
+		$clonedFieldsSelection->addCheckbox('algoliaKeywords', 'Algolia klíčový slova')->setDefaultValue(false);
 
 		// TODO vazby z entity Related
 
