@@ -38,6 +38,12 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	public string $email;
 
 	/**
+	 * Email
+	 * @column
+	 */
+	public string|null $phone = null;
+
+	/**
 	 * Určuje odkud se bere oprávnění pro katalog při přihlášení na zákazníka
 	 * @column{"type":"enum","length":"'customer','merchant'"}
 	 */
@@ -87,6 +93,16 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	 * @column
 	 */
 	public ?string $preferredMutation;
+
+	/**
+	 * @column
+	 */
+	public ?string $externalId;
+
+	/**
+	 * @column
+	 */
+	public ?string $externalCode;
 
 	/**
 	 * Ceníky

@@ -8,22 +8,24 @@ use Admin\Admin\Controls\AccountFormFactory;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\DB\Customer;
 use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
 use Eshop\DB\MerchantRepository;
+use Eshop\DB\Pricelist;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\Services\ProductsCache\ProductsCacheGetterService;
 use Forms\Form;
 use Grid\Datagrid;
 use Messages\DB\TemplateRepository;
+use Nette\Application\UI\Presenter;
 use Nette\DI\Attributes\Inject;
 use Nette\Mail\Mailer;
 use Nette\Security\Passwords;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
-use StORM\Collection;
 
 class MerchantPresenter extends BackendPresenter
 {
@@ -101,6 +103,8 @@ class MerchantPresenter extends BackendPresenter
 			return $htmlToReturn;
 		});
 
+		$this->addCustomFieldsToMerchantGrid($grid);
+
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('', function (Merchant $object, Datagrid $datagrid) use ($btnSecondary) {
 			return $object->accounts->clear()->first() !== null ?
@@ -134,11 +138,13 @@ class MerchantPresenter extends BackendPresenter
 
 		$grid->addFilterTextInput('search', ['this.code', 'this.fullName', 'this.email'], null, 'Jméno, kód, e-mail');
 
-		if ($items = $this->customerRepository->getArrayForSelect()) {
-			$grid->addFilterDataSelect(function (Collection $source, $value): void {
-				$source->where('customers.uuid', $value);
-			}, '', 'customers', null, $items)->setPrompt('- Zákazník -');
-		}
+//		if ($items = $this->customerRepository->getArrayForSelect()) {
+//			$grid->addFilterDataSelect(function (Collection $source, $value): void {
+//				$source->where('customers.uuid', $value);
+//			}, '', 'customers', null, $items)->setPrompt('- Zákazník -');
+//		}
+
+		$this->addCustomFiltersToMerchantGrid($grid);
 
 		$grid->addFilterButtons();
 
@@ -152,52 +158,70 @@ class MerchantPresenter extends BackendPresenter
 
 		$form = $this->formFactory->create(false, false, false, false, false);
 
-		$form->addGroup('Obchodník');
-		$form->addText('code', 'Kód')->setNullable();
-		$form->addText('fullname', 'Jméno a příjmení')->setRequired();
-		$form->addEmail('email', 'E-mail')->setRequired();
+		$form->monitor(Presenter::class, function () use ($form, $merchant): void {
+			$form->addGroup('Obchodník');
+			$form->addText('code', 'Kód')->setNullable();
+			$form->addText('fullname', 'Jméno a příjmení')->setRequired();
+			$form->addEmail('email', 'E-mail')->setRequired();
+			$form->addEmail('phone', 'Telefon')->setNullable();
 
-		$form->addGroup('Další možnosti');
+			$form->addGroup('Další možnosti');
 
-		$form->addMultiSelect2(
-			'customerGroups',
-			'Skupina zákazníků',
-			$this->customerGroupRepository->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']),
-		)->setDefaultValue($merchant?->customerGroups->clear()->toArrayOf('uuid'));
+			$form->addMultiSelect2(
+				'customerGroups',
+				'Skupina zákazníků',
+				$this->customerGroupRepository->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']),
+			)->setDefaultValue($merchant?->customerGroups->clear()->toArrayOf('uuid'));
 
-		$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepository->getArrayForSelect());
-		$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect());
+			$pricelistsInput = $form->addMultiSelectAjax('pricelists', 'Ceníky', 'Zvolte ceníky', Pricelist::class);
 
-		if ($this::CONFIGURATIONS['customers']) {
-			$form->addMultiSelect2('customers', 'Zákazníci', $this->customerRepository->getArrayForSelect());
-		}
+			if ($merchant) {
+				$this->template->select2AjaxDefaults[$pricelistsInput->getHtmlId()] = $merchant->getPricelists()->toArrayOf('name');
+			}
 
-		$form->addSelect('catalogPermission', 'Zdroj oprávnění', ['customer' => 'Zákazník', 'merchant' => 'Obchodník'])
-			->setDefaultValue('customer')
-			->setHtmlAttribute('data-info', 'Pokud se obchodník přihlásí na zákazníka, tak určuje, jestli použít oprávnění zákazníka nebo obchodníka.');
+			$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect());
 
-		$form->addSelect('priceListsMode', 'Zdroj ceníků', [
-			'customer' => 'Zákazník',
-			'merchant' => 'Obchodník (nedoporučeno)',
-			'merge' => 'Kombinovat',
-		])
-			->setDefaultValue('customer')
-			->setHtmlAttribute('data-info', 'Pokud se obchodník přihlásí na zákazníka, tak určuje, jestli použít ceníky zákazníka, obchodníka nebo spojit ceníky obou.');
-		$form->addCheckbox('customersPermission', 'Oprávnění: Správa zákazníků');
-		$form->addCheckbox('ordersPermission', 'Oprávnění: Správa objednávek');
-		$form->addCheckbox(
-			'customerEmailNotification',
-			'Posílat e-mailem informace o objednávkách přiřazených zákazníků.',
-		);
+			if ($this::CONFIGURATIONS['customers']) {
+				$customersInput = $form->addMultiSelectAjax('customers', 'Zákazníci', 'Zvolte zákazníky', Customer::class);
 
-		$this->formFactory->addShopsContainerToAdminForm($form);
+				if ($merchant) {
+					$this->template->select2AjaxDefaults[$customersInput->getHtmlId()] = $merchant->customers->toArrayOf('name');
+				}
+			}
 
-		$form->addGroup('Cache');
-		$form->addText('cacheIndex', 'Index')
-			->setDisabled()
-			->setDefaultValue($merchant ? $this->productsCacheGetterService->getIndexByCustomer($merchant) : null);
+			$form->addSelect('catalogPermission', 'Zdroj oprávnění', ['customer' => 'Zákazník', 'merchant' => 'Obchodník'])
+				->setDefaultValue('customer')
+				->setHtmlAttribute('data-info', 'Pokud se obchodník přihlásí na zákazníka, tak určuje, jestli použít oprávnění zákazníka nebo obchodníka.');
 
-		$form->addSubmits(!$merchant);
+			$form->addSelect('priceListsMode', 'Zdroj ceníků', [
+				'customer' => 'Zákazník',
+				'merchant' => 'Obchodník (nedoporučeno)',
+				'merge' => 'Kombinovat',
+			])
+				->setDefaultValue('customer')
+				->setHtmlAttribute('data-info', 'Pokud se obchodník přihlásí na zákazníka, tak určuje, jestli použít ceníky zákazníka, obchodníka nebo spojit ceníky obou.');
+			$form->addCheckbox('customersPermission', 'Oprávnění: Správa zákazníků');
+			$form->addCheckbox('ordersPermission', 'Oprávnění: Správa objednávek');
+			$form->addCheckbox(
+				'customerEmailNotification',
+				'Posílat e-mailem informace o objednávkách přiřazených zákazníků.',
+			);
+
+			$this->formFactory->addShopsContainerToAdminForm($form);
+
+			$form->addGroup('Cache');
+			$form->addText('cacheIndex', 'Index')
+				->setDisabled()
+				->setDefaultValue($merchant ? $this->productsCacheGetterService->getIndexByCustomer($merchant) : null);
+
+			$form->addGroup('Externí');
+			$form->addText('externalId', 'Externí ID')->setNullable();
+			$form->addText('externalCode', 'Externí kód')->setNullable();
+
+			$this->addCustomFieldsToMerchantForm($form);
+
+			$form->addSubmits(!$merchant);
+		});
 
 		$form->onValidate[] = function (AdminForm $form) use ($merchant): void {
 			if (!$form->isValid()) {
@@ -380,5 +404,20 @@ class MerchantPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('accountForm')];
+	}
+
+	protected function addCustomFieldsToMerchantGrid(AdminGrid $grid): void
+	{
+		unset($grid);
+	}
+
+	protected function addCustomFiltersToMerchantGrid(AdminGrid $grid): void
+	{
+		unset($grid);
+	}
+
+	protected function addCustomFieldsToMerchantForm(AdminForm $form): void
+	{
+		unset($form);
 	}
 }

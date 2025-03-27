@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Admin\DB\IGeneralAjaxRepository;
 use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Common\NumbersHelper;
@@ -18,7 +19,7 @@ use StORM\SchemaManager;
  * @template T of \Eshop\DB\Pricelist = \Eshop\DB\Pricelist
  * @extends \StORM\Repository<T>
  */
-class PricelistRepository extends \StORM\Repository implements IGeneralRepository
+class PricelistRepository extends \StORM\Repository implements IGeneralRepository, IGeneralAjaxRepository
 {
 	public const COPY_PRICES_BEFORE_PRICE_SOURCE = 'from';
 	public const COPY_PRICES_BEFORE_PRICE_TARGET = 'target';
@@ -32,6 +33,17 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		private readonly ShopsConfig $shopsConfig
 	) {
 		parent::__construct($connection, $schemaManager);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getAjaxArrayForSelect(bool $includeHidden = true, ?string $q = null, ?int $page = null): array
+	{
+		return $this->getCollection($includeHidden)
+			->where('this.name LIKE :q OR this.code LIKE :q', ['q' => "%$q%",])
+			->setPage($page ?? 1, 5)
+			->toArrayOf('name');
 	}
 
 	public function getPricelists(array $pks, Currency $currency, Country $country, ?DiscountCoupon $activeCoupon = null): Collection
