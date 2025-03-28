@@ -10,6 +10,7 @@ use StORM\RelationCollection;
 /**
  * Ceník
  * @table
+ * @index{"name":"eshop_pricelist_code","columns":["code"],"unique":true}
  * @method \StORM\RelationCollection<\Eshop\DB\Discount> getDiscounts()
  */
 class Pricelist extends ShopSystemicEntity
@@ -17,7 +18,6 @@ class Pricelist extends ShopSystemicEntity
 	/**
 	 * Kód
 	 * @column
-	 * @unique
 	 */
 	public ?string $code;
 	
