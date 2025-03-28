@@ -163,7 +163,7 @@ class MerchantPresenter extends BackendPresenter
 			$form->addText('code', 'Kód')->setNullable();
 			$form->addText('fullname', 'Jméno a příjmení')->setRequired();
 			$form->addEmail('email', 'E-mail')->setRequired();
-			$form->addEmail('phone', 'Telefon')->setNullable();
+			$form->addText('phone', 'Telefon')->setNullable();
 
 			$form->addGroup('Další možnosti');
 
