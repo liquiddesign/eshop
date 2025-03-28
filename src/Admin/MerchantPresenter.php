@@ -133,7 +133,7 @@ class MerchantPresenter extends BackendPresenter
 		$grid->addColumnLinkDetail('Detail');
 		$grid->addColumnActionDelete([$this->accountFormFactory, 'deleteAccountHolder']);
 
-		$grid->addButtonBulkEdit('form', ['visibilityLists']);
+		$grid->addButtonBulkEdit('form', ['visibilityLists', 'pricelists', 'customerGroups'], copyRawValues: ['pricelists' => 'pricelists']);
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder']);
 
 		$grid->addFilterTextInput('search', ['this.code', 'this.fullName', 'this.email'], null, 'Jméno, kód, e-mail');
@@ -263,8 +263,7 @@ class MerchantPresenter extends BackendPresenter
 		};
 		
 		$form->onSuccess[] = function (AdminForm $form): void {
-			/** @var array<mixed> $values */
-			$values = $form->getValues('array');
+			$values = $form->getValuesWithAjax();
 
 			/** @var \Eshop\DB\Merchant $merchant */
 			$merchant = $this->merchantRepository->syncOne($values, null, true, ignore: false);
