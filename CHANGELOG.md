@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.450](https://github.com/liquiddesign/eshop/compare/v2.1.449...v2.1.450) (2025-03-28)
+
+### Bug Fixes
+
+* Update bulk edit button to include pricelists and customer groups; use getValuesWithAjax for form submission ([9c282f](https://github.com/liquiddesign/eshop/commit/9c282ff2d8d9cdfd181275e48797b885cca750df))
+
+
+---
+
 ## [2.1.449](https://github.com/liquiddesign/eshop/compare/v2.1.448...v2.1.449) (2025-03-28)
 
 ### Bug Fixes
