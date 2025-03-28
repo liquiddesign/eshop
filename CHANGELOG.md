@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.449](https://github.com/liquiddesign/eshop/compare/v2.1.448...v2.1.449) (2025-03-28)
+
+### Bug Fixes
+
+* Change phone field type from email to text in Merchant form ([e43a45](https://github.com/liquiddesign/eshop/commit/e43a45e8a9a9b15461b7cef723f60a656f23c0d7))
+
+
+---
+
 ## [2.1.448](https://github.com/liquiddesign/eshop/compare/v2.1.447...v2.1.448) (2025-03-27)
 
 ### Features
