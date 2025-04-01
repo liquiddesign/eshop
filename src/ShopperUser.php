@@ -331,9 +331,7 @@ class ShopperUser extends User
 				return $this->customer;
 			}
 
-			if ($identity instanceof Merchant) {
-				$merchant = $this->getMerchant();
-
+			if ($merchant = $this->getMerchant()) {
 				if ($merchant->activeCustomerAccount) {
 					$merchant->activeCustomer->setAccount($merchant->activeCustomerAccount);
 				}
@@ -377,7 +375,19 @@ class ShopperUser extends User
 			return $this->merchant;
 		}
 
-		return $this->merchant = ($this->isLoggedIn() && $this->getIdentity() instanceof Merchant ? $this->merchantRepository->one($this->getIdentity()->getPK()) : null);
+		if ($this->isLoggedIn() && $this->getIdentity() instanceof Merchant) {
+			$merchant = $this->merchantRepository->one($this->getIdentity()->getPK());
+
+			if (!$merchant) {
+				$this->logout(true);
+
+				return null;
+			}
+
+			return $this->merchant = $merchant;
+		}
+
+		return null;
 	}
 
 	/**
