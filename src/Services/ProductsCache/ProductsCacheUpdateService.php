@@ -23,6 +23,9 @@ readonly class ProductsCacheUpdateService implements AutoWireService
 	) {
 	}
 
+	/**
+	 * @deprecated Use ProductsCacheDiffUpdateService::warmUpCacheTableDiff with customer parameter
+	 */
 	public function updateCustomerVisibilitiesAndPrices(Customer $customer, bool $useTransaction = true): void
 	{
 		$usedCacheIndex = $this->productsCacheGetter->getCacheIndexToBeUsed();
