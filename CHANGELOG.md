@@ -4,6 +4,17 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.451](https://github.com/liquiddesign/eshop/compare/v2.1.450...v2.1.451) (2025-04-01)
+
+### Bug Fixes
+
+* Refactor merchant retrieval logic to improve clarity and handle null cases ([9677bd](https://github.com/liquiddesign/eshop/commit/9677bd322f84987e8f7dcf37086b185291b25153))
+* Change index algorithm for visibilityPriceIndex and product to NOCOPY ([e704b0](https://github.com/liquiddesign/eshop/commit/e704b01e4c4f560ab694096cc142054ad374a30b))
+* Add unique index for pricelist code to enforce uniqueness ([b06ec4](https://github.com/liquiddesign/eshop/commit/b06ec4b6fc6b2da42a7d90de5089be32cc9f340a))
+
+
+---
+
 ## [2.1.450](https://github.com/liquiddesign/eshop/compare/v2.1.449...v2.1.450) (2025-03-28)
 
 ### Bug Fixes
