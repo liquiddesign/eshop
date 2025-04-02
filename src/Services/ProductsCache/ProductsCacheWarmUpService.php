@@ -1132,7 +1132,7 @@ CREATE TABLE `$categoriesTableName` (
 		$link = $this->getLink();
 
 		Debugger::timer('indexVisibilityPriceTable -- PRIMARY');
-		$link->exec("ALTER TABLE `$pricesCacheTableName` ADD PRIMARY KEY (visibilityPriceIndex, product), ALGORITHM = NOCOPY;");
+		$link->exec("ALTER TABLE `$pricesCacheTableName` ADD PRIMARY KEY (visibilityPriceIndex, product), ALGORITHM = INPLACE;");
 		Debugger::dump('indexVisibilityPriceTable -- PRIMARY: ' . Debugger::timer('indexVisibilityPriceTable -- PRIMARY'));
 
 		Debugger::timer('indexVisibilityPriceTable -- product');
