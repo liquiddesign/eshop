@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.452](https://github.com/liquiddesign/eshop/compare/v2.1.451...v2.1.452) (2025-04-02)
+
+### Bug Fixes
+
+* Change index algorithm for visibilityPriceIndex and product to INPLACE ([85b0e4](https://github.com/liquiddesign/eshop/commit/85b0e49d437a8cb2a68f0b2ead11767093f04209))
+
+
+---
+
 ## [2.1.451](https://github.com/liquiddesign/eshop/compare/v2.1.450...v2.1.451) (2025-04-01)
 
 ### Bug Fixes
