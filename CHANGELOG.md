@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.453](https://github.com/liquiddesign/eshop/compare/v2.1.452...v2.1.453) (2025-04-02)
+
+### Features
+
+* Customer internal ribbons ([c39293](https://github.com/liquiddesign/eshop/commit/c39293030559360efeedab554aa035f30a5c8360))
+
+
+---
+
 ## [2.1.452](https://github.com/liquiddesign/eshop/compare/v2.1.451...v2.1.452) (2025-04-02)
 
 ### Bug Fixes
