@@ -6,7 +6,9 @@ namespace Eshop\Admin;
 use Admin\Admin\Controls\AccountFormFactory;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Carbon\Carbon;
 use Eshop\Admin\Controls\Customer\FavouriteProductsTrait;
+use Eshop\Common\Helpers;
 use Eshop\DB\AddressRepository;
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CurrencyRepository;
@@ -15,6 +17,8 @@ use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\CustomerRoleRepository;
 use Eshop\DB\DeliveryTypeRepository;
+use Eshop\DB\InternalRibbon;
+use Eshop\DB\InternalRibbonRepository;
 use Eshop\DB\LoyaltyProgramRepository;
 use Eshop\DB\MerchantRepository;
 use Eshop\DB\NewsletterUserGroupRepository;
@@ -30,6 +34,7 @@ use Eshop\Services\ProductsCache\ProductsCacheGetterService;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
+use League\Csv\Reader;
 use League\Csv\Writer;
 use Messages\DB\TemplateRepository;
 use Nette\Application\Responses\FileResponse;
@@ -39,12 +44,15 @@ use Nette\Forms\Controls\Button;
 use Nette\Mail\Mailer;
 use Nette\NotImplementedException;
 use Nette\Utils\Arrays;
+use Nette\Utils\FileSystem;
 use Nette\Utils\Validators;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\Collection;
 use StORM\Connection;
 use StORM\ICollection;
+use Tracy\Debugger;
+use Tracy\ILogger;
 
 class CustomerPresenter extends \Eshop\BackendPresenter
 {
@@ -166,6 +174,9 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 	#[Inject]
 	public ProductsCacheGetterService $productsCacheGetterService;
 
+	#[Inject]
+	public InternalRibbonRepository $internalRibbonRepository;
+
 	/**
 	 * @var null|callable(array<mixed> $values, \Admin\Controls\AdminForm $form): bool
 	 */
@@ -260,6 +271,15 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			'one' => 'Jedna objednávka (=1)',
 			'more' => 'Více objednávek (>1)',
 		])->setPrompt('- Počet obj. -');
+
+		if (!$ribbons = $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_CUSTOMER)) {
+			return;
+		}
+
+		$ribbons += ['0' => 'X - bez štítků'];
+		$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+			$source->filter(['internalRibbon' => Helpers::replaceArrayValue($value, '0', null)]);
+		}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
 	}
 
 	public function addFiltersToAccountsGrid(AdminGrid $grid): void
@@ -322,11 +342,16 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			$hr = '<hr style="margin: 0">';
 			$billAddress = $customer->billAddress?->getFullAddress();
 			$deliveryAddress = $customer->deliveryAddress?->getFullAddress();
+			$ribbons = null;
+
+			foreach ($customer->internalRibbons as $ribbon) {
+				$ribbons .= "<div class=\"badge\" style=\"font-weight: normal; font-style: italic; background-color: $ribbon->backgroundColor; color: $ribbon->color\">$ribbon->name</div> ";
+			}
 
 			$firstRow = "<div class='row'><div class='col-6'>{$customer->getName()}</div><div class='col-6'>$customer->ic</div></div>";
 			$secondRow = "<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
 
-			return $firstRow . $hr . $secondRow;
+			return $firstRow . $hr . $secondRow . $ribbons;
 		});
 		$td = '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a><br><a href="tel:%2$s"><i class="fa fa-phone-alt"></i> %2$s</a>';
 		$grid->addColumnTextFit('E-mail / Telefon', ['email', 'phone'], $td)->onRenderCell[] = [$grid, 'decoratorEmpty'];
@@ -402,7 +427,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 //			'bulkEdit',
 //			copyRawValues: ['favouriteProducts' => 'favouriteProducts'],
 //		);
-		
+
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů')
 			->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
 		$submit->onClick[] = [$this, 'exportCustomers'];
@@ -614,6 +639,9 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 			$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect())
 				->setDisabled(!$this->isManager);
+
+			$form->addMultiSelect2('internalRibbons', 'Interní štítky', $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_CUSTOMER))
+				->setDefaultValue($customer->internalRibbons->toArrayOf('uuid', toArrayValues: true));
 
 			$customersForSelect = $this->customerRepository->getArrayForSelect();
 
@@ -867,7 +895,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$this->template->displayButtons = [$this->createNewItemButton('newAccount')];
 			$this->template->displayControls = [$this->getComponent('accountGrid')];
 		}
-		
+
+		$this->template->displayButtons[] = $this->createButton2('importInternalRibbonsCsv', '<i class="fas fa-file-upload mr-1"></i>Importovat interní štítky');
 		$this->template->tabs = self::TABS;
 	}
 	
@@ -1336,6 +1365,137 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$this->redirect('default');
 		};
 		
+		return $form;
+	}
+
+	public function actionImportInternalRibbonsCsv(): void
+	{
+		$this->connection->setDebug(false);
+	}
+
+	public function renderImportInternalRibbonsCsv(): void
+	{
+		$this->template->headerLabel = 'Import interních štítkú';
+		$this->template->headerTree = [
+			['Zákazníci', 'default'],
+			['Import interních štítkú'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('importInternalRibbonsCsvForm')];
+	}
+
+	public function createComponentImportInternalRibbonsCsvForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+
+		$lastUpdate = null;
+		$path = \dirname(__DIR__, 5) . '/userfiles/customerInternalRibbons.csv';
+
+		if (\file_exists($path)) {
+			$lastUpdate = \filemtime($path);
+		}
+
+		$form->addGroup('CSV soubor');
+		$form->addText('lastProductFileUpload', 'Poslední aktualizace souboru')->setDisabled()->setDefaultValue($lastUpdate ? Carbon::createFromTimestamp($lastUpdate)->format('d.m.Y G:i') : null);
+
+		$filePicker = $form->addFilePicker('file', 'Soubor (CSV)')
+			->setRequired()
+			->addRule($form::MimeType, 'Neplatný soubor!', 'text/csv');
+
+		$form->addSelect('delimiter', 'Oddělovač', [
+			';' => 'Středník (;)',
+			'   ' => 'Tab (\t)',
+			' ' => 'Mezera ( )',
+			'|' => 'Pipe (|)',
+		]);
+
+		$form->addSubmit('submit', 'Importovat');
+
+		$form->onValidate[] = function (AdminForm $form) use ($filePicker): void {
+			/** @var array<mixed> $values */
+			$values = $form->getValues('array');
+
+			/** @var \Nette\Http\FileUpload $file */
+			$file = $values['file'];
+
+			if ($file->hasFile()) {
+				return;
+			}
+
+			$filePicker->addError('Neplatný soubor!');
+		};
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			/** @var array<mixed> $values */
+			$values = $form->getValues('array');
+
+			/** @var \Nette\Http\FileUpload $file */
+			$file = $values['file'];
+
+			$dir = \dirname(__DIR__, 5);
+			$productsFileName = $dir . '/userfiles/customerInternalRibbons.csv';
+			$tempFileName = \tempnam($this->container->getParameter('tempDir'), 'products');
+
+			if (!$tempFileName) {
+				throw new \Exception('Cant create temp file');
+			}
+
+			$file->move($tempFileName);
+
+			$connection = $this->productRepository->getConnection();
+			$connection->getLink()->beginTransaction();
+
+			try {
+				$reader = Reader::createFromPath($tempFileName);
+
+				$reader->setDelimiter($values['delimiter']);
+				$reader->setHeaderOffset(0);
+
+				foreach ($reader->getRecords() as $record) {
+					$record = \array_change_key_case($record);
+
+					$code = $record['kod'];
+					$types = $record['typ'];
+
+					/** @var ?\Eshop\DB\Customer $customer */
+					$customer = $this->customerRepository->one(['externalCode' => $code]);
+
+					if ($customer === null) {
+						Debugger::log(\sprintf('Wasn\'t able to import customer with code %s', $code), ILogger::WARNING);
+
+						continue;
+					}
+
+					$typesForCustomer = \array_map(function (string $type) {
+						return 'internal_qi_type_' . $type;
+					}, \explode(',', $types));
+
+					$customer->internalRibbons->relate($typesForCustomer);
+				}
+
+				FileSystem::copy($tempFileName, $productsFileName);
+
+				$connection->getLink()->commit();
+				$this->flashMessage('Import produktů: úspěšný', 'success');
+			} catch (\Exception $e) {
+				Debugger::barDump($e);
+
+				$connection->getLink()->rollBack();
+
+				$this->flashMessage('Import produktů: ' . ($e->getMessage() !== '' ? $e->getMessage() : 'chyba'), 'error');
+			}
+
+			$connection->getLink()->beginTransaction();
+
+			try {
+				FileSystem::delete($tempFileName);
+			} catch (\Exception $e) {
+				Debugger::log($e, ILogger::WARNING);
+			}
+
+			$this->redirect('this');
+		};
+
 		return $form;
 	}
 
