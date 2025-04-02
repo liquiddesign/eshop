@@ -181,4 +181,11 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 
 		return (bool) \count($autoships);
 	}
+
+	public function filterInternalRibbon($value, ICollection $collection): void
+	{
+		$collection->join(['internalRibbons' => 'eshop_customer_nxn_eshop_internalribbon'], 'internalRibbons.fk_customer=this.uuid');
+
+		$value === false ? $collection->where('internalRibbons.fk_internalRibbon IS NULL') : $collection->where('internalRibbons.fk_internalRibbon', $value);
+	}
 }

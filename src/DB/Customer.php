@@ -358,7 +358,13 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @var \StORM\RelationCollection<\Eshop\DB\Product>
 	 */
 	public RelationCollection $favouriteProducts;
-	
+
+	/**
+	 * @relationNxN{"sourceViaKey":"fk_customer","targetViaKey":"fk_internalRibbon","via":"eshop_customer_nxn_eshop_internalribbon"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\InternalRibbon>
+	 */
+	public RelationCollection $internalRibbons;
+
 	public ?Account $account = null;
 
 	protected CatalogPermission|null|false $catalogPermission = false;

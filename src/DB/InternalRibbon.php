@@ -16,11 +16,13 @@ class InternalRibbon extends ShopEntity
 	public const TYPE_PRODUCT = 'product';
 	public const TYPE_ORDER = 'order';
 	public const TYPE_PRICE_LIST = 'price_list';
+	public const TYPE_CUSTOMER = 'customer';
 
 	public const TYPES = [
 		self::TYPE_PRODUCT => 'Produkt',
 		self::TYPE_ORDER => 'Objednávka',
 		self::TYPE_PRICE_LIST => 'Ceník',
+		self::TYPE_CUSTOMER => 'Zákazník',
 	];
 
 	/**
@@ -49,7 +51,7 @@ class InternalRibbon extends ShopEntity
 
 	/**
 	 * Typ
-	 * @column{"type":"enum","length":"'product','order','price_list'"}
+	 * @column{"type":"enum","length":"'product','order','price_list','customer'"}
 	 */
 	public string $type = 'product';
 
