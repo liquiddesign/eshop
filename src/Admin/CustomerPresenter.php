@@ -1470,19 +1470,20 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 						return 'internal_qi_type_' . $type;
 					}, \explode(',', $types));
 
+					$customer->internalRibbons->unrelateAll();
 					$customer->internalRibbons->relate($typesForCustomer);
 				}
 
 				FileSystem::copy($tempFileName, $productsFileName);
 
 				$connection->getLink()->commit();
-				$this->flashMessage('Import produktů: úspěšný', 'success');
+				$this->flashMessage('Import zákazníků: úspěšný', 'success');
 			} catch (\Exception $e) {
 				Debugger::barDump($e);
 
 				$connection->getLink()->rollBack();
 
-				$this->flashMessage('Import produktů: ' . ($e->getMessage() !== '' ? $e->getMessage() : 'chyba'), 'error');
+				$this->flashMessage('Import zákazníků: ' . ($e->getMessage() !== '' ? $e->getMessage() : 'chyba'), 'error');
 			}
 
 			$connection->getLink()->beginTransaction();
