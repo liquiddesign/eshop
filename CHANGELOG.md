@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.454](https://github.com/liquiddesign/eshop/compare/v2.1.453...v2.1.454) (2025-04-03)
+
+### Bug Fixes
+
+* Update flash messages for customer import functionality ([f41438](https://github.com/liquiddesign/eshop/commit/f41438dca355e9722232cc283028c5a3c5892500))
+
+
+---
+
 ## [2.1.453](https://github.com/liquiddesign/eshop/compare/v2.1.452...v2.1.453) (2025-04-02)
 
 ### Features
