@@ -6,7 +6,10 @@ interface GeneralProductsCacheProvider
 {
 	public const PRODUCTS_PROVIDER_CACHE_TAG = 'productsProviderCache';
 
-	public function warmUpCacheTable(): void;
+	/**
+	 * @param array<string|\Eshop\DB\Customer> $customers
+	 */
+	public function warmUpCacheTable(array $customers = []): void;
 
 	/**
 	 * @param array<mixed> $filters
@@ -35,9 +38,4 @@ interface GeneralProductsCacheProvider
 		array $visibilityLists = [],
 		bool $showAncestorsInCategory = true,
 	): array|false;
-
-	/**
-	 * Works like warmUpCacheTable, but don't erase all data.
-	 */
-	public function warmUpCacheTableDiff(): void;
 }

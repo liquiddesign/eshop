@@ -4,7 +4,6 @@ namespace Eshop\Services\ProductsCache;
 
 use Base\DB\Shop;
 use Base\ShopsConfig;
-use Carbon\Carbon;
 use Eshop\Admin\ScriptsPresenter;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -37,9 +36,10 @@ use Web\DB\SettingRepository;
 
 abstract class ProductsCacheBaseWarmUpService
 {
-	public const PRODUCTS_TABLE_NAME = 'eshop_products_cache_';
-	public const PRICES_TABLE_NAME = 'eshop_products_prices_cache_';
-	public const CATEGORIES_TABLE_NAME = 'eshop_categories_cache_';
+	public const PRODUCTS_TABLE_NAME = 'products';
+	public const PRICES_TABLE_NAME = 'prices_';
+	public const CATEGORIES_TABLE_NAME = 'categories';
+	public const RELATIONS_TABLE_NAME = 'relations';
 
 	protected Cache $cache;
 
@@ -81,40 +81,9 @@ abstract class ProductsCacheBaseWarmUpService
 		$this->cache = new Cache($storage);
 	}
 
-	public function getProductsTableName(int $cacheIndexToBeWarmedUp): string
+	public function getConnection(): DIConnection
 	{
-		return $this::PRODUCTS_TABLE_NAME . $cacheIndexToBeWarmedUp;
-	}
-
-	public function getPricesTableName(int $cacheIndexToBeWarmedUp): string
-	{
-		return $this::PRICES_TABLE_NAME . $cacheIndexToBeWarmedUp;
-	}
-
-	public function getCategoriesTableName(int $cacheIndexToBeWarmedUp): string
-	{
-		return $this::CATEGORIES_TABLE_NAME . $cacheIndexToBeWarmedUp;
-	}
-
-	/**
-	 * @return int<0, 2>
-	 * @throws \StORM\Exception\NotFoundException
-	 */
-	protected function getCacheIndexToBeUsed(): int
-	{
-		$readyState = $this->productsCacheStateRepository->many()->where('this.state', 'ready')->first();
-
-		if (!$readyState) {
-			return 0;
-		}
-
-		$state = (int) $readyState->getPK();
-
-		if ($state < 0 || $state > 2) {
-			throw new \Exception("State '$state' out of allowed range!");
-		}
-
-		return $state;
+		return $this->connection;
 	}
 
 	public function cleanProductsProviderCache(): void
@@ -159,7 +128,7 @@ abstract class ProductsCacheBaseWarmUpService
 	 * @param array<string|int> $customers
 	 * @param array<string|int>|null $customerGroups
 	 * @param array<string|int> $merchants
-	 * @return array{0: array<string|int, true>, 1: list<string|int>, 2: list<string|int>}
+	 * @return array{0: array<string, true>, 1: list<int>, 2: list<int>}
 	 */
 	public function getAllPossibleVisibilityAndPriceListOptions(array $customers = [], array|null $customerGroups = null, array $merchants = []): array
 	{
@@ -174,7 +143,7 @@ abstract class ProductsCacheBaseWarmUpService
 
 		foreach ($this->shopsConfig->getAvailableShops() as $shop) {
 			[$existingOptionsShop, $allVisibilityListsShop, $allPriceListsShop] = $this->getAllPossibleVisibilityAndPriceListOptionsHelper($customers, $customerGroups, $merchants, $shop);
-			/** @var array<string|int, true> $existingOptions */
+			/** @var array<string, true> $existingOptions */
 			$existingOptions = Arrays::mergeTree($existingOptions, $existingOptionsShop);
 
 			// merge only new values
@@ -182,14 +151,242 @@ abstract class ProductsCacheBaseWarmUpService
 			$allPriceLists = \array_merge($allPriceLists, \array_diff($allPriceListsShop, $allPriceLists));
 		}
 
-		return [$existingOptions, \array_values($allVisibilityLists), \array_values($allPriceLists)];
+		return [$existingOptions, $allVisibilityLists, $allPriceLists];
+	}
+
+	/**
+	 * @return int<0, 2>
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	protected function getCacheIndexToBeUsed(): int
+	{
+		$readyState = $this->productsCacheStateRepository->many()->where('this.state', 'ready')->first();
+
+		if (!$readyState) {
+			return 0;
+		}
+
+		$state = (int) $readyState->getPK();
+
+		if ($state < 0 || $state > 2) {
+			throw new \Exception("State '$state' out of allowed range!");
+		}
+
+		return $state;
+	}
+
+	/**
+	 * @param string $tableName
+	 * @param array<array<mixed>> $data
+	 * @param int $chunkSize
+	 * @throws \Exception
+	 */
+	protected function loadDataInfile(string $tableName, array $data, int $chunkSize = 10000): void
+	{
+//      Debugger::timer('loadDataInfile');
+		$tmpFileName = \tempnam($this->container->getParameter('tempDir'), 'csv');
+
+		$buffer = \fopen('php://memory', 'rw');
+		$file = \fopen($tmpFileName, 'w');
+
+		if ($buffer === false) {
+			throw new \Exception("Resource 'buffer' was not created!");
+		}
+
+		if ($file === false) {
+			throw new \Exception("Resource 'file' was not created!");
+		}
+
+		$i = 0;
+
+		foreach ($data as $row) {
+			\fputcsv($buffer, $row, escape: '\\');
+
+			$i++;
+
+			if ($i !== $chunkSize) {
+				continue;
+			}
+
+			\rewind($buffer);
+			$csv = \stream_get_contents($buffer);
+
+			if ($csv === false) {
+				throw new \Exception("Resource 'csv' was not created!");
+			}
+
+			\fclose($buffer);
+			$buffer = \fopen('php://memory', 'rw');
+
+			if ($buffer === false) {
+				throw new \Exception("Resource 'buffer' was not created!");
+			}
+
+			\fwrite($file, $csv);
+			unset($csv);
+
+			$i = 0;
+		}
+
+		\rewind($buffer);
+		$csv = \stream_get_contents($buffer);
+
+		if ($csv === false) {
+			throw new \Exception("Resource 'csv' was not created!");
+		}
+
+		\fclose($buffer);
+
+		\fwrite($file, $csv);
+		unset($csv);
+
+		\fclose($file);
+
+//      Debugger::dump('Insert to CSV: ' . Debugger::timer('loadDataInfile'));
+
+		$tmpFileName = \str_replace('\\', '\\\\', $tmpFileName);
+
+		$this->getLink()->exec("LOAD DATA LOCAL INFILE \"$tmpFileName\"
+            INTO TABLE $tableName
+            fields terminated by ','
+            optionally enclosed by '\"'
+            escaped by \"\\\\\";");
+
+		FileSystem::delete($tmpFileName);
+
+//      Debugger::dump('Insert to DB: ' . Debugger::timer('loadDataInfile'));
+	}
+
+	protected function getLink(): \PDO
+	{
+		if ($this->link !== false) {
+			return $this->link;
+		}
+
+		return $this->link = $this->getConnection()->getLink();
+	}
+
+	protected function getDbName(): string
+	{
+		if ($this->dbName !== false) {
+			return $this->dbName;
+		}
+
+		return $this->dbName = $this->getConnection()->getDatabaseName();
+	}
+
+	protected function getMutationSuffix(): string
+	{
+		if ($this->mutationSuffix !== false) {
+			return $this->mutationSuffix;
+		}
+
+		return $this->mutationSuffix = $this->connection->getMutationSuffix();
+	}
+
+	/**
+	 * @param string $category
+	 * @param array<object{ancestor: string, showDescendantProducts: bool, showProductsInAncestors: bool}> $allCategories
+	 * @return array<string>
+	 */
+	protected function getAncestorsOfCategory(string $category, array $allCategories): array
+	{
+		$categories = [];
+
+		while ($ancestor = $allCategories[$category]->ancestor) {
+			$categories[] = $ancestor;
+			$category = $ancestor;
+		}
+
+		return $categories;
+	}
+
+	/**
+	 * @return array{
+	 *     0: array<object{id: int}>,
+	 *     1: array<object{id: int, isSold: bool}>,
+	 *     2: array<object{id: int, ancestor: string, showDescendantProducts: bool, showProductsInAncestors: bool}>,
+	 *     3: array<object{category: string|null, categoryType: string}>,
+	 *     4: array<object{id: int, groupedValues: string}>,
+	 *     5: array<object{id: int, groupedValues: string}>,
+	 *     6: array<object{id: int, groupedValues: string}>
+	 * }
+	 */
+	protected function getPrefetchedArrays(): array
+	{
+		/** @var array<object{id: int}> $allCategoryTypes */
+		$allCategoryTypes = $this->categoryTypeRepository->many()
+			->select(['this.id'])
+			->setOrderBy(['this.id'])
+			->fetchArray(\stdClass::class);
+
+		/** @var array<object{id: int, isSold: bool}> $allDisplayAmounts */
+		$allDisplayAmounts = $this->displayAmountRepository->many()
+			->select(['this.id'])
+			->setIndex('id')
+			->fetchArray(\stdClass::class);
+
+		/** @var array<object{id: int, ancestor: string, showDescendantProducts: bool, showProductsInAncestors: bool}> $allCategories */
+		$allCategories = $this->categoryRepository->many()
+			->setSelect([
+				'this.id',
+				'ancestor' => 'this.fk_ancestor',
+				'showDescendantProducts' => 'this.showDescendantProducts',
+				'showProductsInAncestors' => 'this.showProductsInAncestors',
+			], keepIndex: true)
+			->fetchArray(\stdClass::class);
+
+		/** @var array<object{category: string|null, categoryType: string}> $allProductPrimaryCategories */
+		$allProductPrimaryCategories = $this->productPrimaryCategoryRepository->many()
+			->join(['eshop_categorytype'], 'this.fk_categoryType = eshop_categorytype.uuid')
+			->join(['eshop_category'], 'this.fk_category = eshop_category.uuid')
+			->setSelect(['category' => 'eshop_category.id', 'categoryType' => 'eshop_categorytype.id'], keepIndex: true)
+			->fetchArray(\stdClass::class);
+
+		/** @var array<object{id: int, groupedValues: string}> $productPrimaryCategories */
+		$productPrimaryCategories = $this->productRepository->many()
+			->join(['joinedTable' => 'eshop_productprimarycategory'], 'this.uuid = joinedTable.fk_product', type: 'INNER')
+			->join(['categoryType' => 'eshop_category'], 'joinedTable.fk_category = categoryType.uuid', type: 'INNER')
+			->setSelect([
+				'id' => 'this.id',
+				'groupedValues' => 'GROUP_CONCAT(DISTINCT joinedTable.uuid)',
+			])
+			->setGroupBy(['this.id'])
+			->setIndex('id')
+			->setOrderBy(['categoryType.id'])
+			->fetchArray(\stdClass::class);
+
+		/** @var array<object{id: int, groupedValues: string}> $productAttributeValues */
+		$productAttributeValues = $this->productRepository->many()
+			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product', type: 'INNER')
+			->join(['joinedTable' => 'eshop_attributevalue'], 'assign.fk_value = joinedTable.uuid', type: 'INNER')
+			->setSelect([
+				'id' => 'this.id',
+				'groupedValues' => 'GROUP_CONCAT(DISTINCT joinedTable.id)',
+			])
+			->setGroupBy(['this.id'])
+			->setIndex('id')
+			->fetchArray(\stdClass::class);
+
+		/** @var array<object{id: int, groupedValues: string}> $productCategories */
+		$productCategories = $this->productRepository->many()
+			->join(['joinedTable' => 'eshop_product_nxn_eshop_category'], 'this.uuid = joinedTable.fk_product', type: 'INNER')
+			->setSelect([
+				'id' => 'this.id',
+				'groupedValues' => 'GROUP_CONCAT(DISTINCT joinedTable.fk_category)',
+			])
+			->setGroupBy(['this.id'])
+			->setIndex('id')
+			->fetchArray(\stdClass::class);
+
+		return [$allCategoryTypes, $allDisplayAmounts, $allCategories, $allProductPrimaryCategories, $productPrimaryCategories, $productAttributeValues, $productCategories];
 	}
 
 	/**
 	 * @param array<string|int> $customers
 	 * @param array<string|int>|null $customerGroups
 	 * @param array<string|int> $merchants
-	 * @return array{0: array<string|int, true>, 1: list<string|int>, 2: list<string|int>}
+	 * @return array{0: array<string, true>, 1: list<int>, 2: list<int>}
 	 */
 	private function getAllPossibleVisibilityAndPriceListOptionsHelper(array $customers = [], array|null $customerGroups = null, array $merchants = [], Shop|null $shop = null): array
 	{
@@ -465,252 +662,5 @@ abstract class ProductsCacheBaseWarmUpService
 		}
 
 		return [$existingOptions, \array_keys($allVisibilityLists), \array_keys($allPriceLists)];
-	}
-
-	protected function loadDataInfile(string $tableName, array $data, int $chunkSize = 10000): void
-	{
-//      Debugger::timer('loadDataInfile');
-		$tmpFileName = \tempnam($this->container->getParameter('tempDir'), 'csv');
-
-		$buffer = \fopen('php://memory', 'rw');
-		$file = \fopen($tmpFileName, 'w');
-
-		$i = 0;
-
-		foreach ($data as $row) {
-			\fputcsv($buffer, $row, escape: '\\');
-
-			$i++;
-
-			if ($i !== $chunkSize) {
-				continue;
-			}
-
-			\rewind($buffer);
-			$csv = \stream_get_contents($buffer);
-			\fclose($buffer);
-			$buffer = \fopen('php://memory', 'rw');
-
-			\fwrite($file, $csv);
-			unset($csv);
-
-			$i = 0;
-		}
-
-		\rewind($buffer);
-		$csv = \stream_get_contents($buffer);
-		\fclose($buffer);
-
-		\fwrite($file, $csv);
-		unset($csv);
-
-		\fclose($file);
-
-//      Debugger::dump('Insert to CSV: ' . Debugger::timer('loadDataInfile'));
-
-		$tmpFileName = \str_replace('\\', '\\\\', $tmpFileName);
-
-		$this->getLink()->exec("LOAD DATA LOCAL INFILE \"$tmpFileName\"
-            INTO TABLE $tableName
-            fields terminated by ','
-            optionally enclosed by '\"'
-            escaped by \"\\\\\";");
-
-		FileSystem::delete($tmpFileName);
-
-//      Debugger::dump('Insert to DB: ' . Debugger::timer('loadDataInfile'));
-	}
-
-	protected function getLink(): \PDO
-	{
-		if ($this->link !== false) {
-			return $this->link;
-		}
-
-		return $this->link = $this->connection->getLink();
-	}
-
-	protected function getDbName(): string
-	{
-		if ($this->dbName !== false) {
-			return $this->dbName;
-		}
-
-		return $this->dbName = $this->connection->getDatabaseName();
-	}
-
-	protected function getMutationSuffix(): string
-	{
-		if ($this->mutationSuffix !== false) {
-			return $this->mutationSuffix;
-		}
-
-		return $this->mutationSuffix = $this->connection->getMutationSuffix();
-	}
-
-	protected function resetHangingStateOfCache(int $id): void
-	{
-		$this->productsCacheStateRepository->many()->where('this.uuid', $id)->update(['state' => 'empty']);
-	}
-
-	protected function markCacheAsWarming(int $id): void
-	{
-		$this->productsCacheStateRepository->many()->where('this.uuid', $id)->update(['state' => 'warming']);
-	}
-
-	protected function markCacheAsReady(int $id): void
-	{
-		$this->productsCacheStateRepository->many()->where('this.uuid', $id)->update([
-			'state' => 'ready',
-			'lastWarmUpTs' => null,
-			'lastReadyTs' => Carbon::now()->toDateTimeString(),
-		]);
-
-		$this->productsCacheStateRepository->many()->where('this.uuid', $id === 1 ? 2 : 1)->update([
-			'state' => 'empty',
-			'lastWarmUpTs' => null,
-			'lastReadyTs' => null,
-		]);
-
-		$this->cleanAppCache();
-	}
-
-	/**
-	 * @return int<0, 2>
-	 * @throws \StORM\Exception\NotFoundException
-	 */
-	protected function getCacheIndexToBeWarmedUp(): int
-	{
-		$cache1State = $this->productsCacheStateRepository->one('1');
-		$cache2State = $this->productsCacheStateRepository->one('2');
-
-		if (!$cache1State?->state || !$cache2State?->state) {
-			return 0;
-		}
-
-		if ($cache1State->state === 'warming' && $cache1State->lastWarmUpTs && \abs(Carbon::now()->diffInMinutes(Carbon::parse($cache1State->lastWarmUpTs))) > 15) {
-			$cache1State->state = 'empty';
-			$cache1State->lastWarmUpTs = Carbon::now()->toDateTimeString();
-
-			$cache1State->updateAll(['state', 'lastWarmUpTs']);
-		}
-
-		if ($cache2State->state === 'warming' && $cache2State->lastWarmUpTs && \abs(Carbon::now()->diffInMinutes(Carbon::parse($cache2State->lastWarmUpTs))) > 15) {
-			$cache2State->state = 'empty';
-			$cache2State->lastWarmUpTs = Carbon::now()->toDateTimeString();
-
-			$cache2State->updateAll(['state', 'lastWarmUpTs']);
-		}
-
-		$cache1StateIndex = match ($cache1State->state) {
-			'empty' => 0,
-			'warming' => 1,
-			'ready' => 2,
-		};
-
-		$cache2StateIndex = match ($cache2State->state) {
-			'empty' => 0,
-			'warming' => 1,
-			'ready' => 2,
-		};
-
-		$logicTable = [
-			'00' => 1,
-			'01' => 0,
-			'02' => 1,
-			'10' => 0,
-			'11' => 0,
-			'12' => 0,
-			'20' => 2,
-			'21' => 0,
-			'22' => 1,
-		];
-
-		$index = $logicTable[$cache1StateIndex . $cache2StateIndex];
-
-		if ($index > 0) {
-			($index === 1 ? $cache1State : $cache2State)->update(['lastWarmUpTs' => Carbon::now()->toDateTimeString()]);
-		}
-
-		return $index;
-	}
-
-	/**
-	 * @param string $category
-	 * @param array<object{ancestor: string, showDescendantProducts: bool, showProductsInAncestors: bool}> $allCategories
-	 * @return array<string>
-	 */
-	protected function getAncestorsOfCategory(string $category, array $allCategories): array
-	{
-		$categories = [];
-
-		while ($ancestor = $allCategories[$category]->ancestor) {
-			$categories[] = $ancestor;
-			$category = $ancestor;
-		}
-
-		return $categories;
-	}
-
-	/**
-	 * @return array<mixed>
-	 */
-	protected function getPrefetchedArrays(): array
-	{
-		$allCategoryTypes = $this->categoryTypeRepository->many()->select(['this.id'])->setOrderBy(['this.id'])->fetchArray(\stdClass::class);
-
-		$allDisplayAmounts = $this->displayAmountRepository->many()->setIndex('id')->fetchArray(\stdClass::class);
-
-		/** @var array<object{id: int, ancestor: string, showDescendantProducts: bool, showProductsInAncestors: bool}> $allCategories */
-		$allCategories = $this->categoryRepository->many()
-			->setSelect([
-				'this.id',
-				'ancestor' => 'this.fk_ancestor',
-				'showDescendantProducts' => 'this.showDescendantProducts',
-				'showProductsInAncestors' => 'this.showProductsInAncestors',
-			], keepIndex: true)
-			->fetchArray(\stdClass::class);
-
-		/** @var array<object{category: string|null, categoryType: string}> $allProductPrimaryCategories */
-		$allProductPrimaryCategories = $this->productPrimaryCategoryRepository->many()
-			->join(['eshop_categorytype'], 'this.fk_categoryType = eshop_categorytype.uuid')
-			->join(['eshop_category'], 'this.fk_category = eshop_category.uuid')
-			->setSelect(['category' => 'eshop_category.id', 'categoryType' => 'eshop_categorytype.id'], keepIndex: true)
-			->fetchArray(\stdClass::class);
-
-		$productPrimaryCategories = $this->productRepository->many()
-			->join(['joinedTable' => 'eshop_productprimarycategory'], 'this.uuid = joinedTable.fk_product', type: 'INNER')
-			->join(['categoryType' => 'eshop_category'], 'joinedTable.fk_category = categoryType.uuid', type: 'INNER')
-			->setSelect([
-				'id' => 'this.id',
-				'groupedValues' => 'GROUP_CONCAT(DISTINCT joinedTable.uuid)',
-			])
-			->setGroupBy(['this.id'])
-			->setIndex('id')
-			->setOrderBy(['categoryType.id'])
-			->toArrayOf('groupedValues');
-
-		$productAttributeValues = $this->productRepository->many()
-			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_product', type: 'INNER')
-			->join(['joinedTable' => 'eshop_attributevalue'], 'assign.fk_value = joinedTable.uuid', type: 'INNER')
-			->setSelect([
-				'id' => 'this.id',
-				'groupedValues' => 'GROUP_CONCAT(DISTINCT joinedTable.id)',
-			])
-			->setGroupBy(['this.id'])
-			->setIndex('id')
-			->toArrayOf('groupedValues');
-
-		$productCategories = $this->productRepository->many()
-			->join(['joinedTable' => 'eshop_product_nxn_eshop_category'], 'this.uuid = joinedTable.fk_product', type: 'INNER')
-			->setSelect([
-				'id' => 'this.id',
-				'groupedValues' => 'GROUP_CONCAT(DISTINCT joinedTable.fk_category)',
-			])
-			->setGroupBy(['this.id'])
-			->setIndex('id')
-			->toArrayOf('groupedValues');
-
-		return [$allCategoryTypes, $allDisplayAmounts, $allCategories, $allProductPrimaryCategories, $productPrimaryCategories, $productAttributeValues, $productCategories];
 	}
 }

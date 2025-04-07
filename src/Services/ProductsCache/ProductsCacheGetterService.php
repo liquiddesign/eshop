@@ -28,10 +28,12 @@ use Eshop\ShopperUser;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\DI\Container;
+use Nette\DI\MissingServiceException;
 use Nette\Utils\Arrays;
 use StORM\DIConnection;
 use StORM\ICollection;
 use Tracy\Debugger;
+use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
 class ProductsCacheGetterService implements AutoWireService
@@ -90,6 +92,8 @@ class ProductsCacheGetterService implements AutoWireService
 
 	protected Cache $cache;
 
+	private DIConnection $connection;
+
 	public function __construct(
 		protected readonly ProductRepository $productRepository,
 		protected readonly CategoryRepository $categoryRepository,
@@ -97,7 +101,6 @@ class ProductsCacheGetterService implements AutoWireService
 		/** @var \Eshop\DB\PricelistRepository<\Eshop\DB\Pricelist> */
 		protected readonly PricelistRepository $pricelistRepository,
 		protected readonly Container $container,
-		protected readonly DIConnection $connection,
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly CategoryTypeRepository $categoryTypeRepository,
 		protected readonly SettingRepository $settingRepository,
@@ -169,12 +172,30 @@ class ProductsCacheGetterService implements AutoWireService
 		$this->allowedCollectionOrderExpressions[$name] = $callback;
 	}
 
+	public function getConnection(): \StORM\DIConnection
+	{
+		if (isset($this->connection)) {
+			return $this->connection;
+		}
+
+		try {
+			/** @var \StORM\DIConnection $connection */
+			$connection = $this->container->getByName('storm.cache');
+
+			return $this->connection = $connection;
+		} catch (MissingServiceException $e) {
+			Debugger::log('Storm connection for products cache service was not found.', ILogger::EXCEPTION);
+
+			throw $e;
+		}
+	}
+
 	/**
 	 * @param array<mixed> $filters
 	 * @param string|null $orderByName
 	 * @param 'ASC'|'DESC' $orderByDirection Works only if $orderByName is not null
-	 * @param array<string, \Eshop\DB\Pricelist> $priceLists
-	 * @param array<string, \Eshop\DB\VisibilityList> $visibilityLists
+	 * @param array<string|int, \Eshop\DB\Pricelist> $priceLists
+	 * @param array<string|int, \Eshop\DB\VisibilityList> $visibilityLists
 	 * @return array{
 	 *     "productPKs": list<string>,
 	 *     "attributeValuesCounts": array<string|int, int>,
@@ -198,15 +219,18 @@ class ProductsCacheGetterService implements AutoWireService
 		array $visibilityLists = [],
 		bool $showAncestorsInCategory = true,
 	): array|false {
-		$cacheIndex = $this->getCacheIndexToBeUsed();
+		try {
+			$this->getConnection();
+		} catch (\Exception) {
+			// Cache DB is not available
 
-		if ($cacheIndex === 0) {
 			return false;
 		}
 
-		$productsCacheTableName = "eshop_products_cache_$cacheIndex";
-		$visibilityPricesCacheTableName = "eshop_products_prices_cache_$cacheIndex";
-		$categoriesTableName = "eshop_categories_cache_$cacheIndex";
+		$productsCacheTableName = ProductsCacheBaseWarmUpService::PRODUCTS_TABLE_NAME;
+		$visibilityPricesCacheTableName = ProductsCacheBaseWarmUpService::PRICES_TABLE_NAME;
+		$categoriesTableName = ProductsCacheBaseWarmUpService::CATEGORIES_TABLE_NAME;
+		$relationsCacheTableName = ProductsCacheBaseWarmUpService::RELATIONS_TABLE_NAME;
 
 		if (!$visibilityLists || !$priceLists) {
 			throw new \Exception('No visibility or price lists supplied.');
@@ -252,11 +276,10 @@ class ProductsCacheGetterService implements AutoWireService
 
 		unset($filters['category']);
 
-		$productsCollection = $this->connection->rows(['this' => $productsCacheTableName])
+		$productsCollection = $this->getConnection()->rows(['this' => $productsCacheTableName])
 			->join(
-				['visibilityPrice' => $visibilityPricesCacheTableName],
-				'this.product = visibilityPrice.product AND visibilityPrice.visibilityPriceIndex = :visibilityPriceListsIndex',
-				['visibilityPriceListsIndex' => $visibilityPriceListsIndex],
+				['visibilityPrice' => "`$visibilityPricesCacheTableName$visibilityPriceListsIndex`"],
+				'this.product = visibilityPrice.product',
 				type: 'INNER',
 			);
 
@@ -291,8 +314,6 @@ class ProductsCacheGetterService implements AutoWireService
 		$dynamicFiltersAttributes = [];
 		$dynamicFilters = [];
 
-		$relationsCacheTableName = "eshop_products_relations_cache_$cacheIndex";
-
 		if (isset($filters['relatedTypeMaster']) && isset($filters['relatedTypeSlave'])) {
 			throw new \Exception("Filters 'relatedTypeMaster' and 'relatedTypeSlave' can't be used at the same time.");
 		}
@@ -307,7 +328,7 @@ class ProductsCacheGetterService implements AutoWireService
 			$relatedTypeMaster[0] = $this->productRepository->many()->where('this.uuid', $relatedTypeMaster[0])->setSelect(['id' => 'this.id'])->firstValue('id');
 			$relatedTypeMaster[1] = $this->relatedTypeRepository->many()->where('this.uuid', $relatedTypeMaster[1])->setSelect(['id' => 'this.id'])->firstValue('id');
 
-			$productsCollection->where('this.product', $this->connection->rows([$relationsCacheTableName])
+			$productsCollection->where('this.product', $this->getConnection()->rows([$relationsCacheTableName])
 				->where('master', $relatedTypeMaster[0])
 				->where('type', $relatedTypeMaster[1])
 				->toArrayOf('slave'));
@@ -325,7 +346,7 @@ class ProductsCacheGetterService implements AutoWireService
 			$relatedTypeSlave[0] = $this->productRepository->many()->where('this.uuid', $relatedTypeSlave[0])->setSelect(['id' => 'this.id'])->firstValue('id');
 			$relatedTypeSlave[1] = $this->relatedTypeRepository->many()->where('this.uuid', $relatedTypeSlave[1])->setSelect(['id' => 'this.id'])->firstValue('id');
 
-			$productsCollection->where('this.product', $this->connection->rows([$relationsCacheTableName])
+			$productsCollection->where('this.product', $this->getConnection()->rows([$relationsCacheTableName])
 				->where('slave', $relatedTypeSlave[0])
 				->where('type', $relatedTypeSlave[1])
 				->toArrayOf('master'));

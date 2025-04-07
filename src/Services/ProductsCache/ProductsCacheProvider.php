@@ -12,21 +12,19 @@ use Nette\Utils\Arrays;
 readonly class ProductsCacheProvider implements GeneralProductsCacheProvider
 {
 	public function __construct(
-		private ProductsCacheWarmUpService $productsCacheWarmUpService,
 		private ProductsCacheGetterService $productsCacheProviderService,
+		private ProductsCacheDiffUpdateService $productsCacheDiffUpdateService,
 		private ShopperUser $shopperUser,
 		private PricelistRepository $pricelistRepository,
 	) {
 	}
 
-	public function warmUpCacheTable(): void
+	/**
+	 * @inheritDoc
+	 */
+	public function warmUpCacheTable(array $customers = []): void
 	{
-		$this->productsCacheWarmUpService->warmUpCacheTable();
-	}
-
-	public function warmUpCacheTableDiff(): void
-	{
-		$this->productsCacheWarmUpService->warmUpCacheTableDiff();
+		$this->productsCacheDiffUpdateService->warmUpCacheTableDiff($customers);
 	}
 
 	/**
