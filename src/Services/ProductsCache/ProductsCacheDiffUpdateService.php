@@ -76,6 +76,7 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 				$productAttributeValues,
 				$productCategories,
 			);
+
 			Debugger::dump('diffUpdateMainTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage());
 			$this->diffUpdateRelations($relationsCacheTableName);
 			Debugger::dump('diffUpdateRelations: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage());
@@ -212,6 +213,8 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		}
 
 		$mutationSuffix = $this->getMutationSuffix();
+//		$this->connection->setDebug(true);
+//		$this->getConnection()->setDebug(true);
 
 		$productsCollection = $this->productRepository->many()
 			->join(['masterProduct' => 'eshop_product'], 'this.fk_masterProduct = masterProduct.uuid')
@@ -231,6 +234,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				'externalCode' => 'this.externalCode',
 				'ean' => 'COALESCE(this.secondaryEan, this.ean)',
 			])
+			->setTake(1000000)
 			->setGroupBy(['this.id']);
 
 		$productsInCache = $this->getConnection()
@@ -242,9 +246,11 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		$productsToUpdate = [];
 		$productsByCategories = [];
 
-		while ($product = $productsCollection->fetch(\stdClass::class)) {
-			/** @var \stdClass $product */
+		Debugger::timer('diffUpdateMainTable -- main query');
+		$fetchedProducts = $productsCollection->fetchArray(\stdClass::class);
+		Debugger::dump('diffUpdateMainTable -- main query: ' . Debugger::timer('diffUpdateMainTable -- main query'));
 
+		foreach ($fetchedProducts as $product) {
 			$productData = [
 				'product' => $product->id,
 				'producer' => $product->fkProducer,
