@@ -60,4 +60,16 @@ class Watcher extends \StORM\Entity
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
 	public string $createdTs;
+
+	/**
+	 * Čas notifikace
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $notifiedTs;
+
+	/**
+	 * Čas zobrazení notifikace zákazníkem
+	 * @column{"type":"timestamp"}
+	 */
+	public ?string $notificationViewedTs ;
 }
