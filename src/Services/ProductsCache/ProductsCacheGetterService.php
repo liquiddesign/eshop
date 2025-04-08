@@ -266,12 +266,14 @@ class ProductsCacheGetterService implements AutoWireService
 			return $cachedData;
 		}
 
-		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
-			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
-			'main';
+		// TODO check for category type cannot be done for use cases where there are many category types per shop
+		// This comes with small probability of wrong category type, when two categories from different category types have the same path
+//		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
+//			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
+//			'main';
 
 		$category = isset($filters['category']) ?
-			$this->categoryRepository->many()->setSelect(['this.id'])->where('this.path', $filters['category'])->where('this.fk_type', $mainCategoryType)->first(true) :
+			$this->categoryRepository->many()->setSelect(['this.id'])->where('this.path', $filters['category'])->first(true) :
 			null;
 
 		unset($filters['category']);
