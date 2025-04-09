@@ -35,6 +35,13 @@ class Store extends \StORM\Entity
 	 */
 	public ?Supplier $supplier;
 
+	/**
+	 * Zákazník, jestli není null sklad je komisní
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE"}
+	 */
+	public ?Customer $customer;
+
 	public function isSystemic(): bool
 	{
 		return $this->systemicLock > 0;
