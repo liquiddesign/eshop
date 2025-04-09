@@ -9,6 +9,7 @@ use Messages\DB\TemplateRepository;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\Mail\Mailer;
+use Nette\Utils\Validators;
 
 class ScriptsPresenter extends \Admin\BackendPresenter
 {
@@ -57,7 +58,21 @@ class ScriptsPresenter extends \Admin\BackendPresenter
 
 	public function handleCheckWatchers(): void
 	{
-		$this->watcherRepository->getChangedAmountWatchers(true);
+		$watchers = $this->watcherRepository->getChangedAmountWatchers();
+
+		foreach ($watchers['activeWatchers'] as $activeWatcher) {
+			if (Validators::isEmail($activeWatcher->customer->email)) {
+				$mail = $this->templateRepository->createMessage('watchdog.changed', $this->watcherRepository->getEmailVariables($activeWatcher), $activeWatcher->customer->email);
+
+				$this->mailer->send($mail);
+			}
+
+			if ($activeWatcher->keepAfterNotify) {
+				continue;
+			}
+
+			$activeWatcher->delete();
+		}
 
 		$this->flashMessage('Provedeno', 'success');
 	}
