@@ -4,7 +4,6 @@ namespace Eshop\Services\ProductsCache;
 
 use Base\Bridges\AutoWireService;
 use Base\ShopsConfig;
-use Eshop\Admin\SettingsPresenter;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;

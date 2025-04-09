@@ -45,6 +45,7 @@ use Nette\Mail\Mailer;
 use Nette\NotImplementedException;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
+use Nette\Utils\Strings;
 use Nette\Utils\Validators;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
@@ -210,10 +211,22 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		}
 
 		if (\count($this->pricelistRepo->getArrayForSelect(true)) > 0) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
+			$grid->addFilterText(function (ICollection $source, $value): void {
+				if (!$value) {
+					return;
+				}
+
+				$value = \explode(';', Strings::trim($value));
+				$uuids = $this->pricelistRepo->many()
+					->where('this.code', $value)
+					->setSelect(['this.uuid'])
+					->toArrayOf('uuid', toArrayValues: true);
+
 				$source->join(['pricelistNxN' => 'eshop_customer_nxn_eshop_pricelist'], 'this.uuid = pricelistNxN.fk_customer');
-				$source->where('pricelistNxN.fk_pricelist', $value);
-			}, '', 'pricelist', 'Ceník', $this->pricelistRepo->getArrayForSelect(true), ['placeholder' => '- Ceník -']);
+				$source->where('pricelistNxN.fk_pricelist', $uuids);
+			}, '', 'pricelist')
+				->setHtmlAttribute('placeholder', 'Ceníky (kódy oddělené středníkem)')
+				->setHtmlAttribute('class', 'form-control form-control-sm');
 		}
 
 		if ($loyaltyPrograms = $this->loyaltyProgramRepository->getArrayForSelect()) {
