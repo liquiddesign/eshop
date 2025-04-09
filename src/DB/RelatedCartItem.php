@@ -37,8 +37,27 @@ class RelatedCartItem extends \StORM\Entity
 	/**
 	 * Rozměr produktu
 	 * @column
+	 * @deprecated Use width, length and depth instead
 	 */
 	public ?float $productDimension;
+
+	/**
+	 * Šířka produktu
+	 * @column
+	 */
+	public ?float $productWidth;
+
+	/**
+	 * Délka produktu
+	 * @column
+	 */
+	public ?float $productLength;
+
+	/**
+	 * Hloubka produktu
+	 * @column
+	 */
+	public ?float $productDepth;
 	
 	/**
 	 * Název varianty

@@ -414,6 +414,9 @@ class Purchase extends \StORM\Entity
 		return $cartItemRepository->getSumProperty($this->getCartIds(), 'productWeight');
 	}
 
+	/**
+	 * @deprecated Use width, length and depth instead
+	 */
 	public function getSumDimension(): float
 	{
 		/** @var \Eshop\DB\CartItemRepository $cartItemRepository */
