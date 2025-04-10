@@ -290,7 +290,6 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				$productData[$primaryCategoryTypeIndex] = null;
 			}
 
-			// @TODO Add control of Category showDescendantProducts
 			if ($categories = ($productCategories[$product->id] ?? null)) {
 				$categories = \explode(',', $categories->groupedValues);
 
@@ -298,31 +297,9 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 					$categoryEntity = $allCategories[$category];
 
 					$productsByCategories[$category][$product->id] = (object) [
-							'showProductsInAncestors' => $categoryEntity->showProductsInAncestors,
-							'showDescendantProducts' => $categoryEntity->showDescendantProducts,
+						'showProductsInAncestors' => $categoryEntity->showProductsInAncestors,
+						'showDescendantProducts' => $categoryEntity->showDescendantProducts,
 					];
-
-					$ancestors = $this->getAncestorsOfCategory($category, $allCategories);
-
-					foreach ($ancestors as $ancestor) {
-						$categoryEntity = $allCategories[$ancestor];
-
-						$productsByCategories[$ancestor][$product->id] = (object) [
-							'showProductsInAncestors' => $categoryEntity->showProductsInAncestors,
-							'showDescendantProducts' => $categoryEntity->showDescendantProducts,
-						];
-					}
-
-					$descendants = $categoryEntity->descendants;
-
-					foreach ($descendants as $descendant) {
-						$categoryEntity = $allCategories[$descendant];
-
-						$productsByCategories[$descendant][$product->id] = (object) [
-							'showProductsInAncestors' => $categoryEntity->showProductsInAncestors,
-							'showDescendantProducts' => $categoryEntity->showDescendantProducts,
-						];
-					}
 				}
 			}
 

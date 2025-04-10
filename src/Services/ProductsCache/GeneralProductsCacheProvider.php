@@ -36,6 +36,5 @@ interface GeneralProductsCacheProvider
 		string $orderByDirection = 'ASC',
 		array $priceLists = [],
 		array $visibilityLists = [],
-		bool $showAncestorsInCategory = true,
 	): array|false;
 }

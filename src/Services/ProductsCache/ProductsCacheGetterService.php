@@ -216,7 +216,6 @@ class ProductsCacheGetterService implements AutoWireService
 		string $orderByDirection = 'ASC',
 		array $priceLists = [],
 		array $visibilityLists = [],
-		bool $showAncestorsInCategory = true,
 	): array|false {
 		try {
 			$this->getConnection();
@@ -271,8 +270,9 @@ class ProductsCacheGetterService implements AutoWireService
 //			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
 //			'main';
 
+		/** @var \Eshop\DB\Category|null $category */
 		$category = isset($filters['category']) ?
-			$this->categoryRepository->many()->setSelect(['this.id'])->where('this.path', $filters['category'])->first(true) :
+			$this->categoryRepository->many()->select(['this.id'])->where('this.path', $filters['category'])->first(true) :
 			null;
 
 		unset($filters['category']);
@@ -285,16 +285,23 @@ class ProductsCacheGetterService implements AutoWireService
 			);
 
 		if ($category) {
+			$descendants = [$category->id];
+
+			if ($category->showDescendantProducts) {
+				$descendants = \array_merge(
+					$descendants,
+					$category->getDescendants()
+						->setSelect(['id'], keepIndex: true)
+						->where('showProductsInAncestors', true)
+						->toArrayOf('id', toArrayValues: true)
+				);
+			}
+
 			$productsCollection->join(
 				['category' => $categoriesTableName],
-				'this.product = category.product AND category.category = :category',
-				['category' => $category->id],
+				'this.product = category.product AND category.category IN(' . \implode(',', $descendants) . ')',
 				type: 'INNER',
 			);
-
-			if ($showAncestorsInCategory) {
-				$productsCollection->where('category.showInCategory = 1');
-			}
 		}
 
 		$productsCollection->setGroupBy(['this.product']);

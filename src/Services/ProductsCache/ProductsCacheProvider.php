@@ -36,7 +36,6 @@ readonly class ProductsCacheProvider implements GeneralProductsCacheProvider
 		string $orderByDirection = 'ASC',
 		array $priceLists = [],
 		array $visibilityLists = [],
-		bool $showAncestorsInCategory = true,
 	): array|false {
 		$priceLists = $priceLists ?: $this->shopperUser->getPriceListsCached();
 		$visibilityLists = $visibilityLists ?: $this->shopperUser->getVisibilityLists();
@@ -48,7 +47,7 @@ readonly class ProductsCacheProvider implements GeneralProductsCacheProvider
 		}
 
 		if ($merchant?->priceListsMode !== 'merge' || !$customer) {
-			return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists, $showAncestorsInCategory);
+			return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists);
 		}
 
 		// do two separate call to cache with customer and merchant pricelists and combine results
@@ -71,11 +70,11 @@ readonly class ProductsCacheProvider implements GeneralProductsCacheProvider
 			->toArray();
 
 		$customerResult = $customerPriceLists ?
-			$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $customerPriceLists, $visibilityLists, $showAncestorsInCategory) :
+			$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $customerPriceLists, $visibilityLists) :
 			false;
 
 		$merchantResult = $merchantPriceLists ?
-			$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $merchantPriceLists, $visibilityLists, $showAncestorsInCategory) :
+			$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $merchantPriceLists, $visibilityLists) :
 			false;
 
 		if ($customerResult === false && $merchantResult === false) {
