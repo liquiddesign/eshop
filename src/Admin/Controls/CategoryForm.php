@@ -155,10 +155,10 @@ class CategoryForm extends Control
 		$form->addCheckbox('showInMenu', 'Zobrazit v menu');
 		$form->addCheckbox('showEmpty', 'Zobrazit pokud nemá produkty');
 		$form->addCheckbox('recommended', 'Doporučeno');
-		$form->addCheckbox('showProductsInAncestors', 'Zobrazit produkty v nadřazených kategoriích');
+		$form->addCheckbox('showProductsInAncestors', 'Zobrazit produkty této kategorie v nadřazených kategoriích');
 
 		if ($this->showDescendantProducts) {
-			$form->addCheckbox('showDescendantProducts', 'Zobrazit produkty v podkategoriích')->setDefaultValue(true);
+			$form->addCheckbox('showDescendantProducts', 'Zobrazit produkty podkategorií v této kategorii')->setDefaultValue(true);
 		}
 
 		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($form): void {

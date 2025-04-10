@@ -196,10 +196,11 @@
 
                                             </td>
                                             <td style="text-align: right">
-                                                {$item->priceVat|round:4}{if $presenter->shopperUser->getShowWithoutVat()}<br><small>{$item->price|round:4} bez DPH</small>{/if}
+                                                {$item->priceVat|priceSecondary:$item->cartItem->cart->currency->code}{if $presenter->shopperUser->getShowWithoutVat()
+                                                }<br><small>{$item->price|priceSecondary:$item->cartItem->cart->currency->code} bez DPH</small>{/if}
                                             </td>
                                             <td style="text-align: right">
-                                                {$item->priceVat * $item->amount|round:4}{if $presenter->shopperUser->getShowWithoutVat()}<br><small>{$item->price * $item->amount|round:4} bez DPH</small>{/if}
+                                                {$item->priceVat * $item->amount|priceSecondary:$item->cartItem->cart->currency->code}{if $presenter->shopperUser->getShowWithoutVat()}<br><small>{$item->price * $item->amount|priceSecondary:$item->cartItem->cart->currency->code} bez DPH</small>{/if}
                                             </td>
                                             <td class="d-print-none"></td>
                                             <td class="d-print-none"></td>

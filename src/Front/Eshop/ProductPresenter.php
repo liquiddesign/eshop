@@ -227,7 +227,11 @@ abstract class ProductPresenter extends FrontendPresenter
 		if ($this->query) {
 			$this->template->head = $this->translator->translate('.searchQuery', 'Vyhledávací dotaz') . ': "' . $this->query . '"';
 		}
-		
+
+		// Forces to load all products and set paginator from cache
+		// Result is saved to nette cache, so next calls are fast
+		$products->getItemsOnPage();
+
 		$this->template->paginator = $products->getPaginator();
 	}
 	

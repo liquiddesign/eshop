@@ -221,7 +221,7 @@ abstract class ExportPresenter extends Presenter
 			//$flavourRelationTypeSetting = $this->settingRepo->getValueByName('flavourRelationType');
 			
 			$products = $pricelists !== null && \count($pricelists) ? $this->productRepo->getProducts($pricelists) : $this->productRepo->getProductsAsCustomer(null);
-			$products->where('this.hidden', false);
+			$this->productRepo->filterHidden(false, $products);
 			
 			$this->template->products = $products;
 			
@@ -298,11 +298,16 @@ abstract class ExportPresenter extends Presenter
 		$customer = $this->customerRepo->one($uuid);
 		$merchant = $this->merchantRepo->one($uuid);
 
-		if ($customer || $merchant) {
+		if (!$customer && !$merchant) {
+			$this->template->error = 'User not found!';
+
 			return;
 		}
 
-		$this->template->error = 'User not found!';
+		$products = $this->productRepo->getProducts(null, $customer);
+		$this->productRepo->filterHidden(false, $products);
+
+		$this->getTemplate()->products = $products;
 	}
 
 	public function renderCustomer(): void

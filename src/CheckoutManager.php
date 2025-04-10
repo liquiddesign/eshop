@@ -165,6 +165,21 @@ class CheckoutManager
 	 * @var array<string, float>
 	 */
 	protected array $sumDimension = [];
+
+	/**
+	 * @var array<string, float>
+	 */
+	protected array $sumLength = [];
+
+	/**
+	 * @var array<string, float>
+	 */
+	protected array $sumDepth = [];
+
+	/**
+	 * @var array<string, float>
+	 */
+	protected array $sumWidth = [];
 	
 	/**
 	 * @var array<string, int>
@@ -498,7 +513,10 @@ class CheckoutManager
 		
 		return $this->sumWeight[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productWeight');
 	}
-	
+
+	/**
+	 * @deprecated Use width, length and depth instead
+	 */
 	public function getSumDimension(?string $id = self::ACTIVE_CART_ID): float
 	{
 		if (!$this->cartExists($id)) {
@@ -506,6 +524,33 @@ class CheckoutManager
 		}
 		
 		return $this->sumDimension[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productDimension');
+	}
+
+	public function getSumLength(?string $id = self::ACTIVE_CART_ID): float
+	{
+		if (!$this->cartExists($id)) {
+			return 0.0;
+		}
+
+		return $this->sumLength[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productLength');
+	}
+
+	public function getSumDepth(?string $id = self::ACTIVE_CART_ID): float
+	{
+		if (!$this->cartExists($id)) {
+			return 0.0;
+		}
+
+		return $this->sumDepth[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productDepth');
+	}
+
+	public function getSumWidth(?string $id = self::ACTIVE_CART_ID): float
+	{
+		if (!$this->cartExists($id)) {
+			return 0.0;
+		}
+
+		return $this->sumWidth[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productWidth');
 	}
 	
 	public function getMaxWeight(?string $id = self::ACTIVE_CART_ID): float
@@ -1899,6 +1944,9 @@ class CheckoutManager
 
 				foreach ($relatedProducts as $relatedProduct) {
 					if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
+						$slaveProductsTotalPrice += $relatedProduct->amount;
+						$slaveProductsTotalPriceVat += (($this->shopperUser->getVatRates()[$relatedProduct->slave->vatRate] / 100) + 1) * $relatedProduct->amount;
+
 						continue;
 					}
 
@@ -1913,12 +1961,16 @@ class CheckoutManager
 					if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
 						$product = $this->productRepository->one($relatedProduct->getValue('slave'), true);
 
-						$product->setValue('price', 0);
-						$product->setValue('priceVat', 0);
+						$product->setValue('price', 1);
+						$product->setValue('priceVat', ($this->shopperUser->getVatRates()[$product->vatRate] / 100) + 1);
 						$product->setValue('priceBefore', null);
 						$product->setValue('priceVatBefore', null);
+
+						$slaveProductUsed = false;
 					} else {
 						$product = $slaveProducts[$relatedProduct->getValue('slave')];
+
+						$slaveProductUsed = true;
 					}
 
 					/** @var \Eshop\DB\VatRate|null $vat */
@@ -1937,11 +1989,14 @@ class CheckoutManager
 						'productSubCode' => $product->subCode,
 						'productWeight' => $product->weight,
 						'productDimension' => $product->dimension,
+						'productWidth' => $product->width,
+						'productLength' => $product->length,
+						'productDepth' => $product->depth,
 						'amount' => $relatedProduct->amount * $cartItem->amount,
 						'price' => $product->getPrice() * $setTotalPriceModifier,
 						'priceVat' => $product->getPriceVat() * $setTotalPriceVatModifier,
-						'priceBefore' => $product->getPriceBefore() ?: $product->getPrice(),
-						'priceVatBefore' => $product->getPriceVatBefore() ?: $product->getPriceVat(),
+						'priceBefore' => $product->getPriceBefore() ?: ($slaveProductUsed ? $product->getPrice() : null),
+						'priceVatBefore' => $product->getPriceVatBefore() ?: ($slaveProductUsed ? $product->getPriceVat() : null),
 						'vatPct' => (float) $vatPct,
 					];
 				}
@@ -2238,6 +2293,9 @@ class CheckoutManager
 		unset($this->sumWeight[$cartId]);
 		unset($this->sumPoints[$cartId]);
 		unset($this->sumDimension[$cartId]);
+		unset($this->sumDepth[$cartId]);
+		unset($this->sumWidth[$cartId]);
+		unset($this->sumLength[$cartId]);
 	}
 	
 	/**

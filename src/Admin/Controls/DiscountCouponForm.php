@@ -217,7 +217,7 @@ class DiscountCouponForm extends Control
 			}
 
 			/** @var array<mixed> $conditions */
-			$conditions = Arrays::pick($values, 'categoriesConditionsContainer');
+			$conditions = Arrays::pick($values, 'categoriesConditionsContainer', []);
 			$this->discountConditionCategoryRepository->many()->where('fk_discountCoupon', $discountCoupon->getPK())->delete();
 
 			for ($i = 0; $i < 3; $i++) {

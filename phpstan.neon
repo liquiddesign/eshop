@@ -18,3 +18,4 @@ parameters:
 		- src/Admin/Controls/Customer
 		- src/migrations
 		- src/Admin/MerchantPresenter.php
+		- src/Services/ProductsCache

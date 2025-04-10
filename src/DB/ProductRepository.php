@@ -10,6 +10,7 @@ use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Controls\ProductFilter;
+use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
 use Eshop\ShopperUser;
 use InvalidArgumentException;
 use League\Csv\Reader;
@@ -1756,7 +1757,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function clearCache(): void
 	{
 		$this->cache->clean([
-			Cache::Tags => ['products'],
+			Cache::Tags => ['products', GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 		]);
 	}
 

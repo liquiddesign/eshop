@@ -112,7 +112,6 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 			try {
 				$filters['hidden'] = false;
-				$filters['priceGt'] = 0;
 
 				\Tracy\Debugger::timer('getProductsFromCacheTable');
 
@@ -120,7 +119,6 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 					$filters,
 					priceLists: $priceLists,
 					visibilityLists: $visibilityLists,
-					showAncestorsInCategory: false
 				);
 
 				if (!isset($result['productPKs'])) {
@@ -207,7 +205,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	public function clearCategoriesCache(): void
 	{
 		$this->cache->clean([
-			Cache::Tags => ['categories'],
+			Cache::Tags => ['categories', GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 		]);
 	}
 
