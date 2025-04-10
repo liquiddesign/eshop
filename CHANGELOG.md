@@ -4,6 +4,21 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.455](https://github.com/liquiddesign/eshop/compare/v2.1.454...v2.1.455) (2025-04-10)
+
+### Features
+
+* Customer in store ([377e7c](https://github.com/liquiddesign/eshop/commit/377e7c388187487b0fb03eff088c3bc1c18aa31b))
+* Notified watcher functionality ([071ac2](https://github.com/liquiddesign/eshop/commit/071ac2e9daacfff463f75ea81e46b430d5e74c34))
+* Watcher notification fields ([b73118](https://github.com/liquiddesign/eshop/commit/b73118979b4d2f4a8ff3e6fc7508c26301aca394))
+
+### Styles
+
+* Fix ([77e20b](https://github.com/liquiddesign/eshop/commit/77e20ba4b0861c9ee8536feec7cebf48f539be84))
+
+
+---
+
 ## [2.1.454](https://github.com/liquiddesign/eshop/compare/v2.1.453...v2.1.454) (2025-04-03)
 
 ### Bug Fixes
