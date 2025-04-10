@@ -78,7 +78,7 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 			);
 
 			Debugger::dump('diffUpdateMainTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage());
-			$this->diffUpdateRelations($relationsCacheTableName);
+			$this->diffUpdateRelations($relationsCacheTableName, $productsCacheTableName);
 			Debugger::dump('diffUpdateRelations: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage());
 
 			$this->diffUpdateCategories($categoriesTableName, $productsCacheTableName, $productsByCategories, $allCategories);
@@ -578,7 +578,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		Debugger::dump('diffUpdateVisibilityPriceTable -- main while: ' . Debugger::timer('diffUpdateVisibilityPriceTable -- main while'));
 	}
 
-	protected function diffUpdateRelations(string $relationsCacheTableName): void
+	protected function diffUpdateRelations(string $relationsCacheTableName, string $productsCacheTableName): void
 	{
 		$link = $this->getLink();
 
@@ -594,6 +594,8 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
     discountPct DOUBLE,
     masterPct DOUBLE,
     type INT UNSIGNED NOT NULL,
+    CONSTRAINT FOREIGN KEY (master) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT FOREIGN KEY (slave) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE,
     INDEX idx_related_master (master, type),
     INDEX idx_related_slave (slave, type),
     INDEX idx_products_related_unique (master, slave),
