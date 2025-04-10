@@ -99,7 +99,7 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 	/**
 	 * @param string $categoriesTableName
 	 * @param string $productsCacheTableName
-	 * @param array<string, array<int, array{0: bool}>> $productsByCategories
+	 * @param array<string, array<int, object{showDescendantProducts: bool, showProductsInAncestors: bool}>> $productsByCategories
 	 * @param array<string|int, object{id: int}> $allCategories
 	 * @throws \Exception
 	 */
@@ -111,11 +111,16 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
   product BIGINT UNSIGNED NOT NULL,
   category INT UNSIGNED NOT NULL,
-  showInCategory BOOL NOT NULL,
+  showDescendantProducts BOOL NOT NULL,
+  showProductsInAncestors BOOL NOT NULL,
   PRIMARY KEY (product, category),
   CONSTRAINT FOREIGN KEY (product) REFERENCES $productsCacheTableName(product) ON UPDATE CASCADE ON DELETE CASCADE,
   INDEX (category)
 );");
+
+		$link->exec("ALTER TABLE `$categoriesTableName` DROP COLUMN IF EXISTS `showInCategory`;");
+		$link->exec("ALTER TABLE `$categoriesTableName` ADD COLUMN IF NOT EXISTS `showDescendantProducts` BOOL NOT NULL;");
+		$link->exec("ALTER TABLE `$categoriesTableName` ADD COLUMN IF NOT EXISTS `showProductsInAncestors` BOOL NOT NULL;");
 
 		$categoriesInCache = $this->getConnection()->rows([$categoriesTableName])
 			->fetchArray(\stdClass::class);
@@ -139,7 +144,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				if (isset($categoriesWithProductsInCache[$categoryId][$product])) {
 					$categoryInCache = $categoriesWithProductsInCache[$categoryId][$product];
 
-					if ($categoryInCache->showInCategory === $data[0]) {
+					if ($categoryInCache->showDescendantProducts === $data->showDescendantProducts && $categoryInCache->showProductsInAncestors === $data->showProductsInAncestors) {
 						unset($categoriesWithProductsInCache[$categoryId][$product]);
 
 						continue;
@@ -149,7 +154,8 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				$categoriesToInsert[] = [
 					$product,
 					$categoryId,
-					$data[0],
+					$data->showDescendantProducts,
+					$data->showProductsInAncestors,
 				];
 			}
 		}
@@ -170,12 +176,12 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 	 * @param string $productsCacheTableName
 	 * @param array<object{id: int}> $allCategoryTypes
 	 * @param array<object{isSold: bool}> $allDisplayAmounts
-	 * @param array<object{ancestor: string, showDescendantProducts: bool, showProductsInAncestors: bool}> $allCategories
+	 * @param array<object{ancestor: string, showDescendantProducts: bool, showProductsInAncestors: bool, descendants: array<string>}> $allCategories
 	 * @param array<object{category: string|null, categoryType: string}> $allProductPrimaryCategories
 	 * @param array<object{groupedValues: string}> $productPrimaryCategories
 	 * @param array<object{groupedValues: string}> $productAttributeValues
 	 * @param array<object{groupedValues: string}> $productCategories
-	 * @return array<string, array<int, array{0: bool}>>
+	 * @return array<string, array<int, object{showDescendantProducts: bool, showProductsInAncestors: bool}>>
 	 * @throws \Exception
 	 */
 	protected function diffUpdateMainTable(
@@ -291,13 +297,32 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				foreach ($categories as $category) {
 					$categoryEntity = $allCategories[$category];
 
+					$productsByCategories[$category][$product->id] = (object) [
+							'showProductsInAncestors' => $categoryEntity->showProductsInAncestors,
+							'showDescendantProducts' => $categoryEntity->showDescendantProducts,
+					];
+
 					$ancestors = $this->getAncestorsOfCategory($category, $allCategories);
 
 					foreach ($ancestors as $ancestor) {
-						$productsByCategories[$ancestor][$product->id] = [$categoryEntity->showProductsInAncestors];
+						$categoryEntity = $allCategories[$ancestor];
+
+						$productsByCategories[$ancestor][$product->id] = (object) [
+							'showProductsInAncestors' => $categoryEntity->showProductsInAncestors,
+							'showDescendantProducts' => $categoryEntity->showDescendantProducts,
+						];
 					}
 
-					$productsByCategories[$category][$product->id] = [true];
+					$descendants = $categoryEntity->descendants;
+
+					foreach ($descendants as $descendant) {
+						$categoryEntity = $allCategories[$descendant];
+
+						$productsByCategories[$descendant][$product->id] = (object) [
+							'showProductsInAncestors' => $categoryEntity->showProductsInAncestors,
+							'showDescendantProducts' => $categoryEntity->showDescendantProducts,
+						];
+					}
 				}
 			}
 

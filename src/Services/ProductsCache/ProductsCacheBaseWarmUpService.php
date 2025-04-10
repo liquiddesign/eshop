@@ -286,7 +286,7 @@ abstract class ProductsCacheBaseWarmUpService
 
 	/**
 	 * @param string $category
-	 * @param array<object{ancestor: string, showDescendantProducts: bool, showProductsInAncestors: bool}> $allCategories
+	 * @param array<object{ancestor: string}> $allCategories
 	 * @return array<string>
 	 */
 	protected function getAncestorsOfCategory(string $category, array $allCategories): array
@@ -305,7 +305,7 @@ abstract class ProductsCacheBaseWarmUpService
 	 * @return array{
 	 *     0: array<object{id: int}>,
 	 *     1: array<object{id: int, isSold: bool}>,
-	 *     2: array<object{id: int, ancestor: string, showDescendantProducts: bool, showProductsInAncestors: bool}>,
+	 *     2: array<object{id: int, ancestor: string, showDescendantProducts: bool, showProductsInAncestors: bool, path: string, uuid: string, descendants: array<string>, fk_type: string}>,
 	 *     3: array<object{category: string|null, categoryType: string}>,
 	 *     4: array<object{id: int, groupedValues: string}>,
 	 *     5: array<object{id: int, groupedValues: string}>,
@@ -320,21 +320,44 @@ abstract class ProductsCacheBaseWarmUpService
 			->setOrderBy(['this.id'])
 			->fetchArray(\stdClass::class);
 
+
 		/** @var array<object{id: int, isSold: bool}> $allDisplayAmounts */
 		$allDisplayAmounts = $this->displayAmountRepository->many()
 			->select(['this.id'])
 			->setIndex('id')
 			->fetchArray(\stdClass::class);
 
-		/** @var array<object{id: int, ancestor: string, showDescendantProducts: bool, showProductsInAncestors: bool}> $allCategories */
+		/** @var array<\stdClass&object{
+		 *     id: int,
+		 *     ancestor: string,
+		 *     showDescendantProducts: bool,
+		 *     showProductsInAncestors: bool,
+		 *     path: string,
+		 *     uuid: string,
+		 *     descendants: array<string>,
+		 *     fk_type: string
+		 * }> $allCategories
+		 */
 		$allCategories = $this->categoryRepository->many()
 			->setSelect([
 				'this.id',
+				'this.uuid',
+				'this.path',
+				'this.fk_type',
 				'ancestor' => 'this.fk_ancestor',
 				'showDescendantProducts' => 'this.showDescendantProducts',
 				'showProductsInAncestors' => 'this.showProductsInAncestors',
 			], keepIndex: true)
 			->fetchArray(\stdClass::class);
+
+		foreach ($allCategories as $category) {
+			$category->descendants = $this->categoryRepository->many()
+				->where('this.path LIKE :path', ['path' => $category->path . '%'])
+				->whereNot('this.uuid', $category->uuid)
+				->where('this.fk_type', $category->fk_type)
+				->setSelect(['this.uuid'], keepIndex: true)
+				->toArrayOf('uuid', toArrayValues: true);
+		}
 
 		/** @var array<object{category: string|null, categoryType: string}> $allProductPrimaryCategories */
 		$allProductPrimaryCategories = $this->productPrimaryCategoryRepository->many()
