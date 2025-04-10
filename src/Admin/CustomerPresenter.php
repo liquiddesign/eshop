@@ -666,7 +666,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 				->setDisabled(!$this->isManager);
 
 			$form->addMultiSelect2('internalRibbons', 'Interní štítky', $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_CUSTOMER))
-				->setDefaultValue($customer->internalRibbons->toArrayOf('uuid', toArrayValues: true));
+				->setDefaultValue($customer?->internalRibbons->toArrayOf('uuid', toArrayValues: true));
 
 			$customersForSelect = $this->customerRepository->getArrayForSelect();
 
