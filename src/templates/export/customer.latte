@@ -1,6 +1,5 @@
 {contentType application/xml}
 <?xml version="1.0" encoding="utf-8"?>
-{var Eshop\DB\ProductRepository $products = $presenter->productRepo}
 {varType Eshop\DB\Product $product}
 {varType string|null $error}
 {ifset $error}
@@ -8,7 +7,6 @@
     {$error}
 </error>
 {else}
-{do $products = $products->getProducts(null, ($customer ?? $merchant))->where('this.hidden', false)}
 <SHOP>
     <SHOPITEM n:while="$product = $products->fetch()">
         <ITEM_ID>{$product->getPK()}</ITEM_ID>
@@ -17,7 +15,7 @@
         <WEIGHT>{$product->weight}</WEIGHT>
         <UNIT>{$product->unit}</UNIT>
         <EAN>{$product->getEan()}</EAN>
-        <DESCRIPTION n:if="$product->content"><![CDATA[{\strip_tags($product->content)}]]></DESCRIPTION>
+        <DESCRIPTION n:if="$content = $product->getContent()"><![CDATA[{\strip_tags($content)}]]></DESCRIPTION>
         <URL>{plink //:Eshop:Product:detail $product->getPK()}</URL>
         {*        <ITEM_TYPE>{$product->type}</ITEM_TYPE>*}
 {*        <DELIVERY_DATE></DELIVERY_DATE>*}
