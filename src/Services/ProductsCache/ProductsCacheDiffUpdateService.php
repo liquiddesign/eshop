@@ -118,9 +118,33 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
   INDEX (category)
 );");
 
-		$link->exec("ALTER TABLE `$categoriesTableName` DROP COLUMN IF EXISTS `showInCategory`;");
-		$link->exec("ALTER TABLE `$categoriesTableName` ADD COLUMN IF NOT EXISTS `showDescendantProducts` BOOL NOT NULL;");
-		$link->exec("ALTER TABLE `$categoriesTableName` ADD COLUMN IF NOT EXISTS `showProductsInAncestors` BOOL NOT NULL;");
+		$query = $link->query("
+    SELECT COLUMN_NAME
+    FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_SCHEMA = DATABASE() 
+      AND TABLE_NAME = '$categoriesTableName' 
+      AND COLUMN_NAME IN ('showInCategory', 'showDescendantProducts', 'showProductsInAncestors')
+");
+
+		if ($query === false) {
+			throw new \Exception('Statement creation failed.');
+		}
+
+		$columns = $query->fetchAll(\PDO::FETCH_ASSOC);
+
+		$columns = \array_combine(\array_column($columns, 'COLUMN_NAME'), \array_column($columns, 'COLUMN_NAME'));
+
+		if (isset($columns['showInCategory'])) {
+			$link->exec("ALTER TABLE `$categoriesTableName` DROP COLUMN `showInCategory`;");
+		}
+
+		if (!isset($columns['showDescendantProducts'])) {
+			$link->exec("ALTER TABLE `$categoriesTableName` ADD COLUMN `showDescendantProducts` BOOL NOT NULL;");
+		}
+
+		if (!isset($columns['showProductsInAncestors'])) {
+			$link->exec("ALTER TABLE `$categoriesTableName` ADD COLUMN `showProductsInAncestors` BOOL NOT NULL;");
+		}
 
 		$categoriesInCache = $this->getConnection()->rows([$categoriesTableName])
 			->fetchArray(\stdClass::class);
