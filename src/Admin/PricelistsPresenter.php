@@ -196,7 +196,7 @@ class PricelistsPresenter extends BackendPresenter
 			return false;
 		}, 'this.uuid');
 
-		$grid->addFilterTextInput('search', ['name'], null, 'Název');
+		$grid->addFilterTextInput('search', ['name', 'code'], null, 'Kód, název');
 		$grid->addFilterSelectInput(
 			'search2',
 			'fk_currency = :s',
