@@ -17,13 +17,19 @@ class TogglePackageItemDropShipping extends BaseAction
 	/** @var array<callable(\Eshop\DB\PackageItem): void> */
 	public array $onDropShippingChangeToFalse = [];
 
-	public function __construct(private readonly PackageItemRepository $packageItemRepository)
+	public function __construct(private readonly PackageItemRepository $packageItemRepository, private readonly CanTogglePackageItemDropShipping $canTogglePackageItemDropShipping)
 	{
 	}
 
+	/**
+	 * @param \Eshop\DB\PackageItem|string $packageItem
+	 * @throws \Nette\InvalidStateException
+	 */
 	public function execute(PackageItem|string $packageItem): void
 	{
 		$packageItem = $packageItem instanceof PackageItem ? $packageItem : $this->packageItemRepository->one($packageItem, true);
+
+		$this->canTogglePackageItemDropShipping->execute($packageItem);
 
 		$dropShippingToTrue = $packageItem->dropShipping === false;
 		$dropShippingToFalse = $packageItem->dropShipping === true;

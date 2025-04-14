@@ -7,6 +7,7 @@ namespace Eshop\Admin;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Carbon\Carbon;
+use Eshop\Actions\PackageItem\CanTogglePackageItemDropShipping;
 use Eshop\Actions\PackageItem\TogglePackageItemDropShipping;
 use Eshop\Actions\Product\GetMergedProductsByProduct;
 use Eshop\Admin\Controls\OrderGridFactory;
@@ -134,6 +135,9 @@ class OrderPresenter extends BackendPresenter
 		'approval' => false,
 		'recalculateOrderPricesMultiple' => false,
 	];
+
+	#[Inject]
+	public CanTogglePackageItemDropShipping $canTogglePackageItemDropShipping;
 
 	#[Inject]
 	public OrderEditService $orderEditService;
@@ -1583,6 +1587,7 @@ class OrderPresenter extends BackendPresenter
 
 	public function renderPrintDetail(Order $order): void
 	{
+		$this->template->canTogglePackageItemDropShipping = [$this->canTogglePackageItemDropShipping, 'execute'];
 		$this->template->showStoreOrderItemForm = $this->showStoreOrderItemForm($order);
 		$this->template->showOrderItemsLink = $this->showOrderItemsLink($order);
 		$this->template->states = $this::ORDER_STATES_NAMES;

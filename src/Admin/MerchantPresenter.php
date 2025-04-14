@@ -185,7 +185,7 @@ class MerchantPresenter extends BackendPresenter
 				$customersInput = $form->addMultiSelectAjax('customers', 'Zákazníci', 'Zvolte zákazníky', Customer::class);
 
 				if ($merchant) {
-					$this->template->select2AjaxDefaults[$customersInput->getHtmlId()] = $merchant->customers->toArrayOf('name');
+					$this->template->select2AjaxDefaults[$customersInput->getHtmlId()] = $merchant->customers->toArrayOf('fullname');
 				}
 			}
 
