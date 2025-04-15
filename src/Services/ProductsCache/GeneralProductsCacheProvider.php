@@ -2,6 +2,9 @@
 
 namespace Eshop\Services\ProductsCache;
 
+use DaveLiddament\PhpLanguageExtensions\InjectableVersion;
+
+#[InjectableVersion]
 interface GeneralProductsCacheProvider
 {
 	public const PRODUCTS_PROVIDER_CACHE_TAG = 'productsProviderCache';
