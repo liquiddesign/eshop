@@ -126,11 +126,11 @@ abstract class ProductsCacheBaseWarmUpService
 
 	/**
 	 * @param array<string|int> $customers
-	 * @param array<string|int>|null $customerGroups
+	 * @param array<string|int> $customerGroups
 	 * @param array<string|int> $merchants
 	 * @return array{0: array<string, true>, 1: list<int>, 2: list<int>}
 	 */
-	public function getAllPossibleVisibilityAndPriceListOptions(array $customers = [], array|null $customerGroups = null, array $merchants = []): array
+	public function getAllPossibleVisibilityAndPriceListOptions(array $customers = [], array $customerGroups = [], array $merchants = []): array
 	{
 		/** @var array<string|int, true> $existingOptions */
 		$existingOptions = [];
@@ -407,11 +407,11 @@ abstract class ProductsCacheBaseWarmUpService
 
 	/**
 	 * @param array<string|int> $customers
-	 * @param array<string|int>|null $customerGroups
+	 * @param array<string|int> $customerGroups
 	 * @param array<string|int> $merchants
 	 * @return array{0: array<string, true>, 1: list<int>, 2: list<int>}
 	 */
-	private function getAllPossibleVisibilityAndPriceListOptionsHelper(array $customers = [], array|null $customerGroups = null, array $merchants = [], Shop|null $shop = null): array
+	private function getAllPossibleVisibilityAndPriceListOptionsHelper(array $customers = [], array $customerGroups = [], array $merchants = [], Shop|null $shop = null): array
 	{
 		/** @var array<string|int, \Eshop\DB\Pricelist> $prefetchedPriceLists */
 		$prefetchedPriceLists = $this->pricelistRepository->many()->select(['this.id'])->toArray();
@@ -422,17 +422,19 @@ abstract class ProductsCacheBaseWarmUpService
 
 		$customerGroupsQuery = $this->customerGroupRepository->many();
 
-		if ($customerGroups !== null) {
-			$customerGroups ?
-				$customerGroupsQuery->where('this.uuid', $customerGroups) :
-				$customerGroupsQuery->where('1=0');
+		if ($customerGroups) {
+			$customerGroupsQuery->where('this.uuid', $customerGroups);
+		} else {
+			// Only customer groups marked as defaultUnregisteredGroup are used
+			if ($unregisteredGroups = $this->settingsService->getAllDefaultUnregisteredGroups()) {
+				$customerGroupsQuery->where('this.uuid', $unregisteredGroups);
+			} else {
+				$customerGroupsQuery->where('this.uuid', CustomerGroupRepository::UNREGISTERED_PK);
+			}
 		}
 
-		// Only customer groups marked as defaultUnregisteredGroup are used
-		if ($unregisteredGroups = $this->settingsService->getAllDefaultUnregisteredGroups()) {
-			$customerGroupsQuery->where('this.uuid', $unregisteredGroups);
-		} else {
-			$customerGroupsQuery->where('this.uuid', CustomerGroupRepository::UNREGISTERED_PK);
+		if (!$customerGroups && ($customers || $merchants)) {
+			$customerGroupsQuery->where('1=0');
 		}
 
 		foreach ($customerGroupsQuery as $customerGroup) {
@@ -520,6 +522,10 @@ abstract class ProductsCacheBaseWarmUpService
 
 			if ($customers) {
 				$customersQuery->where('this.uuid', $customers);
+			} else {
+				if ($customerGroups || $merchants) {
+					$customersQuery->where('1=0');
+				}
 			}
 
 			$indexes = $customersQuery->toArrayOf('visibilityPriceIndex');
@@ -612,6 +618,10 @@ abstract class ProductsCacheBaseWarmUpService
 
 			if ($merchants) {
 				$merchantsQuery->where('this.uuid', $merchants);
+			} else {
+				if ($customerGroups || $customers) {
+					$merchantsQuery->where('1=0');
+				}
 			}
 
 			$indexes = $merchantsQuery->toArrayOf('visibilityPriceIndex');

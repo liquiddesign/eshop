@@ -36,8 +36,10 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 	/**
 	 * Works like warmUpCacheTable, but don't erase all data.
 	 * @param array<string|\Eshop\DB\Customer> $customers
+	 * @param array<string|int> $customerGroups
+	 * @param array<string|int> $merchants
 	 */
-	public function warmUpCacheTableDiff(array $customers = []): void
+	public function warmUpCacheTableDiff(array $customers = [], array $customerGroups = [], array $merchants = []): void
 	{
 		try {
 			$link = $this->getLink();
@@ -84,7 +86,7 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 			$this->diffUpdateCategories($categoriesTableName, $productsCacheTableName, $productsByCategories, $allCategories);
 			Debugger::dump('createCategoriesTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage());
 
-			$this->diffUpdateVisibilityPriceTable($visibilityPricesCacheTableName, $customers);
+			$this->diffUpdateVisibilityPriceTable($visibilityPricesCacheTableName, $customers, $customerGroups, $merchants);
 			Debugger::dump('diffUpdateVisibilityPriceTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage());
 
 			$this->cleanProductsProviderCache();
@@ -438,9 +440,11 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 	/**
 	 * @param string $pricesCacheTableName
 	 * @param array<string|\Eshop\DB\Customer> $customers
+	 * @param array<string|int> $customerGroups
+	 * @param array<string|int> $merchants
 	 * @throws \StORM\Exception\GeneralException
 	 */
-	protected function diffUpdateVisibilityPriceTable(string $pricesCacheTableName, array $customers = []): void
+	protected function diffUpdateVisibilityPriceTable(string $pricesCacheTableName, array $customers = [], array $customerGroups = [], array $merchants = []): void
 	{
 		foreach ($customers as &$customer) {
 			if ($customer instanceof Customer) {
@@ -449,7 +453,8 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		}
 
 		Debugger::timer('getAllPossibleVisibilityAndPriceListOptions');
-		[$visibilityPriceListsOptions, $allVisibilityLists, $allPriceLists] = $this->getAllPossibleVisibilityAndPriceListOptions($customers);
+		[$visibilityPriceListsOptions, $allVisibilityLists, $allPriceLists] = $this->getAllPossibleVisibilityAndPriceListOptions($customers, $customerGroups, $merchants);
+
 		Debugger::dump(
 			'diffUpdateVisibilityPriceTable -- getAllPossibleVisibilityAndPriceListOptions: ' . Debugger::timer('getAllPossibleVisibilityAndPriceListOptions') .
 			', ' . DevelTools::getPeakMemoryUsage()

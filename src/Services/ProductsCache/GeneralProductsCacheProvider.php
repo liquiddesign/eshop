@@ -11,8 +11,10 @@ interface GeneralProductsCacheProvider
 
 	/**
 	 * @param array<string|\Eshop\DB\Customer> $customers
+	 * @param array<string|int> $customerGroups
+	 * @param array<string|int> $merchants
 	 */
-	public function warmUpCacheTable(array $customers = []): void;
+	public function warmUpCacheTable(array $customers = [], array $customerGroups = [], array $merchants = []): void;
 
 	/**
 	 * @param array<mixed> $filters

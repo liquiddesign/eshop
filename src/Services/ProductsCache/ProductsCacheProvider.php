@@ -22,9 +22,9 @@ readonly class ProductsCacheProvider implements GeneralProductsCacheProvider
 	/**
 	 * @inheritDoc
 	 */
-	public function warmUpCacheTable(array $customers = []): void
+	public function warmUpCacheTable(array $customers = [], array $customerGroups = [], array $merchants = []): void
 	{
-		$this->productsCacheDiffUpdateService->warmUpCacheTableDiff($customers);
+		$this->productsCacheDiffUpdateService->warmUpCacheTableDiff($customers, $customerGroups, $merchants);
 	}
 
 	/**
