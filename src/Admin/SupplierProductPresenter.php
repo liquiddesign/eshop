@@ -359,6 +359,7 @@ class SupplierProductPresenter extends BackendPresenter
 				$this->connection->getLink()->commit();
 			} catch (\Throwable $e) {
 				$this->connection->getLink()->rollBack();
+
 				if ((int) $e->getCode() === 23000 && Strings::contains($e->getMessage(), 'supplier_product_ean') !== false) {
 					$this->flashMessage('Duplicitní EAN!', 'error');
 
@@ -371,10 +372,6 @@ class SupplierProductPresenter extends BackendPresenter
 		};
 
 		return $form;
-	}
-
-	protected function supplierProductFormBeforeRedirect(AdminForm $adminForm, SupplierProduct $supplierProduct): void
-	{
 	}
 
 	public function renderPairAlgoliaBulk(array $ids): void
@@ -604,6 +601,11 @@ class SupplierProductPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('pairAlgoliaForm')];
+	}
+
+	protected function supplierProductFormBeforeRedirect(AdminForm $adminForm, SupplierProduct $supplierProduct): void
+	{
+		unset($adminForm, $supplierProduct);
 	}
 
 	protected function startup(): void
