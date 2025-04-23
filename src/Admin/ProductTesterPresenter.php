@@ -85,7 +85,7 @@ class ProductTesterPresenter extends BackendPresenter
 		$form->monitor(BackendPresenter::class, function (BackendPresenter $presenter) use ($form): void {
 			$typeInput = $form->addSelect('type', 'Hledat podle', [
 				'customer' => 'Zákazník',
-//				'group' => 'Skupina zákazníků',
+				'group' => 'Skupina zákazníků',
 //				'custom' => 'Ručně',
 			])->setRequired();
 

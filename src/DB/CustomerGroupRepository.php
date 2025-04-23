@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Admin\DB\IGeneralAjaxRepository;
 use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
 use StORM\Collection;
 use StORM\DIConnection;
+use StORM\Repository;
 use StORM\SchemaManager;
 use Web\DB\SettingRepository;
 
 /**
  * @extends \StORM\Repository<\Eshop\DB\CustomerGroup>
  */
-class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepository
+class CustomerGroupRepository extends Repository implements IGeneralRepository, IGeneralAjaxRepository
 {
 	/**
 	 * Method CustomerGroupRepository::getUnregisteredGroup returns group by setting. If no setting available, try to find group by this constant.
@@ -95,5 +97,13 @@ class CustomerGroupRepository extends \StORM\Repository implements IGeneralRepos
 	public function toArrayForSelect(Collection $collection): array
 	{
 		return $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection($collection, oldSystemicProperty: true));
+	}
+
+	public function getAjaxArrayForSelect(bool $includeHidden = true, ?string $q = null, ?int $page = null): array
+	{
+		return $this->getCollection($includeHidden)
+			->where('this.uuid LIKE :q OR this.name LIKE :q', ['q' => "%$q%", 'exact' => $q,])
+			->setPage($page ?? 1, 5)
+			->toArrayOf('name');
 	}
 }
