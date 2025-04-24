@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.458](https://github.com/liquiddesign/eshop/compare/v2.1.457...v2.1.458) (2025-04-24)
+
+### Features
+
+* Add new method to CustomerGroupRepository and update Dockerfile ([36685c](https://github.com/liquiddesign/eshop/commit/36685c7cfe7081dfbcf0d58308294b47a82b6ddf))
+* Tester ([169aad](https://github.com/liquiddesign/eshop/commit/169aadab67f219bcd2f62d8f9585857e80353572))
+* Supplier product before update ([04e1fb](https://github.com/liquiddesign/eshop/commit/04e1fbdd087ee0323867f91e23322b41c4336275))
+* Implement product cache warm-up and update services ([818fd6](https://github.com/liquiddesign/eshop/commit/818fd67dde6248328adede55d0490daa1b27717c))
+
+### Styles
+
+* Style ([a7f201](https://github.com/liquiddesign/eshop/commit/a7f201a07d64f28f6b196778a9dc1b614d843f91))
+
+
+---
+
 ## [2.1.457](https://github.com/liquiddesign/eshop/compare/v2.1.456...v2.1.457) (2025-04-14)
 
 ### Features
