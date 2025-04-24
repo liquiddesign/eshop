@@ -659,8 +659,8 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
 				'type' => $relation->getValue('typeId'),
 				'priority' => $relation->priority,
 				'amount' => $relation->amount,
-				'hidden' => $relation->hidden,
-				'systemic' => $relation->isSystemic(),
+				'hidden' => $relation->hidden ? 1 : 0,
+				'systemic' => $relation->isSystemic() ? 1 : 0,
 				'discountPct' => $relation->discountPct,
 				'masterPct' => $relation->masterPct,
 			];
