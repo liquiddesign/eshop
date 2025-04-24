@@ -99,6 +99,9 @@ class CustomerGroupRepository extends Repository implements IGeneralRepository, 
 		return $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection($collection, oldSystemicProperty: true));
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public function getAjaxArrayForSelect(bool $includeHidden = true, ?string $q = null, ?int $page = null): array
 	{
 		return $this->getCollection($includeHidden)

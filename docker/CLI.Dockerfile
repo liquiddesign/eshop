@@ -9,3 +9,5 @@ RUN apt install -y \
     ca-certificates
 
 RUN git config --global --add safe.directory /var/www/html
+
+RUN chmod 777 -R /tmp
