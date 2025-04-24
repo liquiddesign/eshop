@@ -351,9 +351,15 @@ class SupplierProductPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($supplierProduct): void {
 			$values = $form->getValues('array');
 
+			$this->connection->getLink()->beginTransaction();
+
 			try {
 				$supplierProduct->update($values);
+				$this->supplierProductFormBeforeRedirect($form, $supplierProduct);
+				$this->connection->getLink()->commit();
 			} catch (\Throwable $e) {
+				$this->connection->getLink()->rollBack();
+
 				if ((int) $e->getCode() === 23000 && Strings::contains($e->getMessage(), 'supplier_product_ean') !== false) {
 					$this->flashMessage('Duplicitní EAN!', 'error');
 
@@ -595,6 +601,11 @@ class SupplierProductPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('pairAlgoliaForm')];
+	}
+
+	protected function supplierProductFormBeforeRedirect(AdminForm $adminForm, SupplierProduct $supplierProduct): void
+	{
+		unset($adminForm, $supplierProduct);
 	}
 
 	protected function startup(): void
