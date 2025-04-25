@@ -599,7 +599,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				->delete();
 		}
 
-		if ($existingPricesCacheTables && (!$customers || !$customerGroups || !$merchants)) {
+		if ($existingPricesCacheTables && (!$customers && !$customerGroups && !$merchants)) {
 			foreach ($existingPricesCacheTables as $tableName) {
 				$this->getLink()->exec("DROP TABLE IF EXISTS `$tableName`;");
 			}
