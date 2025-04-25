@@ -10,7 +10,7 @@ use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Controls\ProductFilter;
-use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
+use Eshop\Services\ProductsCache2\GeneralProductsCacheProvider;
 use Eshop\ShopperUser;
 use InvalidArgumentException;
 use League\Csv\Reader;

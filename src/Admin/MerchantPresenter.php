@@ -16,7 +16,7 @@ use Eshop\DB\MerchantRepository;
 use Eshop\DB\Pricelist;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\VisibilityListRepository;
-use Eshop\Services\ProductsCache\ProductsCacheGetterService;
+use Eshop\Services\ProductsCache2\ProductsCacheGetterService;
 use Forms\Form;
 use Grid\Datagrid;
 use Messages\DB\TemplateRepository;

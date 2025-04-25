@@ -12,7 +12,7 @@ use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\Services\Attribute\AttributeNumericService;
-use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
+use Eshop\Services\ProductsCache2\GeneralProductsCacheProvider;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Forms\FormFactory;

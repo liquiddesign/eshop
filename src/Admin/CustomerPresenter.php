@@ -30,7 +30,7 @@ use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\Services\LostPasswordService;
-use Eshop\Services\ProductsCache\ProductsCacheGetterService;
+use Eshop\Services\ProductsCache2\ProductsCacheGetterService;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;

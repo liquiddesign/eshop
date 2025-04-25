@@ -9,7 +9,7 @@ use Eshop\Common\Services\ProductImporter;
 use Eshop\Common\Services\ProductTester;
 use Eshop\CompareManager;
 use Eshop\Services\Comgate;
-use Eshop\Services\ProductsCache\ProductsCacheProvider;
+use Eshop\Services\ProductsCache2\ProductsCacheProvider;
 use Eshop\ShopperUser;
 use Nette\Schema\Expect;
 use Nette\Schema\Schema;

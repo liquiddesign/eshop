@@ -13,7 +13,7 @@ use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\WatcherRepository;
-use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
+use Eshop\Services\ProductsCache2\GeneralProductsCacheProvider;
 use Eshop\ShopperUser;
 use Forms\FormFactory;
 use Grid\Datalist;

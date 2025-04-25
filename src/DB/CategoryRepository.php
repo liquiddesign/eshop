@@ -9,9 +9,9 @@ use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\ScriptsPresenter;
 use Eshop\Admin\SettingsPresenter;
-use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
-use Eshop\Services\ProductsCache\ProductsCacheNotReadyException;
-use Eshop\Services\ProductsCache\ProductsCacheProvider;
+use Eshop\Services\ProductsCache2\GeneralProductsCacheProvider;
+use Eshop\Services\ProductsCache2\ProductsCacheNotReadyException;
+use Eshop\Services\ProductsCache2\ProductsCacheProvider;
 use Eshop\ShopperUser;
 use Latte\Loaders\StringLoader;
 use Latte\Sandbox\SecurityPolicy;
@@ -76,7 +76,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	 */
 	public function getCounts(string|Category $path, array $filters = [], array $priceLists = [], array $visibilityLists = []): int|null
 	{
-		/** @var \Eshop\Services\ProductsCache\GeneralProductsCacheProvider $productsProvider */
+		/** @var \Eshop\Services\ProductsCache2\GeneralProductsCacheProvider $productsProvider */
 		$productsProvider = $this->container->getByType(GeneralProductsCacheProvider::class);
 		$productRepository = $this->productRepository;
 

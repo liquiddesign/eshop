@@ -1,6 +1,6 @@
 <?php
 
-namespace Eshop\Services\ProductsCache;
+namespace Eshop\Services\ProductsCache2;
 
 use Eshop\DB\PricelistRepository;
 use Eshop\ShopperUser;
