@@ -189,6 +189,15 @@ class ProductsCacheGetterService implements AutoWireService
 		}
 	}
 
+	public function isReady(): bool
+	{
+		try {
+			return (bool) $this->getConnection()->query('SHOW TABLES LIKE :q', ['q' => ProductsCacheBaseWarmUpService::PRODUCTS_TABLE_NAME])->fetch();
+		} catch (\Throwable) {
+			return false;
+		}
+	}
+
 	/**
 	 * @param array<mixed> $filters
 	 * @param string|null $orderByName

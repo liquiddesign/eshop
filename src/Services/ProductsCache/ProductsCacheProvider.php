@@ -7,15 +7,17 @@ use Eshop\ShopperUser;
 use Nette\Utils\Arrays;
 
 /**
- * Main service to work with cache of products. If possible, always use this service.
+ * Main service to work with a cache of products. If possible, always use this service.
  */
-readonly class ProductsCacheProvider implements GeneralProductsCacheProvider
+class ProductsCacheProvider implements GeneralProductsCacheProvider
 {
+	private bool|null $isReady = null;
+
 	public function __construct(
-		private ProductsCacheGetterService $productsCacheProviderService,
-		private ProductsCacheDiffUpdateService $productsCacheDiffUpdateService,
-		private ShopperUser $shopperUser,
-		private PricelistRepository $pricelistRepository,
+		private readonly ProductsCacheGetterService $productsCacheProviderService,
+		private readonly ProductsCacheDiffUpdateService $productsCacheDiffUpdateService,
+		private readonly ShopperUser $shopperUser,
+		private readonly PricelistRepository $pricelistRepository,
 	) {
 	}
 
@@ -42,6 +44,14 @@ readonly class ProductsCacheProvider implements GeneralProductsCacheProvider
 		$customer = $this->shopperUser->getCustomer();
 		$merchant = $this->shopperUser->getMerchant();
 
+		if ($this->isReady === null) {
+			$this->isReady = $this->productsCacheProviderService->isReady();
+		}
+
+		if (!$this->isReady) {
+			throw new ProductsCacheNotReadyException();
+		}
+
 		if (isset($filters['pricelist'])) {
 			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
 		}
@@ -50,7 +60,7 @@ readonly class ProductsCacheProvider implements GeneralProductsCacheProvider
 			return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists);
 		}
 
-		// do two separate call to cache with customer and merchant pricelists and combine results
+		// do two separate calls to cache with customer and merchant pricelists and combine results
 		$customerPriceLists = $this->pricelistRepository->getCustomerPricelists(
 			$customer,
 			$this->shopperUser->getCurrency(),
