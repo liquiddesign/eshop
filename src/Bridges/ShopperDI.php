@@ -109,6 +109,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$builder->addDefinition($this->prefix('productExporter'))->setType(ProductExporter::class);
 		$builder->addDefinition($this->prefix('productImporter'))->setType(ProductImporter::class);
 		$builder->addDefinition($this->prefix('productsProvider'))->setType(ProductsCacheProvider::class);
+		$builder->addDefinition($this->prefix('productsProvider2'))->setType(\Eshop\Services\ProductsCache2\ProductsCacheProvider::class);
 		$builder->addDefinition($this->prefix('productTester'))->setType(ProductTester::class);
 
 		/** @var \Nette\DI\Definitions\ServiceDefinition $latteDefinition */

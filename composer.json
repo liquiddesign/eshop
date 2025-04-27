@@ -73,13 +73,7 @@
             "@phpcsfix",
             "@phpcs"
         ],
-        "check-code": [
-            "@phpcs",
-            "@phpstan",
-            "@phpstan8",
-            "@lattelint",
-            "@check-commit"
-        ],
+        "check-code": "npx concurrently -c \\\"#93c5fd,#c4b5fd,#fb7185,#fdba74\\\" --success all \"composer phpcs\" \"composer phpstan\" \"composer phpstan8\" \"composer lattelint\" \"composer check-commit\" --names=cs,stan,stan8,lattelint,commit",
         "phpstan-clear-cache": "@php ./vendor/bin/phpstan clear-result-cache",
         "phpstan": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan.neon --ansi",
         "phpstan8": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan8.neon --ansi",

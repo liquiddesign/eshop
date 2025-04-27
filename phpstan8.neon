@@ -20,7 +20,7 @@ parameters:
 		- src/Services/Order/OrderEditService.php
 		- src/Admin/Controls/Customer
 		- src/Admin/MerchantPresenter.php
-		- src/Services/ProductsCache
+		- src/Services/ProductsCache2
 	excludePaths:
 		- src/assets/*
 		- src/templates/*
