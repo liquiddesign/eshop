@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.459](https://github.com/liquiddesign/eshop/compare/v2.1.458...v2.1.459) (2025-04-25)
+
+### Bug Fixes
+
+* (UserPresenter.php) phpstan types ([e6411a](https://github.com/liquiddesign/eshop/commit/e6411a67dacdb1e7246e01eada79248c257c4354))
+
+
+---
+
 ## [2.1.458](https://github.com/liquiddesign/eshop/compare/v2.1.457...v2.1.458) (2025-04-24)
 
 ### Features
