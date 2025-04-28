@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.463](https://github.com/liquiddesign/eshop/compare/v2.1.462...v2.1.463) (2025-04-28)
+
+### Features
+
+* Implement pagination for price fetching in ProductsCacheDiffUpdateService to improve performance ([2a4c1b](https://github.com/liquiddesign/eshop/commit/2a4c1b08e46af351294b997b1d67589618a5e35a))
+
+
+---
+
 ## [2.1.462](https://github.com/liquiddesign/eshop/compare/v2.1.461...v2.1.462) (2025-04-28)
 
 
