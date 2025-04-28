@@ -270,7 +270,13 @@ class CheckoutManager
 	{
 		if (!$this->request->getCookie('cartToken') && !$this->getCustomer()) {
 			$this->cartToken = DIConnection::generateUuid();
-			$this->response->setCookie('cartToken', $this->cartToken, $this->cartExpiration . ' days');
+
+			// In some cases in admin, there is output already sent
+			try {
+				$this->response->setCookie('cartToken', $this->cartToken, $this->cartExpiration . ' days');
+			} catch (\Exception) {
+				$this->cartToken = null;
+			}
 		} else {
 			$this->cartToken = $this->request->getCookie('cartToken');
 		}
