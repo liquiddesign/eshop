@@ -419,7 +419,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		$page = 0;
 
 		do {
-			/** @var \StORM\ICollection<\stdClass> $allProductsWithPriceQuery */
+			/** @var array<\stdClass> $allProductsWithPriceQuery */
 			$allProductsWithPriceQuery = $this->priceRepository->many()
 				->join(['priceList' => 'eshop_pricelist'], 'this.fk_pricelist = priceList.uuid', type: 'INNER')
 				->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid', type: 'INNER')
@@ -445,9 +445,6 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 
 			$page++;
 		} while ($allProductsWithPriceQuery);
-
-		$allProductsWithPriceQuery->__destruct();
-		unset($allProductsWithPriceQuery);
 
 		return [$allProductsWithVLI, $allProductsWithPrice];
 	}
