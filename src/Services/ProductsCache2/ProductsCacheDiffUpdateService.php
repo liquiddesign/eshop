@@ -415,30 +415,36 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 
 		/** @var array<int, array<int, \stdClass>> $allProductsWithPrice */
 		$allProductsWithPrice = [];
-		$allProductsWithPriceQuery = $this->priceRepository->many()
-			->join(['priceList' => 'eshop_pricelist'], 'this.fk_pricelist = priceList.uuid', type: 'INNER')
-			->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid', type: 'INNER')
-			->where('priceList.id', $allPriceLists)
-			->where('this.hidden', false)
-			->setSelect([
-				'this.price',
-				'this.priceVat',
-				'this.priceBefore',
-				'this.priceVatBefore',
-				'productId' => 'product.id',
-				'priceListId' => 'priceList.id',
-			])
-			->setIndex('product.id')
-			->orderBy(['product.id' => 'ASC', 'priceList.priority' => 'ASC']);
 
-		while ($item = $allProductsWithPriceQuery->fetch(\stdClass::class)) {
-			/** @var \stdClass $item */
+		$page = 0;
 
-			$allProductsWithPrice[$item->productId][$item->priceListId] = $item;
-		}
+		do {
+			/** @var array<\stdClass> $allProductsWithPriceQuery */
+			$allProductsWithPriceQuery = $this->priceRepository->many()
+				->join(['priceList' => 'eshop_pricelist'], 'this.fk_pricelist = priceList.uuid', type: 'INNER')
+				->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid', type: 'INNER')
+				->where('priceList.id', $allPriceLists)
+				->where('this.hidden', false)
+				->setSelect([
+					'this.price',
+					'this.priceVat',
+					'this.priceBefore',
+					'this.priceVatBefore',
+					'productId' => 'product.id',
+					'priceListId' => 'priceList.id',
+				])
+				->setIndex('product.id')
+				->orderBy(['product.id' => 'ASC', 'priceList.priority' => 'ASC'])
+				->setTake(10000)
+				->setSkip($page * 10000)
+				->fetchArray(\stdClass::class);
 
-		$allProductsWithPriceQuery->__destruct();
-		unset($allProductsWithPriceQuery);
+			foreach ($allProductsWithPriceQuery as $item) {
+				$allProductsWithPrice[$item->productId][$item->priceListId] = $item;
+			}
+
+			$page++;
+		} while ($allProductsWithPriceQuery);
 
 		return [$allProductsWithVLI, $allProductsWithPrice];
 	}
