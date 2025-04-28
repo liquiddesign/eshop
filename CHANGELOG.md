@@ -4,6 +4,79 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.460](https://github.com/liquiddesign/eshop/compare/v2.1.459...v2.1.460) (2025-04-27)
+
+
+---
+
+## [2.1.459](https://github.com/liquiddesign/eshop/compare/v2.1.458...v2.1.459) (2025-04-25)
+
+### Bug Fixes
+
+* (UserPresenter.php) phpstan types ([e6411a](https://github.com/liquiddesign/eshop/commit/e6411a67dacdb1e7246e01eada79248c257c4354))
+
+
+---
+
+## [2.1.458](https://github.com/liquiddesign/eshop/compare/v2.1.457...v2.1.458) (2025-04-24)
+
+### Features
+
+* Add new method to CustomerGroupRepository and update Dockerfile ([36685c](https://github.com/liquiddesign/eshop/commit/36685c7cfe7081dfbcf0d58308294b47a82b6ddf))
+* Tester ([169aad](https://github.com/liquiddesign/eshop/commit/169aadab67f219bcd2f62d8f9585857e80353572))
+* Supplier product before update ([04e1fb](https://github.com/liquiddesign/eshop/commit/04e1fbdd087ee0323867f91e23322b41c4336275))
+* Implement product cache warm-up and update services ([818fd6](https://github.com/liquiddesign/eshop/commit/818fd67dde6248328adede55d0490daa1b27717c))
+
+### Styles
+
+* Style ([a7f201](https://github.com/liquiddesign/eshop/commit/a7f201a07d64f28f6b196778a9dc1b614d843f91))
+
+
+---
+
+## [2.1.457](https://github.com/liquiddesign/eshop/compare/v2.1.456...v2.1.457) (2025-04-14)
+
+### Features
+
+* Update search filter to include code alongside name for improved search functionality ([0daa15](https://github.com/liquiddesign/eshop/commit/0daa156ffa4825db1b45faffefdaf990f7e095f2))
+* Implement CanTogglePackageItemDropShipping action and integrate it into OrderPresenter and TogglePackageItemDropShipping ([7ec4ea](https://github.com/liquiddesign/eshop/commit/7ec4ea8a0b60b94fbb9f158b8ea884072f2a18d7), [4528e0](https://github.com/liquiddesign/eshop/commit/4528e06855e465ef9c03db0564fabb7a07744040))
+* Customer in store ([fc1b90](https://github.com/liquiddesign/eshop/commit/fc1b9088c56bec08e0c61a3a68444ed29d74c417), [377e7c](https://github.com/liquiddesign/eshop/commit/377e7c388187487b0fb03eff088c3bc1c18aa31b))
+* Notified watcher functionality ([9b00a0](https://github.com/liquiddesign/eshop/commit/9b00a00b71a2740f9dfd4fecf60ab682194dfd06), [071ac2](https://github.com/liquiddesign/eshop/commit/071ac2e9daacfff463f75ea81e46b430d5e74c34))
+* Watcher notification fields ([a2759c](https://github.com/liquiddesign/eshop/commit/a2759c6f5b024a4a79978381628963ae79f994d3), [b73118](https://github.com/liquiddesign/eshop/commit/b73118979b4d2f4a8ff3e6fc7508c26301aca394))
+* Refactor category column management to conditionally drop and add columns based on existence ([b1183e](https://github.com/liquiddesign/eshop/commit/b1183edeb3d70f7e4291fcea845f1570520b4eb9))
+* Update category handling and cache management by refining checkbox labels and removing unused parameters ([7fe3f9](https://github.com/liquiddesign/eshop/commit/7fe3f9b71046a1b0e6a61190ab6b3ffae267deed))
+* Enhance category handling by updating data structures to include additional properties and improve descendant product management ([7ddac1](https://github.com/liquiddesign/eshop/commit/7ddac1e00a43025a78ef1f09c91271e9b97eb7e2))
+* Update diffUpdateRelations method to include productsCacheTableName parameter for improved relation handling ([8ceb8e](https://github.com/liquiddesign/eshop/commit/8ceb8e06789dc83d5bb80762bcd5afec42a25680))
+* Update price display in order details to use currency-specific formatting ([e62636](https://github.com/liquiddesign/eshop/commit/e6263655812bc82091075f2e826e39d780d73fa6))
+* Refactor product dimension handling to use separate width, length, and depth properties ([404eda](https://github.com/liquiddesign/eshop/commit/404eda72e4e5fac1c16e5fc52dfb224eee7f7950))
+* Update pricelist filtering to use text input with improved handling and UI enhancements ([04dc39](https://github.com/liquiddesign/eshop/commit/04dc39985ff4f93e71c42a0427136feac36db191))
+* Enhance customer pricelist filtering with improved text input handling ([e1fb63](https://github.com/liquiddesign/eshop/commit/e1fb63da7a5beea6d354424e590aec075be9dc0b))
+* Improve product loading efficiency by forcing cache retrieval in ProductPresenter ([1b2efa](https://github.com/liquiddesign/eshop/commit/1b2efa3bdd4697e908ca1660e3b3876a1c602706))
+* Add cache warming functionality with cron job integration and debugging ([acd76e](https://github.com/liquiddesign/eshop/commit/acd76ebc9d2e349f1c845a644e7dcb48ea6bdda7))
+* Optimize product cache update process with improved data fetching and debugging ([ad2b55](https://github.com/liquiddesign/eshop/commit/ad2b555f86a7bb0501e4f55d82bbae3e9a88bdc5))
+* Enhance product cache management with new table structures and update methods ([dd8479](https://github.com/liquiddesign/eshop/commit/dd8479781c9b6f8cf26eda7ee231f455b5a23e5a))
+* Customer internal ribbons ([34a560](https://github.com/liquiddesign/eshop/commit/34a560b19cb5f1d2a78b93127f7152a12dc1e2bd), [c39293](https://github.com/liquiddesign/eshop/commit/c39293030559360efeedab554aa035f30a5c8360))
+* Introduce ProductsCacheDiffUpdateService for optimized cache updates and deprecate updateCustomerVisibilitiesAndPrices method ([190ed9](https://github.com/liquiddesign/eshop/commit/190ed9b4ca27f3951c62bd47d2788bdc7064d5af))
+
+### Bug Fixes
+
+* Update customer selection to use full names instead of names for improved clarity ([1d5651](https://github.com/liquiddesign/eshop/commit/1d5651fd3605f3cb3c83e63a99b18fa076072497))
+* Ensure default value for categoriesConditionsContainer is an empty array to prevent potential errors ([7a5772](https://github.com/liquiddesign/eshop/commit/7a5772f591b83f5767ce3325507c53bb97086f87))
+* Improve product retrieval by filtering hidden products and enhancing error handling for customer and merchant checks ([017512](https://github.com/liquiddesign/eshop/commit/01751215f778c26a1005933d40b338bfda00402f))
+* Update internalRibbons default value handling to support null customer cases ([6a2f64](https://github.com/liquiddesign/eshop/commit/6a2f6494665f4f96443f6db31bfe51e4df08b163))
+* Remove unnecessary price filter from getProductsFromCacheTable method in CategoryRepository ([7c1354](https://github.com/liquiddesign/eshop/commit/7c13541637ff6a1e9a4bd210157873bb1fd241ae))
+* Adjust category type handling in ProductsCacheGetterService to prevent potential mismatches ([f16e23](https://github.com/liquiddesign/eshop/commit/f16e23eb09fb0a6e66bca1604fd8cb4316ee2b27))
+* Update flash messages for customer import functionality ([72d117](https://github.com/liquiddesign/eshop/commit/72d117bd1c5c57ef3129b95589af93936d76a816), [f41438](https://github.com/liquiddesign/eshop/commit/f41438dca355e9722232cc283028c5a3c5892500))
+* Change index algorithm for visibilityPriceIndex and product to INPLACE ([2e1161](https://github.com/liquiddesign/eshop/commit/2e1161f8e2baf19befa0db9ad18e03ab0defadac), [85b0e4](https://github.com/liquiddesign/eshop/commit/85b0e49d437a8cb2a68f0b2ead11767093f04209))
+* Refactor merchant retrieval logic to improve clarity and handle null cases ([9677bd](https://github.com/liquiddesign/eshop/commit/9677bd322f84987e8f7dcf37086b185291b25153), [4163db](https://github.com/liquiddesign/eshop/commit/4163dbed31b776a2403a1cc4120afd049c2202ba))
+
+### Styles
+
+* Fix ([3c83dd](https://github.com/liquiddesign/eshop/commit/3c83ddaaeedd6b722a94ae9737e51a508167d1a3), [77e20b](https://github.com/liquiddesign/eshop/commit/77e20ba4b0861c9ee8536feec7cebf48f539be84))
+
+
+---
+
 ## [2.1.456](https://github.com/liquiddesign/eshop/compare/v2.1.455...v2.1.456) (2025-04-14)
 
 ### Features
