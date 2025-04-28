@@ -615,6 +615,11 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		Debugger::dump('diffUpdateVisibilityPriceTable -- main while: ' . Debugger::timer('diffUpdateVisibilityPriceTable -- main while'));
 	}
 
+	/**
+	 * @param string $relationsCacheTableName
+	 * @param string $productsCacheTableName
+	 * @param array<string|int, true> $productsInProductsCacheTable
+	 */
 	protected function diffUpdateRelations(string $relationsCacheTableName, string $productsCacheTableName, array $productsInProductsCacheTable): void
 	{
 		$link = $this->getLink();
