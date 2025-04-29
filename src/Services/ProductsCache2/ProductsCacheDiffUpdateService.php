@@ -97,7 +97,7 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 			$this->cleanProductsProviderCache();
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::EXCEPTION);
-			Debugger::log($e, $this->logName);
+			Debugger::dump($e);
 
 			throw $e;
 		}
@@ -379,9 +379,13 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		Debugger::log('diffUpdateMainTable -- updated: ' . $updatedCount, $this->logName);
 
 		if ($productsInCache) {
-			Debugger::log('diffUpdateMainTable -- deleted: ' . $this->getConnection()->rows([$productsCacheTableName, $this->logName])
+			Debugger::log(
+				'diffUpdateMainTable -- deleted: ' .
+				$this->getConnection()->rows([$productsCacheTableName])
 					->where('product', \array_keys($productsInCache))
-					->delete());
+					->delete(),
+				$this->logName
+			);
 		}
 
 		return [$productsByCategories, $productsToBoInCache];
