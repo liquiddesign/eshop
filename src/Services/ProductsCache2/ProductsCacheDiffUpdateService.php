@@ -44,7 +44,7 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 	 */
 	public function warmUpCacheTableDiff(array $customers = [], array $customerGroups = [], array $merchants = []): void
 	{
-		$this->logName = 'ProductsCacheDiffUpdateService::warmUpCacheTableDiff_' . Carbon::now()->format('Y-m-d_H:i:s');
+		$this->logName = 'ProductsCacheDiffUpdateService-warmUpCacheTableDiff--' . Carbon::now()->format('Y-m-d-H-i-s');
 
 		try {
 			$link = $this->getLink();
@@ -398,6 +398,8 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 	 */
 	protected function getPrefetchedArraysForPriceTable(array $allVisibilityLists, array $allPriceLists): array
 	{
+		Debugger::timer('diffUpdateVisibilityPriceTable -- prefetch -- vli');
+
 		/** @var array<int, array<int, \stdClass>> $allProductsWithVLI */
 		$allProductsWithVLI = [];
 		$allProductsWithVLIQuery = $this->visibilityListItemRepository->many()
@@ -425,38 +427,52 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		$allProductsWithVLIQuery->__destruct();
 		unset($allProductsWithVLIQuery);
 
+		Debugger::log('diffUpdateVisibilityPriceTable -- prefetch -- vli: ' .
+			Debugger::timer('diffUpdateVisibilityPriceTable -- prefetch -- vli') . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
+
+		Debugger::timer('diffUpdateVisibilityPriceTable -- prefetch -- price');
+
 		/** @var array<int, array<int, \stdClass>> $allProductsWithPrice */
 		$allProductsWithPrice = [];
 
-		$page = 0;
+		$allProductsWithPriceQuery = $this->priceRepository->many()
+			->join(['priceList' => 'eshop_pricelist'], 'this.fk_pricelist = priceList.uuid', type: 'INNER')
+			->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid', type: 'INNER')
+			->where('priceList.id', $allPriceLists)
+			->where('this.hidden', false)
+			->setSelect([
+				'this.price',
+				'this.priceVat',
+				'this.priceBefore',
+				'this.priceVatBefore',
+				'productId' => 'product.id',
+				'priceListId' => 'priceList.id',
+				'priceListPriority' => 'priceList.priority',
+			]);
 
-		do {
-			/** @var array<\stdClass> $allProductsWithPriceQuery */
-			$allProductsWithPriceQuery = $this->priceRepository->many()
-				->join(['priceList' => 'eshop_pricelist'], 'this.fk_pricelist = priceList.uuid', type: 'INNER')
-				->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid', type: 'INNER')
-				->where('priceList.id', $allPriceLists)
-				->where('this.hidden', false)
-				->setSelect([
-					'this.price',
-					'this.priceVat',
-					'this.priceBefore',
-					'this.priceVatBefore',
-					'productId' => 'product.id',
-					'priceListId' => 'priceList.id',
-				])
-				->setIndex('product.id')
-				->orderBy(['product.id' => 'ASC', 'priceList.priority' => 'ASC'])
-				->setTake(10000)
-				->setSkip($page * 10000)
-				->fetchArray(\stdClass::class);
+		while ($item = $allProductsWithPriceQuery->fetch(\stdClass::class)) {
+			/** @var \stdClass $item */
 
-			foreach ($allProductsWithPriceQuery as $item) {
-				$allProductsWithPrice[$item->productId][$item->priceListId] = $item;
-			}
+			$allProductsWithPrice[$item->productId][$item->priceListId] = $item;
+		}
 
-			$page++;
-		} while ($allProductsWithPriceQuery);
+		$allProductsWithPriceQuery->__destruct();
+		unset($allProductsWithPriceQuery);
+
+		Debugger::log('diffUpdateVisibilityPriceTable -- prefetch -- price: ' .
+			Debugger::timer('diffUpdateVisibilityPriceTable -- prefetch -- price') . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
+
+		Debugger::timer('diffUpdateVisibilityPriceTable -- prefetch -- price sort');
+
+		foreach ($allProductsWithPrice as &$priceListItems) {
+			// sort by priority
+			\uasort($priceListItems, static function ($a, $b) {
+				return $a->priceListPriority <=> $b->priceListPriority;
+			});
+		}
+
+		Debugger::log('diffUpdateVisibilityPriceTable -- prefetch -- price sort: ' .
+			Debugger::timer('diffUpdateVisibilityPriceTable -- prefetch -- price sort') . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
 
 		return [$allProductsWithVLI, $allProductsWithPrice];
 	}
