@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.466](https://github.com/liquiddesign/eshop/compare/v2.1.465...v2.1.466) (2025-04-29)
+
+### Features
+
+
+##### Products Cache Diff Update Service
+
+* Optimize price fetching logic and enhance logging ([718ea0](https://github.com/liquiddesign/eshop/commit/718ea07e631f0683fc89b246a8a8f902e1897880))
+
+
+---
+
 ## [2.1.465](https://github.com/liquiddesign/eshop/compare/v2.1.464...v2.1.465) (2025-04-29)
 
 ### Bug Fixes
