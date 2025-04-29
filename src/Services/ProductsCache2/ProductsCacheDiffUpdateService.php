@@ -3,6 +3,7 @@
 namespace Eshop\Services\ProductsCache2;
 
 use Base\Bridges\AutoWireService;
+use Carbon\Carbon;
 use Eshop\DB\Customer;
 use Eshop\DevelTools;
 use Nette\DI\MissingServiceException;
@@ -13,6 +14,8 @@ use Tracy\ILogger;
 class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService implements AutoWireService
 {
 	private DIConnection $cacheConnection;
+
+	private string $logName;
 
 	public function getConnection(): \StORM\DIConnection
 	{
@@ -41,6 +44,8 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 	 */
 	public function warmUpCacheTableDiff(array $customers = [], array $customerGroups = [], array $merchants = []): void
 	{
+		$this->logName = 'ProductsCacheDiffUpdateService::warmUpCacheTableDiff_' . Carbon::now()->format('Y-m-d_H:i:s');
+
 		try {
 			$link = $this->getLink();
 			$link->exec('SET SESSION group_concat_max_len=4294967295');
@@ -62,7 +67,7 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 				$productAttributeValues,
 				$productCategories,
 			] = $this->getPrefetchedArrays();
-			Debugger::dump('Prefetch before main table: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage());
+			Debugger::log('Prefetch before main table: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
 
 			$this->createProductsTable($productsCacheTableName, $allCategoryTypes);
 
@@ -79,20 +84,20 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 				$productCategories,
 			);
 
-			Debugger::dump('diffUpdateMainTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage());
+			Debugger::log('diffUpdateMainTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
 			$this->diffUpdateRelations($relationsCacheTableName, $productsCacheTableName, $productsToBeInCache);
-			Debugger::dump('diffUpdateRelations: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage());
+			Debugger::log('diffUpdateRelations: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
 
 			$this->diffUpdateCategories($categoriesTableName, $productsCacheTableName, $productsByCategories, $allCategories);
-			Debugger::dump('createCategoriesTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage());
+			Debugger::log('createCategoriesTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
 
 			$this->diffUpdateVisibilityPriceTable($visibilityPricesCacheTableName, $customers, $customerGroups, $merchants);
-			Debugger::dump('diffUpdateVisibilityPriceTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage());
+			Debugger::log('diffUpdateVisibilityPriceTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
 
 			$this->cleanProductsProviderCache();
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::EXCEPTION);
-			Debugger::dump($e);
+			Debugger::log($e, $this->logName);
 
 			throw $e;
 		}
@@ -284,7 +289,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 
 		Debugger::timer('diffUpdateMainTable -- main query');
 		$fetchedProducts = $productsCollection->fetchArray(\stdClass::class);
-		Debugger::dump('diffUpdateMainTable -- main query: ' . Debugger::timer('diffUpdateMainTable -- main query'));
+		Debugger::log('diffUpdateMainTable -- main query: ' . Debugger::timer('diffUpdateMainTable -- main query'), $this->logName);
 
 		foreach ($fetchedProducts as $product) {
 			$productData = [
@@ -353,7 +358,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		}
 
 		if ($productsToCreate) {
-			Debugger::dump('diffUpdateMainTable -- created: ' . $this->getConnection()->createRows($productsCacheTableName, \array_values($productsToCreate), chunkSize: 1000)->getRowCount());
+			Debugger::log('diffUpdateMainTable -- created: ' . $this->getConnection()->createRows($productsCacheTableName, \array_values($productsToCreate), chunkSize: 1000)->getRowCount(), $this->logName);
 		}
 
 		$updatedCount = 0;
@@ -368,10 +373,10 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 			$this->getLink()->commit();
 		}
 
-		Debugger::dump('diffUpdateMainTable -- updated: ' . $updatedCount);
+		Debugger::log('diffUpdateMainTable -- updated: ' . $updatedCount, $this->logName);
 
 		if ($productsInCache) {
-			Debugger::dump('diffUpdateMainTable -- deleted: ' . $this->getConnection()->rows([$productsCacheTableName])
+			Debugger::log('diffUpdateMainTable -- deleted: ' . $this->getConnection()->rows([$productsCacheTableName, $this->logName])
 					->where('product', \array_keys($productsInCache))
 					->delete());
 		}
@@ -467,16 +472,17 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		Debugger::timer('getAllPossibleVisibilityAndPriceListOptions');
 		[$visibilityPriceListsOptions, $allVisibilityLists, $allPriceLists] = $this->getAllPossibleVisibilityAndPriceListOptions($customers, $customerGroups, $merchants);
 
-		Debugger::dump(
+		Debugger::log(
 			'diffUpdateVisibilityPriceTable -- getAllPossibleVisibilityAndPriceListOptions: ' . Debugger::timer('getAllPossibleVisibilityAndPriceListOptions') .
-			', ' . DevelTools::getPeakMemoryUsage()
+			', ' . DevelTools::getPeakMemoryUsage(),
+			$this->logName,
 		);
 
 		Debugger::timer('diffUpdateVisibilityPriceTable -- prefetch');
 
 		[$allProductsWithVLI, $allProductsWithPrice] = $this->getPrefetchedArraysForPriceTable($allVisibilityLists, $allPriceLists);
 
-		Debugger::dump('diffUpdateVisibilityPriceTable -- prefetch: ' . Debugger::timer('diffUpdateVisibilityPriceTable -- prefetch') . ', ' . DevelTools::getPeakMemoryUsage());
+		Debugger::log('diffUpdateVisibilityPriceTable -- prefetch: ' . Debugger::timer('diffUpdateVisibilityPriceTable -- prefetch') . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
 
 		Debugger::timer('diffUpdateVisibilityPriceTable -- main while');
 
@@ -617,8 +623,8 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 			}
 		}
 
-		Debugger::dump('diffUpdateVisibilityPriceTable -- cache select time: ' . $cacheSelectTime);
-		Debugger::dump('diffUpdateVisibilityPriceTable -- main while: ' . Debugger::timer('diffUpdateVisibilityPriceTable -- main while'));
+		Debugger::log('diffUpdateVisibilityPriceTable -- cache select time: ' . $cacheSelectTime, $this->logName);
+		Debugger::log('diffUpdateVisibilityPriceTable -- main while: ' . Debugger::timer('diffUpdateVisibilityPriceTable -- main while'), $this->logName);
 	}
 
 	/**
