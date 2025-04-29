@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.465](https://github.com/liquiddesign/eshop/compare/v2.1.464...v2.1.465) (2025-04-29)
+
+### Bug Fixes
+
+
+##### Logging
+
+* Replace Debugger::dump with Debugger::log for consistent logging ([5e8062](https://github.com/liquiddesign/eshop/commit/5e806200e2d8e037fccc683a1779f32e7b89f22a))
+
+
+---
+
 ## [2.1.464](https://github.com/liquiddesign/eshop/compare/v2.1.463...v2.1.464) (2025-04-29)
 
 ### Code Refactoring
