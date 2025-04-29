@@ -358,7 +358,10 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		}
 
 		if ($productsToCreate) {
-			Debugger::log('diffUpdateMainTable -- created: ' . $this->getConnection()->createRows($productsCacheTableName, \array_values($productsToCreate), chunkSize: 1000)->getRowCount(), $this->logName);
+			Debugger::log(
+				'diffUpdateMainTable -- created: ' . $this->getConnection()->createRows($productsCacheTableName, \array_values($productsToCreate), chunkSize: 1000)->getRowCount(),
+				$this->logName,
+			);
 		}
 
 		$updatedCount = 0;
