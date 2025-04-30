@@ -30,7 +30,7 @@ use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\Services\LostPasswordService;
-use Eshop\Services\ProductsCache\ProductsCacheGetterService;
+use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
@@ -173,7 +173,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 	public LostPasswordService $lostPasswordService;
 
 	#[Inject]
-	public ProductsCacheGetterService $productsCacheGetterService;
+	public GeneralProductsCacheProvider $productsCacheGetterService;
 
 	#[Inject]
 	public InternalRibbonRepository $internalRibbonRepository;

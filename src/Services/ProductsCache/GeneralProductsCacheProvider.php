@@ -3,6 +3,8 @@
 namespace Eshop\Services\ProductsCache;
 
 use DaveLiddament\PhpLanguageExtensions\InjectableVersion;
+use Eshop\DB\Customer;
+use Eshop\DB\Merchant;
 
 #[InjectableVersion]
 interface GeneralProductsCacheProvider
@@ -42,4 +44,18 @@ interface GeneralProductsCacheProvider
 		array $priceLists = [],
 		array $visibilityLists = [],
 	): array|false;
+
+	public function getIndexByCustomer(Customer|Merchant $customerMerchant): string;
+
+	public function addCollectionOrderExpression(string $name, callable $callback): void;
+
+	public function addAllowedCollectionFilterColumn(string $name, string $column): void;
+
+	public function addFilterCollectionExpression(string $name, callable $callback): void;
+
+	public function addAllowedDynamicFilterColumn(string $name, string $column): void;
+
+	public function addFilterDynamicExpression(string $name, callable $callback): void;
+
+	public function addAllowedCollectionOrderColumn(string $name, string $column): void;
 }
