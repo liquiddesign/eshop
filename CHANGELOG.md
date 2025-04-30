@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.467](https://github.com/liquiddesign/eshop/compare/v2.1.466...v2.1.467) (2025-04-30)
+
+### Features
+
+
+##### Products Cache
+
+* Enhance cache handling and logging, introduce ProductsCacheNotReadyException ([f334ba](https://github.com/liquiddesign/eshop/commit/f334bae68195706df97d465294086c5900c386ad))
+
+
+---
+
 ## [2.1.466](https://github.com/liquiddesign/eshop/compare/v2.1.465...v2.1.466) (2025-04-29)
 
 ### Features
