@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.468](https://github.com/liquiddesign/eshop/compare/v2.1.467...v2.1.468) (2025-04-30)
+
+### Code Refactoring
+
+
+##### Products Cache
+
+* Rename ProductsCacheGetterService to GeneralProductsCacheProvider and update related references ([bbf765](https://github.com/liquiddesign/eshop/commit/bbf765c6335e27251f45f6872b3345a529c5218c))
+
+
+---
+
 ## [2.1.467](https://github.com/liquiddesign/eshop/compare/v2.1.466...v2.1.467) (2025-04-30)
 
 ### Features
