@@ -237,7 +237,7 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 		$this->mailer->send($mail);
 	}
 	
-	public function sendAdminInfo(Nette\Forms\Form $form, $email, $password, $mutation = null): void
+	public function sendAdminInfo(Nette\Forms\Form $form, string $email, string $password, string|null $mutation = null): void
 	{
 		unset($form, $password);
 		
