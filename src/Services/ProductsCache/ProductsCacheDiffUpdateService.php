@@ -370,7 +370,11 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 			$this->getLink()->beginTransaction();
 
 			foreach ($chunk as $product => $row) {
-				$updatedCount += $this->getConnection()->rows([$productsCacheTableName])->where('product', $product)->update($row);
+				try {
+					$updatedCount += $this->getConnection()->rows([$productsCacheTableName])->where('product', $product)->update($row);
+				} catch (\Exception $e) {
+					Debugger::log($e, ILogger::EXCEPTION);
+				}
 			}
 
 			$this->getLink()->commit();
@@ -783,6 +787,33 @@ CREATE TABLE IF NOT EXISTS `$pricesCacheTableName` (
 	{
 		$link = $this->getLink();
 
+		// pokud tabulka existuje, proved alter na změnu indexu code
+		$statement = $link->query("SHOW TABLES LIKE '$productsCacheTableName'");
+
+		if ($statement === false) {
+			throw new \Exception('Statement creation failed.');
+		}
+
+		$exists = $statement->fetch(\PDO::FETCH_NUM);
+
+		if ($exists) {
+			// pokud tabulka existuje, proved alter na změnu indexu code
+			// provést jen pokud exituje index
+			$statement = $link->query("SHOW INDEX FROM `$productsCacheTableName` WHERE Key_name = 'idx_unique_code'");
+
+			if ($statement === false) {
+				throw new \Exception('Statement creation failed.');
+			}
+
+			$exists = $statement->fetch(\PDO::FETCH_NUM);
+
+			if ($exists) {
+				// pokud existuje, tak ho smazat a přidat nový
+				$link->exec("ALTER TABLE `$productsCacheTableName` DROP INDEX idx_unique_code");
+				$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_code (code)");
+			}
+		}
+
 		// Základní dotaz pro vytvoření tabulky se sloupci a indexy (indexy definované v rámci CREATE TABLE)
 		$query = "
 CREATE TABLE IF NOT EXISTS `$productsCacheTableName` (
@@ -806,7 +837,7 @@ CREATE TABLE IF NOT EXISTS `$productsCacheTableName` (
   INDEX idx_subCode (subCode),
   INDEX idx_externalCode (externalCode),
   FULLTEXT INDEX idx_name (name),
-  UNIQUE INDEX idx_unique_code (code),
+  INDEX idx_code (code),
   INDEX idx_ean (ean),
   INDEX idx_masterProduct (masterProduct)";
 

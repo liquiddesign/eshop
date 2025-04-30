@@ -133,7 +133,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			} catch (\Throwable $e) {
 				if ($e->getCode() !== 204) {
 					Debugger::log($e, ILogger::EXCEPTION);
-					Debugger::barDump($e->getMessage());
+					Debugger::barDump($e);
 				}
 
 				if (!$e instanceof ProductsCacheNotReadyException) {
