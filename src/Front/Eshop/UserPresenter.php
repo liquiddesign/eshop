@@ -217,7 +217,7 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 		return $form;
 	}
 	
-	public function sendEmailAuthorization(RegistrationForm $form, $email, $password, $emailAuthorization, $token): void
+	public function sendEmailAuthorization(RegistrationForm $form, string $email, string $password, bool $emailAuthorization, string $token): void
 	{
 		unset($form, $password);
 		
