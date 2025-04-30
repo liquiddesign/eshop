@@ -19,7 +19,6 @@ use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
-use Eshop\DB\ProductsCacheStateRepository;
 use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\VisibilityListItemRepository;
@@ -64,7 +63,6 @@ abstract class ProductsCacheBaseWarmUpService
 		protected readonly AttributeValueRepository $attributeValueRepository,
 		protected readonly DisplayAmountRepository $displayAmountRepository,
 		protected readonly VisibilityListRepository $visibilityListRepository,
-		protected readonly ProductsCacheStateRepository $productsCacheStateRepository,
 		protected readonly ProducerRepository $producerRepository,
 		protected readonly DisplayDeliveryRepository $displayDeliveryRepository,
 		protected readonly AttributeRepository $attributeRepository,
@@ -152,27 +150,6 @@ abstract class ProductsCacheBaseWarmUpService
 		}
 
 		return [$existingOptions, $allVisibilityLists, $allPriceLists];
-	}
-
-	/**
-	 * @return int<0, 2>
-	 * @throws \StORM\Exception\NotFoundException
-	 */
-	protected function getCacheIndexToBeUsed(): int
-	{
-		$readyState = $this->productsCacheStateRepository->many()->where('this.state', 'ready')->first();
-
-		if (!$readyState) {
-			return 0;
-		}
-
-		$state = (int) $readyState->getPK();
-
-		if ($state < 0 || $state > 2) {
-			throw new \Exception("State '$state' out of allowed range!");
-		}
-
-		return $state;
 	}
 
 	/**

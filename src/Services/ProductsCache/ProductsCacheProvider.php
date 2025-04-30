@@ -2,6 +2,8 @@
 
 namespace Eshop\Services\ProductsCache;
 
+use Eshop\DB\Customer;
+use Eshop\DB\Merchant;
 use Eshop\DB\PricelistRepository;
 use Eshop\ShopperUser;
 use Nette\Utils\Arrays;
@@ -131,5 +133,40 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 			'priceVatMin' => \min($customerResult['priceVatMin'], $merchantResult['priceVatMin']),
 			'priceVatMax' => \max($customerResult['priceVatMax'], $merchantResult['priceVatMax']),
 		];
+	}
+
+	public function getIndexByCustomer(Merchant|Customer $customerMerchant): string
+	{
+		return $this->productsCacheProviderService->getIndexByCustomer($customerMerchant);
+	}
+
+	public function addCollectionOrderExpression(string $name, callable $callback): void
+	{
+		$this->productsCacheProviderService->addCollectionOrderExpression($name, $callback);
+	}
+
+	public function addAllowedCollectionFilterColumn(string $name, string $column): void
+	{
+		$this->productsCacheProviderService->addAllowedCollectionFilterColumn($name, $column);
+	}
+
+	public function addFilterCollectionExpression(string $name, callable $callback): void
+	{
+		$this->productsCacheProviderService->addFilterCollectionExpression($name, $callback);
+	}
+
+	public function addAllowedDynamicFilterColumn(string $name, string $column): void
+	{
+		$this->productsCacheProviderService->addAllowedDynamicFilterColumn($name, $column);
+	}
+
+	public function addFilterDynamicExpression(string $name, callable $callback): void
+	{
+		$this->productsCacheProviderService->addFilterDynamicExpression($name, $callback);
+	}
+
+	public function addAllowedCollectionOrderColumn(string $name, string $column): void
+	{
+		$this->productsCacheProviderService->addAllowedCollectionOrderColumn($name, $column);
 	}
 }

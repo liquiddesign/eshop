@@ -6,9 +6,11 @@ namespace Eshop\Admin;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\ProductsCacheStateRepository;
 use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
+use JetBrains\PhpStorm\Deprecated;
 use Nette\DI\Attributes\Inject;
 use Tracy\Debugger;
 
+#[Deprecated('ProductsCache now only has one version which is regularly updated.')]
 class ProductsCachePresenter extends \Eshop\BackendPresenter
 {
 	#[Inject]
