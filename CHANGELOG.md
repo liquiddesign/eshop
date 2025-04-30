@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.469](https://github.com/liquiddesign/eshop/compare/v2.1.468...v2.1.469) (2025-04-30)
+
+### Code Refactoring
+
+
+##### Products Cache Diff Update Service
+
+* Improve error handling and update index management for products cache ([83724b](https://github.com/liquiddesign/eshop/commit/83724b07a2f0eb7cc3f129c9cc88bea182d2f00a))
+
+
+---
+
 ## [2.1.468](https://github.com/liquiddesign/eshop/compare/v2.1.467...v2.1.468) (2025-04-30)
 
 ### Code Refactoring
