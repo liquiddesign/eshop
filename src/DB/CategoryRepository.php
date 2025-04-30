@@ -10,6 +10,7 @@ use Common\DB\IGeneralRepository;
 use Eshop\Admin\ScriptsPresenter;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
+use Eshop\Services\ProductsCache\ProductsCacheNotReadyException;
 use Eshop\Services\ProductsCache\ProductsCacheProvider;
 use Eshop\ShopperUser;
 use Latte\Loaders\StringLoader;
@@ -133,6 +134,10 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 				if ($e->getCode() !== 204) {
 					Debugger::log($e, ILogger::EXCEPTION);
 					Debugger::barDump($e->getMessage());
+				}
+
+				if (!$e instanceof ProductsCacheNotReadyException) {
+					return 1;
 				}
 
 				unset($filters['priceGt']);

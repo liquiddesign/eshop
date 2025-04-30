@@ -2,11 +2,19 @@
 
 namespace Eshop\Services\ProductsCache;
 
+use DaveLiddament\PhpLanguageExtensions\InjectableVersion;
+
+#[InjectableVersion]
 interface GeneralProductsCacheProvider
 {
 	public const PRODUCTS_PROVIDER_CACHE_TAG = 'productsProviderCache';
 
-	public function warmUpCacheTable(): void;
+	/**
+	 * @param array<string|\Eshop\DB\Customer> $customers
+	 * @param array<string|int> $customerGroups
+	 * @param array<string|int> $merchants
+	 */
+	public function warmUpCacheTable(array $customers = [], array $customerGroups = [], array $merchants = []): void;
 
 	/**
 	 * @param array<mixed> $filters
@@ -33,11 +41,5 @@ interface GeneralProductsCacheProvider
 		string $orderByDirection = 'ASC',
 		array $priceLists = [],
 		array $visibilityLists = [],
-		bool $showAncestorsInCategory = true,
 	): array|false;
-
-	/**
-	 * Works like warmUpCacheTable, but don't erase all data.
-	 */
-	public function warmUpCacheTableDiff(): void;
 }

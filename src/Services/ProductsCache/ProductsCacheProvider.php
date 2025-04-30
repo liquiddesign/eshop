@@ -7,26 +7,26 @@ use Eshop\ShopperUser;
 use Nette\Utils\Arrays;
 
 /**
- * Main service to work with cache of products. If possible, always use this service.
+ * Main service to work with a cache of products. If possible, always use this service.
  */
-readonly class ProductsCacheProvider implements GeneralProductsCacheProvider
+class ProductsCacheProvider implements GeneralProductsCacheProvider
 {
+	private bool|null $isReady = null;
+
 	public function __construct(
-		private ProductsCacheWarmUpService $productsCacheWarmUpService,
-		private ProductsCacheGetterService $productsCacheProviderService,
-		private ShopperUser $shopperUser,
-		private PricelistRepository $pricelistRepository,
+		private readonly ProductsCacheGetterService $productsCacheProviderService,
+		private readonly ProductsCacheDiffUpdateService $productsCacheDiffUpdateService,
+		private readonly ShopperUser $shopperUser,
+		private readonly PricelistRepository $pricelistRepository,
 	) {
 	}
 
-	public function warmUpCacheTable(): void
+	/**
+	 * @inheritDoc
+	 */
+	public function warmUpCacheTable(array $customers = [], array $customerGroups = [], array $merchants = []): void
 	{
-		$this->productsCacheWarmUpService->warmUpCacheTable();
-	}
-
-	public function warmUpCacheTableDiff(): void
-	{
-		$this->productsCacheWarmUpService->warmUpCacheTableDiff();
+		$this->productsCacheDiffUpdateService->warmUpCacheTableDiff($customers, $customerGroups, $merchants);
 	}
 
 	/**
@@ -38,22 +38,29 @@ readonly class ProductsCacheProvider implements GeneralProductsCacheProvider
 		string $orderByDirection = 'ASC',
 		array $priceLists = [],
 		array $visibilityLists = [],
-		bool $showAncestorsInCategory = true,
 	): array|false {
 		$priceLists = $priceLists ?: $this->shopperUser->getPriceListsCached();
 		$visibilityLists = $visibilityLists ?: $this->shopperUser->getVisibilityLists();
 		$customer = $this->shopperUser->getCustomer();
 		$merchant = $this->shopperUser->getMerchant();
 
+		if ($this->isReady === null) {
+			$this->isReady = $this->productsCacheProviderService->isReady();
+		}
+
+		if (!$this->isReady) {
+			throw new ProductsCacheNotReadyException();
+		}
+
 		if (isset($filters['pricelist'])) {
 			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
 		}
 
 		if ($merchant?->priceListsMode !== 'merge' || !$customer) {
-			return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists, $showAncestorsInCategory);
+			return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists);
 		}
 
-		// do two separate call to cache with customer and merchant pricelists and combine results
+		// do two separate calls to cache with customer and merchant pricelists and combine results
 		$customerPriceLists = $this->pricelistRepository->getCustomerPricelists(
 			$customer,
 			$this->shopperUser->getCurrency(),
@@ -73,11 +80,11 @@ readonly class ProductsCacheProvider implements GeneralProductsCacheProvider
 			->toArray();
 
 		$customerResult = $customerPriceLists ?
-			$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $customerPriceLists, $visibilityLists, $showAncestorsInCategory) :
+			$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $customerPriceLists, $visibilityLists) :
 			false;
 
 		$merchantResult = $merchantPriceLists ?
-			$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $merchantPriceLists, $visibilityLists, $showAncestorsInCategory) :
+			$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $merchantPriceLists, $visibilityLists) :
 			false;
 
 		if ($customerResult === false && $merchantResult === false) {
