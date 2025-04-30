@@ -5,7 +5,7 @@ namespace Eshop\Admin;
 
 use Eshop\DB\ProductRepository;
 use Eshop\DB\ProductsCacheStateRepository;
-use Eshop\Services\ProductsCache2\GeneralProductsCacheProvider;
+use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
 use Nette\DI\Attributes\Inject;
 use Tracy\Debugger;
 

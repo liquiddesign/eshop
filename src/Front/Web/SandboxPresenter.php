@@ -9,7 +9,7 @@ use Eshop\DB\Product;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\WatcherRepository;
 use Eshop\DevelTools;
-use Eshop\Services\ProductsCache2\GeneralProductsCacheProvider;
+use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
 use LiquidMonitorConnector\Cron;
 use Nette\Application\BadRequestException;
 use Nette\DI\Attributes\Inject;

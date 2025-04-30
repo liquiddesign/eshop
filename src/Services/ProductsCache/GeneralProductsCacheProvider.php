@@ -1,6 +1,6 @@
 <?php
 
-namespace Eshop\Services\ProductsCache2;
+namespace Eshop\Services\ProductsCache;
 
 use DaveLiddament\PhpLanguageExtensions\InjectableVersion;
 

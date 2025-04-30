@@ -1,6 +1,6 @@
 <?php
 
-namespace Eshop\Services\ProductsCache2;
+namespace Eshop\Services\ProductsCache;
 
 use Base\DB\Shop;
 use Base\ShopsConfig;
