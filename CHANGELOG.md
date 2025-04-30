@@ -4,6 +4,80 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.468](https://github.com/liquiddesign/eshop/compare/v2.1.467...v2.1.468) (2025-04-30)
+
+### Code Refactoring
+
+
+##### Products Cache
+
+* Rename ProductsCacheGetterService to GeneralProductsCacheProvider and update related references ([bbf765](https://github.com/liquiddesign/eshop/commit/bbf765c6335e27251f45f6872b3345a529c5218c))
+
+
+---
+
+## [2.1.467](https://github.com/liquiddesign/eshop/compare/v2.1.466...v2.1.467) (2025-04-30)
+
+### Features
+
+
+##### Products Cache
+
+* Enhance cache handling and logging, introduce ProductsCacheNotReadyException ([f334ba](https://github.com/liquiddesign/eshop/commit/f334bae68195706df97d465294086c5900c386ad))
+
+
+---
+
+## [2.1.466](https://github.com/liquiddesign/eshop/compare/v2.1.465...v2.1.466) (2025-04-29)
+
+### Features
+
+
+##### Products Cache Diff Update Service
+
+* Optimize price fetching logic and enhance logging ([718ea0](https://github.com/liquiddesign/eshop/commit/718ea07e631f0683fc89b246a8a8f902e1897880))
+
+
+---
+
+## [2.1.465](https://github.com/liquiddesign/eshop/compare/v2.1.464...v2.1.465) (2025-04-29)
+
+### Bug Fixes
+
+
+##### Logging
+
+* Replace Debugger::dump with Debugger::log for consistent logging ([5e8062](https://github.com/liquiddesign/eshop/commit/5e806200e2d8e037fccc683a1779f32e7b89f22a))
+
+
+---
+
+## [2.1.464](https://github.com/liquiddesign/eshop/compare/v2.1.463...v2.1.464) (2025-04-29)
+
+### Code Refactoring
+
+
+##### Logging
+
+* Replace Debugger::dump with Debugger::log and add logName for better logging context ([78ef00](https://github.com/liquiddesign/eshop/commit/78ef002c7d5d07e3ba2b51ca5c1304ce189982a1))
+
+
+---
+
+## [2.1.463](https://github.com/liquiddesign/eshop/compare/v2.1.462...v2.1.463) (2025-04-28)
+
+### Features
+
+* Implement pagination for price fetching in ProductsCacheDiffUpdateService to improve performance ([2a4c1b](https://github.com/liquiddesign/eshop/commit/2a4c1b08e46af351294b997b1d67589618a5e35a))
+
+
+---
+
+## [2.1.462](https://github.com/liquiddesign/eshop/compare/v2.1.461...v2.1.462) (2025-04-28)
+
+
+---
+
 ## [2.1.460](https://github.com/liquiddesign/eshop/compare/v2.1.459...v2.1.460) (2025-04-27)
 
 
