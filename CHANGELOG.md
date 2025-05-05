@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.471](https://github.com/liquiddesign/eshop/compare/v2.1.470...v2.1.471) (2025-05-05)
+
+### Features
+
+* Payment and delivery in customer bulk edit ([b99370](https://github.com/liquiddesign/eshop/commit/b99370a33c1b5a6272daacb4dd942e7f5f8d7a2b))
+
+##### Customer Presenter
+
+* Add exclusive delivery and payment types to bulk edits ([8bd2d0](https://github.com/liquiddesign/eshop/commit/8bd2d0483e331f2e8e848be30ffd5706ada8e666))
+
+
+---
+
 ## [2.1.470](https://github.com/liquiddesign/eshop/compare/v2.1.469...v2.1.470) (2025-05-05)
 
 ### Features
