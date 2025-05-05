@@ -2034,9 +2034,7 @@ class CheckoutManager
 			]);
 		}
 		
-		if ($purchase->billAddress) {
-			$purchase->billAddress->update(['name' => $purchase->fullname]);
-		}
+		$purchase->billAddress?->update(['name' => $purchase->billAddress->name ?: $purchase->fullname]);
 
 		try {
 			$carts = $purchase->getCarts()->toArray();
