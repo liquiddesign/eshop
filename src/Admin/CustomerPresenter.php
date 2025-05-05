@@ -1551,6 +1551,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$bulkEdits[] = 'favouriteProducts';
 			$bulkEdits[] = 'preferredDeliveryType';
 			$bulkEdits[] = 'preferredPaymentType';
+			$bulkEdits[] = 'exclusiveDeliveryTypes';
+			$bulkEdits[] = 'exclusivePaymentTypes';
 		}
 
 		if ($this->isManager && isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
