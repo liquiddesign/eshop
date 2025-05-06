@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.472](https://github.com/liquiddesign/eshop/compare/v2.1.471...v2.1.472) (2025-05-06)
+
+### Bug Fixes
+
+* Product cloner primary attribute debug and fix ([99227e](https://github.com/liquiddesign/eshop/commit/99227e48d74650189d03a136eff71b3e9fc37623))
+
+
+---
+
 ## [2.1.471](https://github.com/liquiddesign/eshop/compare/v2.1.470...v2.1.471) (2025-05-05)
 
 ### Features
