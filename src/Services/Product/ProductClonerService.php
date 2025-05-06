@@ -53,6 +53,11 @@ readonly class ProductClonerService implements AutoWireService
 	{
 		$this->storm->getLink()->beginTransaction();
 
+		// To clone primary categories, we need to clone categories first.
+		if (Arrays::contains($clonedFields, 'primaryCategories') && !Arrays::contains($clonedFields, 'categories')) {
+			\array_unshift($clonedFields, 'categories');
+		}
+
 		foreach ($targetProducts as $targetProduct) {
 			foreach ($clonedFields as $clonedField) {
 				if ($clonedField === 'files') {
@@ -88,7 +93,7 @@ readonly class ProductClonerService implements AutoWireService
 
 		foreach ($sourceRelationValue as $relation) {
 			$relationArray = $relation->toArray(includePK: false);
-			unset($relationArray['product']);
+			$relationArray['product'] = $targetProduct->getPK();
 			$relationRepository->createOne($relationArray, ignore: true);
 		}
 	}
