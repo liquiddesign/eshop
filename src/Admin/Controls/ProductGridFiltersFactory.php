@@ -192,12 +192,31 @@ class ProductGridFiltersFactory
 			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
 		}
 
-		if ($pricelists = $this->pricelistRepository->getArrayForSelect()) {
-			$pricelists += ['0' => 'X - bez ceniků'];
-			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
-				$source->filter(['pricelist' => Helpers::replaceArrayValue($value, '0', null)]);
-			}, '', 'pricelists', null, $pricelists, ['placeholder' => '- Ceníky -']);
-		}
+		$grid->addFilterText(function (Collection $collection, $value) use ($grid): void {
+			if (!\is_string($value) || !\preg_match('/^([^;]+;)*[^;]+$/', $value)) {
+				return;
+			}
+
+			$codes = \explode(';', $value);
+
+			foreach ($codes as &$code) {
+				$code = Strings::normalize($code);
+				$code = Strings::trim($code);
+			}
+
+			$priceLists = $this->pricelistRepository->many()
+				->where('this.code', $codes)
+				->setSelect(['this.uuid'])
+				->toArrayOf('uuid', toArrayValues: true);
+
+			if (\count($priceLists) !== \count($codes)) {
+				$grid->flashMessage('Některé ceníky nebyly nalezeny.', 'error');
+			}
+
+			$collection->filter(['pricelist' => $priceLists]);
+		}, null, 'pricelists')
+			->setHtmlAttribute('class', 'form-control form-control-sm')
+			->setHtmlAttribute('placeholder', 'Ceníky (kódy oddělené ;)');
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 			if ($value === 'mainImage') {
