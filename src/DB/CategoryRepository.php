@@ -131,12 +131,12 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 				return \count($result['productPKs']);
 			} catch (\Throwable $e) {
-				if ($e->getCode() !== 204) {
-					Debugger::log($e, ILogger::EXCEPTION);
-					Debugger::barDump($e);
-				}
-
 				if (!$e instanceof ProductsCacheNotReadyException) {
+					if ($e->getCode() !== 204) {
+						Debugger::log($e, ILogger::EXCEPTION);
+						Debugger::barDump($e);
+					}
+
 					return 1;
 				}
 
