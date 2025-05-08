@@ -72,4 +72,9 @@ class SettingsService implements AutoWireService
 	{
 		return $this->settingRepository->many()->where('this.name LIKE :s', ['s' => SettingsPresenter::DEFAULT_UNREGISTERED_GROUP . '%'])->toArrayOf('value', toArrayValues: true);
 	}
+
+	public function isUsingProductsCache(): bool
+	{
+		return false;
+	}
 }
