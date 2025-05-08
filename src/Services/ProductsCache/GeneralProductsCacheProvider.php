@@ -19,6 +19,13 @@ interface GeneralProductsCacheProvider
 	public function warmUpCacheTable(array $customers = [], array $customerGroups = [], array $merchants = []): void;
 
 	/**
+	 * @param array<string|\Eshop\DB\Customer> $customers
+	 * @param array<string|int> $customerGroups
+	 * @param array<string|int> $merchants
+	 */
+	public function updatePricesCacheTable(array $customers = [], array $customerGroups = [], array $merchants = []): void;
+
+	/**
 	 * @param array<mixed> $filters
 	 * @param string|null $orderByName
 	 * @param 'ASC'|'DESC' $orderByDirection Works only if $orderByName is not null

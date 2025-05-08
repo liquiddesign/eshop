@@ -169,4 +169,9 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 	{
 		$this->productsCacheProviderService->addAllowedCollectionOrderColumn($name, $column);
 	}
+
+	public function updatePricesCacheTable(array $customers = [], array $customerGroups = [], array $merchants = []): void
+	{
+		$this->productsCacheDiffUpdateService->updatePricesTableDiff($customers, $customerGroups, $merchants);
+	}
 }
