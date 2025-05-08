@@ -25,22 +25,27 @@ use Eshop\DB\NewsletterUserGroupRepository;
 use Eshop\DB\NewsletterUserRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
+use Eshop\DB\Pricelist;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\Services\LostPasswordService;
 use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
+use Eshop\Services\SettingsService;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
+use GuzzleHttp\Exception\GuzzleException;
 use League\Csv\Reader;
 use League\Csv\Writer;
+use LiquidMonitorConnector\Exceptions\LiquidMonitorDisabledException;
 use Messages\DB\TemplateRepository;
 use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Presenter;
 use Nette\DI\Attributes\Inject;
 use Nette\Forms\Controls\Button;
+use Nette\Forms\Controls\SelectBox;
 use Nette\Mail\Mailer;
 use Nette\NotImplementedException;
 use Nette\Utils\Arrays;
@@ -177,6 +182,12 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 	#[Inject]
 	public InternalRibbonRepository $internalRibbonRepository;
+
+	#[Inject]
+	public SettingsService $settingsService;
+
+	#[Inject]
+	public \LiquidMonitorConnector\Actions\GetCronService $getCronService;
 
 	/**
 	 * @var null|callable(array<mixed> $values, \Admin\Controls\AdminForm $form): bool
@@ -373,7 +384,9 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 				$ribbons .= "<div class=\"badge\" style=\"font-weight: normal; font-style: italic; background-color: $ribbon->backgroundColor; color: $ribbon->color\">$ribbon->name</div> ";
 			}
 
-			$firstRow = "<div class='row'><div class='col-6'>{$customer->getName()}</div><div class='col-6'>$customer->ic</div></div>";
+			$firstRow = "<div class='row'><div class='col-6'>{$customer->getName()} 
+<span style='white-space: nowrap'>({$customer->externalCode})</span>
+</div><div class='col-6'>$customer->ic</div></div>";
 			$secondRow = "<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
 
 			return $firstRow . $hr . $secondRow . $ribbons;
@@ -637,7 +650,6 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 	{
 		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
 
-		/** @var \Admin\Controls\AdminForm|array{shop: \Nette\Forms\Controls\TextInput} $form */
 		$form = $this->formFactory->create();
 
 		/** @var \Eshop\DB\Customer|null $customer */
@@ -650,17 +662,20 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			$form->addText('dic', 'DIČ')->setNullable();
 			$form->addText('phone', 'Telefon');
 
-			$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired()->setDisabled((bool) $customer);
+			$form->addText('email', 'E-mail')->addRule($form::Email)->setRequired()->setDisabled((bool) $customer);
 			$form->addText('ccEmails', 'Kopie e-mailů')->setHtmlAttribute('data-info', 'Zadejte e-mailové adresy oddělené středníkem (;).');
 
-			$form->addDataMultiSelect('pricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
-				->setHtmlAttribute('placeholder', 'Vyberte položky...')
+			$pricelistsInput = $form->addMultiSelectAjax('pricelists', 'Ceníky', 'Vyberte položky...', Pricelist::class)
 				->setDisabled(!$this->isManager);
 
-			$form->addDataMultiSelect('favouritePriceLists', 'Oblíbené ceníky', $this->pricelistRepo->getArrayForSelect())
-				->setHtmlAttribute('placeholder', 'Vyberte položky...')
+			$favouritePricelistsInput = $form->addMultiSelectAjax('favouritePriceLists', 'Oblíbené ceníky', 'Vyberte položky...', Pricelist::class)
 				->setHtmlAttribute('data-info', 'Pokud zvolený ceník není přiřazen jako "Ceníky", bude dodatečně spárován.')
 				->setDisabled(!$this->isManager);
+
+			if ($customer) {
+				$this->template->select2AjaxDefaults[$pricelistsInput->getHtmlId()] = $customer->getPricelists()->toArrayOf('name');
+				$this->template->select2AjaxDefaults[$favouritePricelistsInput->getHtmlId()] = $customer->getFavouritePriceLists()->toArrayOf('name');
+			}
 
 			$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect())
 				->setDisabled(!$this->isManager);
@@ -692,7 +707,14 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			$form->addGroup('Nákup a preference');
 
 			if (isset($this::CONFIGURATIONS['branches']) && $this::CONFIGURATIONS['branches']) {
-				$form->addSelect2('parentCustomer', 'Nadřazený zákazník', $customersForSelect)->checkDefaultValue(false)->setPrompt('Žádná');
+				$parentCustomerInput = $form->addSelectAjax('parentCustomer', 'Nadřazený zákazník', 'Žádný', Customer::class);
+
+				if ($customer && $parentCustomer = $customer->parentCustomer) {
+					$this->template->select2AjaxDefaults[$parentCustomerInput->getHtmlId()] = [
+						$parentCustomer->getPK() => $parentCustomer->getName() . ($parentCustomer->externalCode ? " ({$parentCustomer->externalCode})" : ''),
+					];
+				}
+
 				$form->addSelect('orderPermission', 'Objednání', [
 					'fullWithApproval' => 'Pouze se schválením',
 					'full' => 'Povoleno',
@@ -782,11 +804,11 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				->setDefaultValue($customer ? $this->productsCacheGetterService->getIndexByCustomer($customer) : null);
 
 
-			$this->addCustomFieldsToCustomerForm($form);
+			$this->addCustomFieldsToCustomerForm($form, $customer);
 
 			$this->formFactory->addShopsContainerToAdminForm($form, false);
 
-			if ($customer && isset($form['shop'])) {
+			if ($customer && isset($form['shop']) && $form['shop'] instanceof SelectBox) {
 				$form['shop']->setDisabled();
 			}
 
@@ -948,7 +970,39 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$this->createButton2('editAddress', 'Adresy', linkArgs: [$this->getParameter('customer')]),
 			$this->createButton2('editFavouriteProducts', 'Oblíbené produkty', linkArgs: [$this->getParameter('customer')]),
 		];
+
+		if ($this->settingsService->isUsingProductsCache()) {
+			$this->template->displayButtons[] = $this->createButton2('refreshCache!', 'Přepočítat cache zákazníka', linkArgs: [$this->getParameter('customer')]);
+		}
+
 		$this->template->displayControls = [$this->getComponent('form')];
+	}
+
+	public function handleRefreshCache(Customer $customer): void
+	{
+		$cronService = $this->getCronService->execute();
+
+		if (!$cronService) {
+			$this->flashMessage('Nelze spustit cron. Zkontrolujte nastavení.', 'error');
+			$this->redirect('this');
+		}
+
+		try {
+			$cronService->scheduleJob('cache', 'Cache', arguments: [$customer->getPK()]);
+
+			$this->flashMessage('Naplánováno');
+		} catch (GuzzleException $e) {
+			Debugger::log($e, ILogger::EXCEPTION);
+			Debugger::barDump($e);
+
+			$this->flashMessage('Nelze spustit cron. Zkontrolujte nastavení.', 'error');
+		} catch (LiquidMonitorDisabledException $e) {
+			$this->flashMessage('Nelze spustit cron. Zkontrolujte nastavení.', 'error');
+
+			Debugger::barDump($e);
+		}
+
+		$this->redirect('this');
 	}
 	
 	public function renderEditAddress(): void
@@ -1052,10 +1106,22 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 			$form->addGroup('Oprávnění a zákazník');
 			$container = $form->addContainer('permission');
-			$container->addSelect2('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();
+			$customerInput = $container->addSelectAjax('customer', 'Zákazník', '- Vyberte -', Customer::class);
+
+			if ($account) {
+				/** @var \Eshop\DB\CatalogPermission|null $permission */
+				$permission = $this->catalogPermissionRepo->many()->where('fk_account', $account->getPK())->first();
+
+				if ($permission) {
+					$this->template->select2AjaxDefaults[$customerInput->getHtmlId()] = [
+						$permission->customer->getPK() => $permission->customer->getName() . ($permission->customer->externalCode ? " ({$permission->customer->externalCode})" : ''),
+					];
+				}
+			}
+
 			$catalogInput = $container->addSelect('catalogPermission', 'Zobrazení', ShopperUser::PERMISSIONS)->setDefaultValue('price');
 			
-			$catalogInput->addCondition($form::EQUAL, 'price')
+			$catalogInput->addCondition($form::Equal, 'price')
 				->toggle('frm-accountForm-permission-showPricesWithoutVat-toogle')
 				->toggle('frm-accountForm-permission-showPricesWithVat-toogle');
 			
@@ -1072,9 +1138,9 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 					$container->addSelect('priorityPrice', 'Prioritní cena', [
 						'withoutVat' => 'Bez daně',
 						'withVat' => 'S daní',
-					])->addConditionOn($catalogInput, $form::EQUAL, 'price')
-						->addConditionOn($withoutVatInput, $form::EQUAL, true)
-						->addConditionOn($withVatInput, $form::EQUAL, true)
+					])->addConditionOn($catalogInput, $form::Equal, 'price')
+						->addConditionOn($withoutVatInput, $form::Equal, true)
+						->addConditionOn($withVatInput, $form::Equal, true)
 						->toggle('frm-accountForm-permission-priorityPrice-toogle');
 				}
 			}
@@ -1087,9 +1153,9 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$newsletterInput = $container->addCheckbox('newsletter', 'Přihlášen k newsletteru');
 			$newsletterGroupsInput = $container->addMultiSelect2('newsletterGroups', 'Skupiny newsletteru', $this->newsletterUserGroupRepository->getArrayForSelect());
 			
-			$newsletterInput->addCondition($form::FILLED)->toggle($newsletterGroupsInput->getHtmlId() . '-toogle');
+			$newsletterInput->addCondition($form::Filled)->toggle($newsletterGroupsInput->getHtmlId() . '-toogle');
 
-			$this->addCustomFieldsToAccountForm($form);
+			$this->addCustomFieldsToAccountForm($form, $account);
 
 			$accountContactInfos = $account?->getAccountContactInfos()->toArray();
 
@@ -1169,7 +1235,9 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$billAddress = $customer->billAddress?->getFullAddress();
 			$deliveryAddress = $customer->deliveryAddress?->getFullAddress();
 
-			return ($customer->company ?: $customer->fullname) . "$hr<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
+			return ($customer->company ?: $customer->fullname) .
+				" <span style='white-space: nowrap'>({$customer->externalCode})</span>" .
+				"$hr<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
 		});
 		$grid->addColumn('Oprávnění', function (Account $account) {
 			if (!$account->getValue('permission')) {
@@ -1200,6 +1268,9 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				"<a class='$btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>" :
 				"<a class='$btnSecondary disabled' href='#'><i class='fa fa-sign-in-alt'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
+
+		$this->addCustomFieldsToAccountGrid($grid);
+
 		$grid->addColumnLinkDetail('editAccount');
 
 		$grid->addColumnActionDelete();
@@ -1567,14 +1638,14 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		return $bulkEdits;
 	}
 
-	protected function addCustomFieldsToCustomerForm(AdminForm $form): void
+	protected function addCustomFieldsToCustomerForm(AdminForm $form, Customer|null $customer): void
 	{
-		unset($form);
+		unset($form, $customer);
 	}
 
-	protected function addCustomFieldsToAccountForm(AdminForm $form): void
+	protected function addCustomFieldsToAccountForm(AdminForm $form, Account|null $account): void
 	{
-		unset($form);
+		unset($form, $account);
 	}
 
 	protected function addCustomFieldsToCustomerGrid(AdminGrid $grid): void

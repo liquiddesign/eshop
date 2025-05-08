@@ -104,6 +104,37 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 	}
 
 	/**
+	 * Works like warmUpCacheTable, but don't erase all data.
+	 * @param array<string|\Eshop\DB\Customer> $customers
+	 * @param array<string|int> $customerGroups
+	 * @param array<string|int> $merchants
+	 */
+	public function updatePricesTableDiff(array $customers = [], array $customerGroups = [], array $merchants = []): void
+	{
+		$this->logName = 'ProductsCacheDiffUpdateService-updatePricesTableDiff--' . Carbon::now()->format('Y-m-d-H-i-s');
+
+		try {
+			$link = $this->getLink();
+			$link->exec('SET SESSION group_concat_max_len=4294967295');
+
+			$visibilityPricesCacheTableName = $this::PRICES_TABLE_NAME;
+
+			// Start tracking
+			Debugger::timer();
+
+			$this->diffUpdateVisibilityPriceTable($visibilityPricesCacheTableName, $customers, $customerGroups, $merchants);
+			Debugger::log('diffUpdateVisibilityPriceTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
+
+			$this->cleanProductsProviderCache();
+		} catch (\Throwable $e) {
+			Debugger::log($e, ILogger::EXCEPTION);
+			Debugger::dump($e);
+
+			throw $e;
+		}
+	}
+
+	/**
 	 * @param string $categoriesTableName
 	 * @param string $productsCacheTableName
 	 * @param array<string, array<int, object{showDescendantProducts: bool, showProductsInAncestors: bool}>> $productsByCategories
