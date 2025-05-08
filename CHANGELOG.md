@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.474](https://github.com/liquiddesign/eshop/compare/v2.1.473...v2.1.474) (2025-05-08)
+
+### Features
+
+
+##### Customer Presenter
+
+* Enhance customer form with AJAX select inputs and cache refresh functionality ([fe8f87](https://github.com/liquiddesign/eshop/commit/fe8f8752f1905fb98780bd81eae2debf06bd2654))
+
+
+---
+
 ## [2.1.473](https://github.com/liquiddesign/eshop/compare/v2.1.472...v2.1.473) (2025-05-07)
 
 
