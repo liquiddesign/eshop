@@ -7,7 +7,6 @@ use Admin\Admin\Controls\AccountFormFactory;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Carbon\Carbon;
-use Eshop\Actions\Cron\GetCronService;
 use Eshop\Admin\Controls\Customer\FavouriteProductsTrait;
 use Eshop\Common\Helpers;
 use Eshop\DB\AddressRepository;
@@ -46,6 +45,7 @@ use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Presenter;
 use Nette\DI\Attributes\Inject;
 use Nette\Forms\Controls\Button;
+use Nette\Forms\Controls\SelectBox;
 use Nette\Mail\Mailer;
 use Nette\NotImplementedException;
 use Nette\Utils\Arrays;
@@ -650,7 +650,6 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 	{
 		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
 
-		/** @var \Admin\Controls\AdminForm|array{shop: \Nette\Forms\Controls\TextInput} $form */
 		$form = $this->formFactory->create();
 
 		/** @var \Eshop\DB\Customer|null $customer */
@@ -663,7 +662,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			$form->addText('dic', 'DIČ')->setNullable();
 			$form->addText('phone', 'Telefon');
 
-			$form->addText('email', 'E-mail')->addRule($form::EMAIL)->setRequired()->setDisabled((bool) $customer);
+			$form->addText('email', 'E-mail')->addRule($form::Email)->setRequired()->setDisabled((bool) $customer);
 			$form->addText('ccEmails', 'Kopie e-mailů')->setHtmlAttribute('data-info', 'Zadejte e-mailové adresy oddělené středníkem (;).');
 
 			$pricelistsInput = $form->addMultiSelectAjax('pricelists', 'Ceníky', 'Vyberte položky...', Pricelist::class)
@@ -809,7 +808,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 			$this->formFactory->addShopsContainerToAdminForm($form, false);
 
-			if ($customer && isset($form['shop'])) {
+			if ($customer && isset($form['shop']) && $form['shop'] instanceof SelectBox) {
 				$form['shop']->setDisabled();
 			}
 
@@ -997,8 +996,10 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			Debugger::barDump($e);
 
 			$this->flashMessage('Nelze spustit cron. Zkontrolujte nastavení.', 'error');
-		} catch (LiquidMonitorDisabledException) {
+		} catch (LiquidMonitorDisabledException $e) {
 			$this->flashMessage('Nelze spustit cron. Zkontrolujte nastavení.', 'error');
+
+			Debugger::barDump($e);
 		}
 
 		$this->redirect('this');
@@ -1105,10 +1106,22 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 			$form->addGroup('Oprávnění a zákazník');
 			$container = $form->addContainer('permission');
-			$container->addSelect2('customer', 'Zákazník', $this->customerRepository->getArrayForSelect())->setPrompt('-Zvolte-')->setRequired();
+			$customerInput = $container->addSelectAjax('customer', 'Zákazník', '- Vyberte -', Customer::class);
+
+			if ($account) {
+				/** @var \Eshop\DB\CatalogPermission|null $permission */
+				$permission = $this->catalogPermissionRepo->many()->where('fk_account', $account->getPK())->first();
+
+				if ($permission) {
+					$this->template->select2AjaxDefaults[$customerInput->getHtmlId()] = [
+						$permission->customer->getPK() => $permission->customer->getName() . ($permission->customer->externalCode ? " ({$permission->customer->externalCode})" : ''),
+					];
+				}
+			}
+
 			$catalogInput = $container->addSelect('catalogPermission', 'Zobrazení', ShopperUser::PERMISSIONS)->setDefaultValue('price');
 			
-			$catalogInput->addCondition($form::EQUAL, 'price')
+			$catalogInput->addCondition($form::Equal, 'price')
 				->toggle('frm-accountForm-permission-showPricesWithoutVat-toogle')
 				->toggle('frm-accountForm-permission-showPricesWithVat-toogle');
 			
@@ -1125,9 +1138,9 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 					$container->addSelect('priorityPrice', 'Prioritní cena', [
 						'withoutVat' => 'Bez daně',
 						'withVat' => 'S daní',
-					])->addConditionOn($catalogInput, $form::EQUAL, 'price')
-						->addConditionOn($withoutVatInput, $form::EQUAL, true)
-						->addConditionOn($withVatInput, $form::EQUAL, true)
+					])->addConditionOn($catalogInput, $form::Equal, 'price')
+						->addConditionOn($withoutVatInput, $form::Equal, true)
+						->addConditionOn($withVatInput, $form::Equal, true)
 						->toggle('frm-accountForm-permission-priorityPrice-toogle');
 				}
 			}
@@ -1140,7 +1153,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$newsletterInput = $container->addCheckbox('newsletter', 'Přihlášen k newsletteru');
 			$newsletterGroupsInput = $container->addMultiSelect2('newsletterGroups', 'Skupiny newsletteru', $this->newsletterUserGroupRepository->getArrayForSelect());
 			
-			$newsletterInput->addCondition($form::FILLED)->toggle($newsletterGroupsInput->getHtmlId() . '-toogle');
+			$newsletterInput->addCondition($form::Filled)->toggle($newsletterGroupsInput->getHtmlId() . '-toogle');
 
 			$this->addCustomFieldsToAccountForm($form, $account);
 
