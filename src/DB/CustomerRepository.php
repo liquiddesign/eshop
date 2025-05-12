@@ -154,8 +154,12 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 		unset($includeHidden);
 
 		return $this->many()->select([
-			'name' => 'IF(this.company != "",this.company,this.fullname)',
-			'extendedName' => 'CONCAT(IF(this.company != "",this.company,this.fullname), " (", IFNULL(this.email, ""), ")")',
+			'name' => 'CONCAT(IF(this.company != "",this.company,this.fullname), "(", "this.externalCode", ")")',
+			'extendedName' => 'CONCAT(
+									  IF(this.company != "", this.company, this.fullname),
+									  IF(this.email IS NOT NULL AND this.email != "", CONCAT(" (", this.email, ")"), ""),
+									  IF(this.externalCode IS NOT NULL AND this.externalCode != "", CONCAT(" (", this.externalCode, ")"), "")
+									)',
 		])->orderBy(['fullname']);
 	}
 

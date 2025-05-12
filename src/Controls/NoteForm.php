@@ -10,6 +10,11 @@ use Eshop\ShopperUser;
 
 class NoteForm extends \Nette\Application\UI\Form
 {
+	/**
+	 * @var null|callable(\Nette\Utils\ArrayHash $values): void
+	 */
+	public mixed $onBeforeSuccess = null;
+
 	public function __construct(private readonly ShopperUser $shopperUser)
 	{
 		parent::__construct();
@@ -41,6 +46,10 @@ class NoteForm extends \Nette\Application\UI\Form
 		unset($form);
 
 		$values = $this->getValues();
+
+		if ($this->onBeforeSuccess) {
+			\call_user_func($this->onBeforeSuccess, $values);
+		}
 
 		$account = $this->shopperUser->getCustomer() && $this->shopperUser->getCustomer()->getAccount() ? $this->shopperUser->getCustomer()->getAccount() : null;
 

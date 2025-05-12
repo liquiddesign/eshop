@@ -400,6 +400,12 @@ class ProductGridFactory
 			$grid->getPresenter()->redirect('newsletterExportSelect', [$grid->getSelectedIds()]);
 		};
 
+		$grid->onRenderRow[] = function (\Nette\Utils\Html $row, Product $object): void {
+			if ($object->deletedTs) {
+				$row->appendAttribute('style', 'background-color: #f7d5d5 !important;');
+			}
+		};
+
 		$this->productGridFiltersFactory->addFilters($grid);
 		$grid->addFilterButtons();
 
