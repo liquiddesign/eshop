@@ -384,23 +384,22 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 				$ribbons .= "<div class=\"badge\" style=\"font-weight: normal; font-style: italic; background-color: $ribbon->backgroundColor; color: $ribbon->color\">$ribbon->name</div> ";
 			}
 
-			$firstRow = "<div class='row'><div class='col-6'>{$customer->getName()} 
-<span style='white-space: nowrap'>({$customer->externalCode})</span>
-</div><div class='col-6'>$customer->ic</div></div>";
+			$customerCode = $customer->externalCode !== null ? " <span style='white-space: nowrap'>({$customer->externalCode})</span>" : '';
+			$firstRow = "<div class='row'><div class='col-6'>{$customer->getName()} " . $customerCode . "</div><div class='col-6'>$customer->ic</div></div>";
 			$secondRow = "<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
 
 			return $firstRow . $hr . $secondRow . $ribbons;
 		});
 		$td = '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a><br><a href="tel:%2$s"><i class="fa fa-phone-alt"></i> %2$s</a>';
 		$grid->addColumnTextFit('E-mail / Telefon', ['email', 'phone'], $td)->onRenderCell[] = [$grid, 'decoratorEmpty'];
-		
-		
+
 		$grid->addColumn("$lableMerchants<hr style=\"margin: 0\">Nadřazený zák.", function (Customer $customer) {
 			return [
 				$customer->getValue('merchants_names'),
 				$customer->parentCustomer?->getName(),
+				$customer->parentCustomer?->externalCode !== null ? " <span style='white-space: nowrap'>({$customer->parentCustomer->externalCode})</span>" : '',
 			];
-		}, '%s<hr style="margin: 0">%s');
+		}, '%s<hr style="margin: 0">%s%s');
 		$grid->addColumnTextFit('Skupina', 'group.name', '%s', 'group.name');
 
 		if (isset($this::CONFIGURATIONS['customerRoles']) && $this::CONFIGURATIONS['customerRoles']) {
@@ -1004,7 +1003,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 		$this->redirect('this');
 	}
-	
+
 	public function renderEditAddress(): void
 	{
 		/** @var \Eshop\DB\Customer $customer */
@@ -1227,17 +1226,19 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				return null;
 			}
 
-			if (!$customer = $this->customerRepository->one($customerPK)) {
+			/** @var ?\Eshop\DB\Customer $customer */
+			$customer = $this->customerRepository->one($customerPK);
+
+			if ($customer === null) {
 				return null;
 			}
 
 			$hr = '<hr style="margin: 0">';
 			$billAddress = $customer->billAddress?->getFullAddress();
 			$deliveryAddress = $customer->deliveryAddress?->getFullAddress();
+			$externalCode = $customer->externalCode !== null ? " <span style='white-space: nowrap'>({$customer->externalCode})</span>" : '';
 
-			return ($customer->company ?: $customer->fullname) .
-				" <span style='white-space: nowrap'>({$customer->externalCode})</span>" .
-				"$hr<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
+			return ($customer->company ?: $customer->fullname) . $externalCode . "$hr<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
 		});
 		$grid->addColumn('Oprávnění', function (Account $account) {
 			if (!$account->getValue('permission')) {
