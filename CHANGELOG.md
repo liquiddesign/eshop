@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.475](https://github.com/liquiddesign/eshop/compare/v2.1.474...v2.1.475) (2025-05-12)
+
+### Features
+
+
+##### Customer Presenter
+
+* Improve customer display with conditional external code and enhance repository queries ([6cd07a](https://github.com/liquiddesign/eshop/commit/6cd07adacc6573f7f2aee81827bddb3dbab3c064))
+
+
+---
+
 ## [2.1.474](https://github.com/liquiddesign/eshop/compare/v2.1.473...v2.1.474) (2025-05-08)
 
 ### Features
