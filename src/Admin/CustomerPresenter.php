@@ -311,6 +311,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		$grid->addFilterTextInput('search', ['this.login'], null, 'Login');
 		$grid->addFilterTextInput('fullname', ['this.fullname'], null, 'Jméno účtu');
 		$grid->addFilterTextInput('customer', ['customer.fullname'], null, 'Jméno zákazníka');
+		$grid->addFilterTextInput('externalCode', ['customer.externalCode'], null, 'Kód zákazníka');
 		$grid->addFilterTextInput('company', ['customer.company', 'customer.ic', 'customer.email'], null, 'Firma, IČ, email zákazníka');
 
 		$merchantLabels = $this::CONFIGURATIONS['labels']['merchants'];
@@ -441,6 +442,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 					'tab' => 'accounts',
 					'accountGrid-company' => $object->email,
 					'accountGrid-customer' => $object->fullname,
+					'accountGrid-externalCode' => $object->externalCode,
 					'accountGrid-sessionIgnoreLoad' => true,
 				]) . "'>Účty</a>" :
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount', $object) . "'>Vytvořit&nbsp;účet</a>";
