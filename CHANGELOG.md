@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.476](https://github.com/liquiddesign/eshop/compare/v2.1.475...v2.1.476) (2025-05-12)
+
+### Features
+
+
+##### Customer Presenter
+
+* Add external code filter to customer grid and account grid display ([5d54da](https://github.com/liquiddesign/eshop/commit/5d54da29a881c2fd53f5c139a710ab0acc596ee8))
+
+
+---
+
 ## [2.1.475](https://github.com/liquiddesign/eshop/compare/v2.1.474...v2.1.475) (2025-05-12)
 
 ### Features
