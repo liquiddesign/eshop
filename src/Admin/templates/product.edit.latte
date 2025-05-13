@@ -124,11 +124,13 @@
                                            role="tab">Sloučení a dodavatelé</a>
                                     </li>
                                 {/if}
-                                <li class="nav-item">
-                                    <a class="nav-link {$editTab == 'tester' ? 'active show' : ''} productForm-tab"
-                                       id="tester"
-                                       n:href=":Eshop:Admin:ProductTester:default, 'withProduct' => $product->getPK()">Tester</a>
-                                </li>
+                                {try}
+                                    <li class="nav-item">
+                                        <a class="nav-link {$editTab == 'tester' ? 'active show' : ''} productForm-tab"
+                                           id="tester"
+                                                n:href=":Eshop:Admin:ProductTester:default, 'withProduct' => $product->getPK()">Tester</a>
+                                    </li>
+                                {/try}
                             {/ifset}
                         </ul>
                     </div>
