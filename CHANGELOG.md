@@ -4,6 +4,23 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.477](https://github.com/liquiddesign/eshop/compare/v2.1.476...v2.1.477) (2025-05-13)
+
+### Features
+
+
+##### Product.edit.latte
+
+* Wrap tester tab in try-catch for error handling ([36635d](https://github.com/liquiddesign/eshop/commit/36635d8070349daa6e3d8110ab1a58dc35ce7abc))
+
+### Builds
+
+* Add Composer release configurations for patch and patch-full ([dcca40](https://github.com/liquiddesign/eshop/commit/dcca40e2f076505ad8747f929253854448054378))
+* Add auth.json and exclude runConfigurations from version control ([2bde67](https://github.com/liquiddesign/eshop/commit/2bde6793d63f7ad14d806060e3884b15ca577820))
+
+
+---
+
 ## [2.1.476](https://github.com/liquiddesign/eshop/compare/v2.1.475...v2.1.476) (2025-05-12)
 
 ### Features
