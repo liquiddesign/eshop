@@ -89,7 +89,21 @@ class ProductTesterPresenter extends BackendPresenter
 //				'custom' => 'Ručně',
 			])->setRequired();
 
-			$form->addSelectAjax('product', 'Produkt', '- Vyberte produkt -', Product::class);
+			$defaultProduct = null;
+			$productPk = $this->getParameter('withProduct');
+
+			if ($productPk) {
+				$defaultProduct = $this->productRepository->one($productPk, true);
+			}
+
+			$productSelect = $form->addSelectAjax('product', 'Produkt', '- Vyberte produkt -', Product::class);
+
+			if ($defaultProduct !== null) {
+				// TODO integrate ajax defaults into select class, this is horrible
+				$this->template->select2AjaxDefaults[$productSelect->getHtmlId()] = [
+					$defaultProduct->getPK() => $defaultProduct->getName(),
+				];
+			}
 
 			$customerInput = $form->addSelectAjax('customer', 'Zákazník', '- Vyberte zákazníka -', Customer::class);
 			$groupInput = $form->addSelectAjax('group', 'Skupina zákazníků', '- Vyberte skupinu -', CustomerGroup::class);
