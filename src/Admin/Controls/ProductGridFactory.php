@@ -84,7 +84,7 @@ class ProductGridFactory
 				'unavailable' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.unavailable ORDER BY visibilityList.priority), ',', 1)",
 			]);
 
-		$grid = $this->gridFactory->create($source, 20, 'this.uuid', 'ASC', true);
+		$grid = $this->gridFactory->create($source, 20, 'this.uuid', 'ASC', true, defaultShowPaginator: false);
 
 		$grid->setItemCountCallback(function (Collection $collection): int {
 			$pkName = $collection->getRepository()->getStructure()->getPK()->getName();
