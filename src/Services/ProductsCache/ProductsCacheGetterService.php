@@ -261,15 +261,15 @@ class ProductsCacheGetterService implements AutoWireService
 		$visibilityPriceListsIndex = \implode(',', $visibilityListsIds) . '-' . \implode(',', $priceListsIds);
 		Debugger::barDump($visibilityPriceListsIndex);
 
-		$dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
+//		$dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
 
-		$cachedData = $this->cache->load($dataCacheIndex, dependencies: [
-		  Cache::Tags => [GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
-		]);
-
-		if ($cachedData) {
-			return $cachedData;
-		}
+//		$cachedData = $this->cache->load($dataCacheIndex, dependencies: [
+//		  Cache::Tags => [GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
+//		]);
+//
+//		if ($cachedData) {
+//			return $cachedData;
+//		}
 
 		// TODO check for category type cannot be done for use cases where there are many category types per shop
 		// This comes with small probability of wrong category type, when two categories from different category types have the same path
@@ -727,7 +727,7 @@ class ProductsCacheGetterService implements AutoWireService
 			unset($attributeValuesCounts[$attributeValue->id]);
 		}
 
-		$result = [
+		return [
 			'productPKs' => $productPKs,
 			'attributeValuesCounts' => $attributeValuesCounts,
 			'displayAmountsCounts' => $displayAmountsCounts,
@@ -739,10 +739,10 @@ class ProductsCacheGetterService implements AutoWireService
 			'priceVatMax' => $priceVatMax > \PHP_FLOAT_MIN ? \ceil($priceVatMax) : 0,
 		];
 
-		$this->saveDataCacheIndex($dataCacheIndex, $result);
+//		$this->saveDataCacheIndex($dataCacheIndex, $result);
 
 //		Debugger::dump(Debugger::timer());
-		return $result;
+//		return $result;
 	}
 
 	protected function startUp(): void
