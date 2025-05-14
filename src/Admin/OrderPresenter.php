@@ -390,7 +390,7 @@ class OrderPresenter extends BackendPresenter
 
 		$form = $this->formFactory->create();
 		$form->addSelect('type', 'Doprava', $this->deliveryTypeRepository->getArrayForSelect())->setRequired();
-		$form->addDataSelect('supplier', 'Dropshipping', $this->supplierRepository->getArrayForSelect());
+		$form->addDataSelect('supplier', 'Dropshipping', $this->supplierRepository->getArrayForSelect())->setPrompt('Žádný');
 		$form->addText('externalId', 'Externí Id')->setNullable(true);
 		$form->addPolyfillDate('shippingDate', 'Den doručení')->setNullable(true);
 		$form->addGroup('Cena');
@@ -407,11 +407,10 @@ class OrderPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValues('array');
 
-			$type = $this->deliveryTypeRepository->one($values['type'])->toArray();
-			$values['typeCode'] = $type['code'];
-			$values['typeName'] = $type['name'];
+			$type = $this->deliveryTypeRepository->one($values['type'], true);
+			$delivery = $this->deliveryRepository->syncOne($values, ignore: false);
 
-			$delivery = $this->deliveryRepository->syncOne($values);
+			$this->deliveryRepository->updateDeliveryType($delivery, $type);
 
 			if ($order) {
 				$order->purchase->update(['deliveryType' => $values['type']]);
@@ -534,11 +533,10 @@ class OrderPresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form) use ($order): void {
 			$values = $form->getValues('array');
 
-			$type = $this->paymentTypeRepository->one($values['type'])->toArray();
-			$values['typeCode'] = $type['code'];
-			$values['typeName'] = $type['name'];
-
+			$type = $this->paymentTypeRepository->one($values['type'], true);
 			$payment = $this->paymentRepository->syncOne($values);
+
+			$this->paymentRepository->updatePaymentType($payment, $type);
 
 			if ($order) {
 				$order->purchase->update(['paymentType' => $values['type']]);

@@ -13,4 +13,21 @@ class DeliveryRepository extends \StORM\Repository
 	{
 		return $this->many()->where('fk_order', $orderId)->first();
 	}
+
+	public function updateDeliveryType(Delivery $delivery, DeliveryType $deliveryType): void
+	{
+		$mutations = \array_keys($this->getConnection()->getAvailableMutations());
+
+		$typeNames = [];
+
+		foreach ($mutations as $mutation) {
+			$typeNames[$mutation] = $deliveryType->getValue('name', $mutation);
+		}
+
+		$delivery->update([
+			'deliveryType' => $deliveryType->getPK(),
+			'typeCode' => $deliveryType->code,
+			'typeName' => $typeNames,
+		]);
+	}
 }
