@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.478](https://github.com/liquiddesign/eshop/compare/v2.1.477...v2.1.478) (2025-05-14)
+
+### Features
+
+
+##### Delivery Repository, Payment Repository
+
+* Add methods to update delivery and payment types ([dfcc4f](https://github.com/liquiddesign/eshop/commit/dfcc4faf55f6b99a8c89cc57048f4a80eec4ca09))
+
+
+---
+
 ## [2.1.477](https://github.com/liquiddesign/eshop/compare/v2.1.476...v2.1.477) (2025-05-13)
 
 ### Features
