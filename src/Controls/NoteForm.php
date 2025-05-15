@@ -11,7 +11,7 @@ use Eshop\ShopperUser;
 class NoteForm extends \Nette\Application\UI\Form
 {
 	/**
-	 * @var null|callable(\Nette\Utils\ArrayHash $values): void
+	 * @var null|callable(\Nette\Utils\ArrayHash $values, array $arrayValues): void
 	 */
 	public mixed $onBeforeSuccess = null;
 
