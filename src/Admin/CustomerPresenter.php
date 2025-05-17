@@ -408,8 +408,6 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		}
 
 		$grid->addColumnText('Ceníky / Viditelníky', ['pricelists_names', 'visibilityLists_names'], '%s<hr style="margin: 0">%s');
-//		$grid->addColumnTextFit('Sleva', 'discountLevelPct', '%s %%', 'discountLevelPct');
-//		$grid->addColumnTextFit('Max. sleva', 'maxDiscountProductPct', '%s %%', 'discountLevelPct');
 		
 		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
 			$grid->addColumn('Věrnostní prog.', function (Customer $object) {
@@ -775,6 +773,14 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 					->setHtmlAttribute(
 						'data-info',
 						'Omezuje maximální slevu z dvojice uživatel - produkt.',
+					)
+					->setDefaultValue(0)
+					->setRequired();
+
+				$form->addInteger('surchargeLevelPct', 'Přirážka (%)')
+					->setHtmlAttribute(
+						'data-info',
+						'Aplikuje se na všechny ceny zákazníka z ceníků, které mají povoleno "Povolit přirážku".',
 					)
 					->setDefaultValue(0)
 					->setRequired();
@@ -1621,12 +1627,17 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$bulkEdits[] = 'pricelists';
 			$bulkEdits[] = 'favouritePriceLists';
 			$bulkEdits[] = 'visibilityLists';
-			$bulkEdits[] = 'discountLevelPct';
 			$bulkEdits[] = 'favouriteProducts';
 			$bulkEdits[] = 'preferredDeliveryType';
 			$bulkEdits[] = 'preferredPaymentType';
 			$bulkEdits[] = 'exclusiveDeliveryTypes';
 			$bulkEdits[] = 'exclusivePaymentTypes';
+
+			if (isset($this::CONFIGURATIONS['discountLevel']) && $this::CONFIGURATIONS['discountLevel']) {
+				$bulkEdits[] = 'discountLevelPct';
+				$bulkEdits[] = 'maxDiscountProductPct';
+				$bulkEdits[] = 'surchargeLevelPct';
+			}
 		}
 
 		if ($this->isManager && isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {

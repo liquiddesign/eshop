@@ -109,6 +109,11 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return \max($discountCoupon && $discountCoupon->discountPct ? (int) $discountCoupon->discountPct : 0, $customerDiscount);
 	}
 
+	public function getSurchargePct(Customer|null $customer): int
+	{
+		return $customer->surchargeLevelPct ?? 0;
+	}
+
 	/**
 	 * @param array<\Eshop\DB\Pricelist>|null $pricelists
 	 * @param \Eshop\DB\Customer|null $customer Used only when $customerGroup is not null
@@ -137,12 +142,15 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		
 		$pricelists ??= $this->shopperUser->getPriceListsCached();
 		$pricelists = \array_values($pricelists);
-		$customer = $customerGroup ? $customer : ($customer ?: $this->shopperUser->getCustomer());
+		$customer = $customerGroup ? $customer : ($customer ?? $this->shopperUser->getCustomer());
 
 		$customerGroup ??= $this->shopperUser->getCustomerGroup();
 		
 		$discountLevelPct = $this->getDiscountPct($customer, $customerGroup, $discountCoupon);
-		$maxProductDiscountLevel = $customer ? $customer->maxDiscountProductPct : ($customerGroup ? $customerGroup->defaultMaxDiscountProductPct : 100);
+		$maxProductDiscountLevel = $customer->maxDiscountProductPct ?? $customerGroup->defaultMaxDiscountProductPct ?? 100;
+
+		$surchargeLevel = $this->getSurchargePct($customer);
+
 		$vatRates = $this->shopperUser->getVatRates();
 		$prec = $currency->calculationPrecision;
 		
@@ -177,10 +185,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		/** @var \Eshop\DB\Pricelist $pricelist */
 		foreach ($pricelists as $id => $pricelist) {
 			if ($selects) {
-				$price = $this->sqlHandlePrice("prices$id", 'price', $discountLevelPct, $maxProductDiscountLevel, $generalPricelistIds, $prec, $convertRatio);
-				$priceVat = $this->sqlHandlePrice("prices$id", 'priceVat', $discountLevelPct, $maxProductDiscountLevel, $generalPricelistIds, $prec, $convertRatio);
-				$priceBefore = $this->sqlHandlePrice("prices$id", 'priceBefore', 0, 0, [], $prec, $convertRatio);
-				$priceVatBefore = $this->sqlHandlePrice("prices$id", 'priceVatBefore', 0, 0, [], $prec, $convertRatio);
+				$priceListSurchargeLevel = $pricelist->allowSurchargeLevel ? $surchargeLevel : 0;
+
+				$price = $this->sqlHandlePrice("prices$id", 'price', $discountLevelPct, $maxProductDiscountLevel, $generalPricelistIds, $prec, $convertRatio, $priceListSurchargeLevel);
+				$priceVat = $this->sqlHandlePrice("prices$id", 'priceVat', $discountLevelPct, $maxProductDiscountLevel, $generalPricelistIds, $prec, $convertRatio, $priceListSurchargeLevel);
+				$priceBefore = $this->sqlHandlePrice("prices$id", 'priceBefore', 0, 0, $generalPricelistIds, $prec, $convertRatio, $priceListSurchargeLevel);
+				$priceVatBefore = $this->sqlHandlePrice("prices$id", 'priceVatBefore', 0, 0, $generalPricelistIds, $prec, $convertRatio, $priceListSurchargeLevel);
 				$priceSelects[] = "IF(prices$id.price IS NULL,'X',CONCAT_WS('$sep',LPAD(" . $pricelist->priority .
 					",$priorityLpad,'0'),LPAD(CAST($price AS DECIMAL($priceLpad,$prec)), $priceLpad, '0'),
 					IFNULL($priceVat, 0),IFNULL($priceBefore,0),IFNULL($priceVatBefore,0),prices$id.fk_pricelist))";
@@ -234,14 +244,18 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			
 			$sqlDiscountLevel = "100/(100-IF($discountLevelPct > LEAST(this.discountLevelPct, $maxProductDiscountLevel),$discountLevelPct,LEAST(this.discountLevelPct, $maxProductDiscountLevel)))";
 			$sqlComputeBefore = "($beforeSelect) > 0 OR ($discountLevelPct = 0 AND LEAST(this.discountLevelPct, $maxProductDiscountLevel) = 0) OR (($pricelistId) NOT IN ($allowLevelDiscounts))";
-			
+
 			$collection->select(['priceBefore' => \count($generalPricelistIds) ?
-				"IF($sqlComputeBefore, $beforeSelect,$sqlDiscountLevel  * ($priceSelect))" :
+				"IF(
+					$sqlComputeBefore,
+					$beforeSelect,
+					($priceSelect) * $sqlDiscountLevel
+				)" :
 				$beforeSelect,
 			]);
 			
 			$collection->select(['priceVatBefore' => \count($generalPricelistIds) ?
-				"IF($sqlComputeBefore, $beforeVatSelect,$sqlDiscountLevel * ($priceVatSelect))" :
+				"IF($sqlComputeBefore, $beforeVatSelect,($priceVatSelect) * $sqlDiscountLevel)" :
 				$beforeVatSelect,
 			]);
 			
@@ -2055,7 +2069,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 	}
 	
-	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, int $maxDiscountPct, array $generalPricelistIds, int $prec, ?float $rate): string
+	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, int $maxDiscountPct, array $generalPricelistIds, int $prec, ?float $rate, int $surchargePct): string
 	{
 		$expression = $rate === null ? "$alias.$priceExp" : "ROUND($alias.$priceExp * $rate,$prec)";
 		
@@ -2065,10 +2079,16 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			$pricelists = \implode(',', \array_map(function ($value) {
 				return "'$value'";
 			}, $generalPricelistIds));
+
+			$surchargeExpression = $surchargePct > 0 ? ' * ' . (100 + $surchargePct) / 100 : '';
 			
-			$expression = "IF($alias.fk_pricelist IN ($pricelists),
-			ROUND($expression * ((100 - IF(LEAST(this.discountLevelPct, $maxDiscountPct) > $levelDiscountPct,LEAST(this.discountLevelPct, $maxDiscountPct),$levelDiscountPct)) / 100),$prec),
-			$expression)";
+			$expression = "IF(
+				$alias.fk_pricelist IN ($pricelists),
+				ROUND(
+					$expression$surchargeExpression *
+					((100 - IF(LEAST(this.discountLevelPct, $maxDiscountPct) > $levelDiscountPct,LEAST(this.discountLevelPct, $maxDiscountPct),$levelDiscountPct)) / 100),$prec),
+				$expression$surchargeExpression
+			)";
 		}
 		
 		return $expression;

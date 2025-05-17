@@ -230,6 +230,8 @@ class PricelistsPresenter extends BackendPresenter
 		$this->gridFactory->addShopsFilterSelect($grid);
 		$grid->addFilterButtons();
 
+		$grid->addButtonBulkEdit('priceListDetail', ['isActive', 'allowDiscountLevel', 'allowSurchargeLevel'], 'priceLists');
+
 		if (isset($this::CONFIGURATION['aggregate']) && $this::CONFIGURATION['aggregate']) {
 			$submit = $grid->getForm()->addSubmit('aggregate', 'Agregovat ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
@@ -723,7 +725,12 @@ class PricelistsPresenter extends BackendPresenter
 			->setHtmlAttribute(
 				'data-info',
 				'Aplikuje se vždy největší z čtveřice: procentuální slevy produktu, procentuální slevy zákazníka, slevy věrnostního programu zákazníka nebo slevového kupónu.<br>
-Pokud je povoleno, aplikuje zmíněnou procentuální slevu. Jinak aplikuje pouze slevu v rámci cen v aktivních ceníkách.',
+Pokud je povoleno, aplikuje zmíněnou procentuální slevu na ceny v tomto ceníku.<br>Výsledná cena = cena produktu + %přirážka% - %slevy%<br>',
+			);
+		$form->addCheckbox('allowSurchargeLevel', 'Povolit přirážku')
+			->setHtmlAttribute(
+				'data-info',
+				'Pokud je povoleno, aplikuje zmíněnou přirážku na všechny ceny v tomto ceníku.<br>Výsledná cena = cena produktu + %přirážka% - %slevy%<br>',
 			);
 		$form->addCheckbox('isActive', 'Aktivní');
 
