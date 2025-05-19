@@ -374,7 +374,8 @@ class CheckoutManager
 		
 		if ($replaceMode !== null && $item = $this->cartItemRepository->getItem($cart ?? $this->getCart($cartId), $product, $variant)) {
 			$this->changeItemAmount($product, $variant, $replaceMode ? $amount : $item->amount + $amount, $checkInvalidAmount !== CheckInvalidAmount::NO_CHECK, $cart ?? $this->getCart($cartId));
-			
+			$item = $this->cartItemRepository->one($item->getPK());
+
 			Arrays::invoke($this->onCartItemCreate, $item);
 			
 			return $item;
