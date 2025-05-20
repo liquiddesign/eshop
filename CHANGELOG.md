@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.479](https://github.com/liquiddesign/eshop/compare/v2.1.478...v2.1.479) (2025-05-20)
+
+### Bug Fixes
+
+
+##### Shopper User
+
+* Update price retrieval methods for consistency ([4fdf13](https://github.com/liquiddesign/eshop/commit/4fdf1302914e8c503f5f8c3c4b42b1ee74c4f80c))
+
+
+---
+
 ## [2.1.478](https://github.com/liquiddesign/eshop/compare/v2.1.477...v2.1.478) (2025-05-14)
 
 ### Features
