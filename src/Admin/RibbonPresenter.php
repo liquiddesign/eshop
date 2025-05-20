@@ -89,8 +89,6 @@ class RibbonPresenter extends BackendPresenter
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Popisek');
 		$grid->addFilterSelectInput('type', 'type = :t', null, '- Typ -', null, $this::TYPES, 't');
 
-		$this->gridFactory->addShopsFilterSelect($grid);
-
 		$grid->addFilterButtons();
 
 		$grid->onDelete[] = [$this, 'onDelete'];
@@ -129,7 +127,7 @@ class RibbonPresenter extends BackendPresenter
 		$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
 			$source->where('type', $value);
 		}, '', 'type', null, InternalRibbon::TYPES, ['placeholder' => '- Typ -']);
-		$this->gridFactory->addShopsFilterSelect($grid);
+
 		$grid->addFilterButtons(['internal']);
 
 		return $grid;

@@ -477,8 +477,6 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 		$this->addFiltersToCustomersGrid($grid);
 
-		$this->gridFactory->addShopsFilterSelect($grid);
-
 		$grid->addFilterButtons();
 		
 		return $grid;
@@ -1309,8 +1307,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$submit->onClick[] = [$this, 'exportAccounts'];
 
 		$this->addFiltersToAccountsGrid($grid);
-
-		$this->gridFactory->addShopsFilterSelect($grid);
 
 		$grid->addFilterButtons();
 

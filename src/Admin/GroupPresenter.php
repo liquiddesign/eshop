@@ -111,7 +111,6 @@ class GroupPresenter extends BackendPresenter
 		});
 		
 		$grid->addFilterTextInput('search', ['name'], null, 'Název');
-		$this->gridFactory->addShopsFilterSelect($grid);
 
 		$grid->addFilterButtons();
 

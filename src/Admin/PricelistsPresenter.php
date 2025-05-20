@@ -227,7 +227,6 @@ class PricelistsPresenter extends BackendPresenter
 			}, '', 'discounts', null, $discounts, ['placeholder' => '- Akce -']);
 		}
 
-		$this->gridFactory->addShopsFilterSelect($grid);
 		$grid->addFilterButtons();
 
 		$grid->addButtonBulkEdit('priceListDetail', ['isActive', 'allowDiscountLevel', 'allowSurchargeLevel'], 'priceLists');

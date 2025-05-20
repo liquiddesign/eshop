@@ -183,8 +183,6 @@ class DiscountPresenter extends BackendPresenter
 			}, '', 'pricelists', null, $items, ['placeholder' => '- Ceníky -']);
 		}
 
-		$this->gridFactory->addShopsFilterSelect($grid);
-
 		$grid->addFilterButtons();
 
 		return $grid;
