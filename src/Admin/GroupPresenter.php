@@ -140,7 +140,7 @@ class GroupPresenter extends BackendPresenter
 
 	public function createComponentNewForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(useShops: true);
 		
 		/** @var \Eshop\DB\CustomerGroup|null $group */
 		$group = $this->getParameter('group');
@@ -187,7 +187,6 @@ class GroupPresenter extends BackendPresenter
 		
 		$form->addCheckbox('autoActiveCustomers', 'Zákazníci budou automaticky aktivní po registraci');
 
-		$this->formFactory->addShopsContainerToAdminForm($form);
 		$form->addSubmits(!$group);
 		
 		$form->onSuccess[] = function (AdminForm $form) use ($group): void {

@@ -159,6 +159,8 @@ class MerchantPresenter extends BackendPresenter
 		$form = $this->formFactory->create(false, false, false, false, false);
 
 		$form->monitor(Presenter::class, function () use ($form, $merchant): void {
+			$this->formFactory->addShopsContainerToAdminForm($form);
+
 			$form->addGroup('Obchodník');
 			$form->addText('code', 'Kód')->setNullable();
 			$form->addText('fullname', 'Jméno a příjmení')->setRequired();
@@ -206,8 +208,6 @@ class MerchantPresenter extends BackendPresenter
 				'customerEmailNotification',
 				'Posílat e-mailem informace o objednávkách přiřazených zákazníků.',
 			);
-
-			$this->formFactory->addShopsContainerToAdminForm($form);
 
 			$form->addGroup('Cache');
 			$form->addText('cacheIndex', 'Index')

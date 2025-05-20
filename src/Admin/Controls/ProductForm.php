@@ -6,6 +6,7 @@ namespace Eshop\Admin\Controls;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminFormFactory;
+use Base\DB\Shop;
 use Base\ShopsConfig;
 use Eshop\Admin\Configs\ProductFormAutoPriceConfig;
 use Eshop\Admin\Configs\ProductFormConfig;
@@ -953,9 +954,9 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		unset($values['stores']);
 
-		$form->syncPages(function () use ($product, $values, $form): void {
-			$form->uploadOpenGraphImage($form, $values);
-			$this->pageRepository->syncPage($values['page'], ['product' => $product->getPK()]);
+		$form->syncPages(function (array $values, Shop $shop) use ($product, $form): void {
+			$form->uploadOpenGraphImage($form, $values, $shop);
+			$this->pageRepository->syncPage($values, ['product' => $product->getPK()]);
 		});
 
 		$presenter = $this->getPresenter();

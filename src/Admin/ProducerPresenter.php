@@ -7,10 +7,12 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\Producer;
 use Eshop\DB\ProducerRepository;
 use Forms\Form;
+use Nette\Application\UI\Presenter;
 use Nette\Http\Request;
 use Nette\Utils\Image;
 use Pages\DB\PageRepository;
@@ -89,45 +91,49 @@ class ProducerPresenter extends BackendPresenter
 	public function createComponentNewForm(): Form
 	{
 		$form = $this->formFactory->create(true);
-		$form->addText('code', 'Kód')->setRequired();
-		$nameInput = $form->addLocaleText('name', 'Název');
-		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
-			Producer::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
-			Producer::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
-				$image->resize(600, null);
-			},
-			Producer::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
-				$image->resize(300, null);
-			},
-		]);
 
+		/** @var \Eshop\DB\Producer|null $producer */
 		$producer = $this->getParameter('producer');
 
-		$imagePicker->onDelete[] = function () use ($producer): void {
-			$this->onDeleteImage($producer);
-			$this->redirect('this');
-		};
+		$form->monitor(Presenter::class, function () use ($form, $producer): void {
+			$form->addText('code', 'Kód')->setRequired();
+			$nameInput = $form->addLocaleText('name', 'Název');
+			$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
+				Producer::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
+				Producer::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
+					$image->resize(600, null);
+				},
+				Producer::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
+					$image->resize(300, null);
+				},
+			]);
+
+			$imagePicker->onDelete[] = function () use ($producer): void {
+				$this->onDeleteImage($producer);
+				$this->redirect('this');
+			};
+
+			$productInput = $form->addMultiSelectAjax('mainCategories', 'Hlavní kategorie', 'Zvolte kategorie', Category::class, ['maximumSelectionLength' => 500]);
+
+			if ($producer) {
+				$this->template->select2AjaxDefaults[$productInput->getHtmlId()] = $this->categoryRepository->toArrayForSelect($producer->getMainCategories());
+			}
+
+			$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
+			$form->addCheckbox('recommended', 'Doporučeno');
+			$form->addCheckbox('hidden', 'Skryto');
+			$form->addPageContainer('product_list', ['producer' => $this->getParameter('producer')], $nameInput);
+
+			$this->addCustomFieldsToProducerForm($form);
+
+			$form->addSubmits(!$producer);
+		});
 
 		$form->addLocalePerexEdit('perex', 'Perex');
 		$form->addLocaleRichEdit('content', 'Obsah');
 
-		$form->addSelect2('mainCategory', 'Hlavní kategorie (staré)', $this->categoryRepository->getTreeArrayForSelect())->setPrompt('- Kategorie -')
-			->setHtmlAttribute('data-info', 'Tato možnost bude brzy odebrána!')
-			->setDisabled();
-
-		$form->addMultiSelect2('mainCategories', 'Hlavní kategorie', $this->categoryRepository->getTreeArrayForSelect());
-
-		$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
-		$form->addCheckbox('recommended', 'Doporučeno');
-		$form->addCheckbox('hidden', 'Skryto');
-		$form->addPageContainer('product_list', ['producer' => $this->getParameter('producer')], $nameInput);
-
-		$this->addCustomFieldsToProducerForm($form);
-
-		$form->addSubmits(!$producer);
-
 		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
+			$values = $form->getValuesWithAjax();
 
 			$this->createImageDirs(Producer::IMAGE_DIR);
 
@@ -142,9 +148,9 @@ class ProducerPresenter extends BackendPresenter
 
 			$producer = $this->producerRepository->syncOne($values, null, true);
 
-			$form->syncPages(function () use ($producer, $values): void {
-				$values['page']['params'] = Helpers::serializeParameters(['producer' => $producer->getPK()]);
-				$this->pageRepository->syncOne($values['page']);
+			$form->syncPages(function ($values) use ($producer): void {
+				$values['params'] = Helpers::serializeParameters(['producer' => $producer->getPK()]);
+				$this->pageRepository->syncOne($values);
 			});
 
 			$this->producerRepository->cleanProducersCache();

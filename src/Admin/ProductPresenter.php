@@ -53,7 +53,6 @@ use Nette\Application\Attributes\Persistent;
 use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Component;
 use Nette\DI\Attributes\Inject;
-use Nette\Forms\Controls\TextInput;
 use Nette\IOException;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
@@ -649,30 +648,7 @@ class ProductPresenter extends BackendPresenter
 			}
 		}
 
-		if (!$form->getPrettyPages()) {
-			return;
-		}
-
-		/** @var \Web\DB\Page|null $page */
-		$page = $this->pageRepository->getPageByTypeAndParams('product_detail', null, ['product' => $product], selectedShop: $this->shopsConfig->getSelectedShop());
-
-		if (!$page) {
-			return;
-		}
-
-		/** @var \Forms\Container $pageContainer */
-		$pageContainer = $form['page'];
-
-		$pageContainer->setDefaults($page->toArray());
-
-		$form['page']['url']->forAll(function (TextInput $text, $mutation) use ($page, $form): void {
-			$text->getRules()->reset();
-			$text->addRule(
-				[$form, 'validateUrl'],
-				'URL již existuje',
-				[$this->pageRepository, $mutation, $page->getPK(), $this->shopsConfig->getSelectedShop()],
-			);
-		});
+		return;
 	}
 
 	public function renderEdit(Product $product): void

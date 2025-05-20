@@ -49,7 +49,7 @@ class DisplayAmountPresenter extends BackendPresenter
 
 	public function createComponentNewForm(): Form
 	{
-		$form = $this->formFactory->create(true);
+		$form = $this->formFactory->create(true, useShops: true);
 
 		$form->addLocaleText('label', 'Popisek');
 //		$form->addIntegerNullable('amountFrom', 'Množství od');
@@ -58,8 +58,6 @@ class DisplayAmountPresenter extends BackendPresenter
 		$form->addSelect2('displayDelivery', 'Přednastavené doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('Nepřiřazeno')
 			->setHtmlAttribute('data-info', 'Pokud nastavíte "Přednastavené doručení", tak u produktů s nastaveným doručením na "Automaticky" bude zvoleno toto doručení.');
 		$form->addCheckbox('isSold', 'Označit jako vyprodáno');
-
-		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$this->getParameter('displayAmount'));
 

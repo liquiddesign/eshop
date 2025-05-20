@@ -630,22 +630,24 @@ class AttributePresenter extends BackendPresenter
 			/** @var \Eshop\DB\AttributeValue $object */
 			$object = $this->attributeValueRepository->syncOne($values, null, true);
 
-			if (isset($values['page']) && isset($values['page']['url']) && !$values['page']['url'][Arrays::first($this->formFactory->getMutations())]) {
-				foreach (\array_keys($this->pageRepository->getConnection()->getAvailableMutations()) as $mutation) {
-					/** @var \Web\DB\Page|null $page */
-					$page = $this->pageRepository->getPageByTypeAndParams('product_list', $mutation, ['attributeValue' => $this->getParameter('attributeValue')]);
+			$form->syncPages(function ($values) use ($object): void {
+				if (isset($values['url']) && !$values['url'][Arrays::first($this->formFactory->getMutations())]) {
+					foreach (\array_keys($this->pageRepository->getConnection()->getAvailableMutations()) as $mutation) {
+						/** @var \Web\DB\Page|null $page */
+						$page = $this->pageRepository->getPageByTypeAndParams('product_list', $mutation, ['attributeValue' => $this->getParameter('attributeValue')]);
 
-					if ($page === null) {
-						continue;
+						if ($page === null) {
+							continue;
+						}
+
+						$page->delete();
 					}
+				} else {
+					$values['type'] = 'product_list';
 
-					$page->delete();
+					$this->pageRepository->syncPage($values['page'], ['attributeValue' => $object->getPK()]);
 				}
-			} else {
-				$values['page']['type'] = 'product_list';
-
-				$this->pageRepository->syncPage($values['page'], ['attributeValue' => $object->getPK()]);
-			}
+			});
 
 			$this->clearNetteCache();
 

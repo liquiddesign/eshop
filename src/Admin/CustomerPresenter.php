@@ -655,6 +655,8 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		$customer = $this->getParameter('customer');
 
 		$form->monitor(Presenter::class, function (Presenter $presenter) use ($form, $customer, $lableMerchants): void {
+			$this->formFactory->addShopsContainerToAdminForm($form);
+
 			$form->addText('fullname', 'Jméno a příjmení');
 			$form->addText('company', 'Firma');
 			$form->addText('ic', 'IČ')->setNullable();
@@ -812,8 +814,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 
 			$this->addCustomFieldsToCustomerForm($form, $customer);
-
-			$this->formFactory->addShopsContainerToAdminForm($form, false);
 
 			if ($customer && isset($form['shop']) && $form['shop'] instanceof SelectBox) {
 				$form['shop']->setDisabled();

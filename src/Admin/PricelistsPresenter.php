@@ -707,7 +707,7 @@ class PricelistsPresenter extends BackendPresenter
 
 	public function createComponentPriceListDetail(): AdminForm
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(useShops: true);
 
 		$form->addText('code', 'Kód');
 		$form->addText('name', 'Název');
@@ -742,8 +742,6 @@ Pokud je povoleno, aplikuje zmíněnou procentuální slevu na ceny v tomto cen�
 
 		$form->addMultiSelect2('internalRibbons', 'Interní štítky', $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_PRICE_LIST));
 		$form->addText('lastUpdateTs', 'Poslední aktualizace')->setDisabled()->setNullable();
-
-		$this->formFactory->addShopsContainerToAdminForm($form, false);
 
 		$form->addSubmits(!$this->getParameter('pricelist'));
 

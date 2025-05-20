@@ -40,7 +40,7 @@ class DisplayDeliveryPresenter extends BackendPresenter
 
 	public function createComponentNewForm(): AdminForm
 	{
-		$form = $this->formFactory->create(true);
+		$form = $this->formFactory->create(true, useShops: true);
 
 		$form->addLocaleText('label', 'Popisek');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
@@ -55,8 +55,6 @@ class DisplayDeliveryPresenter extends BackendPresenter
 
 		$form->addLocaleText('beforeTimeThresholdLabel', 'Popisek před');
 		$form->addLocaleText('afterTimeThresholdLabel', 'Popisek po');
-
-		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$this->getParameter('displayDelivery'));
 

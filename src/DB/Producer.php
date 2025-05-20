@@ -13,6 +13,7 @@ use StORM\RelationCollection;
  * Výrobce
  * @table
  * @index{"name":"producer_code_unique","unique":true,"columns":["code"]}
+ * @method \StORM\ICollection<\Eshop\DB\Category> getMainCategories():
  */
 class Producer extends SystemicEntity
 {
