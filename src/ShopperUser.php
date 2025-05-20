@@ -493,15 +493,15 @@ class ShopperUser extends User
 			$this->filterPrice($cartItem->priceVat),
 			$cartItem->price,
 			$cartItem->priceVat,
-			$cartItem->getPriceBefore() ? $this->filterPrice($cartItem->getPriceBefore()) : null,
-			$cartItem->getPriceVatBefore() ? $this->filterPrice($cartItem->getPriceVatBefore()) : null,
+			$cartItem->priceBefore ? $this->filterPrice($cartItem->priceBefore) : null,
+			$cartItem->priceVatBefore ? $this->filterPrice($cartItem->priceVatBefore) : null,
 			$this->getCustomer(),
-			$cartItem->getPriceBefore() ? ((int) \round(100 - ($cartItem->price / $cartItem->getPriceBefore() * 100))) : null,
+			$cartItem->priceBefore ? ((int) \round(100 - ($cartItem->price / $cartItem->priceBefore * 100))) : null,
 			$cartItem->amount,
 			$this->filterPrice($cartItem->price * $cartItem->amount),
 			$this->filterPrice($cartItem->priceVat * $cartItem->amount),
-			$cartItem->getPriceBefore() ? $this->filterPrice($cartItem->getPriceBefore()) : null,
-			$cartItem->getPriceVatBefore() ? $this->filterPrice($cartItem->getPriceVatBefore()) : null,
+			$cartItem->priceBefore ? $this->filterPrice($cartItem->priceBefore) : null,
+			$cartItem->priceVatBefore ? $this->filterPrice($cartItem->priceVatBefore) : null,
 		);
 	}
 
