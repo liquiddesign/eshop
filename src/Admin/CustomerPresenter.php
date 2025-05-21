@@ -780,7 +780,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				$form->addInteger('surchargeLevelPct', 'Marže (%)')
 					->setHtmlAttribute(
 						'data-info',
-						'Aplikuje se na všechny ceny zákazníka z ceníků, které mají povoleno "Povolit přirážku".',
+						'Aplikuje se na všechny ceny zákazníka z ceníků, které mají povoleno "Povolit marži".',
 					)
 					->setNullable()
 					->addCondition($form::Filled)
