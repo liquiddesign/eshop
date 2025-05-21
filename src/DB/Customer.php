@@ -128,7 +128,7 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	public int $discountLevelPct = 0;
 
 	/**
-	 * Pevná přirážka
+	 * Pevná marže
 	 * @column
 	 */
 	public float|null $surchargeLevelPct = null;
