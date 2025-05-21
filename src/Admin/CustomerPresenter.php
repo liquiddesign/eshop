@@ -368,8 +368,8 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 		$grid = $this->gridFactory->create($this->customerRepository->many()
 			->select([
-				'pricelists_names' => "GROUP_CONCAT(DISTINCT pricelists.name SEPARATOR ', ')",
-				'visibilityLists_names' => "GROUP_CONCAT(DISTINCT visibilityLists.name SEPARATOR ', ')",
+				'pricelists_names' => "GROUP_CONCAT(DISTINCT pricelists.name ORDER BY pricelists.priority, pricelists.uuid SEPARATOR ', ')",
+				'visibilityLists_names' => "GROUP_CONCAT(DISTINCT visibilityLists.name ORDER BY visibilityLists.priority, visibilityLists.uuid SEPARATOR ', ')",
 				'merchants_names' => "GROUP_CONCAT(DISTINCT merchants.fullname SEPARATOR ', ')",
 			])
 			->setGroupBy(['this.uuid']), 20, 'createdTs', 'DESC', true, filterShops: false);
