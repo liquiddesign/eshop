@@ -782,8 +782,9 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 						'data-info',
 						'Aplikuje se na všechny ceny zákazníka z ceníků, které mají povoleno "Povolit přirážku".',
 					)
-					->setDefaultValue(0)
-					->setRequired();
+					->setNullable()
+					->addCondition($form::Filled)
+					->addRule($form::Float);
 			}
 
 			if (isset($this::CONFIGURATIONS['rounding']) && $this::CONFIGURATIONS['rounding']) {

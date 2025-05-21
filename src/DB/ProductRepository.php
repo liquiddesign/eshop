@@ -109,9 +109,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return \max($discountCoupon && $discountCoupon->discountPct ? (int) $discountCoupon->discountPct : 0, $customerDiscount);
 	}
 
-	public function getSurchargePct(Customer|null $customer): int
+	public function getSurchargePct(Customer|null $customer): float
 	{
-		return $customer->surchargeLevelPct ?? 0;
+		return $customer?->getSurchargeLevelPct() ?? 0;
 	}
 
 	/**
@@ -2069,7 +2069,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		}
 	}
 	
-	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, int $maxDiscountPct, array $generalPricelistIds, int $prec, ?float $rate, int $surchargePct): string
+	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, int $maxDiscountPct, array $generalPricelistIds, int $prec, ?float $rate, float $surchargePct): string
 	{
 		$expression = $rate === null ? "$alias.$priceExp" : "ROUND($alias.$priceExp * $rate,$prec)";
 		
@@ -2080,7 +2080,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				return "'$value'";
 			}, $generalPricelistIds));
 
-			$surchargeExpression = $surchargePct > 0 ? ' * ' . (100 + $surchargePct) / 100 : '';
+			$surchargeExpression = $surchargePct > 0 ? ' / ' . (1 - ($surchargePct / 100)) : '';
 			
 			$expression = "IF(
 				$alias.fk_pricelist IN ($pricelists),

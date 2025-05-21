@@ -724,12 +724,12 @@ class PricelistsPresenter extends BackendPresenter
 			->setHtmlAttribute(
 				'data-info',
 				'Aplikuje se vždy největší z čtveřice: procentuální slevy produktu, procentuální slevy zákazníka, slevy věrnostního programu zákazníka nebo slevového kupónu.<br>
-Pokud je povoleno, aplikuje zmíněnou procentuální slevu na ceny v tomto ceníku.<br>Výsledná cena = cena produktu + %přirážka% - %slevy%<br>',
+Pokud je povoleno, aplikuje zmíněnou procentuální slevu na ceny v tomto ceníku.<br>Výsledná cena = %cena produktu% / (1 - (%marže% / 100)) * ((100 - %sleva%) / 100) <br>',
 			);
 		$form->addCheckbox('allowSurchargeLevel', 'Povolit přirážku')
 			->setHtmlAttribute(
 				'data-info',
-				'Pokud je povoleno, aplikuje zmíněnou přirážku na všechny ceny v tomto ceníku.<br>Výsledná cena = cena produktu + %přirážka% - %slevy%<br>',
+				'Pokud je povoleno, aplikuje zmíněnou přirážku na všechny ceny v tomto ceníku.<br>Výsledná cena = %cena produktu% / (1 - (%marže% / 100)) * ((100 - %sleva%) / 100) <br>',
 			);
 		$form->addCheckbox('isActive', 'Aktivní');
 

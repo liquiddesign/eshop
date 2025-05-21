@@ -169,7 +169,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 	public function getAjaxArrayForSelect(bool $includeHidden = true, ?string $q = null, ?int $page = null): array
 	{
 		return $this->getCollection($includeHidden)
-			->where('this.fullname LIKE :q OR this.email LIKE :q OR this.company LIKE :q OR this.phone LIKE :q', ['q' => "%$q%", 'exact' => $q,])
+			->where('this.fullname LIKE :q OR this.email LIKE :q OR this.company LIKE :q OR this.phone LIKE :q OR this.externalCode LIKE :q', ['q' => "%$q%", 'exact' => $q,])
 			->setPage($page ?? 1, 5)
 			->toArrayOf('extendedName');
 	}

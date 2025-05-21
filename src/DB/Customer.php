@@ -130,7 +130,7 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * Pevná přirážka
 	 * @column
 	 */
-	public int $surchargeLevelPct = 0;
+	public float|null $surchargeLevelPct = null;
 	
 	/**
 	 * Max. slevova u produktů
@@ -424,6 +424,11 @@ class Customer extends ShopEntity implements IIdentity, IUser
 			null;
 
 		return $this->catalogPermission = $perm;
+	}
+
+	public function getSurchargeLevelPct(): float|null
+	{
+		return $this->surchargeLevelPct;
 	}
 	
 	public function isCompany(): bool
