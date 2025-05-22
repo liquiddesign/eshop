@@ -253,6 +253,7 @@ class PricelistsPresenter extends BackendPresenter
 			20,
 			null,
 			'ASC',
+			defaultShowPaginator: false,
 		);
 
 		$grid->addColumnSelector();
@@ -488,6 +489,7 @@ class PricelistsPresenter extends BackendPresenter
 			20,
 			'product.code',
 			'ASC',
+			defaultShowPaginator: false,
 		);
 
 		$grid->setItemCountCallback(function (Collection $collection): int {
