@@ -159,6 +159,7 @@ class MerchantPresenter extends BackendPresenter
 		$form = $this->formFactory->create(false, false, false, false, false);
 
 		$form->monitor(Presenter::class, function () use ($form, $merchant): void {
+			$form->addGroup('Obchody');
 			$this->formFactory->addShopsContainerToAdminForm($form);
 
 			$form->addGroup('Obchodník');
