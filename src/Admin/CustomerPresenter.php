@@ -454,7 +454,13 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder'], false, null, 'this.uuid');
 		
-		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers', copyRawValues: ['favouriteProducts' => 'favouriteProducts']);
+		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers', copyRawValues: [
+			'pricelists' => 'pricelists',
+			'favouritePriceLists' => 'favouritePriceLists',
+			'visibilityLists' => 'visibilityLists',
+			'favouriteProducts' => 'favouriteProducts',
+			'parentCustomer' => 'parentCustomer',
+		]);
 //		$grid->addButtonBulkEdit(
 //			'editFavouriteProducts',
 //			['favouriteProducts'],
