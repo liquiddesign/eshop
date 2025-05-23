@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.480](https://github.com/liquiddesign/eshop/compare/v2.1.479...v2.1.480) (2025-05-23)
+
+### Features
+
+
+##### Customer Presenter
+
+* Enhance bulk edit functionality with additional fields ([d969d5](https://github.com/liquiddesign/eshop/commit/d969d5b803804261153dbac040b3c802c0ab779e))
+
+
+---
+
 ## [2.1.479](https://github.com/liquiddesign/eshop/compare/v2.1.478...v2.1.479) (2025-05-20)
 
 ### Bug Fixes
