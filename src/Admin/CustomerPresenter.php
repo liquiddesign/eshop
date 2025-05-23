@@ -368,8 +368,8 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 		$grid = $this->gridFactory->create($this->customerRepository->many()
 			->select([
-				'pricelists_names' => "GROUP_CONCAT(DISTINCT pricelists.name SEPARATOR ', ')",
-				'visibilityLists_names' => "GROUP_CONCAT(DISTINCT visibilityLists.name SEPARATOR ', ')",
+				'pricelists_names' => "GROUP_CONCAT(DISTINCT pricelists.name ORDER BY pricelists.priority, pricelists.uuid SEPARATOR ', ')",
+				'visibilityLists_names' => "GROUP_CONCAT(DISTINCT visibilityLists.name ORDER BY visibilityLists.priority, visibilityLists.uuid SEPARATOR ', ')",
 				'merchants_names' => "GROUP_CONCAT(DISTINCT merchants.fullname SEPARATOR ', ')",
 			])
 			->setGroupBy(['this.uuid']), 20, 'createdTs', 'DESC', true, filterShops: false);
@@ -408,8 +408,6 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		}
 
 		$grid->addColumnText('Ceníky / Viditelníky', ['pricelists_names', 'visibilityLists_names'], '%s<hr style="margin: 0">%s');
-//		$grid->addColumnTextFit('Sleva', 'discountLevelPct', '%s %%', 'discountLevelPct');
-//		$grid->addColumnTextFit('Max. sleva', 'maxDiscountProductPct', '%s %%', 'discountLevelPct');
 		
 		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
 			$grid->addColumn('Věrnostní prog.', function (Customer $object) {
@@ -456,7 +454,13 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder'], false, null, 'this.uuid');
 		
-		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers', copyRawValues: ['favouriteProducts' => 'favouriteProducts']);
+		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers', copyRawValues: [
+			'pricelists' => 'pricelists',
+			'favouritePriceLists' => 'favouritePriceLists',
+			'visibilityLists' => 'visibilityLists',
+			'favouriteProducts' => 'favouriteProducts',
+			'parentCustomer' => 'parentCustomer',
+		]);
 //		$grid->addButtonBulkEdit(
 //			'editFavouriteProducts',
 //			['favouriteProducts'],
