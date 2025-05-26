@@ -53,6 +53,7 @@ use Eshop\DB\TaxRepository;
 use Eshop\DB\Variant;
 use Eshop\DB\VatRate;
 use Eshop\Integration\Integrations;
+use JetBrains\PhpStorm\Deprecated;
 use Nette;
 use Nette\Http\Request;
 use Nette\Http\Response;
@@ -373,7 +374,8 @@ class CheckoutManager
 		
 		if ($replaceMode !== null && $item = $this->cartItemRepository->getItem($cart ?? $this->getCart($cartId), $product, $variant)) {
 			$this->changeItemAmount($product, $variant, $replaceMode ? $amount : $item->amount + $amount, $checkInvalidAmount !== CheckInvalidAmount::NO_CHECK, $cart ?? $this->getCart($cartId));
-			
+			$item = $this->cartItemRepository->one($item->getPK());
+
 			Arrays::invoke($this->onCartItemCreate, $item);
 			
 			return $item;
@@ -1608,14 +1610,23 @@ class CheckoutManager
 		return $purchase;
 	}
 	
-	public function getPurchase(bool $needed = false, ?string $cartId = self::ACTIVE_CART_ID): ?Purchase
+	public function getPurchase(#[Deprecated('Use getPurchaseOrFail')] bool $needed = false, ?string $cartId = self::ACTIVE_CART_ID): ?Purchase
+	{
+		if ($needed) {
+			return $this->getPurchaseOrFail($cartId);
+		}
+
+		return $this->getCart($cartId)->purchase;
+	}
+
+	public function getPurchaseOrFail(?string $cartId = self::ACTIVE_CART_ID): Purchase
 	{
 		$purchase = $this->getCart($cartId)->purchase;
-		
-		if ($needed && !$purchase) {
+
+		if (!$purchase) {
 			throw new \DomainException('purchase is not created yet');
 		}
-		
+
 		return $purchase;
 	}
 	

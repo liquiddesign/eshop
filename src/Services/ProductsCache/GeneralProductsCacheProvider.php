@@ -50,6 +50,7 @@ interface GeneralProductsCacheProvider
 		string $orderByDirection = 'ASC',
 		array $priceLists = [],
 		array $visibilityLists = [],
+		bool $debug = false,
 	): array|false;
 
 	public function getIndexByCustomer(Customer|Merchant $customerMerchant): string;

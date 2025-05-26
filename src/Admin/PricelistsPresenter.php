@@ -230,6 +230,8 @@ class PricelistsPresenter extends BackendPresenter
 		$this->gridFactory->addShopsFilterSelect($grid);
 		$grid->addFilterButtons();
 
+		$grid->addButtonBulkEdit('priceListDetail', ['isActive', 'allowDiscountLevel', 'allowSurchargeLevel'], 'priceLists');
+
 		if (isset($this::CONFIGURATION['aggregate']) && $this::CONFIGURATION['aggregate']) {
 			$submit = $grid->getForm()->addSubmit('aggregate', 'Agregovat ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
@@ -252,6 +254,7 @@ class PricelistsPresenter extends BackendPresenter
 			20,
 			null,
 			'ASC',
+			defaultShowPaginator: false,
 		);
 
 		$grid->addColumnSelector();
@@ -487,6 +490,7 @@ class PricelistsPresenter extends BackendPresenter
 			20,
 			'product.code',
 			'ASC',
+			defaultShowPaginator: false,
 		);
 
 		$grid->setItemCountCallback(function (Collection $collection): int {
@@ -723,7 +727,12 @@ class PricelistsPresenter extends BackendPresenter
 			->setHtmlAttribute(
 				'data-info',
 				'Aplikuje se vždy největší z čtveřice: procentuální slevy produktu, procentuální slevy zákazníka, slevy věrnostního programu zákazníka nebo slevového kupónu.<br>
-Pokud je povoleno, aplikuje zmíněnou procentuální slevu. Jinak aplikuje pouze slevu v rámci cen v aktivních ceníkách.',
+Pokud je povoleno, aplikuje zmíněnou procentuální slevu na ceny v tomto ceníku.<br>Výsledná cena = %cena produktu% / (1 - (%marže% / 100)) * ((100 - %sleva%) / 100) <br>',
+			);
+		$form->addCheckbox('allowSurchargeLevel', 'Povolit marži')
+			->setHtmlAttribute(
+				'data-info',
+				'Pokud je povoleno, aplikuje zmíněnou marži na všechny ceny v tomto ceníku.<br>Výsledná cena = %cena produktu% / (1 - (%marže% / 100)) * ((100 - %sleva%) / 100) <br>',
 			);
 		$form->addCheckbox('isActive', 'Aktivní');
 

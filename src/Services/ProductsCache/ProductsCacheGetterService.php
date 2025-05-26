@@ -36,6 +36,8 @@ use Web\DB\SettingRepository;
 
 class ProductsCacheGetterService implements AutoWireService
 {
+	public bool $debug = false;
+
 	/**
 	 * Also hard-coded: category, pricelist
 	 * @var array<string>
@@ -469,7 +471,9 @@ class ProductsCacheGetterService implements AutoWireService
 		$producersCounts = [];
 		$attributeValuesCounts = [];
 
-		DevelTools::bdumpCollection($productsCollection);
+		if ($this->debug) {
+			DevelTools::bdumpCollection($productsCollection);
+		}
 
 		$priceMin = \PHP_FLOAT_MAX;
 		$priceMax = \PHP_FLOAT_MIN;

@@ -40,6 +40,7 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 		string $orderByDirection = 'ASC',
 		array $priceLists = [],
 		array $visibilityLists = [],
+		bool $debug = false,
 	): array|false {
 		$priceLists = $priceLists ?: $this->shopperUser->getPriceListsCached();
 		$visibilityLists = $visibilityLists ?: $this->shopperUser->getVisibilityLists();
@@ -53,6 +54,8 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 		if (!$this->isReady) {
 			throw new ProductsCacheNotReadyException();
 		}
+
+		$this->productsCacheProviderService->debug = $debug;
 
 		if (isset($filters['pricelist'])) {
 			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);

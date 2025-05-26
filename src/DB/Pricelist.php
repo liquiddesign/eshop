@@ -58,6 +58,12 @@ class Pricelist extends ShopSystemicEntity
 	public bool $allowDiscountLevel = false;
 
 	/**
+	 * Povolit slevovou hladinu
+	 * @column
+	 */
+	public bool $allowSurchargeLevel = false;
+
+	/**
 	 * Platí pouze s kuponem
 	 * @column
 	 */

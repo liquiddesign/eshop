@@ -23,6 +23,7 @@ use StORM\RelationCollection;
  * @method \StORM\RelationCollection<\Eshop\DB\Merchant> getMerchants()
  * @method \StORM\RelationCollection<\Security\DB\Account> getAccounts()
  * @method \StORM\RelationCollection<\Eshop\DB\Product> getFavouriteProducts()
+ * @method \StORM\RelationCollection<\Eshop\DB\CatalogPermission> getCatalogPermissions()
  * Due to compatibility within PHP 8.0-8.2 and seamless migration to this version, DynamicProperties are allowed in this class. If they are not, you will have to clear all sessions' data.
  */
 #[\AllowDynamicProperties]
@@ -125,7 +126,13 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @column
 	 */
 	public int $discountLevelPct = 0;
-	
+
+	/**
+	 * Pevná marže
+	 * @column
+	 */
+	public float|null $surchargeLevelPct = null;
+
 	/**
 	 * Max. slevova u produktů
 	 * @column
@@ -158,7 +165,14 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @var \StORM\RelationCollection<\Eshop\DB\Customer>
 	 */
 	public RelationCollection $childCustomers;
-	
+
+	/**
+	 * Opposite side of "parentCustomer" relation
+	 * @relation{"targetKey":"fk_customer"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\CatalogPermission>
+	 */
+	public RelationCollection $catalogPermissions;
+
 	/**
 	 * Vedoucí
 	 * @relation
@@ -419,7 +433,12 @@ class Customer extends ShopEntity implements IIdentity, IUser
 
 		return $this->catalogPermission = $perm;
 	}
-	
+
+	public function getSurchargeLevelPct(): float|null
+	{
+		return $this->surchargeLevelPct;
+	}
+
 	public function isCompany(): bool
 	{
 		return (bool) $this->company;
