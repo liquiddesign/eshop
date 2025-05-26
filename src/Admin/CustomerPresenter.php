@@ -178,7 +178,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 	public LostPasswordService $lostPasswordService;
 
 	#[Inject]
-	public GeneralProductsCacheProvider $productsCacheGetterService;
+	public GeneralProductsCacheProvider $generalProductsCacheProvider;
 
 	#[Inject]
 	public InternalRibbonRepository $internalRibbonRepository;
@@ -815,7 +815,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$form->addGroup('Cache');
 			$form->addText('cacheIndex', 'Index')
 				->setDisabled()
-				->setDefaultValue($customer ? $this->productsCacheGetterService->getIndexByCustomer($customer) : null);
+				->setDefaultValue($customer ? $this->generalProductsCacheProvider->getIndexByCustomer($customer) : null);
 
 
 			$this->addCustomFieldsToCustomerForm($form, $customer);
@@ -1000,6 +1000,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		}
 
 		try {
+			$this->generalProductsCacheProvider->warmUpCacheTable([$customer]);
 			$cronService->scheduleJob('cache', 'Cache', arguments: [$customer->getPK()]);
 
 			$this->flashMessage('Naplánováno');
