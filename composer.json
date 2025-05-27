@@ -66,6 +66,8 @@
         "jetbrains/phpstorm-attributes": "^1.2"
     },
     "scripts": {
+        "c:f": "@fix-code",
+        "c:c": "@check-code",
         "fix-code": [
             "@phpcsfix"
         ],
