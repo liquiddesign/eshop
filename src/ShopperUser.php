@@ -597,6 +597,14 @@ class ShopperUser extends User
 	}
 
 	/**
+	 * @return 'customer'|'merchant'|'merge'|null
+	 */
+	public function getMerchantPriceListsMode(): string|null
+	{
+		return $this->getMerchant()?->priceListsMode;
+	}
+
+	/**
 	 * Vrací kolekci aktuálních ceník, respektující uživatel i měnu
 	 * @param \Eshop\DB\Currency|null $currency
 	 * @param \Eshop\DB\DiscountCoupon|null $discountCoupon
@@ -615,11 +623,11 @@ class ShopperUser extends User
 		$repo = $this->pricelistRepository;
 
 		if ($customer && $merchant) {
-			if ($merchant->priceListsMode === 'customer') {
+			if ($this->getMerchantPriceListsMode() === 'customer') {
 				return $repo->getCustomerPricelists($customer, $currency, $this->getCountry(), $discountCoupon);
 			}
 
-			if ($merchant->priceListsMode === 'merchant') {
+			if ($this->getMerchantPriceListsMode() === 'merchant') {
 				return $repo->getMerchantPricelists($merchant, $currency, $this->getCountry(), $discountCoupon);
 			}
 

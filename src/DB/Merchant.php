@@ -19,6 +19,12 @@ use StORM\RelationCollection;
  */
 class Merchant extends ShopEntity implements IIdentity, IUser
 {
+	public const PRICELISTS_MODES = [
+		'customer' => 'Zákazník',
+		'merchant' => 'Obchodník',
+		'merge' => 'Spojit',
+	];
+
 	/**
 	 * Kód
 	 * @column
