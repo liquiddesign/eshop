@@ -45,7 +45,7 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 		bool $debug = false,
 	): array|false {
 		if (!$this->settingsService->isUsingProductsCache()) {
-			throw new ProductsCacheNotReadyException();
+			return false;
 		}
 
 		$priceLists = $priceLists ?: $this->shopperUser->getPriceListsCached();
