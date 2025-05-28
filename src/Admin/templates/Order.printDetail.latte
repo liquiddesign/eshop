@@ -75,7 +75,7 @@
                                 <div n:if="$purchase->phone"><a href="tel:{$purchase->phone}"><i class="fa fa-phone-alt"></i> {$purchase->phone}</a></div>
                             </div>
                             <div n:if="$purchase->getValue('parentCustomer')" class="mt-2">
-                                <strong>Objednal zákazník:</strong> <br>
+                                <strong>Objednal nadřazený zákazník:</strong> <br>
                                 {$purchase->parentCustomer->company ?: $purchase->parentCustomer->fullname} <br>
                             </div>
                             <div n:if="$purchase->getValue('merchant')" class="mt-2">
