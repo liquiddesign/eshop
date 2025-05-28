@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.482](https://github.com/liquiddesign/eshop/compare/v2.1.481...v2.1.482) (2025-05-28)
+
+### Features
+
+
+##### Customer Repository, Merchant, Product Importer, Shopper User
+
+* Add merchant-based customer retrieval and visibility list handling ([3a0653](https://github.com/liquiddesign/eshop/commit/3a06532e1f2877d5bb57f96467cfdfc20b21e5ce))
+
+
+---
+
 ## [2.1.481](https://github.com/liquiddesign/eshop/compare/v2.1.480...v2.1.481) (2025-05-26)
 
 
