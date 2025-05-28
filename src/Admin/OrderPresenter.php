@@ -463,8 +463,7 @@ class OrderPresenter extends BackendPresenter
 			$template = $this->templateRepository->one($values['template'], true);
 
 			try {
-				$mail = $this->templateRepository->createMessage($template->code, $this->orderRepository->getEmailVariables($order), $values['email'], $values['ccEmails']);
-				$this->mailer->send($mail);
+				$this->templateRepository->sendMessage($template->code, $this->orderRepository->getEmailVariables($order), $values['email'], $values['ccEmails'], shops: $order->shop);
 
 				/** @var \Admin\DB\Administrator|null $admin */
 				$admin = $this->admin->getIdentity();
@@ -1256,8 +1255,8 @@ class OrderPresenter extends BackendPresenter
 
 			if ($email) {
 				try {
-					$mail = $this->templateRepository->createMessage($this->templateNamesGetter->getOrderShipped(), ['orderCode' => $delivery->order->code], $delivery->order->purchase->email);
-					$this->mailer->send($mail);
+					$this->templateRepository->sendMessage($this->templateNamesGetter->getOrderShipped(), ['orderCode' => $delivery->order->code], $delivery->order->purchase->email, shops:
+						$delivery->order->shop);
 
 					$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::EMAIL_SENT, OrderLogItem::SHIPPED, $admin);
 				} catch (Throwable $e) {
@@ -2623,12 +2622,12 @@ class OrderPresenter extends BackendPresenter
 			);
 
 			try {
-				$mail = $this->templateRepository->createMessage(
+				$this->templateRepository->sendMessage(
 					$this->templateNamesGetter->getOrderDeliveryChanged(),
 					$this->orderRepository->getEmailVariables($order),
 					$delivery->order->purchase->email,
+					shops: $delivery->order->shop,
 				);
-				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($delivery->order, OrderLogItem::EMAIL_SENT, OrderLogItem::DELIVERY_CHANGED, $admin);
 			} catch (Throwable $e) {
@@ -2651,12 +2650,12 @@ class OrderPresenter extends BackendPresenter
 			);
 
 			try {
-				$mail = $this->templateRepository->createMessage(
+				$this->templateRepository->sendMessage(
 					$this->templateNamesGetter->getOrderPaymentChanged(),
 					$this->orderRepository->getEmailVariables($order),
 					$payment->order->purchase->email,
+					shops: $payment->order->shop
 				);
-				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYMENT_CHANGED, $admin);
 			} catch (Throwable $e) {
@@ -2668,17 +2667,17 @@ class OrderPresenter extends BackendPresenter
 			try {
 				$emailVariables = $this->orderRepository->getEmailVariables($order);
 
-				$message = $this->templateRepository->createMessage(
+				$message = $this->templateRepository->sendMessage(
 					$this->templateNamesGetter->getOrderReceived(),
 					$emailVariables,
 					$order->purchase->email,
 					null,
 					null,
 					$order->purchase->getCustomerPrefferedMutation(),
+					shops: $order->shop,
 				);
 
 				if ($message) {
-					$this->mailer->send($message);
 					$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::RECEIVED, $admin);
 				}
 			} catch (Throwable $e) {
@@ -2696,6 +2695,7 @@ class OrderPresenter extends BackendPresenter
 					null,
 					null,
 					$order->purchase->getCustomerPrefferedMutation(),
+					shops: $order->shop,
 				);
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::COMPLETED, $admin);
@@ -2707,15 +2707,15 @@ class OrderPresenter extends BackendPresenter
 			try {
 				$emailVariables = $this->orderRepository->getEmailVariables($order);
 
-				$mail = $this->templateRepository->createMessage(
+				$this->templateRepository->sendMessage(
 					$this->templateNamesGetter->getOrderCanceled(),
 					$emailVariables,
 					$order->purchase->email,
 					null,
 					null,
 					$order->purchase->getCustomerPrefferedMutation(),
+					shops: $order->shop,
 				);
-				$this->mailer->send($mail);
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::EMAIL_SENT, OrderLogItem::CANCELED, $admin);
 			} catch (Throwable $e) {

@@ -578,8 +578,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			
 			if ($this::CONFIGURATIONS['sendEmailAccountActivated']) {
 				if (!$oldValues['active'] && $values['account']['active'] === true) {
-					$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login, null, null, $account->getPreferredMutation());
-					$this->mailer->send($mail);
+					$this->templateRepository->sendMessage('account.activated', ['email' => $account->login], $account->login, null, null, $account->getPreferredMutation(), shops: $account->shop);
 				}
 			}
 			
@@ -1288,8 +1287,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				$account = $this->accountRepository->one($id);
 				
 				if (!$account->active && $data['active'] === true) {
-					$mail = $this->templateRepository->createMessage('account.activated', ['email' => $account->login], $account->login, null, null, $account->getPreferredMutation());
-					$this->mailer->send($mail);
+					$this->templateRepository->sendMessage('account.activated', ['email' => $account->login], $account->login, null, null, $account->getPreferredMutation(), shops: $account->shop);
 				}
 			}
 		});

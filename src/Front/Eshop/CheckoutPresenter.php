@@ -87,8 +87,7 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 
 			$emailVariables = $this->orderRepository->getEmailVariables($order);
 
-			$mail = $this->templateRepository->createMessage('order.created', $emailVariables, $order->purchase->email, $order->purchase->ccEmails);
-			$this->mailer->send($mail);
+			$this->templateRepository->sendMessage('order.created', $emailVariables, $order->purchase->email, $order->purchase->ccEmails, shops: $order->shop);
 
 			if ($order->purchase->customer) {
 				$merchants = $this->merchantRepository->getMerchantsByCustomer($order->purchase->customer);
@@ -97,14 +96,12 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 
 				foreach ($merchants as $merchant) {
 					if ($merchant->customerEmailNotification && $merchant->email) {
-						$mail = $this->templateRepository->createMessage('order.created.merchantInfo', $emailVariables, $merchant->email);
-						$this->mailer->send($mail);
+						$this->templateRepository->sendMessage('order.created.merchantInfo', $emailVariables, $merchant->email, shops: $order->shop);
 					}
 				}
 			}
 
-			$mail = $this->templateRepository->createMessage('order.createdAdmin', $emailVariables);
-			$this->mailer->send($mail);
+			$this->templateRepository->sendMessage('order.createdAdmin', $emailVariables, shops: $order->shop);
 		};
 
 		$this->shopperUser->getCheckoutManager()->onCustomerCreate[] = function (Customer $customer): void {
