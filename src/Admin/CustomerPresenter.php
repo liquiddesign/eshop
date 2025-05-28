@@ -993,7 +993,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		try {
 			$this->generalProductsCacheProvider->updatePricesCacheTable([$customer]);
 
-			$this->flashMessage('Naplánováno');
+			$this->flashMessage('Provedeno', 'success');
 		} catch (\Exception $e) {
 			$this->flashMessage('Chyba', 'error');
 
