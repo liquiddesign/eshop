@@ -61,7 +61,7 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
 		}
 
-		if ($merchant?->priceListsMode !== 'merge' || !$customer) {
+		if (!$customer || !$merchant || $this->shopperUser->getMerchantPriceListsMode() !== 'merge') {
 			return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists);
 		}
 
