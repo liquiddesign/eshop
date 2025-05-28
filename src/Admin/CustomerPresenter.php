@@ -36,10 +36,8 @@ use Eshop\Services\SettingsService;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
-use GuzzleHttp\Exception\GuzzleException;
 use League\Csv\Reader;
 use League\Csv\Writer;
-use LiquidMonitorConnector\Exceptions\LiquidMonitorDisabledException;
 use Messages\DB\TemplateRepository;
 use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Presenter;
@@ -992,25 +990,12 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 	public function handleRefreshCache(Customer $customer): void
 	{
-		$cronService = $this->getCronService->execute();
-
-		if (!$cronService) {
-			$this->flashMessage('Nelze spustit cron. Zkontrolujte nastavení.', 'error');
-			$this->redirect('this');
-		}
-
 		try {
-			$this->generalProductsCacheProvider->warmUpCacheTable([$customer]);
-			$cronService->scheduleJob('cache', 'Cache', arguments: [$customer->getPK()]);
+			$this->generalProductsCacheProvider->updatePricesCacheTable([$customer]);
 
 			$this->flashMessage('Naplánováno');
-		} catch (GuzzleException $e) {
-			Debugger::log($e, ILogger::EXCEPTION);
-			Debugger::barDump($e);
-
-			$this->flashMessage('Nelze spustit cron. Zkontrolujte nastavení.', 'error');
-		} catch (LiquidMonitorDisabledException $e) {
-			$this->flashMessage('Nelze spustit cron. Zkontrolujte nastavení.', 'error');
+		} catch (\Exception $e) {
+			$this->flashMessage('Chyba', 'error');
 
 			Debugger::barDump($e);
 		}
