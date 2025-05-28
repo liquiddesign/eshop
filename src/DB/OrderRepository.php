@@ -113,14 +113,13 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		private readonly PackageRepository $packageRepository,
 		private readonly PackageItemRepository $packageItemRepository,
 		private readonly BannedEmailRepository $bannedEmailRepository,
-		private readonly Container $container,
+		protected readonly Container $container,
 		private readonly OrderLogItemRepository $orderLogItemRepository,
 		private readonly SettingRepository $settingRepository,
 		private readonly Integrations $integrations,
 		private readonly ShopsConfig $shopsConfig,
 		private readonly PricelistRepository $pricelistRepository,
 	) {
-		unset($this->container);
 
 		parent::__construct($connection, $schemaManager);
 
