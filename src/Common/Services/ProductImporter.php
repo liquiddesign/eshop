@@ -16,6 +16,7 @@ use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\StoreRepository;
 use Eshop\DB\VisibilityListItemRepository;
+use Eshop\DB\VisibilityListRepository;
 use League\Csv\Reader;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
@@ -39,6 +40,7 @@ class ProductImporter
 		protected readonly ProductContentRepository $productContentRepository,
 		protected readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
 		protected readonly PageRepository $pageRepository,
+		protected readonly VisibilityListRepository $visibilityListRepository,
 	) {
 	}
 
@@ -81,6 +83,9 @@ class ProductImporter
 
 		$producers = $this->producerRepository->many()->setIndex('code')->toArrayOf('uuid');
 		$stores = $this->storeRepository->many()->setIndex('code')->toArrayOf('uuid');
+		$visibilityListsByCode = $this->visibilityListRepository->many()
+			->setIndex('code')
+			->toArrayOf('uuid');
 		$categoriesCollection = $this->categoryRepository->many()
 			->setIndex('code')
 			->select(['categoryTypePK' => 'this.fk_type']);
@@ -172,6 +177,12 @@ class ProductImporter
 
 					// Find visibility columns by key
 					if (isset($allowedVisibilityColumns[$exploded[0]])) {
+						$visibilityListPK = $visibilityListsByCode[$exploded[1]] ?? null;
+
+						if (!$visibilityListPK) {
+							throw new \Exception("Seznam viditelnosti s kódem '{$exploded[1]}' nebyl nalezen!");
+						}
+
 						$parsedVisibilityColumns[$headerItem] = [
 							'property' => $exploded[0],
 							'visibilityList' => $exploded[1],
@@ -182,9 +193,15 @@ class ProductImporter
 
 					// Find visibility columns by name
 					if ($key = \array_search($exploded[0], $allowedVisibilityColumns)) {
+						$visibilityListPK = $visibilityListsByCode[$exploded[1]] ?? null;
+
+						if (!$visibilityListPK) {
+							throw new \Exception("Seznam viditelnosti s kódem '{$exploded[1]}' nebyl nalezen!");
+						}
+
 						$parsedVisibilityColumns[$headerItem] = [
 							'property' => $key,
-							'visibilityList' => $exploded[1],
+							'visibilityList' => $visibilityListPK,
 						];
 
 						continue;
