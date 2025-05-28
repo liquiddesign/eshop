@@ -120,7 +120,6 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		private readonly ShopsConfig $shopsConfig,
 		private readonly PricelistRepository $pricelistRepository,
 	) {
-
 		parent::__construct($connection, $schemaManager);
 
 		$this->cache = new Cache($storage);
