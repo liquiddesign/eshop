@@ -17,6 +17,7 @@ use League\Csv\Writer;
 use Messages\DB\Template;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\DI\Container;
 use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
@@ -112,12 +113,15 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		private readonly PackageRepository $packageRepository,
 		private readonly PackageItemRepository $packageItemRepository,
 		private readonly BannedEmailRepository $bannedEmailRepository,
+		private readonly Container $container,
 		private readonly OrderLogItemRepository $orderLogItemRepository,
 		private readonly SettingRepository $settingRepository,
 		private readonly Integrations $integrations,
 		private readonly ShopsConfig $shopsConfig,
 		private readonly PricelistRepository $pricelistRepository,
 	) {
+		unset($this->container);
+
 		parent::__construct($connection, $schemaManager);
 
 		$this->cache = new Cache($storage);
