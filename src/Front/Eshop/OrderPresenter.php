@@ -61,8 +61,7 @@ abstract class OrderPresenter extends \Eshop\Front\FrontendPresenter
 
 		$emailVariables = $this->orderRepository->getEmailVariables($order);
 
-		$mail = $this->templateRepository->createMessage('order.created', $emailVariables, $order->purchase->email, $order->purchase->ccEmails);
-		$this->mailer->send($mail);
+		$this->templateRepository->sendMessage('order.created', $emailVariables, $order->purchase->email, $order->purchase->ccEmails, shops: $order->shop);
 	}
 
 	public function handleExport(string $orderId): void

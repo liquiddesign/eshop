@@ -17,9 +17,7 @@ use League\Csv\Writer;
 use Messages\DB\Template;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
-use Nette\DI\Container;
 use Nette\Localization\Translator;
-use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
 use Nette\Utils\DateTime;
 use Nette\Utils\Strings;
@@ -114,7 +112,6 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		private readonly PackageRepository $packageRepository,
 		private readonly PackageItemRepository $packageItemRepository,
 		private readonly BannedEmailRepository $bannedEmailRepository,
-		private readonly Container $container,
 		private readonly OrderLogItemRepository $orderLogItemRepository,
 		private readonly SettingRepository $settingRepository,
 		private readonly Integrations $integrations,
@@ -1577,8 +1574,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	{
 		$paymentRepository = $this->connection->findRepository(Payment::class);
 		$orderLogItemRepository = $this->connection->findRepository(OrderLogItem::class);
+		/** @var \Messages\DB\TemplateRepository $templateRepository */
 		$templateRepository = $this->connection->findRepository(Template::class);
-		$mailer = $this->container->getByType(Mailer::class);
 		
 		/** @var \Eshop\DB\Payment $payment */
 		$payment = $paymentRepository->one($payment, true);
@@ -1599,8 +1596,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			
 			if ($email) {
 				try {
-					$mail = $templateRepository->createMessage('order.payed', ['orderCode' => $payment->order->code], $payment->order->purchase->email);
-					$mailer->send($mail);
+					$templateRepository->sendMessage('order.payed', ['orderCode' => $payment->order->code], $payment->order->purchase->email, shops: $payment->order->shop);
 					
 					$orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYED, $admin);
 				} catch (\Throwable $e) {
