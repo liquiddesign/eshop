@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.488](https://github.com/liquiddesign/eshop/compare/v2.1.487...v2.1.488) (2025-05-28)
+
+### Features
+
+
+##### Order Repository
+
+* Remove unused container dependency from constructor ([4631d8](https://github.com/liquiddesign/eshop/commit/4631d85665a9d4c6bc127d75c401c3cda9ae2fd9))
+
+
+---
+
 ## [2.1.487](https://github.com/liquiddesign/eshop/compare/v2.1.486...v2.1.487) (2025-05-28)
 
 ### Features
