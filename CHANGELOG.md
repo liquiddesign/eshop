@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.485](https://github.com/liquiddesign/eshop/compare/v2.1.484...v2.1.485) (2025-05-28)
+
+### Features
+
+
+##### Products Cache Provider
+
+* Add settings check for product cache readiness ([9c71e9](https://github.com/liquiddesign/eshop/commit/9c71e9f2f5bf41fe5c643e3ea5cf88e5620d6c7a))
+
+
+---
+
 ## [2.1.484](https://github.com/liquiddesign/eshop/compare/v2.1.483...v2.1.484) (2025-05-28)
 
 ### Features
