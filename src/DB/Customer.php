@@ -132,7 +132,7 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @column
 	 */
 	public float|null $surchargeLevelPct = null;
-
+	
 	/**
 	 * Max. slevova u produktů
 	 * @column
@@ -172,7 +172,7 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @var \StORM\RelationCollection<\Eshop\DB\CatalogPermission>
 	 */
 	public RelationCollection $catalogPermissions;
-
+	
 	/**
 	 * Vedoucí
 	 * @relation
@@ -438,7 +438,7 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	{
 		return $this->surchargeLevelPct;
 	}
-
+	
 	public function isCompany(): bool
 	{
 		return (bool) $this->company;

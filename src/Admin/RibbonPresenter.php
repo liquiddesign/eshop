@@ -89,8 +89,6 @@ class RibbonPresenter extends BackendPresenter
 		$grid->addFilterTextInput('search', ['name_cs'], null, 'Popisek');
 		$grid->addFilterSelectInput('type', 'type = :t', null, '- Typ -', null, $this::TYPES, 't');
 
-		$this->gridFactory->addShopsFilterSelect($grid);
-
 		$grid->addFilterButtons();
 
 		$grid->onDelete[] = [$this, 'onDelete'];
@@ -129,7 +127,7 @@ class RibbonPresenter extends BackendPresenter
 		$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
 			$source->where('type', $value);
 		}, '', 'type', null, InternalRibbon::TYPES, ['placeholder' => '- Typ -']);
-		$this->gridFactory->addShopsFilterSelect($grid);
+
 		$grid->addFilterButtons(['internal']);
 
 		return $grid;
@@ -137,7 +135,7 @@ class RibbonPresenter extends BackendPresenter
 
 	public function createComponentInternalForm(): Form
 	{
-		$form = $this->formFactory->create(true);
+		$form = $this->formFactory->create(true, useShops: true);
 
 		$form->addText('name', 'Název')->setRequired(true);
 
@@ -149,8 +147,6 @@ class RibbonPresenter extends BackendPresenter
 			->setDefaultValue(InternalRibbon::TYPE_PRODUCT)
 			->setRequired()
 			->setDisabled((bool) $ribbon);
-
-		$this->formFactory->addShopsContainerToAdminForm($form, autoSelect: false);
 
 		$form->addSubmits(!$ribbon);
 
@@ -168,7 +164,7 @@ class RibbonPresenter extends BackendPresenter
 
 	public function createComponentForm(): Form
 	{
-		$form = $this->formFactory->create(true);
+		$form = $this->formFactory->create(true, useShops: true);
 
 		$form->addLocaleText('name', 'Název');
 		$imagePicker = $form->addImagePicker('imageFileName', 'Obrázek', [
@@ -210,7 +206,6 @@ class RibbonPresenter extends BackendPresenter
 			->setRequired();
 
 		$form->addDataMultiSelect('discounts', 'Akce', $this->discountRepository->getArrayForSelect())->setHtmlAttribute('placeholder', 'Vyberte položky...');
-		$this->formFactory->addShopsContainerToAdminForm($form, autoSelect: false);
 
 		$form->addSubmits(!$ribbon);
 

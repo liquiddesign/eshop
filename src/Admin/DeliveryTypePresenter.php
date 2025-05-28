@@ -169,8 +169,6 @@ class DeliveryTypePresenter extends BackendPresenter
 		foreach ($this->supplierRepository->many() as $supplierPK => $supplier) {
 			$suppliersContainer->addText($supplierPK, Html::fromHtml("$this->shopIcon Externí ID: $supplier->name"))->setNullable();
 		}
-
-		$this->formFactory->addShopsContainerToAdminForm($form);
 		
 		$form->addSubmits(!$deliveryType);
 		

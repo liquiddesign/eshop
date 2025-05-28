@@ -106,7 +106,7 @@ class ComplaintPresenter extends BackendPresenter
 
 	public function createComponentComplaintForm(): AdminForm
 	{
-		$form = $this->formFactory->create(true);
+		$form = $this->formFactory->create(true, useShops: true);
 
 		/** @var \Eshop\DB\Complaint|null $complaint */
 		$complaint = $this->getParameter('complaint');
@@ -130,8 +130,6 @@ class ComplaintPresenter extends BackendPresenter
 		$form->addText('customerPhone', 'Telefon zákazníka')->setNullable()->setDisabled((bool) $complaint)
 			->setHtmlAttribute('data-info', 'Nepovinné údaje budou doplněny automaticky z objednávky.');
 		$form->addEmail('customerBankAccountNumber', 'Číslo účtu zákazníka')->setNullable()->setDisabled((bool) $complaint);
-
-		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$complaint);
 

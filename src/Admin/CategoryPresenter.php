@@ -508,15 +508,13 @@ class CategoryPresenter extends BackendPresenter
 
 	public function createComponentCategoryTypeForm(): AdminForm
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(useShops: true);
 
 		$categoryType = $this->getParameter('categoryType');
 
 		$form->addText('name', 'Název');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
 		$form->addCheckbox('hidden', 'Skryto');
-
-		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$categoryType);
 
@@ -667,8 +665,6 @@ class CategoryPresenter extends BackendPresenter
 
 		$grid->addFilterTextInput('search', ['title_cs', 'url'], null, 'Název, URL');
 
-		$this->gridFactory->addShopsFilterSelect($grid);
-
 		$grid->addFilterButtons();
 
 		$grid->onDelete[] = function (CategoryType $object): void {
@@ -726,34 +722,38 @@ class CategoryPresenter extends BackendPresenter
 
 			$values['parameters']['attributeValue'] = isset($rawValues['parameters']['attributeValue']) ? \implode(';', $rawValues['parameters']['attributeValue']) : null;
 
-			$values['page']['params'] = \array_filter($values['parameters'], function ($value) {
-				return $value !== '' && $value !== null;
-			});
+			foreach ($values['page'] as &$pageContainer) {
+				$pageContainer['params'] = \array_filter($values['parameters'], function ($value) {
+					return $value !== '' && $value !== null;
+				});
 
-			if (\count($values['page']['params']) < 2) {
-				$form->addError('Je nutné vyplnit alespoň 2 parametry!');
+				if (\count($pageContainer['params']) < 2) {
+					$form->addError('Je nutné vyplnit alespoň 2 parametry!');
+				}
+
+				continue;
 			}
 
 			return;
 		};
 
-
 		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
+			$originalValues = $form->getValues('array');
 			$rawValues = $this->getHttpRequest()->getPost();
 
-			$values['parameters']['attributeValue'] = isset($rawValues['parameters']['attributeValue']) ? \implode(';', $rawValues['parameters']['attributeValue']) : null;
+			$form->syncPages(function ($values) use ($rawValues, $originalValues): void {
+				$originalValues['parameters']['attributeValue'] = isset($rawValues['parameters']['attributeValue']) ? \implode(';', $rawValues['parameters']['attributeValue']) : null;
+				$values['name'] = Arrays::pick($originalValues, 'name', []);
+				$values['content'] = Arrays::pick($originalValues, 'content', []);
+				$values['type'] = 'product_list';
 
-			$values['page']['name'] = Arrays::pick($values, 'name', []);
-			$values['page']['content'] = Arrays::pick($values, 'content', []);
-			$values['page']['type'] = 'product_list';
-
-			$page = $this->pageRepository->syncPage($values['page'], \array_filter($values['parameters'], function ($value) {
-				return $value !== '' && $value !== null;
-			}));
+				$this->pageRepository->syncPage($values, \array_filter($originalValues['parameters'], static function ($value) {
+					return $value !== '' && $value !== null;
+				}));
+			});
 
 			$this->flashMessage('Uloženo', 'success');
-			$form->processRedirect('dynamicCategoryDetail', 'default', [$page]);
+			$this->redirect('this');
 		};
 
 		return $form;

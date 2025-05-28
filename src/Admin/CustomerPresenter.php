@@ -36,10 +36,8 @@ use Eshop\Services\SettingsService;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
-use GuzzleHttp\Exception\GuzzleException;
 use League\Csv\Reader;
 use League\Csv\Writer;
-use LiquidMonitorConnector\Exceptions\LiquidMonitorDisabledException;
 use Messages\DB\TemplateRepository;
 use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Presenter;
@@ -178,7 +176,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 	public LostPasswordService $lostPasswordService;
 
 	#[Inject]
-	public GeneralProductsCacheProvider $productsCacheGetterService;
+	public GeneralProductsCacheProvider $generalProductsCacheProvider;
 
 	#[Inject]
 	public InternalRibbonRepository $internalRibbonRepository;
@@ -483,8 +481,6 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 		$this->addFiltersToCustomersGrid($grid);
 
-		$this->gridFactory->addShopsFilterSelect($grid);
-
 		$grid->addFilterButtons();
 		
 		return $grid;
@@ -661,6 +657,8 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		$customer = $this->getParameter('customer');
 
 		$form->monitor(Presenter::class, function (Presenter $presenter) use ($form, $customer, $lableMerchants): void {
+			$this->formFactory->addShopsContainerToAdminForm($form);
+
 			$form->addText('fullname', 'Jméno a příjmení');
 			$form->addText('company', 'Firma');
 			$form->addText('ic', 'IČ')->setNullable();
@@ -782,6 +780,15 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 					)
 					->setDefaultValue(0)
 					->setRequired();
+
+				$form->addInteger('surchargeLevelPct', 'Marže (%)')
+					->setHtmlAttribute(
+						'data-info',
+						'Aplikuje se na všechny ceny zákazníka z ceníků, které mají povoleno "Povolit marži".',
+					)
+					->setNullable()
+					->addCondition($form::Filled)
+					->addRule($form::Float);
 			}
 
 			if (isset($this::CONFIGURATIONS['rounding']) && $this::CONFIGURATIONS['rounding']) {
@@ -806,12 +813,10 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$form->addGroup('Cache');
 			$form->addText('cacheIndex', 'Index')
 				->setDisabled()
-				->setDefaultValue($customer ? $this->productsCacheGetterService->getIndexByCustomer($customer) : null);
+				->setDefaultValue($customer ? $this->generalProductsCacheProvider->getIndexByCustomer($customer) : null);
 
 
 			$this->addCustomFieldsToCustomerForm($form, $customer);
-
-			$this->formFactory->addShopsContainerToAdminForm($form, false);
 
 			if ($customer && isset($form['shop']) && $form['shop'] instanceof SelectBox) {
 				$form['shop']->setDisabled();
@@ -886,11 +891,18 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				$this->storm->createRow('eshop_merchant_nxn_eshop_customer', ['fk_merchant' => $merchant, 'fk_customer' => $customer->getPK()]);
 			}
 
+			$this->onFormSuccessBeforeRedirect($form);
+
 			$this->flashMessage('Vytvořeno', 'success');
 			$form->processRedirect('edit', 'default', [$customer]);
 		};
 		
 		return $form;
+	}
+
+	public function onFormSuccessBeforeRedirect(AdminForm $form): void
+	{
+		unset($form);
 	}
 
 	public function createComponentEditAddress(): AdminForm
@@ -985,24 +997,12 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 	public function handleRefreshCache(Customer $customer): void
 	{
-		$cronService = $this->getCronService->execute();
-
-		if (!$cronService) {
-			$this->flashMessage('Nelze spustit cron. Zkontrolujte nastavení.', 'error');
-			$this->redirect('this');
-		}
-
 		try {
-			$cronService->scheduleJob('cache', 'Cache', arguments: [$customer->getPK()]);
+			$this->generalProductsCacheProvider->updatePricesCacheTable([$customer]);
 
-			$this->flashMessage('Naplánováno');
-		} catch (GuzzleException $e) {
-			Debugger::log($e, ILogger::EXCEPTION);
-			Debugger::barDump($e);
-
-			$this->flashMessage('Nelze spustit cron. Zkontrolujte nastavení.', 'error');
-		} catch (LiquidMonitorDisabledException $e) {
-			$this->flashMessage('Nelze spustit cron. Zkontrolujte nastavení.', 'error');
+			$this->flashMessage('Provedeno', 'success');
+		} catch (\Exception $e) {
+			$this->flashMessage('Chyba', 'error');
 
 			Debugger::barDump($e);
 		}
@@ -1307,8 +1307,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$submit->onClick[] = [$this, 'exportAccounts'];
 
 		$this->addFiltersToAccountsGrid($grid);
-
-		$this->gridFactory->addShopsFilterSelect($grid);
 
 		$grid->addFilterButtons();
 
@@ -1625,12 +1623,17 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$bulkEdits[] = 'pricelists';
 			$bulkEdits[] = 'favouritePriceLists';
 			$bulkEdits[] = 'visibilityLists';
-			$bulkEdits[] = 'discountLevelPct';
 			$bulkEdits[] = 'favouriteProducts';
 			$bulkEdits[] = 'preferredDeliveryType';
 			$bulkEdits[] = 'preferredPaymentType';
 			$bulkEdits[] = 'exclusiveDeliveryTypes';
 			$bulkEdits[] = 'exclusivePaymentTypes';
+
+			if (isset($this::CONFIGURATIONS['discountLevel']) && $this::CONFIGURATIONS['discountLevel']) {
+				$bulkEdits[] = 'discountLevelPct';
+				$bulkEdits[] = 'maxDiscountProductPct';
+				$bulkEdits[] = 'surchargeLevelPct';
+			}
 		}
 
 		if ($this->isManager && isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {

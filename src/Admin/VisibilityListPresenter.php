@@ -324,7 +324,7 @@ class VisibilityListPresenter extends BackendPresenter
 
 	public function createComponentListForm(): Form
 	{
-		$form = $this->formFactory->create();
+		$form = $this->formFactory->create(useShops: true);
 
 		/** @var \Eshop\DB\VisibilityList|null $object */
 		$object = $this->getParameter('object');
@@ -343,8 +343,6 @@ class VisibilityListPresenter extends BackendPresenter
 			->setRequired();
 
 		$form->addCheckbox('hidden', 'Skryto');
-
-		$this->formFactory->addShopsContainerToAdminForm($form, false);
 
 		$form->addSubmits(!$object);
 

@@ -1615,7 +1615,7 @@ class CheckoutManager
 		if ($needed) {
 			return $this->getPurchaseOrFail($cartId);
 		}
-
+		
 		return $this->getCart($cartId)->purchase;
 	}
 

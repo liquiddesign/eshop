@@ -409,8 +409,6 @@ class OrderGridFactory
 
 		$grid->addFilterTextInput('search_items', ['product.code', 'product.ean'], null, 'Kód, EAN položky');
 
-		$this->gridFactory->addShopsFilterSelect($grid);
-
 		$openOrderButton = function () use ($grid, $stateOpen, $btnSecondary): void {
 			try {
 				$grid->getForm()->addSubmit('openMultiple', Html::fromHtml('<i class="fas fa-angle-double-right"></i> ' . $stateOpen))->setHtmlAttribute('class', $btnSecondary)

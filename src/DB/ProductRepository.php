@@ -2081,7 +2081,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}, $generalPricelistIds));
 
 			$surchargeExpression = $surchargePct > 0 ? ' / ' . (1 - ($surchargePct / 100)) : '';
-
+			
 			$expression = "IF(
 				$alias.fk_pricelist IN ($pricelists),
 				ROUND(

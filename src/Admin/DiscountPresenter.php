@@ -183,8 +183,6 @@ class DiscountPresenter extends BackendPresenter
 			}, '', 'pricelists', null, $items, ['placeholder' => '- Ceníky -']);
 		}
 
-		$this->gridFactory->addShopsFilterSelect($grid);
-
 		$grid->addFilterButtons();
 
 		return $grid;
@@ -192,7 +190,7 @@ class DiscountPresenter extends BackendPresenter
 
 	public function createComponentNewForm(): Form
 	{
-		$form = $this->formFactory->create(true);
+		$form = $this->formFactory->create(true, useShops: true);
 
 		$form->addLocaleText('name', 'Název')->forPrimary(function (TextInput $input): void {
 			$input->setRequired();
@@ -219,8 +217,6 @@ class DiscountPresenter extends BackendPresenter
 		)->setHtmlAttribute('placeholder', 'Vyberte položky...');
 
 		$form->addCheckbox('recommended', 'Doporučeno');
-
-		$this->formFactory->addShopsContainerToAdminForm($form, false);
 
 		$form->addSubmits(!$discount);
 

@@ -96,7 +96,7 @@ class PaymentTypePresenter extends BackendPresenter
 	
 	public function createComponentPaymentTypeForm(): AdminForm
 	{
-		$form = $this->formFactory->create(true);
+		$form = $this->formFactory->create(true, useShops: true);
 		
 		/** @var \Eshop\DB\PaymentType|null $paymentType */
 		$paymentType = $this->getParameter('paymentType');
@@ -138,8 +138,6 @@ Např.: "BANK_CZ_CS_P+BANK_CZ_KB-BANK_CZ_RB". Více viz: https://help.comgate.cz
 		foreach ($this->supplierRepository->many() as $supplierPK => $supplier) {
 			$suppliersContainer->addText($supplierPK, " Externí ID: $supplier->name")->setNullable();
 		}
-
-		$this->formFactory->addShopsContainerToAdminForm($form);
 
 		$form->addSubmits(!$paymentType);
 		

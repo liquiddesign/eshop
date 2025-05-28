@@ -5,6 +5,7 @@ namespace Eshop\Admin;
 
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Base\DB\Shop;
 use Eshop\BackendPresenter;
 use Eshop\Controls\ProductFilter;
 use Eshop\DB\Attribute;
@@ -630,22 +631,24 @@ class AttributePresenter extends BackendPresenter
 			/** @var \Eshop\DB\AttributeValue $object */
 			$object = $this->attributeValueRepository->syncOne($values, null, true);
 
-			if (isset($values['page']) && isset($values['page']['url']) && !$values['page']['url'][Arrays::first($this->formFactory->getMutations())]) {
-				foreach (\array_keys($this->pageRepository->getConnection()->getAvailableMutations()) as $mutation) {
-					/** @var \Web\DB\Page|null $page */
-					$page = $this->pageRepository->getPageByTypeAndParams('product_list', $mutation, ['attributeValue' => $this->getParameter('attributeValue')]);
+			$form->syncPages(function ($values, Shop|null $shop) use ($object): void {
+				if (isset($values['url']) && !$values['url'][Arrays::first($this->formFactory->getMutations())]) {
+					foreach (\array_keys($this->pageRepository->getConnection()->getAvailableMutations()) as $mutation) {
+						/** @var \Web\DB\Page|null $page */
+						$page = $this->pageRepository->getPageByTypeAndParams('product_list', $mutation, ['attributeValue' => $this->getParameter('attributeValue')], selectedShop: $shop);
 
-					if ($page === null) {
-						continue;
+						if ($page === null) {
+							continue;
+						}
+
+						$page->delete();
 					}
+				} else {
+					$values['type'] = 'product_list';
 
-					$page->delete();
+					$this->pageRepository->syncPage($values, ['attributeValue' => $object->getPK()], ignore: false);
 				}
-			} else {
-				$values['page']['type'] = 'product_list';
-
-				$this->pageRepository->syncPage($values['page'], ['attributeValue' => $object->getPK()]);
-			}
+			});
 
 			$this->clearNetteCache();
 
@@ -791,17 +794,39 @@ class AttributePresenter extends BackendPresenter
 		/** @var \Web\DB\Page|null $page */
 		$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValue->getPK()]);
 
+		if ($this->shopsConfig->getAvailableShops()) {
+			foreach ($this->shopsConfig->getAvailableShops() as $shop) {
+				/** @var \Web\DB\Page|null $page */
+				$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValue->getPK()], selectedShop: $shop);
+
+				if ($page === null) {
+					continue;
+				}
+
+				/** @var \Forms\Container $container */
+				$container = $form['page']['page_' . $shop->getPK()];
+				$container->setDefaults($page->toArray());
+
+				$form['page']['page_' . $shop->getPK()]['url']->forAll(function (TextInput $text, $mutation) use ($page, $form, $shop): void {
+					$text->getRules()->reset();
+					$text->addRule([$form, 'validateUrl',], 'URL již existuje', [$this->pageRepository, $mutation, $page->getPK(), $shop]);
+				});
+			}
+
+			return;
+		}
+
 		if ($page === null) {
 			return;
 		}
 
 		/** @var \Forms\Container $container */
-		$container = $form['page'];
+		$container = $form['page'][null];
 		$container->setDefaults($page->toArray());
 
-		$form['page']['url']->forAll(function (TextInput $text, $mutation) use ($page, $form): void {
+		$form['page'][null]['url']->forAll(function (TextInput $text, $mutation) use ($page, $form): void {
 			$text->getRules()->reset();
-			$text->addRule([$form, 'validateUrl',], 'URL již existuje', [$this->pageRepository, $mutation, $page->getPK(), $this->shopsConfig->getSelectedShop()]);
+			$text->addRule([$form, 'validateUrl',], 'URL již existuje', [$this->pageRepository, $mutation, $page->getPK(), null]);
 		});
 	}
 

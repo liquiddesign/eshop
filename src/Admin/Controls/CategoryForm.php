@@ -273,10 +273,10 @@ class CategoryForm extends Control
 
 			$this->categoryRepository->recalculateCategoryTree($presenter->tab);
 
-			$form->syncPages(function () use ($category, $values, $form): void {
-				$form->uploadOpenGraphImage($form, $values);
-				$values['page']['params'] = Helpers::serializeParameters(['category' => $category->getPK()]);
-				$this->pageRepository->syncOne($values['page']);
+			$form->syncPages(function ($values, $shop) use ($category, $form): void {
+				$form->uploadOpenGraphImage($form, $values, $shop);
+				$values['params'] = Helpers::serializeParameters(['category' => $category->getPK()]);
+				$this->pageRepository->syncOne($values);
 			});
 
 			$this->categoryRepository->clearCategoriesCache();
