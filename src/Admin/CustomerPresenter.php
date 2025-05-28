@@ -891,11 +891,18 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				$this->storm->createRow('eshop_merchant_nxn_eshop_customer', ['fk_merchant' => $merchant, 'fk_customer' => $customer->getPK()]);
 			}
 
+			$this->onFormSuccessBeforeRedirect($form);
+
 			$this->flashMessage('Vytvořeno', 'success');
 			$form->processRedirect('edit', 'default', [$customer]);
 		};
 		
 		return $form;
+	}
+
+	public function onFormSuccessBeforeRedirect(AdminForm $form): void
+	{
+		unset($form);
 	}
 
 	public function createComponentEditAddress(): AdminForm
