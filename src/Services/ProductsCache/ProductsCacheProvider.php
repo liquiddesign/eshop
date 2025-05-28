@@ -5,6 +5,7 @@ namespace Eshop\Services\ProductsCache;
 use Eshop\DB\Customer;
 use Eshop\DB\Merchant;
 use Eshop\DB\PricelistRepository;
+use Eshop\Services\SettingsService;
 use Eshop\ShopperUser;
 use Nette\Utils\Arrays;
 
@@ -20,6 +21,7 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 		private readonly ProductsCacheDiffUpdateService $productsCacheDiffUpdateService,
 		private readonly ShopperUser $shopperUser,
 		private readonly PricelistRepository $pricelistRepository,
+		private readonly SettingsService $settingsService,
 	) {
 	}
 
@@ -42,6 +44,10 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 		array $visibilityLists = [],
 		bool $debug = false,
 	): array|false {
+		if (!$this->settingsService->isUsingProductsCache()) {
+			throw new ProductsCacheNotReadyException();
+		}
+
 		$priceLists = $priceLists ?: $this->shopperUser->getPriceListsCached();
 		$visibilityLists = $visibilityLists ?: $this->shopperUser->getVisibilityLists();
 		$customer = $this->shopperUser->getCustomer();
