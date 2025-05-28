@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.489](https://github.com/liquiddesign/eshop/compare/v2.1.488...v2.1.489) (2025-05-28)
+
+### Features
+
+* Update customer labels in order details for clarity ([38351a](https://github.com/liquiddesign/eshop/commit/38351a98e2a71cf81cf2e3c9f73423cba7652aab))
+
+
+---
+
 ## [2.1.488](https://github.com/liquiddesign/eshop/compare/v2.1.487...v2.1.488) (2025-05-28)
 
 ### Features
