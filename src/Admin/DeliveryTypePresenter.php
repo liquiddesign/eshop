@@ -163,6 +163,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->addText('externalIdHeureka', 'Externí ID: Heuréka.cz')->setNullable();
 		$form->addText('externalIdZbozi', 'Externí ID: Zboží.cz')->setNullable();
 
+		// TODO this must be for every shop
 		$suppliersContainer = $form->addContainer('suppliers');
 
 		/** @var \Eshop\DB\Supplier $supplier */

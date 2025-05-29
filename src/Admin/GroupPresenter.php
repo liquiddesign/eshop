@@ -190,16 +190,16 @@ class GroupPresenter extends BackendPresenter
 		
 		$form->onSuccess[] = function (AdminForm $form) use ($group): void {
 			$values = $form->getValues('array');
+
+			$group = $this->userGroupRepo->syncOne($values, null, true, ignore: false);
 			
 			if (isset($values['defaultAfterRegistration']) && $values['defaultAfterRegistration']) {
-				$query = $this->userGroupRepo->many();
+				$query = $this->userGroupRepo->many()->whereNot('this.uuid', $group->getPK());
 
-				$this->shopsConfig->filterShopsInShopEntityCollection($query, showOnlyEntitiesWithSelectedShops: true);
+				$this->shopsConfig->filterShopsInShopEntityCollection($query, shops: $group->shop, showOnlyEntitiesWithSelectedShops: true);
 
 				$query->update(['defaultAfterRegistration' => false]);
 			}
-			
-			$group = $this->userGroupRepo->syncOne($values, null, true);
 			
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$group]);
