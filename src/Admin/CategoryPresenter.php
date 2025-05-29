@@ -289,7 +289,6 @@ class CategoryPresenter extends BackendPresenter
 	public function actionDefault(): void
 	{
 		$categoryTypes = $this->categoryTypeRepository->getCollection(true);
-		$this->shopsConfig->filterShopsInShopEntityCollection($categoryTypes);
 
 		$this->tabs = $this->categoryTypeRepository->toArrayForSelect($categoryTypes);
 		$this->tabs['types'] = '<i class="fa fa-bars"></i> Typy';

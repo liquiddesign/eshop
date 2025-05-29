@@ -215,7 +215,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 		$visibilityLists = $customer->getVisibilityLists();
 
-		$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists);
+		$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists, shops: $order->shop);
 
 		$visibilityLists = $visibilityLists->where('this.hidden', false)->orderBy(['this.priority' => 'ASC'])->toArray();
 

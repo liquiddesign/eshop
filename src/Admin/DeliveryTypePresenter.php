@@ -256,7 +256,7 @@ class DeliveryTypePresenter extends BackendPresenter
 			->where('this.fk_deliveryType', $deliveryType->getPK())
 			->setIndex('this.fk_supplier');
 
-		$this->shopsConfig->filterShopsInShopEntityCollection($suppliersDefaultsCollection, showOnlyEntitiesWithSelectedShops: true);
+		$this->shopsConfig->filterShopsInShopEntityCollection($suppliersDefaultsCollection, shops: $deliveryType->shop, showOnlyEntitiesWithSelectedShops: true);
 
 		$defaults['suppliers'] = $suppliersDefaultsCollection->toArrayOf('externalId');
 
