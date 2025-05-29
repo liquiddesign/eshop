@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.490](https://github.com/liquiddesign/eshop/compare/v2.1.489...v2.1.490) (2025-05-29)
+
+### Features
+
+* Update shop filtering logic in multiple presenters and repositories ([fc9bdc](https://github.com/liquiddesign/eshop/commit/fc9bdcb8aa9543631291abc6f5ed383bbdd1f328))
+
+
+---
+
 ## [2.1.489](https://github.com/liquiddesign/eshop/compare/v2.1.488...v2.1.489) (2025-05-28)
 
 ### Features
