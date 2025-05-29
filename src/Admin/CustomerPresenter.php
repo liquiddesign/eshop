@@ -358,6 +358,17 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			'0' => 'Ne',
 			'1' => 'Ano',
 		], 'nQ');
+
+		if (!$ribbons = $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_CUSTOMER)) {
+			return;
+		}
+
+		$ribbons += ['0' => 'X - bez štítků'];
+		$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+			$source->join(['internalRibbons' => 'eshop_customer_nxn_eshop_internalribbon'], 'internalRibbons.fk_customer=customer.uuid');
+
+			$value === false ? $source->where('internalRibbons.fk_internalRibbon IS NULL') : $source->where('internalRibbons.fk_internalRibbon', $value);
+		}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
 	}
 	
 	public function createComponentCustomers(): AdminGrid
@@ -1241,9 +1252,18 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$hr = '<hr style="margin: 0">';
 			$billAddress = $customer->billAddress?->getFullAddress();
 			$deliveryAddress = $customer->deliveryAddress?->getFullAddress();
-			$externalCode = $customer->externalCode !== null ? " <span style='white-space: nowrap'>({$customer->externalCode})</span>" : '';
 
-			return ($customer->company ?: $customer->fullname) . $externalCode . "$hr<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
+			$ribbons = null;
+
+			foreach ($customer->internalRibbons as $ribbon) {
+				$ribbons .= "<div class=\"badge\" style=\"font-weight: normal; font-style: italic; background-color: $ribbon->backgroundColor; color: $ribbon->color\">$ribbon->name</div> ";
+			}
+
+			$customerCode = $customer->externalCode !== null ? " <span style='white-space: nowrap'>({$customer->externalCode})</span>" : '';
+			$firstRow = "<div class='row'><div class='col-6'>{$customer->getName()} " . $customerCode . "</div><div class='col-6'>$customer->ic</div></div>";
+			$secondRow = "<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
+
+			return $firstRow . $hr . $secondRow . $ribbons;
 		});
 		$grid->addColumn('Oprávnění', function (Account $account) {
 			if (!$account->getValue('permission')) {

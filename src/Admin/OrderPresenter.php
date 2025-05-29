@@ -447,8 +447,11 @@ class OrderPresenter extends BackendPresenter
 			$this->templateNamesGetter->getOrderShipped(),
 		];
 
+		/** @var \Eshop\DB\Order $order */
+		$order = $this->getParameter('order');
+
 		$templatesQuery = $this->templateRepository->many()->where('this.code', $templates);
-		$this->shopsConfig->filterShopsInShopEntityCollection($templatesQuery);
+		$this->shopsConfig->filterShopsInShopEntityCollection($templatesQuery, shops: $order->shop);
 
 		$form->addSelect('template', 'Šablona', $templatesQuery->orderBy(['name'])->toArrayOf('name'))->setRequired();
 		$form->addText('email', 'E-mail')->setRequired();

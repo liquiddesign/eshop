@@ -163,6 +163,7 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->addText('externalIdHeureka', 'Externí ID: Heuréka.cz')->setNullable();
 		$form->addText('externalIdZbozi', 'Externí ID: Zboží.cz')->setNullable();
 
+		// TODO this must be for every shop
 		$suppliersContainer = $form->addContainer('suppliers');
 
 		/** @var \Eshop\DB\Supplier $supplier */
@@ -256,7 +257,7 @@ class DeliveryTypePresenter extends BackendPresenter
 			->where('this.fk_deliveryType', $deliveryType->getPK())
 			->setIndex('this.fk_supplier');
 
-		$this->shopsConfig->filterShopsInShopEntityCollection($suppliersDefaultsCollection, showOnlyEntitiesWithSelectedShops: true);
+		$this->shopsConfig->filterShopsInShopEntityCollection($suppliersDefaultsCollection, shops: $deliveryType->shop, showOnlyEntitiesWithSelectedShops: true);
 
 		$defaults['suppliers'] = $suppliersDefaultsCollection->toArrayOf('externalId');
 
