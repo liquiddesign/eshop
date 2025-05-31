@@ -6,7 +6,6 @@ use Admin\DB\RoleRepository;
 use Base\ShopsConfig;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\DB\CartItem;
-use Eshop\DB\CatalogPermission;
 use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\Country;
@@ -24,6 +23,7 @@ use Eshop\DB\MinimalOrderValueRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\Product;
 use Eshop\DB\VisibilityListRepository;
+use Eshop\DTO\CurrentContextCatalogPermissions;
 use Eshop\DTO\ProductWithFormattedPrices;
 use Nette\DI\Container;
 use Nette\Http\Session;
@@ -719,7 +719,7 @@ class ShopperUser extends User
 		return $this->childrenCustomers = $this->getChildrenCustomers()->toArray();
 	}
 
-	public function getCatalogPermissionObject(): CatalogPermission|null
+	public function getCatalogPermissionObject(): ?CurrentContextCatalogPermissions
 	{
 		$customer = $this->getCustomer();
 		$merchant = $this->getMerchant();
@@ -728,11 +728,7 @@ class ShopperUser extends User
 			return null;
 		}
 
-		if (!$customer) {
-			return null;
-		}
-
-		return $customer->getCatalogPermission();
+		return $customer?->getCurrentContextCatalogPermissions();
 	}
 
 	/**

@@ -1114,8 +1114,14 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	 */
 	public function getEmailVariables(Order $order): array
 	{
-		$purchase = $order->purchase;
 		$items = [];
+
+		$purchase = $order->purchase;
+		$customer = $purchase->customer;
+		$customer->setAccount($purchase->account);
+
+		// Contains catalog permissions for current context with security account
+		$currentContextCatalogPermissions = $customer->getCurrentContextCatalogPermissions();
 
 		/** @var \Eshop\DB\CartItem $cartItem */
 		foreach ($purchase->getItems() as $cartItem) {
@@ -1128,18 +1134,18 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			$items[$cartItem->getPK()]['totalPrice'] = $cartItem->getPriceSum();
 			$items[$cartItem->getPK()]['totalPriceVat'] = $cartItem->getPriceVatSum();
 
-			if ($this->shopperUser->getCatalogPermission() !== 'price') {
+			if ($currentContextCatalogPermissions->catalogPermission !== 'price') {
 				continue;
 			}
 
-			if ($this->shopperUser->getShowVat() && $this->shopperUser->getShowWithoutVat()) {
-				$items[$cartItem->getPK()]['totalPricePref'] = $this->shopperUser->getMainPriceType() === 'withVat' ? $cartItem->getPriceVatSum() : $cartItem->getPriceSum();
+			if ($currentContextCatalogPermissions->showPricesWithVat && $currentContextCatalogPermissions->showPricesWithoutVat) {
+				$items[$cartItem->getPK()]['totalPricePref'] = $currentContextCatalogPermissions->priorityPrice === 'withVat' ? $cartItem->getPriceVatSum() : $cartItem->getPriceSum();
 			} else {
-				if ($this->shopperUser->getShowVat()) {
+				if ($currentContextCatalogPermissions->showPricesWithVat) {
 					$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceVatSum();
 				}
 
-				if ($this->shopperUser->getShowWithoutVat()) {
+				if ($currentContextCatalogPermissions->showPricesWithoutVat) {
 					$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceSum();
 				}
 			}
@@ -1161,21 +1167,21 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'email' => $purchase->email,
 			'items' => $items,
 			'note' => $purchase->note,
-			'deliveryType' => $purchase->deliveryType ? $purchase->deliveryType->name : null,
-			'deliveryInfo' => $purchase->deliveryType ? $purchase->deliveryType->instructions : null,
+			'deliveryType' => $purchase->deliveryType?->name,
+			'deliveryInfo' => $purchase->deliveryType?->instructions,
 			'deliveryPrice' => $order->getDeliveries()->firstValue('price'),
 			'totalDeliveryPrice' => $totalDeliveryPrice,
 			'totalDeliveryPriceVat' => $totalDeliveryPriceVat,
 			'deliveryPriceVat' => $order->getDeliveries()->firstValue('priceVat'),
-			'paymentType' => $purchase->paymentType ? $purchase->paymentType->name : null,
-			'paymentInfo' => $purchase->paymentType ? $purchase->paymentType->instructions : null,
+			'paymentType' => $purchase->paymentType?->name,
+			'paymentInfo' => $purchase->paymentType?->instructions,
 			'paymentPrice' => $order->payments->firstValue('price'),
 			'paymentPriceVat' => $order->payments->firstValue('priceVat'),
 			'billName' => $purchase->fullname,
 			'billingAddress' => $purchase->billAddress ? $purchase->billAddress->jsonSerialize() : [],
 			'deliveryAddress' => $purchase->deliveryAddress ? $purchase->deliveryAddress->jsonSerialize() : ($purchase->billAddress ? $purchase->billAddress->jsonSerialize() : []),
-			'totalPrice' => $this->shopperUser->getCatalogPermission() === 'price' ? $order->getTotalPrice() : null,
-			'totalPriceVat' => $this->shopperUser->getCatalogPermission() === 'price' ? $order->getTotalPriceVat() : null,
+			'totalPrice' => $currentContextCatalogPermissions->catalogPermission === 'price' ? $order->getTotalPrice() : null,
+			'totalPriceVat' => $currentContextCatalogPermissions->catalogPermission === 'price' ? $order->getTotalPriceVat() : null,
 			'currency' => $order->purchase->currency,
 			'discountCoupon' => $order->getDiscountCoupon(),
 			'discountPrice' => $order->getDiscountPrice(),
@@ -1183,14 +1189,14 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'order' => $order,
 			'withVat' => false,
 			'withoutVat' => false,
-			'catalogPermission' => $this->shopperUser->getCatalogPermission(),
-			'priorityPrices' => $this->shopperUser->showPriorityPrices(),
+			'catalogPermission' => $currentContextCatalogPermissions->catalogPermission,
+			'priorityPrices' => $currentContextCatalogPermissions->priorityPrice,
 			'accountFullname' => $purchase->accountFullname,
 		];
 
-		if ($this->shopperUser->getCatalogPermission() === 'price') {
-			if ($this->shopperUser->getShowVat() && $this->shopperUser->getShowWithoutVat()) {
-				if ($this->shopperUser->showPriorityPrices() === 'withVat') {
+		if ($currentContextCatalogPermissions->catalogPermission === 'price') {
+			if ($currentContextCatalogPermissions->showPricesWithVat && $currentContextCatalogPermissions->showPricesWithoutVat) {
+				if ($currentContextCatalogPermissions->priorityPrice === 'withVat') {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;
 					$values['paymentPricePref'] = $order->payments->firstValue('priceVat');
 					$values['totalPricePref'] = $order->getTotalPriceVat();
@@ -1202,14 +1208,14 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					$values['withoutVat'] = true;
 				}
 			} else {
-				if ($this->shopperUser->getShowVat()) {
+				if ($currentContextCatalogPermissions->showPricesWithVat) {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;
 					$values['paymentPricePref'] = $order->payments->firstValue('priceVat');
 					$values['totalPricePref'] = $order->getTotalPriceVat();
 					$values['withVat'] = true;
 				}
 
-				if ($this->shopperUser->getShowWithoutVat()) {
+				if ($currentContextCatalogPermissions->showPricesWithoutVat) {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPrice;
 					$values['paymentPricePref'] = $order->payments->firstValue('price');
 					$values['totalPricePref'] = $order->getTotalPrice();

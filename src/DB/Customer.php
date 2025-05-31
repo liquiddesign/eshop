@@ -6,7 +6,9 @@ namespace Eshop\DB;
 
 use Base\Entity\ShopEntity;
 use Carbon\Carbon;
+use Eshop\DTO\CurrentContextCatalogPermissions;
 use Nette\Security\IIdentity;
+use Nette\Utils\Strings;
 use Security\DB\Account;
 use Security\DB\IUser;
 use StORM\Collection;
@@ -359,6 +361,59 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @column{"type":"datetime"}
 	 */
 	public ?string $aresLoadedTs;
+
+	/**
+	 * @column {"type":"text"}
+	 */
+	public string $displayedTransactionEmailBlocks = '';
+
+	/**
+	 * Oprávnění: katalog
+	 * @column{"type":"enum","length":"'none','catalog','price'"}
+	 */
+	public string $catalogPermissionSetting = 'price';
+
+	/**
+	 * Oprávnění: nákup
+	 * @column
+	 */
+	public bool $buyAllowed = true;
+
+	/**
+	 * Oprávnění: objednávka
+	 * @column
+	 */
+	public bool $orderAllowed = true;
+
+	/**
+	 * Oprávnění: vidět všechny objednávky zákazníka
+	 * @column
+	 */
+	public bool $viewAllOrders = false;
+
+	/**
+	 * Oprávnění: vidět ceny
+	 * @column
+	 */
+	public bool $showPricesWithoutVat = false;
+
+	/**
+	 * Oprávnění: vidět ceny s daní
+	 * @column
+	 */
+	public bool $showPricesWithVat = false;
+
+	/**
+	 * Formát ceny
+	 * @column{"type":"enum","length":"'withoutVat','withVat'"}
+	 */
+	public string $priorityPrice = 'withoutVat';
+
+	/**
+	 * Dodatečný text promítnutý do emailu
+	 * @column{"type":"text"}
+	 */
+	public string $additionalEmailText = '';
 	
 	/**
 	 * @relationNxN{"via":"eshop_catalogpermission"}
@@ -382,6 +437,28 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	public ?Account $account = null;
 
 	protected CatalogPermission|null|false $catalogPermission = false;
+
+	public function getCurrentContextCatalogPermissions(): CurrentContextCatalogPermissions
+	{
+		$prefilledCatalogPermission = $this->catalogPermission !== null && $this->catalogPermission !== false ? $this->catalogPermission : null;
+
+		$transactionEmailBlocks = $prefilledCatalogPermission->displayedTransactionEmailBlocks ?? $this->displayedTransactionEmailBlocks;
+		$transactionEmailBlocks = Strings::split($transactionEmailBlocks, '/;/', skipEmpty: true);
+
+		return new CurrentContextCatalogPermissions(
+			$this,
+			$this->account,
+			$prefilledCatalogPermission->catalogPermission ?? $this->catalogPermissionSetting,
+			$prefilledCatalogPermission->buyAllowed ?? $this->buyAllowed,
+			$prefilledCatalogPermission->orderAllowed ?? $this->orderAllowed,
+			$prefilledCatalogPermission->viewAllOrders ?? $this->viewAllOrders,
+			$prefilledCatalogPermission->showPricesWithoutVat ?? $this->showPricesWithoutVat,
+			$prefilledCatalogPermission->showPricesWithVat ?? $this->showPricesWithVat,
+			$prefilledCatalogPermission->priorityPrice ?? $this->priorityPrice,
+			$prefilledCatalogPermission->additionalEmailText ?? $this->additionalEmailText,
+			$transactionEmailBlocks,
+		);
+	}
 	
 	public function getDeliveryAddressLine(): ?string
 	{

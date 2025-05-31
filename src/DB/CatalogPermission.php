@@ -56,6 +56,17 @@ class CatalogPermission extends Entity
 	public ?string $priorityPrice = null;
 
 	/**
+	 * @column {"type":"text"}
+	 */
+	public ?string $displayedTransactionEmailBlocks = null;
+
+	/**
+	 * Dodatečný text promítnutý do emailu
+	 * @column{"type":"text"}
+	 */
+	public string $additionalEmailText = '';
+
+	/**
 	 * Zákazník
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
