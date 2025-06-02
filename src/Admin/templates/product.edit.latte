@@ -1,6 +1,7 @@
 {varType Eshop\DB\Photo[] $photos}
 {varType array $confirutation}
 {varType ?Eshop\DB\Product $product}
+{varType bool $testerAvailable}
 
 {block content}
     <section class="content-header">
@@ -124,13 +125,11 @@
                                            role="tab">Sloučení a dodavatelé</a>
                                     </li>
                                 {/if}
-                                {try}
-                                    <li class="nav-item">
-                                        <a class="nav-link {$editTab == 'tester' ? 'active show' : ''} productForm-tab"
-                                           id="tester"
-                                                n:href=":Eshop:Admin:ProductTester:default, 'withProduct' => $product->getPK()">Tester</a>
-                                    </li>
-                                {/try}
+                                <li n:if="$testerAvailable === true" class="nav-item">
+                                    <a class="nav-link {$editTab == 'tester' ? 'active show' : ''} productForm-tab"
+                                       id="tester"
+                                            n:href=":Eshop:Admin:ProductTester:default, 'withProduct' => $product->getPK()">Tester</a>
+                                </li>
                             {/ifset}
                         </ul>
                     </div>
