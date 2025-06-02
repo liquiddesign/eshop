@@ -52,6 +52,7 @@ use Nette\Application\Application;
 use Nette\Application\Attributes\Persistent;
 use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Component;
+use Nette\Application\UI\InvalidLinkException;
 use Nette\DI\Attributes\Inject;
 use Nette\IOException;
 use Nette\Utils\Arrays;
@@ -694,6 +695,13 @@ class ProductPresenter extends BackendPresenter
 
 		$this->template->photos = $data;
 		$this->template->configuration = $this::CONFIGURATION;
+
+		try {
+			$this->getPresenter()->getLinkGenerator()->link(':Eshop:Admin:ProductTester:default', ['withProduct' => $product->getPK()], $this, 'link');
+			$this->template->testerAvailable = true;
+		} catch (InvalidLinkException) {
+			$this->template->testerAvailable = false;
+		}
 
 		$this->template->setFile(__DIR__ . '/templates/product.edit.latte');
 	}

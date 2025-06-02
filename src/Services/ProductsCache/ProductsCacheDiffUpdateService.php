@@ -104,7 +104,6 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 	}
 
 	/**
-	 * Works like warmUpCacheTable, but don't erase all data.
 	 * @param array<string|\Eshop\DB\Customer> $customers
 	 * @param array<string|int> $customerGroups
 	 * @param array<string|int> $merchants

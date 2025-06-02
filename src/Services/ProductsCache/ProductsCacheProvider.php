@@ -52,6 +52,7 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 		$visibilityLists = $visibilityLists ?: $this->shopperUser->getVisibilityLists();
 		$customer = $this->shopperUser->getCustomer();
 		$merchant = $this->shopperUser->getMerchant();
+		$customerGroup = $this->shopperUser->getCustomerGroup();
 
 		if ($this->isReady === null) {
 			$this->isReady = $this->productsCacheProviderService->isReady();
@@ -68,7 +69,22 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 		}
 
 		if (!$customer || !$merchant || $this->shopperUser->getMerchantPriceListsMode() !== 'merge') {
-			return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists);
+			try {
+				return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists);
+			} catch (\Throwable $e) {
+				if ($e->getCode() === '42S02') {
+					// Table does not exist, try warming it up
+					$this->productsCacheDiffUpdateService->updatePricesTableDiff(
+						$customer ? [$customer] : [],
+						$customerGroup ? [$customerGroup->getPK()] : [],
+						$merchant ? [$merchant->getPK()] : [],
+					);
+
+					return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists);
+				}
+
+				throw $e;
+			}
 		}
 
 		// do two separate calls to cache with customer and merchant pricelists and combine results
@@ -90,13 +106,43 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 			->where('this.uuid', \array_keys($priceLists))
 			->toArray();
 
-		$customerResult = $customerPriceLists ?
-			$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $customerPriceLists, $visibilityLists) :
-			false;
+		try {
+			$customerResult = $customerPriceLists ?
+				$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $customerPriceLists, $visibilityLists) :
+				false;
+		} catch (\Throwable $e) {
+			if ($e->getCode() !== '42S02') {
+				throw $e;
+			}
 
-		$merchantResult = $merchantPriceLists ?
-			$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $merchantPriceLists, $visibilityLists) :
-			false;
+			// Table does not exist, try warming it up
+			$this->productsCacheDiffUpdateService->updatePricesTableDiff(
+				[$customer],
+				[],
+				[$merchant->getPK()],
+			);
+
+			$customerResult = $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $customerPriceLists, $visibilityLists);
+		}
+
+		try {
+			$merchantResult = $merchantPriceLists ?
+				$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $merchantPriceLists, $visibilityLists) :
+				false;
+		} catch (\Throwable $e) {
+			if ($e->getCode() !== '42S02') {
+				throw $e;
+			}
+
+			// Table does not exist, try warming it up
+			$this->productsCacheDiffUpdateService->updatePricesTableDiff(
+				[$customer],
+				[],
+				[$merchant->getPK()],
+			);
+
+			$merchantResult = $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $merchantPriceLists, $visibilityLists);
+		}
 
 		if ($customerResult === false && $merchantResult === false) {
 			return false;
