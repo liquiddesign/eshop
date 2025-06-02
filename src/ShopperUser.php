@@ -4,6 +4,7 @@ namespace Eshop;
 
 use Admin\DB\RoleRepository;
 use Base\ShopsConfig;
+use Eshop\Actions\Customer\GetCurrentContextCatalogPermissionByCustomer;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\DB\CartItem;
 use Eshop\DB\CategoryType;
@@ -132,6 +133,7 @@ class ShopperUser extends User
 		protected readonly Translator $translator,
 		protected readonly Session $session,
 		protected readonly VisibilityListRepository $visibilityListRepository,
+		protected readonly GetCurrentContextCatalogPermissionByCustomer $getCurrentContextCatalogPermissions,
 		?Authenticator $authenticator,
 		?Authorizator $authorizator,
 		?UserStorage $storage,
@@ -728,7 +730,7 @@ class ShopperUser extends User
 			return null;
 		}
 
-		return $customer?->getCurrentContextCatalogPermissions();
+		return $customer ? $this->getCurrentContextCatalogPermissions->execute($customer) : null;
 	}
 
 	/**

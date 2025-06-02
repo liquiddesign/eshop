@@ -6,9 +6,7 @@ namespace Eshop\DB;
 
 use Base\Entity\ShopEntity;
 use Carbon\Carbon;
-use Eshop\DTO\CurrentContextCatalogPermissions;
 use Nette\Security\IIdentity;
-use Nette\Utils\Strings;
 use Security\DB\Account;
 use Security\DB\IUser;
 use StORM\Collection;
@@ -437,28 +435,6 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	public ?Account $account = null;
 
 	protected CatalogPermission|null|false $catalogPermission = false;
-
-	public function getCurrentContextCatalogPermissions(): CurrentContextCatalogPermissions
-	{
-		$prefilledCatalogPermission = $this->catalogPermission !== null && $this->catalogPermission !== false ? $this->catalogPermission : null;
-
-		$transactionEmailBlocks = $prefilledCatalogPermission->displayedTransactionEmailBlocks ?? $this->displayedTransactionEmailBlocks;
-		$transactionEmailBlocks = Strings::split($transactionEmailBlocks, '/;/', skipEmpty: true);
-
-		return new CurrentContextCatalogPermissions(
-			$this,
-			$this->account,
-			$prefilledCatalogPermission->catalogPermission ?? $this->catalogPermissionSetting,
-			$prefilledCatalogPermission->buyAllowed ?? $this->buyAllowed,
-			$prefilledCatalogPermission->orderAllowed ?? $this->orderAllowed,
-			$prefilledCatalogPermission->viewAllOrders ?? $this->viewAllOrders,
-			$prefilledCatalogPermission->showPricesWithoutVat ?? $this->showPricesWithoutVat,
-			$prefilledCatalogPermission->showPricesWithVat ?? $this->showPricesWithVat,
-			$prefilledCatalogPermission->priorityPrice ?? $this->priorityPrice,
-			$prefilledCatalogPermission->additionalEmailText ?? $this->additionalEmailText,
-			$transactionEmailBlocks,
-		);
-	}
 	
 	public function getDeliveryAddressLine(): ?string
 	{

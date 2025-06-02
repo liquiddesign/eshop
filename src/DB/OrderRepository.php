@@ -9,6 +9,7 @@ use Admin\DB\IGeneralAjaxRepository;
 use Base\ShopsConfig;
 use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
+use Eshop\Actions\Customer\GetCurrentContextCatalogPermissionByCustomer;
 use Eshop\Admin\HelperClasses\MultipleOperationResult;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Integration\Integrations;
@@ -119,6 +120,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		private readonly Integrations $integrations,
 		private readonly ShopsConfig $shopsConfig,
 		private readonly PricelistRepository $pricelistRepository,
+		private readonly GetCurrentContextCatalogPermissionByCustomer $getEmailBlocksSetting,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -1124,7 +1126,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		}
 
 		// Contains catalog permissions for current context with security account
-		$currentContextCatalogPermissions = $customer->getCurrentContextCatalogPermissions();
+		$currentContextCatalogPermissions = $this->getEmailBlocksSetting->execute($customer);
 
 		/** @var \Eshop\DB\CartItem $cartItem */
 		foreach ($purchase->getItems() as $cartItem) {
@@ -1195,7 +1197,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'catalogPermission' => $currentContextCatalogPermissions->catalogPermission,
 			'priorityPrices' => $currentContextCatalogPermissions->priorityPrice,
 			'accountFullname' => $purchase->accountFullname,
-			'displayedTransactionEmailBlocks' => $currentContextCatalogPermissions->displayedTransactionEmailBlocks,
+			'displayedTransactionEmailBlocks' => $currentContextCatalogPermissions->getDisplayedTransactionEmailBlocks(),
 			'additionalEmailText' => $currentContextCatalogPermissions->additionalEmailText,
 		];
 
