@@ -116,6 +116,7 @@ class ProductsCacheGetterService implements AutoWireService
 		protected readonly RelatedTypeRepository $relatedTypeRepository,
 		protected readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
 		readonly Storage $storage,
+		protected readonly ProductsCacheDiffUpdateService $productsCacheDiffUpdateService,
 	) {
 		$this->cache = new Cache($storage);
 
