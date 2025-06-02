@@ -1043,9 +1043,28 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		];
 		$this->template->displayButtons = [
 			$this->createBackButton('default'),
-			$this->createButton('sendResetPasswordLink!', 'Poslat link na změnu hesla', $account),
+			$this->createButton2('sendResetPasswordLink!', 'Poslat link na změnu hesla', linkArgs: [$account]),
 		];
+
+		if ($this->settingsService->getOrderEmailBlocks()) {
+			$this->template->displayButtons[] = $this->createButton2('editAccountEmailSettings', 'Nastavení e-mailů', linkArgs: [$account]);
+		}
+
 		$this->template->displayControls = [$this->getComponent('accountForm')];
+	}
+
+	public function renderEditAccountEmailSettings(Account $account): void
+	{
+		$this->template->headerLabel = 'Účet';
+		$this->template->headerTree = [
+			['Zákazníci', 'default'],
+			['Účet'],
+		];
+		$this->template->displayButtons = [
+			$this->createBackButton('default'),
+			$this->createButton2('editAccount', 'Zpět na detail účtu', linkArgs: [$account]),
+		];
+		$this->template->displayControls = [$this->getComponent('accountEmailSettingsForm')];
 	}
 
 	public function handleSendResetPasswordLink(Account $account): void
@@ -1189,8 +1208,82 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				$i++;
 			}
 		};
-		
+
 		return $this->accountFormFactory->create(false, $callback, true, true, $this->getParameter('account'));
+	}
+
+	public function createComponentAccountEmailSettingsForm(): AdminForm
+	{
+		$form = $this->formFactory->create(forcePrimary: false);
+
+		/** @var \Security\DB\Account $account */
+		$account = $this->getParameter('account');
+
+		// Correct business logic - account has always one customer, but customer can have multiple accounts
+		// Despite that, DB structure is MxN
+		/** @var \Eshop\DB\CatalogPermission|null $permission */
+		$permission = $this->catalogPermissionRepo->many()->where('fk_account', $account->getPK())->first();
+
+		$form->setDefaults(['uuid' => $permission?->getPK()]);
+
+		$displayedTransactionEmailBlocksDataDefault = [];
+
+		if ($permission !== null && $permission->displayedTransactionEmailBlocks !== null) {
+			$displayedTransactionEmailBlocksDataDefault = Strings::split($permission->displayedTransactionEmailBlocks, '/;/', skipEmpty: true);
+
+			foreach ($displayedTransactionEmailBlocksDataDefault as $key => $value) {
+				$exploded = \explode(':', $value);
+
+				unset($displayedTransactionEmailBlocksDataDefault[$key]);
+
+				if (\count($exploded) !== 2) {
+					continue;
+				}
+
+				$displayedTransactionEmailBlocksDataDefault[$exploded[0]] = $exploded[1];
+			}
+		}
+
+		$form->addGroup('Viditelné bloky v transakčních emailech');
+		$blocks = $this->settingsService->getOrderEmailBlocks();
+
+		$displayedTransactionEmailBlockContainer = $form->addContainer('displayedTransactionEmailBlock');
+
+		foreach ($blocks as $key => $label) {
+			$displayedTransactionEmailBlockContainer->addSelect($key, $label, [
+				'1' => 'Ano',
+				'0' => 'Ne',
+			])->setPrompt('↑ Převzít od zákazníka ↑')->setDefaultValue($displayedTransactionEmailBlocksDataDefault[$key] ?? null);
+		}
+
+		$form->addTextArea('additionalEmailText', 'Dotatečný text objednávky')
+			->setDefaultValue($permission?->additionalEmailText);
+
+		$form->addSubmits(false, false);
+
+		$form->onSuccess[] = function (AdminForm $form) use ($permission): void {
+			$values = $form->getValuesWithAjax();
+
+			$values['displayedTransactionEmailBlocks'] = '';
+
+			foreach ($values['displayedTransactionEmailBlock'] as $key => $value) {
+				if ($value === null || $value === '') {
+					continue;
+				}
+
+				$values['displayedTransactionEmailBlocks'] .= $key . ':' . $value . ';';
+			}
+
+			$values['displayedTransactionEmailBlocks'] = \rtrim($values['displayedTransactionEmailBlocks'], ';');
+			unset($values['displayedTransactionEmailBlock']);
+
+			$permission->update($values);
+
+			$this->flashMessage('Uloženo', 'success');
+			$this->redirect('this');
+		};
+
+		return $form;
 	}
 
 	public function renderSendNewPasswordToAccountMultiple(array $ids): void

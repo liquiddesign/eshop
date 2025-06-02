@@ -1118,7 +1118,10 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 		$purchase = $order->purchase;
 		$customer = $purchase->customer;
-		$customer->setAccount($purchase->account);
+
+		if ($purchase->account) {
+			$customer->setAccount($purchase->account);
+		}
 
 		// Contains catalog permissions for current context with security account
 		$currentContextCatalogPermissions = $customer->getCurrentContextCatalogPermissions();
@@ -1192,6 +1195,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'catalogPermission' => $currentContextCatalogPermissions->catalogPermission,
 			'priorityPrices' => $currentContextCatalogPermissions->priorityPrice,
 			'accountFullname' => $purchase->accountFullname,
+			'displayedTransactionEmailBlocks' => $currentContextCatalogPermissions->displayedTransactionEmailBlocks,
+			'additionalEmailText' => $currentContextCatalogPermissions->additionalEmailText,
 		];
 
 		if ($currentContextCatalogPermissions->catalogPermission === 'price') {

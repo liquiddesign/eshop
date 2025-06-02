@@ -77,4 +77,12 @@ class SettingsService implements AutoWireService
 	{
 		return false;
 	}
+
+	/**
+	 * @return array<string>
+	 */
+	public function getOrderEmailBlocks(): array
+	{
+		return [];
+	}
 }
