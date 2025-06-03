@@ -50,4 +50,12 @@ class TemplateNamesService implements AutoWireService
 	{
 		return 'order.shipped';
 	}
+
+	/**
+	 * @return array<string>
+	 */
+	public function getOrderEmailBlocks(): array
+	{
+		return [];
+	}
 }

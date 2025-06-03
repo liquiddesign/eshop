@@ -954,7 +954,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		unset($values['stores']);
 
-		$form->syncPages(function (array $values, Shop $shop) use ($product, $form): void {
+		$form->syncPages(function (array $values, Shop|null $shop) use ($product, $form): void {
 			$form->uploadOpenGraphImage($form, $values, $shop);
 			$this->pageRepository->syncPage($values, ['product' => $product->getPK()]);
 		});
