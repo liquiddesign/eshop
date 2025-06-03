@@ -49,6 +49,11 @@ class Country extends ShopSystemicEntity
 	 * @column{"type":"enum","length":"'standard','reduced-high','reduced-low','zero'"}
 	 */
 	public string $paymentVatRate = 'standard';
+
+	/**
+	 * @column
+	 */
+	public string|null $phonePrefix;
 	
 	/**
 	 * Výše DPH

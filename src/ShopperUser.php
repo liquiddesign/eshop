@@ -1044,6 +1044,19 @@ class ShopperUser extends User
 		$merchant->update(['activeCustomerAccount' => null]);
 	}
 
+	public function fillPhonePrefix(string $phone): string
+	{
+		if (\str_starts_with($phone, '+')) {
+			return $phone;
+		}
+
+		if ($phonePrefix = $this->getCountry()->phonePrefix) {
+			return $phonePrefix . $phone;
+		}
+
+		return $phone;
+	}
+
 	protected function clearCached(): void
 	{
 		$this->priceLists = [];

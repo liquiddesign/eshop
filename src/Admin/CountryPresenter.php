@@ -73,6 +73,9 @@ class CountryPresenter extends BackendPresenter
 			->setRequired()
 			->setHtmlAttribute('data-info', 'Např.: pokud bude nastaveno na 5 tak první objednávka bude mít kód #X202100005.');
 
+		$form->addText('phonePrefix', 'Telefonní předvolba')
+			->setNullable();
+
 		$form->addSubmits();
 
 		$form->onSuccess[] = function (AdminForm $form): void {
