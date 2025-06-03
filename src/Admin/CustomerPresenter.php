@@ -33,6 +33,7 @@ use Eshop\DB\VisibilityListRepository;
 use Eshop\Services\LostPasswordService;
 use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
 use Eshop\Services\SettingsService;
+use Eshop\Services\TemplateNamesService;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
@@ -183,6 +184,9 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 	#[Inject]
 	public SettingsService $settingsService;
+
+	#[Inject]
+	public TemplateNamesService $templateNamesService;
 
 	#[Inject]
 	public \LiquidMonitorConnector\Actions\GetCronService $getCronService;
@@ -1046,7 +1050,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$this->createButton2('sendResetPasswordLink!', 'Poslat link na změnu hesla', linkArgs: [$account]),
 		];
 
-		if ($this->settingsService->getOrderEmailBlocks()) {
+		if ($this->templateNamesService->getOrderEmailBlocks()) {
 			$this->template->displayButtons[] = $this->createButton2('editAccountEmailSettings', 'Nastavení e-mailů', linkArgs: [$account]);
 		}
 
@@ -1245,7 +1249,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		}
 
 		$form->addGroup('Viditelné bloky v transakčních emailech');
-		$blocks = $this->settingsService->getOrderEmailBlocks();
+		$blocks = $this->templateNamesService->getOrderEmailBlocks();
 
 		$displayedTransactionEmailBlockContainer = $form->addContainer('displayedTransactionEmailBlock');
 

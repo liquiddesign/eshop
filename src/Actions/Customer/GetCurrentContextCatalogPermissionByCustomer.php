@@ -5,11 +5,11 @@ namespace Eshop\Actions\Customer;
 use Base\BaseAction;
 use Eshop\DB\Customer;
 use Eshop\DTO\CurrentContextCatalogPermissions;
-use Eshop\Services\SettingsService;
+use Eshop\Services\TemplateNamesService;
 
 class GetCurrentContextCatalogPermissionByCustomer extends BaseAction
 {
-	public function __construct(private readonly SettingsService $settingsService)
+	public function __construct(private readonly TemplateNamesService $templateNamesService)
 	{
 	}
 
@@ -30,7 +30,7 @@ class GetCurrentContextCatalogPermissionByCustomer extends BaseAction
 				$prefilledCatalogPermission->priorityPrice ?? $customer->priorityPrice,
 				$prefilledCatalogPermission->additionalEmailText ?? $customer->additionalEmailText,
 				$prefilledCatalogPermission?->displayedTransactionEmailBlocks,
-				$this->settingsService->getOrderEmailBlocks(),
+				$this->templateNamesService->getOrderEmailBlocks(),
 			);
 		});
 	}
