@@ -363,6 +363,11 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			'1' => 'Ano',
 		], 'nQ');
 
+		$grid->addFilterSelectInput('tsLastLogin', 'IF(:tsLastLogin = "1", this.tsLastLogin IS NOT NULL, this.tsLastLogin IS NULL)', 'Poslední přihlášení', '- Poslední přihlášení -', null, [
+			'0' => 'Nikdy',
+			'1' => 'Ano',
+		], 'tsLastLogin');
+
 		if (!$ribbons = $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_CUSTOMER)) {
 			return;
 		}
@@ -1329,9 +1334,9 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				'buyAllowed' => 'catalogPermission.buyAllowed',
 			]);
 		
-		$grid = $this->gridFactory->create($collection, 20, 'createdTs', 'DESC', true, filterShops: false);
+		$grid = $this->gridFactory->create($collection, 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
-		$grid->addColumnText('Vytvořen', 'tsRegistered|date', '%s', 'tsRegistered', ['class' => 'fit']);
+		$grid->addColumnText('Vytvořen<hr style="margin: 0">Poslední přihl.', ['tsRegistered|date', 'tsLastLogin|date'], '%s<hr style="margin: 0">%s', 'tsRegistered', ['class' => 'fit']);
 		$grid->addColumnText('Login', 'login', '%s', 'login', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'fullname');
 		$grid->addColumn('Zákazník', function (Account $account) {
@@ -1499,7 +1504,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			false => 'Ne',
 			true => 'Ano',
 		])->setPrompt('Původní');
-		$values->addSelect('newsletter', 'Přihlášen k newsletteru', [
+		$values->addSelect2('newsletter', 'Přihlášen k newsletteru', [
 			false => 'Ne',
 			true => 'Ano',
 		])->setPrompt('Původní');
