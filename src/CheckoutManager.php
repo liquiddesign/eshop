@@ -1844,6 +1844,9 @@ class CheckoutManager
 		/** @var \Eshop\DB\Order $order */
 		$order = $this->orderRepository->createOne($orderValues);
 
+		// Refresh to set all properties
+		$order = $this->orderRepository->oneOrFail($order->getPK());
+
 		$topLevelItems = $this->getTopLevelItems($cartId)->toArray();
 
 		try {
