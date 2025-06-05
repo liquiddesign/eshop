@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.493](https://github.com/liquiddesign/eshop/compare/v2.1.492...v2.1.493) (2025-06-05)
+
+### Bug Fixes
+
+
+##### Checkout Manager
+
+* Refresh order properties after creation ([20aa2c](https://github.com/liquiddesign/eshop/commit/20aa2c03aa1e6af41bdd2e68520f8d8b3eafdea4))
+
+
+---
+
 ## [2.1.492](https://github.com/liquiddesign/eshop/compare/v2.1.491...v2.1.492) (2025-06-03)
 
 
