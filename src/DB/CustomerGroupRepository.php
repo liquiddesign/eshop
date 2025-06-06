@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Admin\DB\IGeneralAjaxRepository;
+use Base\DB\Shop;
 use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\SettingsPresenter;
@@ -48,7 +49,7 @@ class CustomerGroupRepository extends Repository implements IGeneralRepository, 
 		return $this->unregisteredGroup = $this->one($defaultGroupSetting, true);
 	}
 
-	public function getDefaultRegistrationGroup(): ?CustomerGroup
+	public function getDefaultRegistrationGroup(?Shop $shop = null): ?CustomerGroup
 	{
 		if ($this->defaultRegistrationGroup !== false) {
 			return $this->defaultRegistrationGroup;
@@ -56,7 +57,7 @@ class CustomerGroupRepository extends Repository implements IGeneralRepository, 
 
 		$groupQuery = $this->many()->where('defaultAfterRegistration', true);
 
-		$this->shopsConfig->filterShopsInShopEntityCollection($groupQuery, showOnlyEntitiesWithSelectedShops: true);
+		$this->shopsConfig->filterShopsInShopEntityCollection($groupQuery, $shop, true);
 
 		return $this->defaultRegistrationGroup = $groupQuery->first();
 	}
