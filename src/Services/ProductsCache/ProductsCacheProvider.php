@@ -2,6 +2,7 @@
 
 namespace Eshop\Services\ProductsCache;
 
+use Eshop\DB\CategoryRepository;
 use Eshop\DB\Customer;
 use Eshop\DB\Merchant;
 use Eshop\DB\PricelistRepository;
@@ -16,12 +17,18 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 {
 	private bool|null $isReady = null;
 
+	/**
+	 * @var array<string, array<int|string, int>>
+	 */
+	private array $cachedCategoryCounts = [];
+
 	public function __construct(
 		private readonly ProductsCacheGetterService $productsCacheProviderService,
 		private readonly ProductsCacheDiffUpdateService $productsCacheDiffUpdateService,
 		private readonly ShopperUser $shopperUser,
 		private readonly PricelistRepository $pricelistRepository,
 		private readonly SettingsService $settingsService,
+		private readonly CategoryRepository $categoryRepository,
 	) {
 	}
 
@@ -43,6 +50,7 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 		array $priceLists = [],
 		array $visibilityLists = [],
 		bool $debug = false,
+		bool $countCategories = false,
 	): array|false {
 		if (!$this->settingsService->isUsingProductsCache()) {
 			return false;
@@ -70,7 +78,7 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 
 		if (!$customer || !$merchant || $this->shopperUser->getMerchantPriceListsMode() !== 'merge') {
 			try {
-				return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists);
+				return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists, $countCategories);
 			} catch (\Throwable $e) {
 				if ($e->getCode() === '42S02') {
 					// Table does not exist, try warming it up
@@ -80,7 +88,7 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 						$merchant ? [$merchant->getPK()] : [],
 					);
 
-					return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists);
+					return $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists, $countCategories);
 				}
 
 				throw $e;
@@ -108,7 +116,7 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 
 		try {
 			$customerResult = $customerPriceLists ?
-				$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $customerPriceLists, $visibilityLists) :
+				$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $customerPriceLists, $visibilityLists, $countCategories) :
 				false;
 		} catch (\Throwable $e) {
 			if ($e->getCode() !== '42S02') {
@@ -122,12 +130,12 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 				[$merchant->getPK()],
 			);
 
-			$customerResult = $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $customerPriceLists, $visibilityLists);
+			$customerResult = $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $customerPriceLists, $visibilityLists, $countCategories);
 		}
 
 		try {
 			$merchantResult = $merchantPriceLists ?
-				$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $merchantPriceLists, $visibilityLists) :
+				$this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $merchantPriceLists, $visibilityLists, $countCategories) :
 				false;
 		} catch (\Throwable $e) {
 			if ($e->getCode() !== '42S02') {
@@ -141,7 +149,7 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 				[$merchant->getPK()],
 			);
 
-			$merchantResult = $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $merchantPriceLists, $visibilityLists);
+			$merchantResult = $this->productsCacheProviderService->getProductsFromCacheTable($filters, $orderByName, $orderByDirection, $merchantPriceLists, $visibilityLists, $countCategories);
 		}
 
 		if ($customerResult === false && $merchantResult === false) {
@@ -228,5 +236,41 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 	public function updatePricesCacheTable(array $customers = [], array $customerGroups = [], array $merchants = []): void
 	{
 		$this->productsCacheDiffUpdateService->updatePricesTableDiff($customers, $customerGroups, $merchants);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getCategoryCount(array $filters, array $priceLists = [], array $visibilityLists = [], bool $debug = false,): int|null
+	{
+		$category = $filters['category'] ?? null;
+
+		if (!$this->settingsService->isUsingProductsCache() || !$category) {
+			return null;
+		}
+
+		unset($filters['category']);
+
+		/** @var \Eshop\DB\Category $category */
+		$category = $this->categoryRepository->many()->setSelect(['this.id'])->where('this.path', $category)->first(true);
+
+		$dataCacheIndex = \serialize($filters) . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
+		$dataCacheIndex = \md5($dataCacheIndex);
+
+		if (isset($this->cachedCategoryCounts[$dataCacheIndex])) {
+			return $this->cachedCategoryCounts[$dataCacheIndex][$category->id] ?? null;
+		}
+
+		$result = $this->getProductsFromCacheTable(
+			$filters,
+			priceLists: $priceLists,
+			visibilityLists: $visibilityLists,
+			debug: $debug,
+			countCategories: true,
+		);
+
+		$this->cachedCategoryCounts[$dataCacheIndex] = $result['categoriesCounts'] ?? [];
+
+		return $this->cachedCategoryCounts[$dataCacheIndex][$category->id] ?? null;
 	}
 }

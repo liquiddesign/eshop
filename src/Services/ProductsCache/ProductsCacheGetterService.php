@@ -211,6 +211,7 @@ class ProductsCacheGetterService implements AutoWireService
 	 *     "displayAmountsCounts": array<string|int, int>,
 	 *     "displayDeliveriesCounts": array<string|int, int>,
 	 *     "producersCounts": array<string|int, int>,
+	 *     'categoriesCounts'?: array<string|int, int>,
 	 *     'priceMin': float,
 	 *     'priceMax': float,
 	 *     'priceVatMin': float,
@@ -226,6 +227,7 @@ class ProductsCacheGetterService implements AutoWireService
 		string $orderByDirection = 'ASC',
 		array $priceLists = [],
 		array $visibilityLists = [],
+		bool $countCategories = false,
 	): array|false {
 		try {
 			$this->getConnection();
@@ -245,7 +247,7 @@ class ProductsCacheGetterService implements AutoWireService
 		}
 
 		if (isset($filters['pricelist'])) {
-			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
+			$priceLists = \array_filter($priceLists, static fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
 		}
 
 		unset($filters['pricelist']);
@@ -326,6 +328,11 @@ class ProductsCacheGetterService implements AutoWireService
 			'priceVat' => 'visibilityPrice.priceVat',
 			'masterProduct' => 'this.masterProduct',
 		]);
+
+		if ($countCategories) {
+			$productsCollection->join(['category' => $categoriesTableName], 'this.product = category.product', type: 'INNER');
+			$productsCollection->select(['categories' => 'GROUP_CONCAT(category.category)']);
+		}
 
 		/** @var array<int, \Eshop\DB\Attribute> $allAttributes */
 		$allAttributes = [];
@@ -471,6 +478,7 @@ class ProductsCacheGetterService implements AutoWireService
 		$displayDeliveriesCounts = [];
 		$producersCounts = [];
 		$attributeValuesCounts = [];
+		$categoriesCounts = [];
 
 		if ($this->debug) {
 			DevelTools::bdumpCollection($productsCollection);
@@ -683,6 +691,14 @@ class ProductsCacheGetterService implements AutoWireService
 
 			$productPKs[] = $product->product;
 
+			if ($countCategories && $product->categories) {
+				$categories = \explode(',', $product->categories);
+
+				foreach ($categories as $category) {
+					$categoriesCounts[$category] = ($categoriesCounts[$category] ?? 0) + 1;
+				}
+			}
+
 			foreach (\array_keys($attributeValues) as $attributeValue) {
 				$attributeValuesCounts[$attributeValue] = ($attributeValuesCounts[$attributeValue] ?? 0) + 1;
 			}
@@ -732,7 +748,7 @@ class ProductsCacheGetterService implements AutoWireService
 			unset($attributeValuesCounts[$attributeValue->id]);
 		}
 
-		return [
+		$result = [
 			'productPKs' => $productPKs,
 			'attributeValuesCounts' => $attributeValuesCounts,
 			'displayAmountsCounts' => $displayAmountsCounts,
@@ -744,6 +760,12 @@ class ProductsCacheGetterService implements AutoWireService
 			'priceVatMax' => $priceVatMax > \PHP_FLOAT_MIN ? \ceil($priceVatMax) : 0,
 		];
 
+		if ($categoriesCounts) {
+			$result['categoriesCounts'] = $categoriesCounts;
+		}
+
+		return $result;
+
 //		$this->saveDataCacheIndex($dataCacheIndex, $result);
 
 //		Debugger::dump(Debugger::timer());
@@ -753,7 +775,7 @@ class ProductsCacheGetterService implements AutoWireService
 	protected function startUp(): void
 	{
 		$this->allowedCollectionOrderExpressions['availabilityAndPrice'] =
-			function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
+			static function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
 				$productsCollection->orderBy([
 					'case COALESCE(displayAmount_isSold, 2)
 						 when 0 then 0
@@ -765,7 +787,7 @@ class ProductsCacheGetterService implements AutoWireService
 			};
 
 		$this->allowedCollectionOrderExpressions['priorityAvailabilityPrice'] =
-			function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
+			static function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
 				$productsCollection->orderBy([
 					'visibilityPrice.priority' => $direction,
 					'case COALESCE(displayAmount_isSold, 2)
@@ -777,7 +799,7 @@ class ProductsCacheGetterService implements AutoWireService
 				]);
 			};
 
-		$this->allowedCollectionFilterExpressions['query2'] = function (ICollection $productsCollection, string $query, array $visibilityLists, array $priceLists): void {
+		$this->allowedCollectionFilterExpressions['query2'] = static function (ICollection $productsCollection, string $query, array $visibilityLists, array $priceLists): void {
 			$orConditions = [
 				'IF(this.subCode, CONCAT(this.code, this.subCode), this.code) LIKE :qlikeq',
 				'this.externalCode LIKE :qlike',
@@ -794,7 +816,7 @@ class ProductsCacheGetterService implements AutoWireService
 			]);
 		};
 
-		$this->allowedCollectionOrderExpressions['query2'] = function (ICollection $productsCollection, string $query, array $visibilityLists, array $priceLists): void {
+		$this->allowedCollectionOrderExpressions['query2'] = static function (ICollection $productsCollection, string $query, array $visibilityLists, array $priceLists): void {
 			$productsCollection->orderBy([
 				'this.name LIKE :qlike' => 'DESC',
 				'this.name LIKE :qlikeq' => 'DESC',
@@ -875,7 +897,7 @@ class ProductsCacheGetterService implements AutoWireService
 			return $showVat ? $product->priceVat > $value : $product->price > $value;
 		};
 
-		$this->allowedDynamicFilterExpressions['masterProduct'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
+		$this->allowedDynamicFilterExpressions['masterProduct'] = static function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
 			if ($value === true) {
 				return $product->masterProduct === null;
 			}
@@ -905,7 +927,7 @@ class ProductsCacheGetterService implements AutoWireService
 	 */
 	protected function createCoalesceFromArray(array $values, string|null $prefix = null, string|null $suffix = null, string $separator = '_'): string
 	{
-		return $values ? ('COALESCE(' . \implode(',', \array_map(function (mixed $item) use ($prefix, $suffix, $separator): string {
+		return $values ? ('COALESCE(' . \implode(',', \array_map(static function (mixed $item) use ($prefix, $suffix, $separator): string {
 				return $prefix . ($prefix ? $separator : '') . $item->id . ($suffix ? $separator : '') . $suffix;
 		}, $values)) . ')') : 'NULL';
 	}
