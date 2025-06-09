@@ -57,12 +57,6 @@ class ProductGridFactory
 	 */
 	public function create(array $configuration, array $bulkColumns = []): Datagrid
 	{
-		$visibilityListsCollection = $this->visibilityListRepository->getCollection();
-
-		if ($selectedShop = $this->shopsConfig->getSelectedShop()) {
-			$visibilityListsCollection->where('this.fk_shop', $selectedShop->getPK());
-		}
-
 		$source = $this->productRepository->many()
 			->setSmartJoin(false)
 			->setGroupBy(['this.uuid'])
@@ -70,27 +64,49 @@ class ProductGridFactory
 			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'primaryCategory.fk_product = this.uuid')
 //          ->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
 //          ->join(['pricelist' => 'eshop_pricelist'], 'pricelist.uuid=price.fk_pricelist')
-			->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid')
-			->join(['visibilityList' => 'eshop_visibilitylist'], 'visibilityListItem.fk_visibilityList = visibilityList.uuid')
-			->where('visibilityList.uuid IN(:visibilityListIn) OR visibilityList.uuid IS NULL', [
-				'visibilityListIn' => Helpers::arrayToSqlInStatement($visibilityListsCollection->toArrayOf('uuid', toArrayValues: true)),
-			])
 			->select([
 				'primaryCategoryPKs' => 'GROUP_CONCAT(primaryCategory.fk_category)',
 //              'priceCount' => 'COUNT(DISTINCT price.uuid)',
 				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
 //              'pricelistActive' => 'MAX(pricelist.isActive)',
-				'hidden' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.hidden ORDER BY visibilityList.priority), ',', 1)",
-				'unavailable' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.unavailable ORDER BY visibilityList.priority), ',', 1)",
 			]);
+
+		$shops = $this->shopsConfig->getAvailableShops();
+
+		if (!$shops) {
+			$shops[] = 'default';
+		}
+
+		foreach ($shops as $shop) {
+			$visibilityListsCollection = $this->visibilityListRepository->getCollection();
+
+			if ($shop !== 'default') {
+				$this->shopsConfig->filterShopsInShopEntityCollection($visibilityListsCollection, $shop);
+
+				$suffix = "_{$shop->getPK()}";
+			} else {
+				$suffix = '_default';
+			}
+
+			$source->join(["visibilityListItem$suffix" => 'eshop_visibilitylistitem'], "visibilityListItem$suffix.fk_product = this.uuid")
+				->join(["visibilityList$suffix" => 'eshop_visibilitylist'], "visibilityListItem$suffix.fk_visibilityList = visibilityList$suffix.uuid")
+				->where("visibilityList$suffix.uuid IN(:visibilityListIn$suffix) OR visibilityList$suffix.uuid IS NULL", [
+					"visibilityListIn$suffix" => Helpers::arrayToSqlInStatement($visibilityListsCollection->toArrayOf('uuid', toArrayValues: true)),
+				]);
+
+			$source->select([
+				"hidden$suffix" => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem$suffix.hidden ORDER BY visibilityList$suffix.priority), ',', 1)",
+				"unavailable$suffix" => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem$suffix.unavailable ORDER BY visibilityList$suffix.priority), ',', 1)",
+			]);
+		}
 
 		$grid = $this->gridFactory->create($source, 20, 'this.uuid', 'ASC', true, defaultShowPaginator: false);
 
 		$grid->setItemCountCallback(function (Collection $collection): int {
 			$pkName = $collection->getRepository()->getStructure()->getPK()->getName();
 			$collection->setSelect([
-				'hidden' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.hidden ORDER BY visibilityList.priority), ',', 1)",
-				'unavailable' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.unavailable ORDER BY visibilityList.priority), ',', 1)",
+//				'hidden' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.hidden ORDER BY visibilityList.priority), ',', 1)",
+//				'unavailable' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.unavailable ORDER BY visibilityList.priority), ',', 1)",
 				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
 			])->setOrderBy([]);
 			$subCollection = AdminGrid::processCollectionBaseFrom($collection, useOrder: false, join: false);
@@ -103,29 +119,35 @@ class ProductGridFactory
 		});
 
 		$grid->addColumnSelector();
-		$grid->addColumn('', function (Product $object, Datagrid $datagrid) {
-			if ($object->isHidden()) {
-				$label = 'Neviditelný: Skrytý';
-				$color = 'danger';
+
+		foreach ($shops as $shop) {
+			$grid->addColumn((string) ($shop === 'default' ? '' : $shop->getIconImageFormAdmin()), function (Product $object, Datagrid $datagrid) use ($shop): string {
+				$suffix = '_' . ($shop === 'default' ? 'default' : $shop->getPK());
+
+				if ($object->getValue("hidden$suffix")) {
+					$label = 'Neviditelný: Skrytý';
+					$color = 'danger';
 //          } elseif ($object->getValue('priceCount') === 0) {
 //              $label = 'Neviditelný: Bez ceny';
 //              $color = 'danger';
 //          } elseif ($object->getValue('pricelistActive') === 0) {
 //              $label = 'Neviditelný: Žádné aktivní ceny';
 //              $color = 'danger';
-			} elseif ($object->isUnavailable()) {
-				$label = 'Viditelný: Neprodejný';
-				$color = 'warning';
-			} elseif ($object->getValue('categoryCount') === 0) {
-				$label = 'Viditelný: Bez kategorie';
-				$color = 'warning';
-			} else {
-				$label = 'Viditelný';
-				$color = 'success';
-			}
+				} elseif ($object->getValue("unavailable$suffix")) {
+					$label = 'Viditelný: Neprodejný';
+					$color = 'warning';
+				} elseif ($object->getValue('categoryCount') === 0) {
+					$label = 'Viditelný: Bez kategorie';
+					$color = 'warning';
+				} else {
+					$label = 'Viditelný';
+					$color = 'success';
+				}
 
-			return '<i title="' . $label . '" class="fa fa-circle fa-sm text-' . $color . '">';
-		}, '%s', null, ['class' => 'fit']);
+				return '<i title="' . $label . '" class="fa fa-circle fa-sm text-' . $color . '">';
+			}, '%s', null, ['class' => 'fit']);
+		}
+
 		$grid->addColumnText('Vytvořeno', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
 
 		$grid->addColumnImage('imageFileName', Product::GALLERY_DIR);
