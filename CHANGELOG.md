@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.498](https://github.com/liquiddesign/eshop/compare/v2.1.497...v2.1.498) (2025-06-09)
+
+### Features
+
+
+##### Delivery Type Presenter, Integration Presenter
+
+* Refactor forms to support multiple shops and improve settings handling ([dd5349](https://github.com/liquiddesign/eshop/commit/dd5349769f82b48de6e677836915c8c5fd3ea470))
+
+
+---
+
 ## [2.1.497](https://github.com/liquiddesign/eshop/compare/v2.1.496...v2.1.497) (2025-06-09)
 
 
