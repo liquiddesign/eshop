@@ -29,8 +29,8 @@ interface GeneralProductsCacheProvider
 	 * @param array<mixed> $filters
 	 * @param string|null $orderByName
 	 * @param 'ASC'|'DESC' $orderByDirection Works only if $orderByName is not null
-	 * @param array<string, \Eshop\DB\Pricelist> $priceLists
-	 * @param array<string, \Eshop\DB\VisibilityList> $visibilityLists
+	 * @param array<string|int, \Eshop\DB\Pricelist> $priceLists
+	 * @param array<string|int, \Eshop\DB\VisibilityList> $visibilityLists
 	 * @return array{
 	 *     "productPKs": list<string>,
 	 *     "attributeValuesCounts": array<string|int, int>,
@@ -57,8 +57,8 @@ interface GeneralProductsCacheProvider
 
 	/**
 	 * @param array<mixed> $filters
-	 * @param array<string, \Eshop\DB\Pricelist> $priceLists
-	 * @param array<string, \Eshop\DB\VisibilityList> $visibilityLists
+	 * @param array<string|int, \Eshop\DB\Pricelist> $priceLists
+	 * @param array<string|int, \Eshop\DB\VisibilityList> $visibilityLists
 	 */
 	public function getCategoryCount(
 		array $filters,

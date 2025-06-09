@@ -18,15 +18,17 @@ class GetCurrentContextCatalogPermissionByCustomer extends BaseAction
 		return $this->getLocalCachedOutput($customer->getPK(), function () use ($customer) {
 			$prefilledCatalogPermission = $customer->getCatalogPermission();
 
+			$catalogPermission = $prefilledCatalogPermission->catalogPermission ?? $customer->catalogPermissionSetting;
+
 			return new CurrentContextCatalogPermissions(
 				$customer,
 				$customer->account,
-				$prefilledCatalogPermission->catalogPermission ?? $customer->catalogPermissionSetting,
+				$catalogPermission,
 				$prefilledCatalogPermission->buyAllowed ?? $customer->buyAllowed,
 				$prefilledCatalogPermission->orderAllowed ?? $customer->orderAllowed,
 				$prefilledCatalogPermission->viewAllOrders ?? $customer->viewAllOrders,
-				$prefilledCatalogPermission->showPricesWithoutVat ?? $customer->showPricesWithoutVat,
-				$prefilledCatalogPermission->showPricesWithVat ?? $customer->showPricesWithVat,
+				$catalogPermission === 'price' && (($prefilledCatalogPermission->showPricesWithoutVat ?? $customer->showPricesWithoutVat)),
+				$catalogPermission === 'price' && (($prefilledCatalogPermission->showPricesWithVat ?? $customer->showPricesWithVat)),
 				$prefilledCatalogPermission->priorityPrice ?? $customer->priorityPrice,
 				$prefilledCatalogPermission->additionalEmailText ?? $customer->additionalEmailText,
 				$prefilledCatalogPermission?->displayedTransactionEmailBlocks,
