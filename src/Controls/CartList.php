@@ -25,7 +25,7 @@ class CartList extends \Grid\Datalist
 	public function __construct(
 		Collection $carts,
 		protected readonly CartRepository $cartRepository,
-		protected readonly ShopperUser $shopperUser,
+		public readonly ShopperUser $shopperUser,
 		protected readonly CartItemRepository $cartItemRepository,
 		protected readonly CartListEditMode $editMode = CartListEditMode::NONE
 	) {
