@@ -6,6 +6,7 @@ if [ "$#" -lt 1 ]; then
 fi
 
 docker compose exec -it cli bash -c "chmod -R 777 /.composer"
+docker compose exec -it cli bash -c "chmod -R 777 /tmp"
 docker compose exec -it --user www-data cli "$@"
 
 exit 0
