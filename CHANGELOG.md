@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.499](https://github.com/liquiddesign/eshop/compare/v2.1.498...v2.1.499) (2025-06-09)
+
+### Bug Fixes
+
+
+##### Cart List
+
+* Change shopperUser visibility to public for better access ([0ac597](https://github.com/liquiddesign/eshop/commit/0ac597753716ac13d56d1f43b10f1ee5d273ceb6))
+
+
+---
+
 ## [2.1.498](https://github.com/liquiddesign/eshop/compare/v2.1.497...v2.1.498) (2025-06-09)
 
 ### Features
