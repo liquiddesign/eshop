@@ -112,7 +112,7 @@ class DeliveryTypePresenter extends BackendPresenter
 	
 	public function createComponentNewForm(): Form
 	{
-		$form = $this->formFactory->create(true);
+		$form = $this->formFactory->create(true, useShops: true);
 		
 		$form->addText('code', 'Kód')->setRequired();
 		
@@ -163,17 +163,33 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->addText('externalIdHeureka', 'Externí ID: Heuréka.cz')->setNullable();
 		$form->addText('externalIdZbozi', 'Externí ID: Zboží.cz')->setNullable();
 
-		// TODO this must be for every shop
 		$suppliersContainer = $form->addContainer('suppliers');
 
-		/** @var \Eshop\DB\Supplier $supplier */
-		foreach ($this->supplierRepository->many() as $supplierPK => $supplier) {
-			$suppliersContainer->addText($supplierPK, Html::fromHtml("$this->shopIcon Externí ID: $supplier->name"))->setNullable();
+		$shops = $this->shopsConfig->getAvailableShops();
+
+		foreach ($shops as $shop) {
+			$shopContainer = $suppliersContainer->addContainer($shop->getPK());
+
+			/** @var \Eshop\DB\Supplier $supplier */
+			foreach ($this->supplierRepository->many() as $supplierPK => $supplier) {
+				$shopName = $shop->getIconImageFormAdmin();
+				$shopContainer->addText((string) $supplierPK, Html::fromHtml("$shopName Externí ID: $supplier->name"))->setNullable();
+			}
 		}
-		
+
+		if (!$shops) {
+			$shopContainer = $suppliersContainer->addContainer('default');
+
+			/** @var \Eshop\DB\Supplier $supplier */
+			foreach ($this->supplierRepository->many() as $supplierPK => $supplier) {
+				$shopContainer->addText((string) $supplierPK, Html::fromHtml("Externí ID: $supplier->name"))->setNullable();
+			}
+		}
+
 		$form->addSubmits(!$deliveryType);
 		
 		$form->onSuccess[] = function (AdminForm $form): void {
+			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
 			
 			$this->createImageDirs(DeliveryType::IMAGE_DIR);
@@ -193,17 +209,19 @@ class DeliveryTypePresenter extends BackendPresenter
 
 			$this->supplierDeliveryTypeRepository->many()->where('this.fk_deliveryType', $deliveryType->getPK())->delete();
 
-			foreach ($supplierExternalIDs as $supplierPK => $externalID) {
-				if ($externalID === null) {
-					continue;
-				}
+			foreach ($supplierExternalIDs as $shop => $suppliers) {
+				foreach ($suppliers as $supplierPK => $externalID) {
+					if ($externalID === null) {
+						continue;
+					}
 
-				$this->supplierDeliveryTypeRepository->syncOne([
-					'deliveryType' => $deliveryType->getPK(),
-					'supplier' => $supplierPK,
-					'externalId' => $externalID,
-					'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
-				]);
+					$this->supplierDeliveryTypeRepository->syncOne([
+						'deliveryType' => $deliveryType->getPK(),
+						'supplier' => $supplierPK,
+						'externalId' => $externalID,
+						'shop' => $shop === 'default' ? null : $shop,
+					]);
+				}
 			}
 			
 			$this->flashMessage('Uloženo', 'success');
@@ -254,12 +272,13 @@ class DeliveryTypePresenter extends BackendPresenter
 
 		$defaults = $deliveryType->toArray(['allowedPaymentTypes']);
 		$suppliersDefaultsCollection = $this->supplierDeliveryTypeRepository->many()
-			->where('this.fk_deliveryType', $deliveryType->getPK())
-			->setIndex('this.fk_supplier');
+			->where('this.fk_deliveryType', $deliveryType->getPK());
 
-		$this->shopsConfig->filterShopsInShopEntityCollection($suppliersDefaultsCollection, shops: $deliveryType->shop, showOnlyEntitiesWithSelectedShops: true);
+		foreach ($suppliersDefaultsCollection as $supplierDeliveryType) {
+			$shop = $supplierDeliveryType->shop?->getPK() ?? 'default';
 
-		$defaults['suppliers'] = $suppliersDefaultsCollection->toArrayOf('externalId');
+			$defaults['suppliers'][$shop][$supplierDeliveryType->supplier->getPK()] = $supplierDeliveryType->externalId;
+		}
 
 		$form->setDefaults($defaults);
 	}

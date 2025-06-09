@@ -10,6 +10,7 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\Integration\MailerLite;
 use Eshop\Integration\Zasilkovna;
+use Forms\Form;
 use Nette\Utils\Html;
 use Web\DB\ContactItemRepository;
 use Web\DB\SettingRepository;
@@ -65,18 +66,13 @@ class IntegrationPresenter extends BackendPresenter
 		
 		$this->template->tabs['@targito'] = 'Targito';
 	}
-	
+
 	public function actionDefault(): void
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('form');
 
-		$form->setDefaults(
-			$this->shopsConfig->filterShopsInShopEntityCollection(
-				$this->settingsRepo->many()->setIndex('name'),
-				showOnlyEntitiesWithSelectedShops: true
-			)->toArrayOf('value')
-		);
+		$this->setFormDefaults($form);
 	}
 	
 	public function renderDefault(): void
@@ -92,20 +88,28 @@ class IntegrationPresenter extends BackendPresenter
 	public function createComponentForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		$form->addText('integrationGTM', Html::fromHtml($this->shopIcon . 'GTM (Google Tag Manager)'))->setNullable();
+
+		$shopsContainer = $form->addContainer('shops');
+		$shops = $this->shopsConfig->getAvailableShops();
+
+		foreach ($shops as $shop) {
+			$shopContainer = $shopsContainer->addContainer($shop->getPK());
+
+			$shopContainer->addText('integrationGTM', Html::fromHtml($shop->getIconImageFormAdmin() . 'GTM (Google Tag Manager)'))->setNullable();
+		}
+
+		if (!$shops) {
+			$shopContainer = $shopsContainer->addContainer('default');
+
+			$shopContainer->addText('integrationGTM', Html::fromHtml('GTM (Google Tag Manager)'))->setNullable();
+		}
 		
 		$form->addSubmit('submit', 'Uložit');
 		
 		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
+			$values = $form->getValuesWithAjax();
 			
-			foreach ($values as $key => $value) {
-				$this->settingsRepo->syncOne([
-					'name' => $key,
-					'value' => $value,
-					'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
-				]);
-			}
+			$this->saveSettings($values);
 			
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$form->processRedirect('default');
@@ -118,13 +122,8 @@ class IntegrationPresenter extends BackendPresenter
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('heurekaForm');
-		
-		$form->setDefaults(
-			$this->shopsConfig->filterShopsInShopEntityCollection(
-				$this->settingsRepo->many()->setIndex('name'),
-				showOnlyEntitiesWithSelectedShops: true
-			)->toArrayOf('value')
-		);
+
+		$this->setFormDefaults($form);
 	}
 
 	public function actionZbozi(): void
@@ -132,12 +131,7 @@ class IntegrationPresenter extends BackendPresenter
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('zboziForm');
 
-		$form->setDefaults(
-			$this->shopsConfig->filterShopsInShopEntityCollection(
-				$this->settingsRepo->many()->setIndex('name'),
-				showOnlyEntitiesWithSelectedShops: true
-			)->toArrayOf('value')
-		);
+		$this->setFormDefaults($form);
 	}
 	
 	public function actionZasilkovna(): void
@@ -145,12 +139,7 @@ class IntegrationPresenter extends BackendPresenter
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('zasilkovnaForm');
 		
-		$form->setDefaults(
-			$this->shopsConfig->filterShopsInShopEntityCollection(
-				$this->settingsRepo->many()->setIndex('name'),
-				showOnlyEntitiesWithSelectedShops: true
-			)->toArrayOf('value')
-		);
+		$this->setFormDefaults($form);
 	}
 	
 	public function actionSupportbox(): void
@@ -158,12 +147,7 @@ class IntegrationPresenter extends BackendPresenter
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('supportboxForm');
 		
-		$form->setDefaults(
-			$this->shopsConfig->filterShopsInShopEntityCollection(
-				$this->settingsRepo->many()->setIndex('name'),
-				showOnlyEntitiesWithSelectedShops: true
-			)->toArrayOf('value')
-		);
+		$this->setFormDefaults($form);
 	}
 	
 	public function actionTargito(): void
@@ -171,32 +155,36 @@ class IntegrationPresenter extends BackendPresenter
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('targitoForm');
 		
-		$form->setDefaults(
-			$this->shopsConfig->filterShopsInShopEntityCollection(
-				$this->settingsRepo->many()->setIndex('name'),
-				showOnlyEntitiesWithSelectedShops: true
-			)->toArrayOf('value')
-		);
+		$this->setFormDefaults($form);
 	}
 	
 	public function createComponentTargitoForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		$form->addText('targitoDataId', Html::fromHtml($this->shopIcon . 'data-id'))->setNullable();
-		$form->addText('targitoDataOrigin', Html::fromHtml($this->shopIcon . 'data-origin'))->setNullable();
+
+		$shopsContainer = $form->addContainer('shops');
+		$shops = $this->shopsConfig->getAvailableShops();
+
+		foreach ($shops as $shop) {
+			$shopContainer = $shopsContainer->addContainer($shop->getPK());
+
+			$shopContainer->addText('targitoDataId', Html::fromHtml($shop->getIconImageFormAdmin() . 'data-id'))->setNullable();
+			$shopContainer->addText('targitoDataOrigin', Html::fromHtml($shop->getIconImageFormAdmin() . 'data-origin'))->setNullable();
+		}
+
+		if (!$shops) {
+			$shopContainer = $shopsContainer->addContainer('default');
+
+			$shopContainer->addText('targitoDataId', Html::fromHtml('data-id'))->setNullable();
+			$shopContainer->addText('targitoDataOrigin', Html::fromHtml('data-origin'))->setNullable();
+		}
 		
 		$form->addSubmit('submit', 'Uložit');
 		
 		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
-			
-			foreach ($values as $key => $value) {
-				$this->settingsRepo->syncOne([
-					'name' => $key,
-					'value' => $value,
-					'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
-				]);
-			}
+			$values = $form->getValuesWithAjax();
+
+			$this->saveSettings($values);
 			
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$form->processRedirect('targito');
@@ -208,21 +196,30 @@ class IntegrationPresenter extends BackendPresenter
 	public function createComponentZasilkovnaForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		$form->addText('zasilkovnaApiKey', Html::fromHtml($this->shopIcon . 'Klíč API'))->setNullable();
-		$form->addText('zasilkovnaApiPassword', Html::fromHtml($this->shopIcon . 'Heslo API'))->setNullable();
+
+		$shopsContainer = $form->addContainer('shops');
+		$shops = $this->shopsConfig->getAvailableShops();
+
+		foreach ($shops as $shop) {
+			$shopContainer = $shopsContainer->addContainer($shop->getPK());
+
+			$shopContainer->addText('zasilkovnaApiKey', Html::fromHtml($shop->getIconImageFormAdmin() . ' Klíč API'))->setNullable();
+			$shopContainer->addText('zasilkovnaApiPassword', Html::fromHtml($shop->getIconImageFormAdmin() . ' Heslo API'))->setNullable();
+		}
+
+		if (!$shops) {
+			$shopContainer = $shopsContainer->addContainer('default');
+
+			$shopContainer->addText('zasilkovnaApiKey', Html::fromHtml('Klíč API'))->setNullable();
+			$shopContainer->addText('zasilkovnaApiPassword', Html::fromHtml('Heslo API'))->setNullable();
+		}
 		
 		$form->addSubmit('submit', 'Uložit');
 		
 		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
-			
-			foreach ($values as $key => $value) {
-				$this->settingsRepo->syncOne([
-					'name' => $key,
-					'value' => $value,
-					'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
-				]);
-			}
+			$values = $form->getValuesWithAjax();
+
+			$this->saveSettings($values);
 			
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$form->processRedirect('zasilkovna');
@@ -236,31 +233,34 @@ class IntegrationPresenter extends BackendPresenter
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('mailerLiteForm');
 		
-		$form->setDefaults(
-			$this->shopsConfig->filterShopsInShopEntityCollection(
-				$this->settingsRepo->many()->setIndex('name'),
-				showOnlyEntitiesWithSelectedShops: true
-			)->toArrayOf('value')
-		);
+		$this->setFormDefaults($form);
 	}
 	
 	public function createComponentMailerLiteForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		$form->addText('mailerLiteApiKey', Html::fromHtml($this->shopIcon . 'Klíč API'))->setNullable();
-		
+
+		$shopsContainer = $form->addContainer('shops');
+		$shops = $this->shopsConfig->getAvailableShops();
+
+		foreach ($shops as $shop) {
+			$shopContainer = $shopsContainer->addContainer($shop->getPK());
+
+			$shopContainer->addText('mailerLiteApiKey', Html::fromHtml($shop->getIconImageFormAdmin() . ' Klíč API'))->setNullable();
+		}
+
+		if (!$shops) {
+			$shopContainer = $shopsContainer->addContainer('default');
+
+			$shopContainer->addText('mailerLiteApiKey', Html::fromHtml('Klíč API'))->setNullable();
+		}
+
 		$form->addSubmit('submit', 'Uložit');
 		
 		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
-			
-			foreach ($values as $key => $value) {
-				$this->settingsRepo->syncOne([
-					'name' => $key,
-					'value' => $value,
-					'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
-				]);
-			}
+			$values = $form->getValuesWithAjax();
+
+			$this->saveSettings($values);
 			
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$form->processRedirect('mailerLite');
@@ -272,20 +272,28 @@ class IntegrationPresenter extends BackendPresenter
 	public function createComponentSupportboxForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		$form->addText('supportBoxApiKey', Html::fromHtml($this->shopIcon . 'Klíč API'))->setNullable();
+
+		$shopsContainer = $form->addContainer('shops');
+		$shops = $this->shopsConfig->getAvailableShops();
+
+		foreach ($shops as $shop) {
+			$shopContainer = $shopsContainer->addContainer($shop->getPK());
+
+			$shopContainer->addText('supportBoxApiKey', Html::fromHtml($shop->getIconImageFormAdmin() . ' Klíč API'))->setNullable();
+		}
+
+		if (!$shops) {
+			$shopContainer = $shopsContainer->addContainer('default');
+
+			$shopContainer->addText('supportBoxApiKey', Html::fromHtml('Klíč API'))->setNullable();
+		}
 		
 		$form->addSubmit('submit', 'Uložit');
 		
 		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
-			
-			foreach ($values as $key => $value) {
-				$this->settingsRepo->syncOne([
-					'name' => $key,
-					'value' => $value,
-					'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
-				]);
-			}
+			$values = $form->getValuesWithAjax();
+
+			$this->saveSettings($values);
 			
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$form->processRedirect('supportBox');
@@ -297,21 +305,30 @@ class IntegrationPresenter extends BackendPresenter
 	public function createComponentZboziForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		$form->addText($this::ZBOZI_API_KEY, Html::fromHtml($this->shopIcon . 'API klíč'))->setNullable();
-		$form->addText($this::ZBOZI_STORE_ID, Html::fromHtml($this->shopIcon . ' ID provozovny'))->setNullable();
+
+		$shopsContainer = $form->addContainer('shops');
+		$shops = $this->shopsConfig->getAvailableShops();
+
+		foreach ($shops as $shop) {
+			$shopContainer = $shopsContainer->addContainer($shop->getPK());
+
+			$shopContainer->addText($this::ZBOZI_API_KEY, Html::fromHtml($shop->getIconImageFormAdmin() . ' API klíč'))->setNullable();
+			$shopContainer->addText($this::ZBOZI_STORE_ID, Html::fromHtml($shop->getIconImageFormAdmin() . ' ID provozovny'))->setNullable();
+		}
+
+		if (!$shops) {
+			$shopContainer = $shopsContainer->addContainer('default');
+
+			$shopContainer->addText($this::ZBOZI_API_KEY, Html::fromHtml('API klíč'))->setNullable();
+			$shopContainer->addText($this::ZBOZI_STORE_ID, Html::fromHtml('ID provozovny'))->setNullable();
+		}
 
 		$form->addSubmit('submit', 'Uložit');
 
 		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
+			$values = $form->getValuesWithAjax();
 
-			foreach ($values as $key => $value) {
-				$this->settingsRepo->syncOne([
-					'name' => $key,
-					'value' => $value,
-					'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
-				]);
-			}
+			$this->saveSettings($values);
 
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$form->processRedirect('zbozi');
@@ -323,20 +340,28 @@ class IntegrationPresenter extends BackendPresenter
 	public function createComponentHeurekaForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		$form->addText($this::HEUREKA_API_KEY, Html::fromHtml($this->shopIcon . ' API klíč'))->setNullable();
+
+		$shopsContainer = $form->addContainer('shops');
+		$shops = $this->shopsConfig->getAvailableShops();
+
+		foreach ($shops as $shop) {
+			$shopContainer = $shopsContainer->addContainer($shop->getPK());
+
+			$shopContainer->addText($this::HEUREKA_API_KEY, Html::fromHtml($shop->getIconImageFormAdmin() . ' API klíč'))->setNullable();
+		}
+
+		if (!$shops) {
+			$shopContainer = $shopsContainer->addContainer('default');
+
+			$shopContainer->addText($this::HEUREKA_API_KEY, Html::fromHtml('API klíč'))->setNullable();
+		}
 		
 		$form->addSubmit('submit', 'Uložit');
 		
 		$form->onSuccess[] = function (AdminForm $form): void {
-			$values = $form->getValues('array');
-			
-			foreach ($values as $key => $value) {
-				$this->settingsRepo->syncOne([
-					'name' => $key,
-					'value' => $value,
-					'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
-				]);
-			}
+			$values = $form->getValuesWithAjax();
+
+			$this->saveSettings($values);
 			
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$form->processRedirect('heureka');
@@ -408,7 +433,7 @@ class IntegrationPresenter extends BackendPresenter
 			$this->template->displayButtons = [
 				'<a href="' . $this->link('syncZasilkovnaPoints!') .
 				'" onclick="return confirm(\'Opravdu? Tato operace může trvat až 5 minut.\')">
-					<button class="btn btn-sm btn-outline-primary"><i class="fa fa-sync"></i>  Synchronizovat výdejní místa</button></a>',
+                    <button class="btn btn-sm btn-outline-primary"><i class="fa fa-sync"></i>  Synchronizovat výdejní místa</button></a>',
 				$this->createButtonWithClass('syncZasilkovnaOrders!', '<i class="fa fa-sync"></i>  Synchronizovat objednávky', 'btn btn-sm btn-outline-primary'),
 			];
 		}
@@ -476,5 +501,34 @@ class IntegrationPresenter extends BackendPresenter
 		}
 		
 		$this->redirect('this');
+	}
+
+	private function setFormDefaults(Form $form): void
+	{
+		$values = $this->settingsRepo->many();
+		$defaults = [];
+
+		foreach ($values as $value) {
+			$defaults['shops'][$value->shop?->getPK() ?? 'default'][$value->name] = $value->value;
+		}
+
+		$form->setDefaults($defaults);
+	}
+
+	/**
+	 * @param array{shops: array<string|int, array<string, string>>} $values
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	private function saveSettings(array $values): void
+	{
+		foreach ($values['shops'] as $shop => $shopValues) {
+			foreach ($shopValues as $key => $value) {
+				$this->settingsRepo->syncOne([
+					'name' => $key,
+					'value' => $value,
+					'shop' => $shop === 'default' ? null : $shop,
+				], ignore: false);
+			}
+		}
 	}
 }
