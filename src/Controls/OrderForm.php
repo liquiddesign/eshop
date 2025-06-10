@@ -11,7 +11,7 @@ use Tracy\Debugger;
 use Tracy\ILogger;
 
 /**
- * @method onBuyError(int $code)
+ * @method onBuyError(int $code, \Eshop\BuyException $e)
  */
 class OrderForm extends \Nette\Application\UI\Form
 {
@@ -20,12 +20,18 @@ class OrderForm extends \Nette\Application\UI\Form
 	 */
 	public array $onBuyError = [];
 
+	/**
+	 * @var null|callable(\Eshop\DB\Order $order): void
+	 */
+	public $afterOrderCreated = null;
+
 	public function __construct(protected readonly ShopperUser $shopperUser)
 	{
 		parent::__construct();
 
-		$this->addTextArea('deliveryNote');
+		$this->addTextArea('deliveryNote')->setNullable();
 		$this->addSubmit('submit');
+		$this->addSubmit('offerSubmit');
 		$this->onSuccess[] = [$this, 'success'];
 		$this->onValidate[] = [$this, 'validateOrder'];
 	}
@@ -37,18 +43,38 @@ class OrderForm extends \Nette\Application\UI\Form
 		}
 	}
 
+	public function afterBuyError(BuyException $e): void
+	{
+		unset($e);
+	}
+
 	public function success(Form $form): void
 	{
 		try {
 			$this->shopperUser->getCheckoutManager()->syncPurchase($form->getValues());
 		} catch (\Throwable $e) {
-			Debugger::log('Cant sync purchase!', ILogger::WARNING);
+			Debugger::log($e, ILogger::EXCEPTION);
+
+			return;
 		}
 
+		/** @var \Nette\Forms\Controls\SubmitButton $submitter */
+		$submitter = $form->isSubmitted();
+
 		try {
-			$this->shopperUser->getCheckoutManager()->createOrder();
+			$order = $this->shopperUser->getCheckoutManager()->createOrder(createOffer: $submitter->getName() === 'offerSubmit');
 		} catch (BuyException $exception) {
-			$this->onBuyError($exception->getCode());
+			$this->onBuyError($exception->getCode(), $exception);
+
+			$this->afterBuyError($exception);
+
+			return;
 		}
+
+		if ($this->afterOrderCreated) {
+			\call_user_func($this->afterOrderCreated, $order);
+		}
+
+		return;
 	}
 }

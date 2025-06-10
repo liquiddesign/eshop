@@ -427,28 +427,36 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		return null;
 	}
 
+	/**
+	 * @param string $state
+	 * @return \StORM\Collection<\Eshop\DB\Order>
+	 */
 	public function getCollectionByState(string $state): Collection
 	{
+		$collection = $this->many()
+			->join(['offer' => 'eshop_offer'], 'offer.fk_offer = this.uuid')
+			->where('offer.uuid IS NULL OR (offer.completedTs IS NOT NULL AND offer.canceledTs IS NULL)');
+
 		if ($state === Order::STATE_OPEN) {
-			return $this->many()->where('this.receivedTs IS NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
+			return $collection->where('this.receivedTs IS NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
 				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
 				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
 
 		if ($state === Order::STATE_RECEIVED) {
-			return $this->many()->where('this.receivedTs IS NOT NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
+			return $collection->where('this.receivedTs IS NOT NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
 				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
 				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
 
 		if ($state === Order::STATE_COMPLETED) {
-			return $this->many()->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
+			return $collection->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
 				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
 				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}
 
 		if ($state === Order::STATE_CANCELED) {
-			return $this->many()->where('this.canceledTs IS NOT NULL')
+			return $collection->where('this.canceledTs IS NOT NULL')
 				->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
 				->join(['customer' => 'eshop_customer'], 'purchase.fk_customer = customer.uuid');
 		}

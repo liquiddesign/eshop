@@ -4,6 +4,7 @@ namespace Eshop;
 
 use Base\ShopsConfig;
 use Carbon\Carbon;
+use Eshop\Actions\Offer\StateOperations\CreateOffer;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Common\CheckInvalidAmount;
 use Eshop\Common\IncorrectItemReason;
@@ -31,6 +32,7 @@ use Eshop\DB\DiscountCoupon;
 use Eshop\DB\DiscountCouponRepository;
 use Eshop\DB\LoyaltyProgramHistoryRepository;
 use Eshop\DB\NewsletterUserRepository;
+use Eshop\DB\Offer;
 use Eshop\DB\Order;
 use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
@@ -264,6 +266,7 @@ class CheckoutManager
 		protected readonly Nette\DI\Container $container,
 		protected readonly Integrations $integrations,
 		protected readonly AddressRepository $addressRepository,
+		protected readonly CreateOffer $createOffer,
 	) {
 	}
 	
@@ -1765,8 +1768,13 @@ class CheckoutManager
 	 * @throws \Eshop\BuyException
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function createOrder(?Purchase $purchase = null, array $defaultOrderValues = [], ?string $cartId = self::ACTIVE_CART_ID, bool $isLastOrder = true): Order
-	{
+	public function createOrder(
+		?Purchase $purchase = null,
+		array $defaultOrderValues = [],
+		?string $cartId = self::ACTIVE_CART_ID,
+		bool $isLastOrder = true,
+		bool $createOffer = false,
+	): Order {
 		/** @var \Eshop\DB\VatRateRepository $vatRepo */
 		$vatRepo = $this->cartItemRepository->getConnection()->findRepository(VatRate::class);
 
@@ -1790,7 +1798,7 @@ class CheckoutManager
 		$cart = $this->getCart($cartId);
 		$currency = $cart->currency;
 		
-		$this->stm->getLink()->beginTransaction();
+		$this->stm->beginTransaction();
 		
 		if ($customer) {
 			$purchase->update(['customerDiscountLevel' => $this->productRepository->getBestDiscountLevel($customer)]);
@@ -2129,15 +2137,21 @@ class CheckoutManager
 		
 		$this->refreshSumProperties($cartId);
 		
-		$this->stm->getLink()->commit();
+		$this->stm->commit();
 		
 		if ($purchase->email) {
 			$this->reviewRepository->createReviewsFromOrder($order);
 		}
-		
-		Arrays::invoke($this->onOrderCreate, $order);
 
-		$this->onOrderCreate($order);
+		if ($createOffer) {
+			$offer = $this->createOffer->execute($order);
+
+			$this->onOfferCreate($offer);
+		} else {
+			Arrays::invoke($this->onOrderCreate, $order);
+
+			$this->onOrderCreate($order);
+		}
 		
 		return $order;
 	}
@@ -2186,6 +2200,11 @@ class CheckoutManager
 		}
 
 		return $purchase->paymentType;
+	}
+
+	protected function onOfferCreate(Offer $offer): void
+	{
+		unset($offer);
 	}
 
 	protected function onOrderCreate(Order $order): void
