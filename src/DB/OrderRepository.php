@@ -434,7 +434,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	public function getCollectionByState(string $state): Collection
 	{
 		$collection = $this->many()
-			->join(['offer' => 'eshop_offer'], 'offer.fk_offer = this.uuid')
+			->join(['offer' => 'eshop_offer'], 'offer.fk_order = this.uuid')
 			->where('offer.uuid IS NULL OR (offer.completedTs IS NOT NULL AND offer.canceledTs IS NULL)');
 
 		if ($state === Order::STATE_OPEN) {
