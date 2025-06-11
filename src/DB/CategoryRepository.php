@@ -69,8 +69,8 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	/**
 	 * @param string|\Eshop\DB\Category $path
 	 * @param array<mixed> $filters
-	 * @param array<string, string>|array<string, \Eshop\DB\Pricelist> $priceLists
-	 * @param array<string, string>|array<string, \Eshop\DB\VisibilityList> $visibilityLists
+	 * @param array<string|int, \Eshop\DB\Pricelist> $priceLists
+	 * @param array<string|int, \Eshop\DB\VisibilityList> $visibilityLists
 	 * @throws \StORM\Exception\NotFoundException
 	 * @throws \Throwable
 	 */
