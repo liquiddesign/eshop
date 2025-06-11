@@ -7,6 +7,7 @@ namespace Eshop\Admin;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Carbon\Carbon;
+use Eshop\Actions\OrderEdit\ChangeCartItemPrice;
 use Eshop\Actions\PackageItem\CanTogglePackageItemDropShipping;
 use Eshop\Actions\PackageItem\TogglePackageItemDropShipping;
 use Eshop\Actions\Product\GetMergedProductsByProduct;
@@ -270,6 +271,9 @@ class OrderPresenter extends BackendPresenter
 	 * @persistent
 	 */
 	public ?string $tab = null;
+
+	#[Inject]
+	public ChangeCartItemPrice $changePackageItemPrice;
 
 	protected ?DPD $dpd = null;
 
@@ -1105,7 +1109,7 @@ class OrderPresenter extends BackendPresenter
 	public function createComponentDetailOrderItemForm(): Multiplier
 	{
 		return new Multiplier(function ($packageItemPK): AdminForm {
-			$packageItem = $this->packageItemRepository->one($packageItemPK, true);
+			$packageItem = $this->packageItemRepository->oneOrFail($packageItemPK);
 			$cartItemOld = $packageItem->cartItem;
 
 			$form = $this->formFactory->create();
@@ -1115,19 +1119,21 @@ class OrderPresenter extends BackendPresenter
 			$form->addTextArea('note', 'Poznámka')->setNullable()->setDefaultValue($cartItemOld->note);
 			$form->addGroup('Cena za kus');
 			$form->addText('price', 'Cena bez DPH')->addRule(Form::FLOAT)->setRequired()->setDefaultValue($cartItemOld->price);
-			$form->addText('priceVat', 'Cena s DPH')->addRule(Form::FLOAT)->setRequired()->setDefaultValue($cartItemOld->priceVat);
+			$form->addText('priceVat', 'Cena s DPH')->setDisabled()->setDefaultValue($cartItemOld->priceVat);
+			$form->addText('price', 'Cena bez DPH')->addRule(Form::FLOAT)->setRequired()->setDefaultValue($cartItemOld->price);
+			$form->addText('priceVat', 'Cena s DPH')->setDisabled()->setDefaultValue($cartItemOld->priceVat);
 			$form->addInteger('vatPct', 'DPH')->setRequired()->setDefaultValue($cartItemOld->vatPct);
 			$form->addSubmits(false, false);
 
 			$form->onSuccess[] = function (AdminForm $form) use ($packageItem, $cartItemOld): void {
-				$values = $form->getValues('array');
+				$values = $form->getValuesWithAjax();
 				unset($values['uuid']);
 
 				$this->orderEditService->changeItemAmount($packageItem, $cartItemOld, $values['amount']);
 
-				$cartItem = clone $cartItemOld;
+				$this->changePackageItemPrice->execute($cartItemOld, $values['price'], $values['vatPct']);
 
-				$cartItem->update($values);
+				$cartItem = clone $cartItemOld;
 
 				/** @var \Eshop\DB\Order|null $order */
 				$order = $this->getParameter('order');
