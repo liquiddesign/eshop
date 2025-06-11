@@ -258,7 +258,7 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 		$dataCacheIndex = \md5($dataCacheIndex);
 
 		if (isset($this->cachedCategoryCounts[$dataCacheIndex])) {
-			return $this->cachedCategoryCounts[$dataCacheIndex][$category->id] ?? null;
+			return $this->cachedCategoryCounts[$dataCacheIndex][$category->id] ?? 0;
 		}
 
 		$result = $this->getProductsFromCacheTable(
@@ -271,6 +271,6 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 
 		$this->cachedCategoryCounts[$dataCacheIndex] = $result['categoriesCounts'] ?? [];
 
-		return $this->cachedCategoryCounts[$dataCacheIndex][$category->id] ?? null;
+		return $this->cachedCategoryCounts[$dataCacheIndex][$category->id] ?? 0;
 	}
 }

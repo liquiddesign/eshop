@@ -122,7 +122,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 					visibilityLists: $visibilityLists,
 				);
 
-				if (!$result) {
+				if ($result === null) {
 					throw new \Exception('No results returned', 204);
 				}
 
