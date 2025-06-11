@@ -12,6 +12,8 @@ use Tracy\ILogger;
 
 /**
  * @method onBuyError(int $code, \Eshop\BuyException $e)
+ * @method afterBuyError(int $code, \Eshop\BuyException $e)
+ * @method afterOrderCreated(\Eshop\DB\Order $order)
  */
 class OrderForm extends \Nette\Application\UI\Form
 {
@@ -24,6 +26,11 @@ class OrderForm extends \Nette\Application\UI\Form
 	 * @var null|callable(\Eshop\DB\Order $order): void
 	 */
 	public $afterOrderCreated = null;
+
+	/**
+	 * @var null|callable(int $code, \Eshop\BuyException $e): void
+	 */
+	public $afterBuyError = null;
 
 	public function __construct(protected readonly ShopperUser $shopperUser)
 	{
@@ -41,11 +48,6 @@ class OrderForm extends \Nette\Application\UI\Form
 		if (!$this->shopperUser->getCheckoutManager()->checkOrder()) {
 			$this->addError('Objednávku nelze odeslat');
 		}
-	}
-
-	public function afterBuyError(BuyException $e): void
-	{
-		unset($e);
 	}
 
 	public function success(Form $form): void
@@ -66,7 +68,9 @@ class OrderForm extends \Nette\Application\UI\Form
 		} catch (BuyException $exception) {
 			$this->onBuyError($exception->getCode(), $exception);
 
-			$this->afterBuyError($exception);
+			if ($this->afterBuyError) {
+				\call_user_func($this->afterBuyError, $exception->getCode(), $exception);
+			}
 
 			return;
 		}
