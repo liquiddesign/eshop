@@ -329,11 +329,6 @@ class ProductsCacheGetterService implements AutoWireService
 			'masterProduct' => 'this.masterProduct',
 		]);
 
-		if ($countCategories) {
-			$productsCollection->join(['category' => $categoriesTableName], 'this.product = category.product', type: 'INNER');
-			$productsCollection->select(['categories' => 'GROUP_CONCAT(category.category)']);
-		}
-
 		/** @var array<int, \Eshop\DB\Attribute> $allAttributes */
 		$allAttributes = [];
 		$dynamicFiltersAttributes = [];
@@ -479,6 +474,23 @@ class ProductsCacheGetterService implements AutoWireService
 		$producersCounts = [];
 		$attributeValuesCounts = [];
 		$categoriesCounts = [];
+		$descendantCategoriesMap = [];
+
+		if ($countCategories) {
+			$productsCollection->join(['category' => $categoriesTableName], 'this.product = category.product', type: 'INNER');
+			$productsCollection->select(['categories' => 'GROUP_CONCAT(category.category)']);
+
+			/** @var array<\Eshop\DB\Category> $allCategories */
+			$allCategories = $this->categoryRepository->many()
+				->select(['this.id',])
+				->setIndex('id')
+				->toArray();
+
+			$categoriesIdUuidMap = $this->categoryRepository->many()
+				->setSelect(['this.id', 'this.uuid'])
+				->setIndex('uuid')
+				->toArrayOf('id');
+		}
 
 		if ($this->debug) {
 			DevelTools::bdumpCollection($productsCollection);
@@ -694,8 +706,32 @@ class ProductsCacheGetterService implements AutoWireService
 			if ($countCategories && $product->categories) {
 				$categories = \explode(',', $product->categories);
 
-				foreach ($categories as $category) {
-					$categoriesCounts[$category] = ($categoriesCounts[$category] ?? 0) + 1;
+				foreach ($categories as $currentCategoryId) {
+					$categoriesCounts[$currentCategoryId] = ($categoriesCounts[$currentCategoryId] ?? 0) + 1;
+
+					$categoryEntity = $allCategories[$currentCategoryId];
+
+					$descendantCategoriesMap[$categoryEntity->getPK()] ??= $categoryEntity->getDescendants()
+						->setSelect(['id'], keepIndex: true)
+						->where('showProductsInAncestors', true)
+						->toArrayOf('id', toArrayValues: true);
+
+					foreach ($descendantCategoriesMap[$categoryEntity->getPK()] as $descendant) {
+						$categoriesCounts[$descendant] = ($categoriesCounts[$descendant] ?? 0) + 1;
+					}
+
+					// Najdi všechny předky v $allCategories a přičti je také
+					$currentCategory = $currentCategoryId;
+
+					while (isset($allCategories[$currentCategory]) && $allCategories[$currentCategory]->getValue('ancestor')) {
+						$ancestor = $allCategories[$categoriesIdUuidMap[$allCategories[$currentCategory]->getValue('ancestor')]];
+
+						if ($ancestor->showDescendantProducts) {
+							$categoriesCounts[$ancestor->id] = ($categoriesCounts[$ancestor->id] ?? 0) + 1;
+						}
+
+						$currentCategory = $categoriesIdUuidMap[$allCategories[$currentCategory]->getValue('ancestor')];
+					}
 				}
 			}
 
