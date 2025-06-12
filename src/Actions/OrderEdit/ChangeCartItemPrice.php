@@ -13,7 +13,7 @@ class ChangeCartItemPrice extends \Base\BaseAction
 	{
 	}
 
-	public function execute(CartItem $cartItem, float $price, int $vatPct, float|null $priceBefore = null,): CartItem
+	public function execute(CartItem $cartItem, float $price, float $vatPct, float|null $priceBefore = null,): CartItem
 	{
 		$priceVat = $price * (100 + $vatPct) / 100;
 
