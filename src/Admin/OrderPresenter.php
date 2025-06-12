@@ -1109,19 +1109,20 @@ class OrderPresenter extends BackendPresenter
 	public function createComponentDetailOrderItemForm(): Multiplier
 	{
 		return new Multiplier(function ($packageItemPK): AdminForm {
+			/** @var \Eshop\DB\PackageItem $packageItem */
 			$packageItem = $this->packageItemRepository->oneOrFail($packageItemPK);
 			$cartItemOld = $packageItem->cartItem;
 
 			$form = $this->formFactory->create();
-			$form->getCurrentGroup()->setOption('label', 'Nákup');
+			$form->getCurrentGroup()?->setOption('label', 'Nákup');
 			$form->addInteger('amount', 'Množství')->setRequired()->setDefaultValue($cartItemOld->amount);
 
 			$form->addTextArea('note', 'Poznámka')->setNullable()->setDefaultValue($cartItemOld->note);
 			$form->addGroup('Cena za kus');
-			$form->addText('price', 'Cena bez DPH')->addRule(Form::FLOAT)->setRequired()->setDefaultValue($cartItemOld->price);
+			$form->addText('price', 'Cena bez DPH')->addRule(Form::Float)->setRequired()->setDefaultValue($cartItemOld->price);
 			$form->addText('priceVat', 'Cena s DPH')->setDisabled()->setDefaultValue($cartItemOld->priceVat);
-			$form->addText('price', 'Cena bez DPH')->addRule(Form::FLOAT)->setRequired()->setDefaultValue($cartItemOld->price);
-			$form->addText('priceVat', 'Cena s DPH')->setDisabled()->setDefaultValue($cartItemOld->priceVat);
+			$form->addText('priceBefore', 'Cena bez DPH před slevou')->addRule(Form::Float)->setRequired()->setDefaultValue($cartItemOld->priceBefore);
+			$form->addText('priceVatBefore', 'Cena s DPH před slevou')->setDisabled()->setDefaultValue($cartItemOld->priceVatBefore);
 			$form->addInteger('vatPct', 'DPH')->setRequired()->setDefaultValue($cartItemOld->vatPct);
 			$form->addSubmits(false, false);
 
@@ -1131,7 +1132,7 @@ class OrderPresenter extends BackendPresenter
 
 				$this->orderEditService->changeItemAmount($packageItem, $cartItemOld, $values['amount']);
 
-				$this->changePackageItemPrice->execute($cartItemOld, $values['price'], $values['vatPct']);
+				$this->changePackageItemPrice->execute($cartItemOld, $values['price'], $values['vatPct'], $values['priceBefore']);
 
 				$cartItem = clone $cartItemOld;
 
