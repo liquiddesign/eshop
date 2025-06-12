@@ -359,13 +359,15 @@ class ShopperUser extends User
 
 		if (!$customer && $merchant) {
 			$visibilityLists = $merchant->getVisibilityLists();
+
+			$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists, $merchant->shop);
 		} else {
 			$visibilityLists = $customer ? $customer->getVisibilityLists() : $this->getCustomerGroup()->getDefaultVisibilityLists();
+
+			$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists, $customer->shop ?? $this->getCustomerGroup()->shop ?? []);
 		}
 
 		$visibilityLists->select(['this.id'])->where('this.hidden', false)->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
-
-		$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists);
 
 		return $this->visibilityLists = $visibilityLists->toArray();
 	}
