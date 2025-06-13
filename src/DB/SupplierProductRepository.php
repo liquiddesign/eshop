@@ -100,7 +100,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$vatLevelsByName = $this->shopperUser->getVatRates();
 
 		foreach ($drafts as $draft) {
-			if (\abs($draft->vatRate - $vatLevelsByName[$draft->productVatRate]) > \PHP_FLOAT_EPSILON) {
+			if ($draft->productVatRate === 'zero' && \abs($draft->vatRate - $vatLevelsByName[$draft->productVatRate]) > \PHP_FLOAT_EPSILON) {
 				$productRepository->many()->where('this.uuid', $draft->product)->update([
 					'vatRate' => $vatLevels[(int) $draft->vatRate] ?? 'standard',
 				]);
