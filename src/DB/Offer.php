@@ -11,6 +11,11 @@ use StORM\Entity;
  */
 class Offer extends Entity
 {
+	public const STATE_OPEN = 'open';
+	public const STATE_RECEIVED = 'received';
+	public const STATE_COMPLETED = 'finished';
+	public const STATE_CANCELED = 'canceled';
+
 	/**
 	 * @column
 	 */
@@ -52,4 +57,17 @@ class Offer extends Entity
 	 * @relation
 	 */
 	public Order $order;
+
+	/**
+	 * @return array<string>
+	 */
+	public static function getAvailableStates(): array
+	{
+		return [
+			self::STATE_OPEN,
+			self::STATE_CANCELED,
+			self::STATE_COMPLETED,
+			self::STATE_RECEIVED,
+		];
+	}
 }

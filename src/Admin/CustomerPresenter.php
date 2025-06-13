@@ -590,6 +590,8 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		]);
 		
 		$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values, array $oldValues) use ($permission, $form): void {
+			$this->modifyPermissions($values);
+
 			if ($permission) {
 				$permission->update($values['permission']);
 			} else {
@@ -632,6 +634,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		}
 		
 		$this->accountFormFactory->onCreateAccount[] = function (Account $account, array $values) use ($form): void {
+			$this->modifyPermissions($values);
 			$this->catalogPermissionRepo->createOne($values['permission'] + ['account' => $account]);
 			
 			/** @var bool $newsletter */
@@ -1162,7 +1165,14 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				}
 			}
 
-			$catalogInput = $container->addSelect('catalogPermission', 'Zobrazení', ShopperUser::PERMISSIONS)->setDefaultValue('price');
+			$shopperPermissions = [
+				null => '',
+				...ShopperUser::PERMISSIONS,
+			];
+
+			$catalogInput = $container
+				->addSelect('catalogPermission', 'Zobrazení', $shopperPermissions)
+				->setDefaultValue('price');
 			
 			$catalogInput->addCondition($form::Equal, 'price')
 				->toggle('frm-accountForm-permission-showPricesWithoutVat-toogle')
@@ -1170,15 +1180,24 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			
 			if (isset($this::CONFIGURATIONS['prices']) && $this::CONFIGURATIONS['prices']) {
 				if ($this->shopperUser->getShowWithoutVat()) {
-					$withoutVatInput = $container->addCheckbox('showPricesWithoutVat', 'Zobrazit ceny bez daně');
+					$withoutVatInput = $container->addSelect('showPricesWithoutVat', 'Zobrazit ceny bez daně', [
+						null => '',
+						true => 'Ano',
+						false => 'Ne',
+					]);
 				}
 				
 				if ($this->shopperUser->getShowVat()) {
-					$withVatInput = $container->addCheckbox('showPricesWithVat', 'Zobrazit ceny s daní');
+					$withVatInput = $container->addSelect('showPricesWithVat', 'Zobrazit ceny s daní', [
+						null => '',
+						true => 'Ano',
+						false => 'Ne',
+					]);
 				}
 				
 				if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
 					$container->addSelect('priorityPrice', 'Prioritní cena', [
+						null => '',
 						'withoutVat' => 'Bez daně',
 						'withVat' => 'S daní',
 					])->addConditionOn($catalogInput, $form::Equal, 'price')
@@ -1188,8 +1207,21 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				}
 			}
 			
-			$container->addCheckbox('buyAllowed', 'Povolit nákup')->setDefaultValue(true);
-			$container->addCheckbox('viewAllOrders', 'Zobrazit všechny objednávky zákazníka')->setDefaultValue(false);
+			$container
+				->addSelect('buyAllowed', 'Povolit nákup', [
+					null => '',
+					true => 'Ano',
+					false => 'Ne',
+				])
+				->setDefaultValue(true);
+
+			$container
+				->addSelect('viewAllOrders', 'Zobrazit všechny objednávky zákazníka', [
+					null => '',
+					true => 'Ano',
+					false => 'Ne',
+				])
+				->setDefaultValue(false);
 			
 			$container = $form->addContainer('newsletter');
 			
@@ -1787,5 +1819,29 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 	protected function addCustomFieldsToAccountGrid(AdminGrid $grid): void
 	{
 		unset($grid);
+	}
+
+	private function modifyPermissions(array &$values): void
+	{
+		// Transform 3 value selects into boolean
+		$values['permission'] = Arrays::map($values['permission'], function ($value, $key) {
+			if (Arrays::contains(['showPricesWithoutVat', 'showPricesWithVat', 'buyAllowed', 'viewAllOrders'], $key) === false) {
+				return $value === '' ? null : $value;
+			}
+
+			return $value === '' ? null : (bool) $value;
+		});
+
+		// Reflect logic on hidden fields by selected options
+		if ($values['permission']['catalogPermission'] !== 'price') {
+			$values['permission']['showPricesWithoutVat'] = null;
+			$values['permission']['showPricesWithVat'] = null;
+		}
+
+		if ($values['permission']['showPricesWithoutVat'] === true && $values['permission']['showPricesWithVat'] === true) {
+			return;
+		}
+
+		$values['permission']['priorityPrice'] = null;
 	}
 }
