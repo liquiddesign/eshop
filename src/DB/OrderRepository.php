@@ -1144,21 +1144,27 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			$items[$cartItem->getPK()]['supplierCode'] = $cartItem->getProduct()?->supplierCode;
 			$items[$cartItem->getPK()]['ean'] = $cartItem->getProduct()?->getEan();
 			$items[$cartItem->getPK()]['externalCode'] = $cartItem->getProduct()?->externalCode;
-			$items[$cartItem->getPK()]['totalPrice'] = $cartItem->getPriceSum();
-			$items[$cartItem->getPK()]['totalPriceVat'] = $cartItem->getPriceVatSum();
 
 			if ($currentContextCatalogPermissions->catalogPermission !== 'price') {
 				continue;
 			}
 
+			$items[$cartItem->getPK()]['price'] = $currentContextCatalogPermissions->showPricesWithoutVat ? $cartItem->price : null;
+			$items[$cartItem->getPK()]['priceVat'] = $currentContextCatalogPermissions->showPricesWithVat ? $cartItem->priceVat : null;
+			$items[$cartItem->getPK()]['totalPrice'] = $currentContextCatalogPermissions->showPricesWithoutVat ? $cartItem->getPriceSum() : null;
+			$items[$cartItem->getPK()]['totalPriceVat'] = $currentContextCatalogPermissions->showPricesWithVat ? $cartItem->getPriceVatSum() : null;
+
 			if ($currentContextCatalogPermissions->showPricesWithVat && $currentContextCatalogPermissions->showPricesWithoutVat) {
+				$items[$cartItem->getPK()]['pricePref'] = $currentContextCatalogPermissions->priorityPrice === 'withVat' ? $cartItem->priceVat : $cartItem->price;
 				$items[$cartItem->getPK()]['totalPricePref'] = $currentContextCatalogPermissions->priorityPrice === 'withVat' ? $cartItem->getPriceVatSum() : $cartItem->getPriceSum();
 			} else {
 				if ($currentContextCatalogPermissions->showPricesWithVat) {
+					$items[$cartItem->getPK()]['pricePref'] = $cartItem->priceVat;
 					$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceVatSum();
 				}
 
 				if ($currentContextCatalogPermissions->showPricesWithoutVat) {
+					$items[$cartItem->getPK()]['pricePref'] = $cartItem->price;
 					$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceSum();
 				}
 			}
@@ -1193,12 +1199,12 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'billName' => $purchase->fullname,
 			'billingAddress' => $purchase->billAddress ? $purchase->billAddress->jsonSerialize() : [],
 			'deliveryAddress' => $purchase->deliveryAddress ? $purchase->deliveryAddress->jsonSerialize() : ($purchase->billAddress ? $purchase->billAddress->jsonSerialize() : []),
-			'totalPrice' => $currentContextCatalogPermissions->catalogPermission === 'price' ? $order->getTotalPrice() : null,
-			'totalPriceVat' => $currentContextCatalogPermissions->catalogPermission === 'price' ? $order->getTotalPriceVat() : null,
+			'totalPrice' => $currentContextCatalogPermissions->showPricesWithoutVat ? $order->getTotalPrice() : null,
+			'totalPriceVat' => $currentContextCatalogPermissions->showPricesWithVat ? $order->getTotalPriceVat() : null,
 			'currency' => $order->purchase->currency,
 			'discountCoupon' => $order->getDiscountCoupon(),
-			'discountPrice' => $order->getDiscountPrice(),
-			'discountPriceVat' => $order->getDiscountPriceVat(),
+			'discountPrice' => $currentContextCatalogPermissions->showPricesWithoutVat ? $order->getDiscountPrice() : null,
+			'discountPriceVat' => $currentContextCatalogPermissions->showPricesWithVat ? $order->getDiscountPriceVat() : null,
 			'order' => $order,
 			'withVat' => false,
 			'withoutVat' => false,
@@ -1215,13 +1221,14 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;
 					$values['paymentPricePref'] = $order->payments->firstValue('priceVat');
 					$values['totalPricePref'] = $order->getTotalPriceVat();
-					$values['withVat'] = true;
 				} else {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPrice;
 					$values['paymentPricePref'] = $order->payments->firstValue('price');
 					$values['totalPricePref'] = $order->getTotalPrice();
-					$values['withoutVat'] = true;
 				}
+
+				$values['withVat'] = true;
+				$values['withoutVat'] = true;
 			} else {
 				if ($currentContextCatalogPermissions->showPricesWithVat) {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;

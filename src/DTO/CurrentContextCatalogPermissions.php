@@ -23,7 +23,7 @@ class CurrentContextCatalogPermissions
 
 	public bool $showPricesWithVat;
 
-	public string $priorityPrice;
+	public string|null $priorityPrice;
 
 	public string $additionalEmailText;
 
@@ -40,7 +40,7 @@ class CurrentContextCatalogPermissions
 		bool $viewAllOrders,
 		bool $showPricesWithoutVat,
 		bool $showPricesWithVat,
-		string $priorityPrice,
+		string|null $priorityPrice,
 		string $additionalEmailText,
 		private readonly string|null $displayedTransactionEmailBlocks,
 		/** @var array<string> */
