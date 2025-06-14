@@ -1166,7 +1166,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			}
 
 			$shopperPermissions = [
-				null => '',
+				null => '↑ Převzít od zákazníka ↑',
 				...ShopperUser::PERMISSIONS,
 			];
 
@@ -1181,7 +1181,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			if (isset($this::CONFIGURATIONS['prices']) && $this::CONFIGURATIONS['prices']) {
 				if ($this->shopperUser->getShowWithoutVat()) {
 					$withoutVatInput = $container->addSelect('showPricesWithoutVat', 'Zobrazit ceny bez daně', [
-						null => '',
+						null => '↑ Převzít od zákazníka ↑',
 						true => 'Ano',
 						false => 'Ne',
 					]);
@@ -1189,7 +1189,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				
 				if ($this->shopperUser->getShowVat()) {
 					$withVatInput = $container->addSelect('showPricesWithVat', 'Zobrazit ceny s daní', [
-						null => '',
+						null => '↑ Převzít od zákazníka ↑',
 						true => 'Ano',
 						false => 'Ne',
 					]);
@@ -1197,7 +1197,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				
 				if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
 					$container->addSelect('priorityPrice', 'Prioritní cena', [
-						null => '',
+						null => '↑ Převzít od zákazníka ↑',
 						'withoutVat' => 'Bez daně',
 						'withVat' => 'S daní',
 					])->addConditionOn($catalogInput, $form::Equal, 'price')
@@ -1209,7 +1209,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			
 			$container
 				->addSelect('buyAllowed', 'Povolit nákup', [
-					null => '',
+					null => '↑ Převzít od zákazníka ↑',
 					true => 'Ano',
 					false => 'Ne',
 				])
@@ -1217,7 +1217,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 			$container
 				->addSelect('viewAllOrders', 'Zobrazit všechny objednávky zákazníka', [
-					null => '',
+					null => '↑ Převzít od zákazníka ↑',
 					true => 'Ano',
 					false => 'Ne',
 				])
