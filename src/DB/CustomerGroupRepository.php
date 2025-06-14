@@ -34,13 +34,13 @@ class CustomerGroupRepository extends Repository implements IGeneralRepository, 
 		parent::__construct($connection, $schemaManager);
 	}
 
-	public function getUnregisteredGroup(): CustomerGroup
+	public function getUnregisteredGroup(Shop|null $shop = null): CustomerGroup
 	{
 		if ($this->unregisteredGroup !== false) {
 			return $this->unregisteredGroup;
 		}
 
-		$defaultGroupSetting = $this->settingRepository->getValueByNameWithShop(SettingsPresenter::DEFAULT_UNREGISTERED_GROUP);
+		$defaultGroupSetting = $this->settingRepository->getValueByNameWithShop(SettingsPresenter::DEFAULT_UNREGISTERED_GROUP, $shop?->getPK());
 
 		if (!$defaultGroupSetting) {
 			$defaultGroupSetting = $this::UNREGISTERED_PK;
