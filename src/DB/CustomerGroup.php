@@ -96,6 +96,17 @@ class CustomerGroup extends ShopSystemicEntity
 	public bool $autoActiveCustomers = true;
 
 	/**
+	 * Dodatečný text promítnutý do emailu
+	 * @column{"type":"text"}
+	 */
+	public string $defaultAdditionalEmailText = '';
+
+	/**
+	 * @column {"type":"text"}
+	 */
+	public ?string $defaultDisplayedTransactionEmailBlocks = null;
+
+	/**
 	 * Systémová
 	 * @column
 	 * @deprecated Use SystemicEntity

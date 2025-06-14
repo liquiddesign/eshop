@@ -38,6 +38,7 @@ class OfferRepository extends Repository
 				->where('canceledTs IS NULL'),
 			Offer::STATE_CANCELED => $this->many()
 				->where('canceledTs IS NOT NULL'),
+			default => throw new \InvalidArgumentException("No such state available for offers: $state"),
 		};
 	}
 }

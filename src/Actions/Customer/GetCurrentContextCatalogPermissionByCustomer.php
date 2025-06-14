@@ -3,32 +3,35 @@
 namespace Eshop\Actions\Customer;
 
 use Base\BaseAction;
+use Base\DB\Shop;
 use Eshop\DB\Customer;
+use Eshop\DB\CustomerGroupRepository;
 use Eshop\DTO\CurrentContextCatalogPermissions;
 use Eshop\Services\TemplateNamesService;
 
 class GetCurrentContextCatalogPermissionByCustomer extends BaseAction
 {
-	public function __construct(private readonly TemplateNamesService $templateNamesService)
+	public function __construct(private readonly TemplateNamesService $templateNamesService, private readonly CustomerGroupRepository $customerGroupRepository)
 	{
 	}
 
-	public function execute(Customer $customer): CurrentContextCatalogPermissions
+	public function execute(Customer|null $customer, Shop|null $shop = null): CurrentContextCatalogPermissions
 	{
-		return $this->getLocalCachedOutput($customer->getPK(), function () use ($customer) {
-			$prefilledCatalogPermission = $customer->getCatalogPermission();
+		return $this->getLocalCachedOutput($customer?->getPK() . '_' . $shop?->getPK(), function () use ($customer, $shop) {
+			$defaultGroup = $this->customerGroupRepository->getUnregisteredGroup($shop);
+			$prefilledCatalogPermission = $customer?->getCatalogPermission();
 
-			$catalogPermission = $prefilledCatalogPermission->catalogPermission ?? $customer->catalogPermissionSetting;
+			$catalogPermission = $prefilledCatalogPermission->catalogPermission ?? $customer->catalogPermissionSetting ?? $defaultGroup->defaultCatalogPermission ?? 'price';
 			$showPricesWithoutVat = false;
 			$showPricesWithVat = false;
 			$priorityPrice = null;
 
 			if ($catalogPermission === 'price') {
-				$showPricesWithoutVat = $prefilledCatalogPermission->showPricesWithoutVat ?? $customer->showPricesWithoutVat;
-				$showPricesWithVat = $prefilledCatalogPermission->showPricesWithVat ?? $customer->showPricesWithVat;
+				$showPricesWithoutVat = $prefilledCatalogPermission->showPricesWithoutVat ?? $customer->showPricesWithoutVat ?? $defaultGroup->defaultPricesWithoutVat ?? false;
+				$showPricesWithVat = $prefilledCatalogPermission->showPricesWithVat ?? $customer->showPricesWithVat ?? $defaultGroup->defaultPricesWithVat ?? false;
 
 				if ($showPricesWithoutVat && $showPricesWithVat) {
-					$priorityPrice = $prefilledCatalogPermission->priorityPrice ?? $customer->priorityPrice;
+					$priorityPrice = $prefilledCatalogPermission->priorityPrice ?? $customer->priorityPrice ?? $defaultGroup->defaultPriorityPrice ?? 'withoutVat';
 				} else {
 					if ($showPricesWithVat) {
 						$priorityPrice = 'withVat';
@@ -41,17 +44,15 @@ class GetCurrentContextCatalogPermissionByCustomer extends BaseAction
 			}
 
 			return new CurrentContextCatalogPermissions(
-				$customer,
-				$customer->account,
 				$catalogPermission,
-				$prefilledCatalogPermission->buyAllowed ?? $customer->buyAllowed,
-				$prefilledCatalogPermission->orderAllowed ?? $customer->orderAllowed,
-				$prefilledCatalogPermission->viewAllOrders ?? $customer->viewAllOrders,
+				$prefilledCatalogPermission->buyAllowed ?? $customer->buyAllowed ?? $defaultGroup->defaultBuyAllowed ?? true,
+				$prefilledCatalogPermission->orderAllowed ?? $customer->orderAllowed ?? true,
+				$prefilledCatalogPermission->viewAllOrders ?? $customer->viewAllOrders ?? $defaultGroup->defaultViewAllOrders ?? false,
 				$showPricesWithoutVat,
 				$showPricesWithVat,
 				$priorityPrice,
-				$prefilledCatalogPermission->additionalEmailText ?? $customer->additionalEmailText,
-				$prefilledCatalogPermission?->displayedTransactionEmailBlocks,
+				$prefilledCatalogPermission->additionalEmailText ?? $customer->additionalEmailText ?? $defaultGroup->defaultAdditionalEmailText ?? '',
+				[$prefilledCatalogPermission?->displayedTransactionEmailBlocks, $customer?->displayedTransactionEmailBlocks, $defaultGroup->defaultDisplayedTransactionEmailBlocks],
 				$this->templateNamesService->getOrderEmailBlocks(),
 			);
 		});

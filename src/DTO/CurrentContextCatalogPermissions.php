@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DTO;
 
-use Eshop\DB\Customer;
-use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
-use Security\DB\Account;
 
 class CurrentContextCatalogPermissions
 {
@@ -27,13 +24,7 @@ class CurrentContextCatalogPermissions
 
 	public string $additionalEmailText;
 
-	private Customer $customer;
-
-	private ?Account $account;
-
 	public function __construct(
-		Customer $customer,
-		?Account $account,
 		string $catalogPermission,
 		bool $buyAllowed,
 		bool $orderAllowed,
@@ -42,7 +33,8 @@ class CurrentContextCatalogPermissions
 		bool $showPricesWithVat,
 		string|null $priorityPrice,
 		string $additionalEmailText,
-		private readonly string|null $displayedTransactionEmailBlocks,
+		/** @var array{0: string|null, 1: string|null, 2: string|null} */
+		private readonly array $displayedTransactionEmailBlocks,
 		/** @var array<string> */
 		private readonly array $emailBlocks,
 	) {
@@ -54,18 +46,6 @@ class CurrentContextCatalogPermissions
 		$this->showPricesWithVat = $showPricesWithVat;
 		$this->priorityPrice = $priorityPrice;
 		$this->additionalEmailText = $additionalEmailText;
-		$this->customer = $customer;
-		$this->account = $account;
-	}
-
-	public function getCustomer(): Customer
-	{
-		return $this->customer;
-	}
-
-	public function getAccount(): ?Account
-	{
-		return $this->account;
 	}
 
 	/**
@@ -73,30 +53,34 @@ class CurrentContextCatalogPermissions
 	 */
 	public function getDisplayedTransactionEmailBlocks(): array
 	{
-		$displayedTransactionEmailBlocksDataDefault = $this->displayedTransactionEmailBlocks ?
-			Strings::split($this->displayedTransactionEmailBlocks, '/;/', skipEmpty: true) :
-			[];
+		$allEmailBlocks = [];
 
-		foreach ($displayedTransactionEmailBlocksDataDefault as $key => $value) {
-			$exploded = \explode(':', $value);
-
-			unset($displayedTransactionEmailBlocksDataDefault[$key]);
-
-			if (\count($exploded) !== 2) {
+		foreach ($this->displayedTransactionEmailBlocks as $displayedTransactionEmailBlock) {
+			if (!$displayedTransactionEmailBlock) {
 				continue;
 			}
 
-			$displayedTransactionEmailBlocksDataDefault[$exploded[0]] = $exploded[1] === '1';
-		}
+			$currentEmailBlocksSetting = Strings::split($displayedTransactionEmailBlock, '/;/', skipEmpty: true);
 
-		$customerDisplayBlocks = $this->getCustomer()->displayedTransactionEmailBlocks ? \explode(';', $this->getCustomer()->displayedTransactionEmailBlocks) : [];
+			foreach ($currentEmailBlocksSetting as $key => $value) {
+				$exploded = \explode(':', $value);
 
-		foreach ($this->emailBlocks as $emailBlock) {
-			if (!isset($displayedTransactionEmailBlocksDataDefault[$emailBlock])) {
-				$displayedTransactionEmailBlocksDataDefault[$emailBlock] = Arrays::contains($customerDisplayBlocks, $emailBlock);
+				unset($currentEmailBlocksSetting[$key]);
+
+				if (\count($exploded) !== 2) {
+					continue;
+				}
+
+				$currentEmailBlocksSetting[$exploded[0]] = $exploded[1] === '1';
+			}
+
+			foreach (\array_keys($this->emailBlocks) as $emailBlockKey) {
+				if (!isset($allEmailBlocks[$emailBlockKey]) && isset($currentEmailBlocksSetting[$emailBlockKey])) {
+					$allEmailBlocks[$emailBlockKey] = $currentEmailBlocksSetting[$emailBlockKey];
+				}
 			}
 		}
 
-		return $displayedTransactionEmailBlocksDataDefault;
+		return $allEmailBlocks;
 	}
 }

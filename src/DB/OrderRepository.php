@@ -1129,12 +1129,12 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$purchase = $order->purchase;
 		$customer = $purchase->customer;
 
-		if ($purchase->account) {
+		if ($customer && $purchase->account) {
 			$customer->setAccount($purchase->account);
 		}
 
 		// Contains catalog permissions for current context with security account
-		$currentContextCatalogPermissions = $this->getEmailBlocksSetting->execute($customer);
+		$currentContextCatalogPermissions = $this->getEmailBlocksSetting->execute($customer, $order->shop);
 
 		/** @var \Eshop\DB\CartItem $cartItem */
 		foreach ($purchase->getItems() as $cartItem) {
