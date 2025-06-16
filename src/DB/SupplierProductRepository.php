@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 use Base\ShopsConfig;
 use Eshop\Admin\SettingsPresenter;
+use Eshop\ShopperUser;
 use Nette\DI\Container;
 use Nette\InvalidArgumentException;
 use Nette\Utils\Arrays;
@@ -35,7 +36,8 @@ class SupplierProductRepository extends \StORM\Repository
 		SchemaManager $schemaManager,
 		Container $container,
 		protected readonly ShopsConfig $shopsConfig,
-		protected readonly SettingRepository $settingRepository
+		protected readonly SettingRepository $settingRepository,
+		protected readonly ShopperUser $shopperUser,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -79,6 +81,33 @@ class SupplierProductRepository extends \StORM\Repository
 		$photoRepository = $this->getConnection()->findRepository(Photo::class);
 		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$mutation];
 		$riboonId = 'novy_import';
+
+		// Sync important data directly without conditions
+		$drafts = $supplierProductRepository->many()
+			->setGroupBy(['this.uuid'])
+			->where('this.fk_product IS NOT NULL')
+			->where('product.vatRate = "zero" AND this.vatRate > 0')
+			->where('this.fk_supplier', $supplier)
+			->where('this.active', true)
+			->setSelect([
+				'this.uuid',
+				'product' => 'this.fk_product',
+				'this.vatRate',
+				'productVatRate' => 'product.vatRate',
+			])
+			->fetchGenerator(\stdClass::class);
+
+		$vatLevelsByName = $this->shopperUser->getVatRates();
+
+		foreach ($drafts as $draft) {
+			if (\abs($draft->vatRate - $vatLevelsByName[$draft->productVatRate]) > \PHP_FLOAT_EPSILON) {
+				$productRepository->many()->where('this.uuid', $draft->product)->update([
+					'vatRate' => $vatLevels[(int) $draft->vatRate] ?? 'standard',
+				]);
+			}
+
+			continue;
+		}
 
 		$visibilityLists = $visibilityListRepository->many()->toArray();
 
