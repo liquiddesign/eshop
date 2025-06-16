@@ -86,7 +86,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$drafts = $supplierProductRepository->many()
 			->setGroupBy(['this.uuid'])
 			->where('this.fk_product IS NOT NULL')
-			->where('this.vatRate', 0)
+			->where('product.vatRate = "zero" AND this.vatRate > 0')
 			->where('this.fk_supplier', $supplier)
 			->where('this.active', true)
 			->setSelect([
@@ -100,7 +100,7 @@ class SupplierProductRepository extends \StORM\Repository
 		$vatLevelsByName = $this->shopperUser->getVatRates();
 
 		foreach ($drafts as $draft) {
-			if ($draft->productVatRate === 'zero' && \abs($draft->vatRate - $vatLevelsByName[$draft->productVatRate]) > \PHP_FLOAT_EPSILON) {
+			if (\abs($draft->vatRate - $vatLevelsByName[$draft->productVatRate]) > \PHP_FLOAT_EPSILON) {
 				$productRepository->many()->where('this.uuid', $draft->product)->update([
 					'vatRate' => $vatLevels[(int) $draft->vatRate] ?? 'standard',
 				]);
