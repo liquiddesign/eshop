@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.501](https://github.com/liquiddesign/eshop/compare/v2.1.500...v2.1.501) (2025-06-16)
+
+### Features
+
+
+##### Customer Group Repository
+
+* Add shop parameter to `getUnregisteredGroup` for shop-specific group handling ([ad03a8](https://github.com/liquiddesign/eshop/commit/ad03a807ee109fe67c7b978da06682249c6d67a2))
+
+##### Supplier Product Repository
+
+* Add ShopperUser dependency and implement VAT rate synchronization ([e977a0](https://github.com/liquiddesign/eshop/commit/e977a08a26fecd1504486c57358d43da810cc735))
+
+
+---
+
 ## [2.1.500](https://github.com/liquiddesign/eshop/compare/v2.1.499...v2.1.500) (2025-06-12)
 
 
