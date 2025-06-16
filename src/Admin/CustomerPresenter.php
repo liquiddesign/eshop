@@ -576,7 +576,18 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		if ($permission) {
 			/** @var \Forms\Container $container */
 			$container = $form['permission'];
-			$container->setDefaults($permission->toArray());
+
+			$permissionDefaults = $permission->toArray();
+
+			foreach (['buyAllowed', 'viewAllOrders', 'showPricesWithoutVat', 'showPricesWithVat'] as $key) {
+				$permissionDefaults[$key] = match ($permissionDefaults[$key]) {
+					true => '1',
+					false => '0',
+					default => null,
+				};
+			}
+
+			$container->setDefaults($permissionDefaults);
 		}
 		
 		/** @var \Forms\Container $container */
@@ -1166,12 +1177,12 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			}
 
 			$shopperPermissions = [
-				null => '↑ Převzít od zákazníka ↑',
 				...ShopperUser::PERMISSIONS,
 			];
 
 			$catalogInput = $container
 				->addSelect('catalogPermission', 'Zobrazení', $shopperPermissions)
+				->setPrompt('↑ Převzít od zákazníka ↑')
 				->setDefaultValue('price');
 			
 			$catalogInput->addCondition($form::Equal, 'price')
@@ -1181,26 +1192,24 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			if (isset($this::CONFIGURATIONS['prices']) && $this::CONFIGURATIONS['prices']) {
 				if ($this->shopperUser->getShowWithoutVat()) {
 					$withoutVatInput = $container->addSelect('showPricesWithoutVat', 'Zobrazit ceny bez daně', [
-						null => '↑ Převzít od zákazníka ↑',
-						true => 'Ano',
-						false => 'Ne',
-					]);
+						'1' => 'Ano',
+						'0' => 'Ne',
+					])->setPrompt('↑ Převzít od zákazníka ↑');
 				}
 				
 				if ($this->shopperUser->getShowVat()) {
 					$withVatInput = $container->addSelect('showPricesWithVat', 'Zobrazit ceny s daní', [
-						null => '↑ Převzít od zákazníka ↑',
-						true => 'Ano',
-						false => 'Ne',
-					]);
+						'1' => 'Ano',
+						'0' => 'Ne',
+					])->setPrompt('↑ Převzít od zákazníka ↑');
 				}
 				
 				if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
 					$container->addSelect('priorityPrice', 'Prioritní cena', [
-						null => '↑ Převzít od zákazníka ↑',
 						'withoutVat' => 'Bez daně',
 						'withVat' => 'S daní',
-					])->addConditionOn($catalogInput, $form::Equal, 'price')
+					])->setPrompt('↑ Převzít od zákazníka ↑')
+						->addConditionOn($catalogInput, $form::Equal, 'price')
 						->addConditionOn($withoutVatInput, $form::Equal, true)
 						->addConditionOn($withVatInput, $form::Equal, true)
 						->toggle('frm-accountForm-permission-priorityPrice-toogle');
@@ -1209,19 +1218,15 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			
 			$container
 				->addSelect('buyAllowed', 'Povolit nákup', [
-					null => '↑ Převzít od zákazníka ↑',
-					true => 'Ano',
-					false => 'Ne',
-				])
-				->setDefaultValue(true);
+					'1' => 'Ano',
+					'0' => 'Ne',
+				])->setPrompt('↑ Převzít od zákazníka ↑');
 
 			$container
 				->addSelect('viewAllOrders', 'Zobrazit všechny objednávky zákazníka', [
-					null => '↑ Převzít od zákazníka ↑',
-					true => 'Ano',
-					false => 'Ne',
-				])
-				->setDefaultValue(false);
+					'1' => 'Ano',
+					'0' => 'Ne',
+				])->setPrompt('↑ Převzít od zákazníka ↑');
 			
 			$container = $form->addContainer('newsletter');
 			
@@ -1826,10 +1831,10 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		// Transform 3 value selects into boolean
 		$values['permission'] = Arrays::map($values['permission'], function ($value, $key) {
 			if (Arrays::contains(['showPricesWithoutVat', 'showPricesWithVat', 'buyAllowed', 'viewAllOrders'], $key) === false) {
-				return $value === '' ? null : $value;
+				return $value;
 			}
 
-			return $value === '' ? null : (bool) $value;
+			return $value === null ? null : (bool) $value;
 		});
 
 		// Reflect logic on hidden fields by selected options
