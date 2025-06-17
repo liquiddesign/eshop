@@ -58,6 +58,27 @@ class Offer extends Entity
 	 */
 	public Order $order;
 
+	public function getState(): string
+	{
+		if ($this->approvedTs === null && $this->completedTs === null && $this->canceledTs === null) {
+			return self::STATE_OPEN;
+		}
+
+		if ($this->approvedTs !== null && $this->completedTs === null && $this->canceledTs === null) {
+			return self::STATE_RECEIVED;
+		}
+
+		if ($this->approvedTs !== null && $this->completedTs !== null && $this->canceledTs === null) {
+			return self::STATE_COMPLETED;
+		}
+
+		if ($this->canceledTs !== null) {
+			return self::STATE_CANCELED;
+		}
+
+		throw new \RuntimeException('Unknown offer state');
+	}
+
 	/**
 	 * @return array<string>
 	 */
