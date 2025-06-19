@@ -25,19 +25,19 @@ class OfferRepository extends Repository
 
 		return match ($state) {
 			Offer::STATE_OPEN => $this->many()
-				->where('approvedTs IS NULL')
-				->where('completedTs IS NULL')
-				->where('canceledTs IS NULL'),
+				->where('this.approvedTs IS NULL')
+				->where('this.completedTs IS NULL')
+				->where('this.canceledTs IS NULL'),
 			Offer::STATE_RECEIVED => $this->many()
-				->where('approvedTs IS NOT NULL')
-				->where('completedTs IS NULL')
-				->where('canceledTs IS NULL'),
+				->where('this.approvedTs IS NOT NULL')
+				->where('this.completedTs IS NULL')
+				->where('this.canceledTs IS NULL'),
 			Offer::STATE_COMPLETED => $this->many()
-				->where('approvedTs IS NOT NULL')
-				->where('completedTs IS NOT NULL')
-				->where('canceledTs IS NULL'),
+				->where('this.approvedTs IS NOT NULL')
+				->where('this.completedTs IS NOT NULL')
+				->where('this.canceledTs IS NULL'),
 			Offer::STATE_CANCELED => $this->many()
-				->where('canceledTs IS NOT NULL'),
+				->where('this.canceledTs IS NOT NULL'),
 			default => throw new \InvalidArgumentException("No such state available for offers: $state"),
 		};
 	}
