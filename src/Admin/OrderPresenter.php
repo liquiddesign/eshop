@@ -1121,8 +1121,13 @@ class OrderPresenter extends BackendPresenter
 			$form->addGroup('Cena za kus');
 			$form->addText('price', 'Cena bez DPH')->addRule(Form::Float)->setRequired()->setDefaultValue($cartItemOld->price);
 			$form->addText('priceVat', 'Cena s DPH')->setDisabled()->setDefaultValue($cartItemOld->priceVat);
-			$form->addText('priceBefore', 'Cena bez DPH před slevou')->addRule(Form::Float)->setRequired()->setDefaultValue($cartItemOld->priceBefore ?? $cartItemOld->price);
-			$form->addText('priceVatBefore', 'Cena s DPH před slevou')->setDisabled()->setDefaultValue($cartItemOld->priceVatBefore === null || $cartItemOld->priceVatBefore === 0.0 ? $cartItemOld->priceVat : $cartItemOld->priceVatBefore);
+			$form->addText('priceBefore', 'Cena bez DPH před slevou')
+				->addRule(Form::Float)
+				->setRequired()
+				->setDefaultValue($cartItemOld->priceBefore ?? $cartItemOld->price);
+			$form->addText('priceVatBefore', 'Cena s DPH před slevou')
+				->setDisabled()
+				->setDefaultValue($cartItemOld->priceVatBefore === null || $cartItemOld->priceVatBefore === 0.0 ? $cartItemOld->priceVat : $cartItemOld->priceVatBefore);
 			$form->addFloat('vatPct', 'DPH')->setRequired()->setDefaultValue($cartItemOld->vatPct);
 			$form->addSubmits(false, false);
 
