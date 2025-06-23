@@ -1122,9 +1122,9 @@ class OrderPresenter extends BackendPresenter
 			$form->addText('price', 'Cena bez DPH')->addRule(Form::Float)->setRequired()->setDefaultValue($cartItemOld->price);
 			$form->addText('priceVat', 'Cena s DPH')->setDisabled()->setDefaultValue($cartItemOld->priceVat);
 			$form->addText('priceBefore', 'Cena bez DPH před slevou')
-				->addRule(Form::Float)
-				->setRequired()
-				->setDefaultValue($cartItemOld->priceBefore ?? $cartItemOld->price);
+				->setDefaultValue($cartItemOld->priceBefore ?? $cartItemOld->price)
+				->addCondition(Form::Filled)
+				->addRule(Form::Float);
 			$form->addText('priceVatBefore', 'Cena s DPH před slevou')
 				->setDisabled()
 				->setDefaultValue($cartItemOld->priceVatBefore === null || $cartItemOld->priceVatBefore === 0.0 ? $cartItemOld->priceVat : $cartItemOld->priceVatBefore);
@@ -1137,7 +1137,10 @@ class OrderPresenter extends BackendPresenter
 
 				$this->orderEditService->changeItemAmount($packageItem, $cartItemOld, $values['amount']);
 
-				$priceBefore = $values['priceBefore'] === $values['price'] ? null : $values['priceBefore'];
+				$priceBefore =
+					$values['priceBefore'] === $values['price'] ||
+					$values['priceBefore'] === null ||
+					$values['priceBefore'] === '' ? null : $values['priceBefore'];
 				$this->changePackageItemPrice->execute($cartItemOld, $values['price'], $values['vatPct'], $priceBefore);
 
 				$cartItem = clone $cartItemOld;
