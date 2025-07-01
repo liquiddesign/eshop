@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.503](https://github.com/liquiddesign/eshop/compare/v2.1.502...v2.1.503) (2025-07-01)
+
+### Features
+
+* (SupplierCategory.php) categoryName properties length 180 ([bd024d](https://github.com/liquiddesign/eshop/commit/bd024d748c393d64c13a73bcc68d0aa47007b2ce))
+
+
+---
+
 ## [2.1.502](https://github.com/liquiddesign/eshop/compare/v2.1.501...v2.1.502) (2025-07-01)
 
 ### Features
