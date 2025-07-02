@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.504](https://github.com/liquiddesign/eshop/compare/v2.1.503...v2.1.504) (2025-07-02)
+
+### Bug Fixes
+
+
+##### Order Presenter
+
+* Adjust price and VAT form handling in admin panel ([7c7127](https://github.com/liquiddesign/eshop/commit/7c712742f6aa6cc877e2bba0bfb92de9d7f09655))
+* Improve handling of "Cena bez DPH před slevou" and "Cena s DPH před slevou" defaults ([22ce14](https://github.com/liquiddesign/eshop/commit/22ce143c58131412b48fde806a153d3143352dd6))
+
+
+---
+
 ## [2.1.503](https://github.com/liquiddesign/eshop/compare/v2.1.502...v2.1.503) (2025-07-01)
 
 ### Features
