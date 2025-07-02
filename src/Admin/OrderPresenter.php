@@ -1122,12 +1122,13 @@ class OrderPresenter extends BackendPresenter
 			$form->addText('price', 'Cena bez DPH')->addRule(Form::Float)->setRequired()->setDefaultValue($cartItemOld->price);
 			$form->addText('priceVat', 'Cena s DPH')->setDisabled()->setDefaultValue($cartItemOld->priceVat);
 			$form->addText('priceBefore', 'Cena bez DPH před slevou')
-				->setDefaultValue($cartItemOld->priceBefore ?? $cartItemOld->price)
+				->setDefaultValue($cartItemOld->priceBefore)
+				->setNullable()
 				->addCondition(Form::Filled)
 				->addRule(Form::Float);
 			$form->addText('priceVatBefore', 'Cena s DPH před slevou')
 				->setDisabled()
-				->setDefaultValue($cartItemOld->priceVatBefore === null || $cartItemOld->priceVatBefore === 0.0 ? $cartItemOld->priceVat : $cartItemOld->priceVatBefore);
+				->setDefaultValue($cartItemOld->priceVatBefore);
 			$form->addFloat('vatPct', 'DPH')->setRequired()->setDefaultValue($cartItemOld->vatPct);
 			$form->addSubmits(false, false);
 
