@@ -43,6 +43,16 @@ class GetCurrentContextCatalogPermissionByCustomer extends BaseAction
 				}
 			}
 
+			$additionalEmailText = null;
+
+			if ($prefilledCatalogPermission?->additionalEmailText) {
+				$additionalEmailText = $prefilledCatalogPermission->additionalEmailText;
+			} elseif ($customer?->additionalEmailText) {
+				$additionalEmailText = $customer->additionalEmailText;
+			} elseif ($defaultGroup->defaultAdditionalEmailText) {
+				$additionalEmailText = $defaultGroup->defaultAdditionalEmailText;
+			}
+
 			return new CurrentContextCatalogPermissions(
 				$catalogPermission,
 				$prefilledCatalogPermission->buyAllowed ?? $customer->buyAllowed ?? $defaultGroup->defaultBuyAllowed ?? true,
@@ -51,7 +61,7 @@ class GetCurrentContextCatalogPermissionByCustomer extends BaseAction
 				$showPricesWithoutVat,
 				$showPricesWithVat,
 				$priorityPrice,
-				$prefilledCatalogPermission->additionalEmailText ?? $customer->additionalEmailText ?? $defaultGroup->defaultAdditionalEmailText ?? '',
+				$additionalEmailText ?? '',
 				[$prefilledCatalogPermission?->displayedTransactionEmailBlocks, $customer?->displayedTransactionEmailBlocks, $defaultGroup->defaultDisplayedTransactionEmailBlocks],
 				$this->templateNamesService->getOrderEmailBlocks(),
 			);
