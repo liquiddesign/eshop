@@ -855,7 +855,7 @@ class ShopperUser extends User
 			$catalogPerm = $this->getCatalogPermissionObject();
 		}
 		
-		return $customer && $catalogPerm ? $catalogPerm->priorityPrice : $this->customerGroupRepository->getUnregisteredGroup()->defaultPriorityPrice;
+		return $customer && $catalogPerm?->priorityPrice ? $catalogPerm->priorityPrice : $this->customerGroupRepository->getUnregisteredGroup()->defaultPriorityPrice;
 	}
 
 	/**
