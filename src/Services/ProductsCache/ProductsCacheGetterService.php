@@ -326,7 +326,10 @@ class ProductsCacheGetterService implements AutoWireService
 			'displayDelivery' => 'this.displayDelivery',
 			'price' => 'visibilityPrice.price',
 			'priceVat' => 'visibilityPrice.priceVat',
+			'priceList' => 'visibilityPrice.priceList',
 			'masterProduct' => 'this.masterProduct',
+			'ribbons' => 'this.ribbons',
+			'internalRibbons' => 'this.internalRibbons',
 		]);
 
 		/** @var array<int, \Eshop\DB\Attribute> $allAttributes */
@@ -931,6 +934,86 @@ class ProductsCacheGetterService implements AutoWireService
 			$showVat = $this->shopperUser->getMainPriceType() === 'withVat';
 
 			return $showVat ? $product->priceVat > $value : $product->price > $value;
+		};
+
+		$this->allowedDynamicFilterExpressions['ribbon'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
+			$ribbons = \array_flip(\explode(',', (string) $product->ribbons));
+
+			if (\is_string($value)) {
+				return isset($ribbons[$value]);
+			}
+
+			if (\is_array($value)) {
+				foreach ($value as $ribbon) {
+					if (!isset($ribbons[$ribbon])) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			throw new \InvalidArgumentException("Filter 'ribbon': Input must be string or array!");
+		};
+
+		$this->allowedDynamicFilterExpressions['notRibbon'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
+			$ribbons = \array_flip(\explode(',', (string) $product->ribbons));
+
+			if (\is_string($value)) {
+				return !isset($ribbons[$value]);
+			}
+
+			if (\is_array($value)) {
+				foreach ($value as $ribbon) {
+					if (isset($ribbons[$ribbon])) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			throw new \InvalidArgumentException("Filter 'notRibbon': Input must be string or array!");
+		};
+
+		$this->allowedDynamicFilterExpressions['internalRibbon'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
+			$ribbons = \array_flip(\explode(',', (string) $product->internalRibbons));
+
+			if (\is_string($value)) {
+				return isset($ribbons[$value]);
+			}
+
+			if (\is_array($value)) {
+				foreach ($value as $ribbon) {
+					if (!isset($ribbons[$ribbon])) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			throw new \InvalidArgumentException("Filter 'internalRibbon': Input must be string or array!");
+		};
+
+		$this->allowedDynamicFilterExpressions['notInternalRibbon'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
+			$ribbons = \array_flip(\explode(',', (string) $product->internalRibbons));
+
+			if (\is_string($value)) {
+				return !isset($ribbons[$value]);
+			}
+
+			if (\is_array($value)) {
+				foreach ($value as $ribbon) {
+					if (isset($ribbons[$ribbon])) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			throw new \InvalidArgumentException("Filter 'notInternalRibbon': Input must be string or array!");
 		};
 
 		$this->allowedDynamicFilterExpressions['masterProduct'] = static function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {

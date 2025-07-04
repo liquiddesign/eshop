@@ -292,6 +292,10 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 			->join(['eshop_displayamount'], 'this.fk_displayAmount = eshop_displayamount.uuid')
 			->join(['eshop_displaydelivery'], 'this.fk_displayDelivery = eshop_displaydelivery.uuid')
 			->join(['eshop_producer'], 'this.fk_producer = eshop_producer.uuid')
+			->join(['eshop_product_nxn_eshop_ribbon'], 'this.uuid = eshop_product_nxn_eshop_ribbon.fk_product')
+			->join(['eshop_ribbon'], 'eshop_product_nxn_eshop_ribbon.fk_ribbon = eshop_ribbon.uuid')
+			->join(['eshop_product_nxn_eshop_internalribbon'], 'this.uuid = eshop_product_nxn_eshop_internalribbon.fk_product')
+			->join(['eshop_internalribbon'], 'eshop_product_nxn_eshop_internalribbon.fk_internalribbon = eshop_internalribbon.uuid')
 			->setSelect([
 				'id' => 'this.id',
 				'fkDisplayAmount' => 'eshop_displayamount.id',
@@ -303,6 +307,8 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				'subCode' => 'this.subCode',
 				'externalCode' => 'this.externalCode',
 				'ean' => 'COALESCE(this.secondaryEan, this.ean)',
+				'ribbons' => 'GROUP_CONCAT(DISTINCT eshop_ribbon.uuid SEPARATOR ",")',
+				'internalRibbons' => 'GROUP_CONCAT(DISTINCT eshop_internalribbon.uuid SEPARATOR ",")',
 			])
 			->setTake(1000000)
 			->setGroupBy(['this.id']);
@@ -335,6 +341,8 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				'externalCode' => $product->externalCode ? (string) $product->externalCode : null,
 				'ean' => $product->ean ? (string) $product->ean : null,
 				'masterProduct' => $product->fkMasterProduct,
+				'ribbons' => $product->ribbons ?: null,
+				'internalRibbons' => $product->internalRibbons ?: null,
 			];
 
 			$primaryCategories = isset($productPrimaryCategories[$product->id]) ? \explode(',', $productPrimaryCategories[$product->id]->groupedValues) : [];
@@ -882,5 +890,8 @@ CREATE TABLE IF NOT EXISTS `$productsCacheTableName` (
 
 		// Provedení celého dotazu najednou
 		$link->exec($query);
+
+		$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN IF NOT EXISTS ribbons TEXT");
+		$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN IF NOT EXISTS internalRibbons TEXT");
 	}
 }
