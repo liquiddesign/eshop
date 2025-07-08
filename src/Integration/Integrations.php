@@ -13,7 +13,6 @@ final class Integrations
 	public const PPL = 'ppl';
 	public const GO_PAY = 'goPay';
 	public const ZBOZI = 'zbozi';
-	public const COMGATE = 'comgate';
 	public const HEUREKA_OVERENO_ZAKAZNIKY = 'heurekaOverenoZakazniky';
 	public const QR_PAYMENT_GENERATOR = 'qrPaymentGenerator';
 
@@ -24,7 +23,6 @@ final class Integrations
 		self::PPL => 'integrations.ppl',
 		self::GO_PAY => 'integrations.goPay',
 		self::ZBOZI => 'integrations.zbozi',
-		self::COMGATE => 'integrations.' . self::COMGATE,
 		self::HEUREKA_OVERENO_ZAKAZNIKY => 'integrations.' . self::HEUREKA_OVERENO_ZAKAZNIKY,
 		self::QR_PAYMENT_GENERATOR => 'integrations.' . self::QR_PAYMENT_GENERATOR,
 		self::ALGOLIA => 'integrations.' . self::ALGOLIA,

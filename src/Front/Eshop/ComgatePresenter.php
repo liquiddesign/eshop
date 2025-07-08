@@ -4,106 +4,48 @@ declare(strict_types=1);
 namespace Eshop\Front\Eshop;
 
 use Contributte\Comgate\Comgate;
-use Eshop\DB\ComgateRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\Front\FrontendPresenter;
 use Eshop\Integration\Integrations;
-use Nette\Application\BadRequestException;
-use Tracy\Debugger;
+use Nette\DI\Attributes\Inject;
+use Nette\Http\Request;
 
 abstract class ComgatePresenter extends FrontendPresenter
 {
 	public Comgate $comgate;
 
-	#[\Nette\DI\Attributes\Inject]
-	public ComgateRepository $comgateRepository;
-
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public OrderRepository $orderRepository;
 
-	#[\Nette\DI\Attributes\Inject]
+	#[Inject]
 	public Integrations $integrations;
 
-	private \Eshop\Services\Comgate $comgateService;
+	#[Inject]
+	public Request $request;
+
+	#[Inject]
+	public \Eshop\Services\Comgate $comgateService;
 
 	public function actionPaymentResult(): void
 	{
-		if ($this->request->getMethod() !== 'POST') {
-			throw new BadRequestException('Bad request method');
-		}
+		$json = $this->comgateService->processPaymentResult($this->request);
 
-		$data = $this->request->getPost();
-
-		if (!isset($data)) {
-			throw new \Exception('No data from server');
-		}
-
-		if ($data['merchant'] !== $this->comgate->getMerchant() || $data['secret'] !== $this->comgate->getSecret()) {
-			throw new \Exception('Invalid request: Invalid data');
-		}
-
-		Debugger::log($data);
-
-		/** @var \Eshop\DB\Comgate|null $payment */
-		$payment = $this->comgateRepository->one(['transactionId' => $data['transId']]);
-
-		if (!$payment) {
-			throw new \Exception('Invalid request: Transaction not found');
-		}
-
-		$payment->update([
-			'status' => $data['status'],
-		]);
-
-		if ($data['status'] === 'PAID') {
-			$payment = $payment->order->getPayment();
-
-			if ($payment) {
-				$this->orderRepository->changePayment($payment->getPK(), true, true);
-			}
-		}
-
-		$this->sendJson(\json_encode([
-			'code' => 0,
-			'message' => 'OK',
-		]));
+		$this->sendJson($json);
 	}
 
 	public function actionPaymentSummary(string $id): void
 	{
-		$result = $this->comgateService->getStatus($id);
+		$templateData = $this->comgateService->processPaymentSummary($id);
 
-		if ($result['merchant'] !== $this->comgate->getMerchant() || $result['secret'] !== $this->comgate->getSecret()) {
-			throw new \Exception('Invalid request');
-		}
+		/** @var \Eshop\DB\Order $order */
+		$order = $templateData['order'];
 
-		$payment = $this->comgateRepository->one(['transactionId' => $result['transId']]);
-
-		if (!$payment) {
-			throw new \Exception('Invalid request');
-		}
-
-		$order = $this->orderRepository->one(['code' => $result['refId']], true);
-
-		$this->template->status = $result['status'];
+		$this->template->status = $templateData['status'];
 		$this->template->order = $order;
-		$this->template->transId = $result['transId'];
-
-		$this->template->sendOrderToEHub = $this->getSession()->getSection('frontend')->get('sendOrderToEHub');
-		$this->getSession()->getSection('frontend')->remove('sendOrderToEHub');
-	}
-
-	protected function startup(): void
-	{
-		parent::startup();
-
-		/** @var \Eshop\Services\Comgate|null $comgateService */
-		$comgateService = $this->integrations->getService(Integrations::COMGATE);
-
-		if (!$comgateService) {
-			throw new \Exception('Comgate service not found! Did you register it from "\Eshop\Services"?');
-		}
-
-		$this->comgateService = $comgateService;
+		$this->template->paymentResultId = $templateData['paymentResultId'];
+		$this->template->url = $templateData['url'];
+		$this->template->customer = $order->purchase->customer;
+		$this->template->merchant = $order->purchase->merchant;
+		$this->template->zbozi = $this->integrations->getService(Integrations::ZBOZI);
 	}
 }
