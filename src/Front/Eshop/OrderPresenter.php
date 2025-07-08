@@ -125,6 +125,7 @@ abstract class OrderPresenter extends \Eshop\Front\FrontendPresenter
 		$this->template->purchase = $purchase;
 		$this->template->delivery = $order->deliveries->first();
 		$this->template->payment = $order->payments->first();
+		$this->template->paymentResult = $order->getPaymentResults()->first();
 		$this->template->deliveryAndPaymentPrice = $order->getDeliveryPriceSum() + $order->getPaymentPriceSum();
 		$this->template->deliveryAndPaymentPriceVat = $order->getDeliveryPriceVatSum() + $order->getPaymentPriceVatSum();
 		$this->template->state = $this->translator->translate(
