@@ -9,7 +9,7 @@ use Eshop\Actions\Offer\GetOfferState;
 use Eshop\DB\Offer;
 use Eshop\DB\OfferState;
 
-class CompleteOffer extends \Base\BaseAction
+class SendOffer extends \Base\BaseAction
 {
 	public function __construct(private readonly GetOfferState $getOfferState)
 	{
@@ -20,31 +20,31 @@ class CompleteOffer extends \Base\BaseAction
 	 */
 	public function execute(Offer $offer): void
 	{
-		$this->canCompleteOrder($offer);
+		$this->canSendOffer($offer);
 
 		$offer->update([
 			'completedTs' => Carbon::now()->toDateTimeString(),
 			'canceledTs' => null,
 		]);
 
-		$this->onOfferCompleted($offer);
+		$this->onOfferSent($offer);
 	}
 
 	/**
 	 * @throws \Eshop\Actions\Offer\StateOperations\UnauthorizedStateChangeException
 	 */
-	public function canCompleteOrder(Offer $offer): void
+	public function canSendOffer(Offer $offer): void
 	{
 		$state = $this->getOfferState->execute($offer);
 
-		if ($state === OfferState::Approved || $state === OfferState::Canceled) {
+		if ($state === OfferState::Created) {
 			return;
 		}
 
 		throw new UnauthorizedStateChangeException();
 	}
 
-	protected function onOfferCompleted(Offer $offer): void
+	protected function onOfferSent(Offer $offer): void
 	{
 		unset($offer);
 	}

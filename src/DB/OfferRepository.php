@@ -2,7 +2,6 @@
 
 namespace Eshop\DB;
 
-use Nette\Utils\Arrays;
 use StORM\ICollection;
 use StORM\Repository;
 
@@ -17,28 +16,31 @@ class OfferRepository extends Repository
 	 * @return \StORM\ICollection<\Eshop\DB\Offer>
 	 * @throws \InvalidArgumentException
 	 */
-	public function getOffersByState(string $state): ICollection
+	public function getOffersByState(OfferState|string $state): ICollection
 	{
-		if (Arrays::contains(Offer::getAvailableStates(), $state) === false) {
+		if (\is_string($state)) {
+			$state = OfferState::tryFrom($state);
+		}
+
+		if ($state === null) {
 			throw new \InvalidArgumentException("No such state available for offers: $state");
 		}
 
 		return match ($state) {
-			Offer::STATE_OPEN => $this->many()
+			OfferState::Created => $this->many()
 				->where('this.approvedTs IS NULL')
-				->where('this.completedTs IS NULL')
+				->where('this.sentTs IS NULL')
 				->where('this.canceledTs IS NULL'),
-			Offer::STATE_RECEIVED => $this->many()
+			OfferState::Sent => $this->many()
+				->where('this.approvedTs IS NULL')
+				->where('this.sentTs IS NOT NULL')
+				->where('this.canceledTs IS NULL'),
+			OfferState::Approved => $this->many()
 				->where('this.approvedTs IS NOT NULL')
-				->where('this.completedTs IS NULL')
+				->where('this.sentTs IS NOT NULL')
 				->where('this.canceledTs IS NULL'),
-			Offer::STATE_COMPLETED => $this->many()
-				->where('this.approvedTs IS NOT NULL')
-				->where('this.completedTs IS NOT NULL')
-				->where('this.canceledTs IS NULL'),
-			Offer::STATE_CANCELED => $this->many()
+			default => $this->many()
 				->where('this.canceledTs IS NOT NULL'),
-			default => throw new \InvalidArgumentException("No such state available for offers: $state"),
 		};
 	}
 }

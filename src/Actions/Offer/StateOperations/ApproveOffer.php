@@ -15,9 +15,12 @@ class ApproveOffer extends \Base\BaseAction
 	{
 	}
 
+	/**
+	 * @throws \Eshop\Actions\Offer\StateOperations\UnauthorizedStateChangeException
+	 */
 	public function execute(Offer $offer): void
 	{
-		$this->canApproveOrder($offer);
+		$this->canApproveOffer($offer);
 
 		$offer->update(['approvedTs' => Carbon::now()->toDateTimeString()]);
 
@@ -27,11 +30,11 @@ class ApproveOffer extends \Base\BaseAction
 	/**
 	 * @throws \Eshop\Actions\Offer\StateOperations\UnauthorizedStateChangeException
 	 */
-	public function canApproveOrder(Offer $offer): void
+	public function canApproveOffer(Offer $offer): void
 	{
 		$state = $this->getOfferState->execute($offer);
 
-		if ($state === OfferState::Created) {
+		if ($state === OfferState::Sent || $state === OfferState::Canceled) {
 			return;
 		}
 

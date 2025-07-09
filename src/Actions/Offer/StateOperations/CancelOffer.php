@@ -15,6 +15,9 @@ class CancelOffer extends \Base\BaseAction
 	{
 	}
 
+	/**
+	 * @throws \Eshop\Actions\Offer\StateOperations\UnauthorizedStateChangeException
+	 */
 	public function execute(Offer $offer): void
 	{
 		$this->canCancelOffer($offer);
@@ -34,7 +37,7 @@ class CancelOffer extends \Base\BaseAction
 	{
 		$state = $this->getOfferState->execute($offer);
 
-		if ($state === OfferState::Approved || $state === OfferState::Completed) {
+		if ($state !== OfferState::Canceled) {
 			return;
 		}
 

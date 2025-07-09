@@ -2,10 +2,10 @@
 
 namespace Eshop\DB;
 
-enum OfferState
+enum OfferState : string
 {
-	case Created;
-	case Approved;
-	case Completed;
-	case Canceled;
+	case Created = 'created';
+	case Sent = 'sent';
+	case Approved = 'approved';
+	case Canceled = 'canceled';
 }

@@ -14,12 +14,12 @@ class GetOfferState extends BaseAction
 			return OfferState::Canceled;
 		}
 
-		if ($offer->completedTs !== null) {
-			return OfferState::Completed;
-		}
-
 		if ($offer->approvedTs !== null) {
 			return OfferState::Approved;
+		}
+
+		if ($offer->sentTs !== null) {
+			return OfferState::Sent;
 		}
 
 		return OfferState::Created;
