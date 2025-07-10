@@ -435,7 +435,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	{
 		$collection = $this->many()
 			->join(['offer' => 'eshop_offer'], 'offer.fk_order = this.uuid')
-			->where('offer.uuid IS NULL OR (offer.completedTs IS NOT NULL AND offer.canceledTs IS NULL)');
+			->where('offer.uuid IS NULL OR (offer.approvedTs IS NOT NULL AND offer.canceledTs IS NULL)');
 
 		if ($state === Order::STATE_OPEN) {
 			return $collection->where('this.receivedTs IS NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL')
