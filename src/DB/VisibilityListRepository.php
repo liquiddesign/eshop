@@ -29,7 +29,7 @@ class VisibilityListRepository extends \StORM\Repository implements IGeneralRepo
 	}
 
 	/**
-	 * @param \StORM\Collection<\Eshop\DB\CategoryType> $collection
+	 * @param \StORM\Collection<\Eshop\DB\VisibilityList> $collection
 	 * @return array<string>
 	 */
 	public function toArrayForSelect(Collection $collection): array
@@ -37,6 +37,10 @@ class VisibilityListRepository extends \StORM\Repository implements IGeneralRepo
 		return $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection($collection));
 	}
 
+	/**
+	 * @param bool $includeHidden
+	 * @return \StORM\Collection<\Eshop\DB\VisibilityList>
+	 */
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		$collection = $this->many();
@@ -46,5 +50,19 @@ class VisibilityListRepository extends \StORM\Repository implements IGeneralRepo
 		}
 
 		return $collection->orderBy(['priority', 'name']);
+	}
+
+	/**
+	 * @param \Eshop\DB\Customer $customer
+	 * @return \StORM\Collection<\Eshop\DB\VisibilityList>
+	 */
+	public function getVisibilityListsByCustomer(Customer $customer): Collection
+	{
+		$visibilityLists = $customer->getVisibilityLists();
+
+		$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists, $customer->shop);
+		$visibilityLists->select(['this.id'])->where('this.hidden', false)->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
+
+		return $visibilityLists;
 	}
 }

@@ -2295,7 +2295,7 @@ class CheckoutManager
 			if ($saveToCache && $cart) {
 				$this->unattachedCarts[$this->cartToken] = $cart;
 			}
-		} elseif ($this->getCustomer()->activeCart?->id === $id) {
+		} elseif ($this->getCustomer()?->activeCart?->id === $id) {
 			$cart = $this->getCustomer()->activeCart;
 		} elseif ($this->getCustomer()) {
 			if (\array_key_exists($id, $this->carts)) {

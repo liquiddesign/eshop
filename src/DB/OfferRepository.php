@@ -30,14 +30,22 @@ class OfferRepository extends Repository
 			OfferState::Created => $this->many()
 				->where('this.approvedTs IS NULL')
 				->where('this.sentTs IS NULL')
-				->where('this.canceledTs IS NULL'),
+				->where('this.canceledTs IS NULL')
+				->where('this.completedTs IS NULL'),
 			OfferState::Sent => $this->many()
 				->where('this.approvedTs IS NULL')
 				->where('this.sentTs IS NOT NULL')
-				->where('this.canceledTs IS NULL'),
+				->where('this.canceledTs IS NULL')
+				->where('this.completedTs IS NULL'),
 			OfferState::Approved => $this->many()
 				->where('this.approvedTs IS NOT NULL')
 				->where('this.sentTs IS NOT NULL')
+				->where('this.canceledTs IS NULL')
+				->where('this.completedTs IS NULL'),
+			OfferState::Completed => $this->many()
+				->where('this.sentTs IS NOT NULL')
+				->where('this.approvedTs IS NOT NULL')
+				->where('this.completedTs IS NOT NULL')
 				->where('this.canceledTs IS NULL'),
 			default => $this->many()
 				->where('this.canceledTs IS NOT NULL'),

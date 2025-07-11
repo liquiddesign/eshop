@@ -35,6 +35,11 @@ class Offer extends Entity
 	/**
 	 * @column{"type":"timestamp"}
 	 */
+	public string|null $completedTs = null;
+
+	/**
+	 * @column{"type":"timestamp"}
+	 */
 	public string|null $canceledTs = null;
 
 	/**
