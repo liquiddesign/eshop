@@ -45,7 +45,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	public array $categoryMap;
 
 	private Cache $cache;
-	
+
 	public function __construct(
 		protected DIConnection $connection,
 		protected SchemaManager $schemaManager,
@@ -69,8 +69,8 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	/**
 	 * @param string|\Eshop\DB\Category $path
 	 * @param array<mixed> $filters
-	 * @param array<string, string>|array<string, \Eshop\DB\Pricelist> $priceLists
-	 * @param array<string, string>|array<string, \Eshop\DB\VisibilityList> $visibilityLists
+	 * @param array<string|int, \Eshop\DB\Pricelist> $priceLists
+	 * @param array<string|int, \Eshop\DB\VisibilityList> $visibilityLists
 	 * @throws \StORM\Exception\NotFoundException
 	 * @throws \Throwable
 	 */
@@ -114,22 +114,22 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			try {
 				$filters['hidden'] = false;
 
-				\Tracy\Debugger::timer('getProductsFromCacheTable');
+//				\Tracy\Debugger::timer('getProductsFromCacheTable');
 
-				$result = $productsProvider->getProductsFromCacheTable(
+				$result = $productsProvider->getCategoryCount(
 					$filters,
 					priceLists: $priceLists,
 					visibilityLists: $visibilityLists,
 				);
 
-				if (!isset($result['productPKs'])) {
+				if ($result === null) {
 					throw new \Exception('No results returned', 204);
 				}
 
-				\Tracy\Debugger::barDump(\Tracy\Debugger::timer('getProductsFromCacheTable'), 'cacheProducts');
-				\Tracy\Debugger::barDump($result);
+//				\Tracy\Debugger::barDump($this->countsCumulativeTime, 'cacheProducts');
+//				\Tracy\Debugger::barDump($result);
 
-				return \count($result['productPKs']);
+				return $result;
 			} catch (\Throwable $e) {
 				if (!$e instanceof ProductsCacheNotReadyException) {
 					if ($e->getCode() !== 204) {

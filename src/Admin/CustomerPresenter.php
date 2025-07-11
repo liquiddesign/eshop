@@ -33,6 +33,7 @@ use Eshop\DB\VisibilityListRepository;
 use Eshop\Services\LostPasswordService;
 use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
 use Eshop\Services\SettingsService;
+use Eshop\Services\TemplateNamesService;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
@@ -183,6 +184,9 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 	#[Inject]
 	public SettingsService $settingsService;
+
+	#[Inject]
+	public TemplateNamesService $templateNamesService;
 
 	#[Inject]
 	public \LiquidMonitorConnector\Actions\GetCronService $getCronService;
@@ -572,7 +576,18 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		if ($permission) {
 			/** @var \Forms\Container $container */
 			$container = $form['permission'];
-			$container->setDefaults($permission->toArray());
+
+			$permissionDefaults = $permission->toArray();
+
+			foreach (['buyAllowed', 'viewAllOrders', 'showPricesWithoutVat', 'showPricesWithVat'] as $key) {
+				$permissionDefaults[$key] = match ($permissionDefaults[$key]) {
+					true => '1',
+					false => '0',
+					default => null,
+				};
+			}
+
+			$container->setDefaults($permissionDefaults);
 		}
 		
 		/** @var \Forms\Container $container */
@@ -586,6 +601,8 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		]);
 		
 		$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values, array $oldValues) use ($permission, $form): void {
+			$this->modifyPermissions($values);
+
 			if ($permission) {
 				$permission->update($values['permission']);
 			} else {
@@ -628,6 +645,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		}
 		
 		$this->accountFormFactory->onCreateAccount[] = function (Account $account, array $values) use ($form): void {
+			$this->modifyPermissions($values);
 			$this->catalogPermissionRepo->createOne($values['permission'] + ['account' => $account]);
 			
 			/** @var bool $newsletter */
@@ -1048,9 +1066,28 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		];
 		$this->template->displayButtons = [
 			$this->createBackButton('default'),
-			$this->createButton('sendResetPasswordLink!', 'Poslat link na změnu hesla', $account),
+			$this->createButton2('sendResetPasswordLink!', 'Poslat link na změnu hesla', linkArgs: [$account]),
 		];
+
+		if ($this->templateNamesService->getOrderEmailBlocks()) {
+			$this->template->displayButtons[] = $this->createButton2('editAccountEmailSettings', 'Nastavení e-mailů', linkArgs: [$account]);
+		}
+
 		$this->template->displayControls = [$this->getComponent('accountForm')];
+	}
+
+	public function renderEditAccountEmailSettings(Account $account): void
+	{
+		$this->template->headerLabel = 'Účet';
+		$this->template->headerTree = [
+			['Zákazníci', 'default'],
+			['Účet'],
+		];
+		$this->template->displayButtons = [
+			$this->createBackButton('default'),
+			$this->createButton2('editAccount', 'Zpět na detail účtu', linkArgs: [$account]),
+		];
+		$this->template->displayControls = [$this->getComponent('accountEmailSettingsForm')];
 	}
 
 	public function handleSendResetPasswordLink(Account $account): void
@@ -1139,7 +1176,14 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				}
 			}
 
-			$catalogInput = $container->addSelect('catalogPermission', 'Zobrazení', ShopperUser::PERMISSIONS)->setDefaultValue('price');
+			$shopperPermissions = [
+				...ShopperUser::PERMISSIONS,
+			];
+
+			$catalogInput = $container
+				->addSelect('catalogPermission', 'Zobrazení', $shopperPermissions)
+				->setPrompt('↑ Převzít od zákazníka ↑')
+				->setDefaultValue('price');
 			
 			$catalogInput->addCondition($form::Equal, 'price')
 				->toggle('frm-accountForm-permission-showPricesWithoutVat-toogle')
@@ -1147,26 +1191,42 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			
 			if (isset($this::CONFIGURATIONS['prices']) && $this::CONFIGURATIONS['prices']) {
 				if ($this->shopperUser->getShowWithoutVat()) {
-					$withoutVatInput = $container->addCheckbox('showPricesWithoutVat', 'Zobrazit ceny bez daně');
+					$withoutVatInput = $container->addSelect('showPricesWithoutVat', 'Zobrazit ceny bez daně', [
+						'1' => 'Ano',
+						'0' => 'Ne',
+					])->setPrompt('↑ Převzít od zákazníka ↑');
 				}
 				
 				if ($this->shopperUser->getShowVat()) {
-					$withVatInput = $container->addCheckbox('showPricesWithVat', 'Zobrazit ceny s daní');
+					$withVatInput = $container->addSelect('showPricesWithVat', 'Zobrazit ceny s daní', [
+						'1' => 'Ano',
+						'0' => 'Ne',
+					])->setPrompt('↑ Převzít od zákazníka ↑');
 				}
 				
 				if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
 					$container->addSelect('priorityPrice', 'Prioritní cena', [
 						'withoutVat' => 'Bez daně',
 						'withVat' => 'S daní',
-					])->addConditionOn($catalogInput, $form::Equal, 'price')
+					])->setPrompt('↑ Převzít od zákazníka ↑')
+						->addConditionOn($catalogInput, $form::Equal, 'price')
 						->addConditionOn($withoutVatInput, $form::Equal, true)
 						->addConditionOn($withVatInput, $form::Equal, true)
 						->toggle('frm-accountForm-permission-priorityPrice-toogle');
 				}
 			}
 			
-			$container->addCheckbox('buyAllowed', 'Povolit nákup')->setDefaultValue(true);
-			$container->addCheckbox('viewAllOrders', 'Zobrazit všechny objednávky zákazníka')->setDefaultValue(false);
+			$container
+				->addSelect('buyAllowed', 'Povolit nákup', [
+					'1' => 'Ano',
+					'0' => 'Ne',
+				])->setPrompt('↑ Převzít od zákazníka ↑');
+
+			$container
+				->addSelect('viewAllOrders', 'Zobrazit všechny objednávky zákazníka', [
+					'1' => 'Ano',
+					'0' => 'Ne',
+				])->setPrompt('↑ Převzít od zákazníka ↑');
 			
 			$container = $form->addContainer('newsletter');
 			
@@ -1194,8 +1254,82 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				$i++;
 			}
 		};
-		
+
 		return $this->accountFormFactory->create(false, $callback, true, true, $this->getParameter('account'));
+	}
+
+	public function createComponentAccountEmailSettingsForm(): AdminForm
+	{
+		$form = $this->formFactory->create(forcePrimary: false);
+
+		/** @var \Security\DB\Account $account */
+		$account = $this->getParameter('account');
+
+		// Correct business logic - account has always one customer, but customer can have multiple accounts
+		// Despite that, DB structure is MxN
+		/** @var \Eshop\DB\CatalogPermission|null $permission */
+		$permission = $this->catalogPermissionRepo->many()->where('fk_account', $account->getPK())->first();
+
+		$form->setDefaults(['uuid' => $permission?->getPK()]);
+
+		$displayedTransactionEmailBlocksDataDefault = [];
+
+		if ($permission !== null && $permission->displayedTransactionEmailBlocks !== null) {
+			$displayedTransactionEmailBlocksDataDefault = Strings::split($permission->displayedTransactionEmailBlocks, '/;/', skipEmpty: true);
+
+			foreach ($displayedTransactionEmailBlocksDataDefault as $key => $value) {
+				$exploded = \explode(':', $value);
+
+				unset($displayedTransactionEmailBlocksDataDefault[$key]);
+
+				if (\count($exploded) !== 2) {
+					continue;
+				}
+
+				$displayedTransactionEmailBlocksDataDefault[$exploded[0]] = $exploded[1];
+			}
+		}
+
+		$form->addGroup('Viditelné bloky v transakčních emailech');
+		$blocks = $this->templateNamesService->getOrderEmailBlocks();
+
+		$displayedTransactionEmailBlockContainer = $form->addContainer('displayedTransactionEmailBlock');
+
+		foreach ($blocks as $key => $label) {
+			$displayedTransactionEmailBlockContainer->addSelect($key, $label, [
+				'1' => 'Ano',
+				'0' => 'Ne',
+			])->setPrompt('↑ Převzít od zákazníka ↑')->setDefaultValue($displayedTransactionEmailBlocksDataDefault[$key] ?? null);
+		}
+
+		$form->addTextArea('additionalEmailText', 'Dotatečný text objednávky')
+			->setDefaultValue($permission?->additionalEmailText);
+
+		$form->addSubmits(false, false);
+
+		$form->onSuccess[] = function (AdminForm $form) use ($permission): void {
+			$values = $form->getValuesWithAjax();
+
+			$values['displayedTransactionEmailBlocks'] = '';
+
+			foreach ($values['displayedTransactionEmailBlock'] as $key => $value) {
+				if ($value === null || $value === '') {
+					continue;
+				}
+
+				$values['displayedTransactionEmailBlocks'] .= $key . ':' . $value . ';';
+			}
+
+			$values['displayedTransactionEmailBlocks'] = \rtrim($values['displayedTransactionEmailBlocks'], ';');
+			unset($values['displayedTransactionEmailBlock']);
+
+			$permission->update($values);
+
+			$this->flashMessage('Uloženo', 'success');
+			$this->redirect('this');
+		};
+
+		return $form;
 	}
 
 	public function renderSendNewPasswordToAccountMultiple(array $ids): void
@@ -1690,5 +1824,29 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 	protected function addCustomFieldsToAccountGrid(AdminGrid $grid): void
 	{
 		unset($grid);
+	}
+
+	private function modifyPermissions(array &$values): void
+	{
+		// Transform 3 value selects into boolean
+		$values['permission'] = Arrays::map($values['permission'], function ($value, $key) {
+			if (Arrays::contains(['showPricesWithoutVat', 'showPricesWithVat', 'buyAllowed', 'viewAllOrders'], $key) === false) {
+				return $value;
+			}
+
+			return $value === null ? null : (bool) $value;
+		});
+
+		// Reflect logic on hidden fields by selected options
+		if ($values['permission']['catalogPermission'] !== 'price') {
+			$values['permission']['showPricesWithoutVat'] = null;
+			$values['permission']['showPricesWithVat'] = null;
+		}
+
+		if ($values['permission']['showPricesWithoutVat'] === true && $values['permission']['showPricesWithVat'] === true) {
+			return;
+		}
+
+		$values['permission']['priorityPrice'] = null;
 	}
 }

@@ -916,12 +916,32 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		
 		$value === false ? $collection->where('ribbons.fk_ribbon IS NULL') : $collection->where('ribbons.fk_ribbon', $value);
 	}
+
+	public function filterNotRibbon($value, ICollection $collection): void
+	{
+		$subSelect = $this->getConnection()->rows(['eshop_product_nxn_eshop_ribbon']);
+		$subSelect->setBinderName('subSelectFilterNotRibbon');
+		$subSelect->where('eshop_product_nxn_eshop_ribbon.fk_product = this.uuid');
+		$subSelect->where('eshop_product_nxn_eshop_ribbon.fk_ribbon', $value);
+
+		$collection->where('NOT EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
+	}
 	
 	public function filterInternalRibbon($value, ICollection $collection): void
 	{
 		$collection->join(['internalRibbons' => 'eshop_product_nxn_eshop_internalribbon'], 'internalRibbons.fk_product=this.uuid');
 		
 		$value === false ? $collection->where('internalRibbons.fk_internalribbon IS NULL') : $collection->where('internalRibbons.fk_internalribbon', $value);
+	}
+
+	public function filterNotInternalRibbon($value, ICollection $collection): void
+	{
+		$subSelect = $this->getConnection()->rows(['eshop_product_nxn_eshop_internalribbon']);
+		$subSelect->setBinderName('subSelectFilterNotInternalRibbon');
+		$subSelect->where('eshop_product_nxn_eshop_internalribbon.fk_product = this.uuid');
+		$subSelect->where('eshop_product_nxn_eshop_internalribbon.fk_internalRibbon', $value);
+
+		$collection->where('NOT EXISTS (' . $subSelect->getSql() . ')', $subSelect->getVars());
 	}
 	
 	public function filterPricelist($value, ICollection $collection): void

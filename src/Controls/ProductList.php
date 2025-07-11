@@ -111,7 +111,21 @@ class ProductList extends Datalist
 			]);
 		});
 
-		$this->setAllowedRepositoryFilters(['category', 'ribbon', 'producer', 'related', 'recommended', 'q', 'hidden', 'uuids', 'pricelist', 'hiddenInMenu']);
+		$this->setAllowedRepositoryFilters([
+			'category',
+			'ribbon',
+			'notRibbon',
+			'internalRibbon',
+			'notInternalRibbon',
+			'producer',
+			'related',
+			'recommended',
+			'q',
+			'hidden',
+			'uuids',
+			'pricelist',
+			'hiddenInMenu',
+		]);
 
 		$this->addFilterExpression('crossSellFilter', function (ICollection $collection, $value): void {
 			$this->productRepository->filterCrossSellFilter($value, $collection);

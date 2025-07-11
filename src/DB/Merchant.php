@@ -89,6 +89,18 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	public bool $ordersPermission = false;
 
 	/**
+	 * Oprávnění: Zobrazení nákupních cen
+	 * @column
+	 */
+	public bool $viewPurchasePricePermission = false;
+
+	/**
+	 * Oprávnění: Schvalování nabídek
+	 * @column
+	 */
+	public bool $approveOfferPermission = false;
+
+	/**
 	 * Informace o objednávkách zákazníků
 	 * @column
 	 */

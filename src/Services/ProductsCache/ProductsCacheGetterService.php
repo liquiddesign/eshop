@@ -211,6 +211,7 @@ class ProductsCacheGetterService implements AutoWireService
 	 *     "displayAmountsCounts": array<string|int, int>,
 	 *     "displayDeliveriesCounts": array<string|int, int>,
 	 *     "producersCounts": array<string|int, int>,
+	 *     'categoriesCounts'?: array<string|int, int>,
 	 *     'priceMin': float,
 	 *     'priceMax': float,
 	 *     'priceVatMin': float,
@@ -226,6 +227,7 @@ class ProductsCacheGetterService implements AutoWireService
 		string $orderByDirection = 'ASC',
 		array $priceLists = [],
 		array $visibilityLists = [],
+		bool $countCategories = false,
 	): array|false {
 		try {
 			$this->getConnection();
@@ -245,7 +247,7 @@ class ProductsCacheGetterService implements AutoWireService
 		}
 
 		if (isset($filters['pricelist'])) {
-			$priceLists = \array_filter($priceLists, fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
+			$priceLists = \array_filter($priceLists, static fn($priceList) => Arrays::contains($filters['pricelist'], $priceList), \ARRAY_FILTER_USE_KEY);
 		}
 
 		unset($filters['pricelist']);
@@ -324,7 +326,10 @@ class ProductsCacheGetterService implements AutoWireService
 			'displayDelivery' => 'this.displayDelivery',
 			'price' => 'visibilityPrice.price',
 			'priceVat' => 'visibilityPrice.priceVat',
+			'priceList' => 'visibilityPrice.priceList',
 			'masterProduct' => 'this.masterProduct',
+			'ribbons' => 'this.ribbons',
+			'internalRibbons' => 'this.internalRibbons',
 		]);
 
 		/** @var array<int, \Eshop\DB\Attribute> $allAttributes */
@@ -471,6 +476,24 @@ class ProductsCacheGetterService implements AutoWireService
 		$displayDeliveriesCounts = [];
 		$producersCounts = [];
 		$attributeValuesCounts = [];
+		$categoriesCounts = [];
+		$descendantCategoriesMap = [];
+
+		if ($countCategories) {
+			$productsCollection->join(['category' => $categoriesTableName], 'this.product = category.product', type: 'INNER');
+			$productsCollection->select(['categories' => 'GROUP_CONCAT(category.category)']);
+
+			/** @var array<\Eshop\DB\Category> $allCategories */
+			$allCategories = $this->categoryRepository->many()
+				->select(['this.id',])
+				->setIndex('id')
+				->toArray();
+
+			$categoriesIdUuidMap = $this->categoryRepository->many()
+				->setSelect(['this.id', 'this.uuid'])
+				->setIndex('uuid')
+				->toArrayOf('id');
+		}
 
 		if ($this->debug) {
 			DevelTools::bdumpCollection($productsCollection);
@@ -683,6 +706,38 @@ class ProductsCacheGetterService implements AutoWireService
 
 			$productPKs[] = $product->product;
 
+			if ($countCategories && $product->categories) {
+				$categories = \explode(',', $product->categories);
+
+				foreach ($categories as $currentCategoryId) {
+					$categoriesCounts[$currentCategoryId] = ($categoriesCounts[$currentCategoryId] ?? 0) + 1;
+
+					$categoryEntity = $allCategories[$currentCategoryId];
+
+					$descendantCategoriesMap[$categoryEntity->getPK()] ??= $categoryEntity->getDescendants()
+						->setSelect(['id'], keepIndex: true)
+						->where('showProductsInAncestors', true)
+						->toArrayOf('id', toArrayValues: true);
+
+					foreach ($descendantCategoriesMap[$categoryEntity->getPK()] as $descendant) {
+						$categoriesCounts[$descendant] = ($categoriesCounts[$descendant] ?? 0) + 1;
+					}
+
+					// Najdi všechny předky v $allCategories a přičti je také
+					$currentCategory = $currentCategoryId;
+
+					while (isset($allCategories[$currentCategory]) && $allCategories[$currentCategory]->getValue('ancestor')) {
+						$ancestor = $allCategories[$categoriesIdUuidMap[$allCategories[$currentCategory]->getValue('ancestor')]];
+
+						if ($ancestor->showDescendantProducts) {
+							$categoriesCounts[$ancestor->id] = ($categoriesCounts[$ancestor->id] ?? 0) + 1;
+						}
+
+						$currentCategory = $categoriesIdUuidMap[$allCategories[$currentCategory]->getValue('ancestor')];
+					}
+				}
+			}
+
 			foreach (\array_keys($attributeValues) as $attributeValue) {
 				$attributeValuesCounts[$attributeValue] = ($attributeValuesCounts[$attributeValue] ?? 0) + 1;
 			}
@@ -732,7 +787,7 @@ class ProductsCacheGetterService implements AutoWireService
 			unset($attributeValuesCounts[$attributeValue->id]);
 		}
 
-		return [
+		$result = [
 			'productPKs' => $productPKs,
 			'attributeValuesCounts' => $attributeValuesCounts,
 			'displayAmountsCounts' => $displayAmountsCounts,
@@ -744,6 +799,12 @@ class ProductsCacheGetterService implements AutoWireService
 			'priceVatMax' => $priceVatMax > \PHP_FLOAT_MIN ? \ceil($priceVatMax) : 0,
 		];
 
+		if ($categoriesCounts) {
+			$result['categoriesCounts'] = $categoriesCounts;
+		}
+
+		return $result;
+
 //		$this->saveDataCacheIndex($dataCacheIndex, $result);
 
 //		Debugger::dump(Debugger::timer());
@@ -753,7 +814,7 @@ class ProductsCacheGetterService implements AutoWireService
 	protected function startUp(): void
 	{
 		$this->allowedCollectionOrderExpressions['availabilityAndPrice'] =
-			function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
+			static function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
 				$productsCollection->orderBy([
 					'case COALESCE(displayAmount_isSold, 2)
 						 when 0 then 0
@@ -765,7 +826,7 @@ class ProductsCacheGetterService implements AutoWireService
 			};
 
 		$this->allowedCollectionOrderExpressions['priorityAvailabilityPrice'] =
-			function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
+			static function (ICollection $productsCollection, string $direction, array $visibilityLists, array $priceLists): void {
 				$productsCollection->orderBy([
 					'visibilityPrice.priority' => $direction,
 					'case COALESCE(displayAmount_isSold, 2)
@@ -777,7 +838,7 @@ class ProductsCacheGetterService implements AutoWireService
 				]);
 			};
 
-		$this->allowedCollectionFilterExpressions['query2'] = function (ICollection $productsCollection, string $query, array $visibilityLists, array $priceLists): void {
+		$this->allowedCollectionFilterExpressions['query2'] = static function (ICollection $productsCollection, string $query, array $visibilityLists, array $priceLists): void {
 			$orConditions = [
 				'IF(this.subCode, CONCAT(this.code, this.subCode), this.code) LIKE :qlikeq',
 				'this.externalCode LIKE :qlike',
@@ -794,7 +855,7 @@ class ProductsCacheGetterService implements AutoWireService
 			]);
 		};
 
-		$this->allowedCollectionOrderExpressions['query2'] = function (ICollection $productsCollection, string $query, array $visibilityLists, array $priceLists): void {
+		$this->allowedCollectionOrderExpressions['query2'] = static function (ICollection $productsCollection, string $query, array $visibilityLists, array $priceLists): void {
 			$productsCollection->orderBy([
 				'this.name LIKE :qlike' => 'DESC',
 				'this.name LIKE :qlikeq' => 'DESC',
@@ -875,7 +936,87 @@ class ProductsCacheGetterService implements AutoWireService
 			return $showVat ? $product->priceVat > $value : $product->price > $value;
 		};
 
-		$this->allowedDynamicFilterExpressions['masterProduct'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
+		$this->allowedDynamicFilterExpressions['ribbon'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
+			$ribbons = \array_flip(\explode(',', (string) $product->ribbons));
+
+			if (\is_string($value)) {
+				return isset($ribbons[$value]);
+			}
+
+			if (\is_array($value)) {
+				foreach ($value as $ribbon) {
+					if (!isset($ribbons[$ribbon])) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			throw new \InvalidArgumentException("Filter 'ribbon': Input must be string or array!");
+		};
+
+		$this->allowedDynamicFilterExpressions['notRibbon'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
+			$ribbons = \array_flip(\explode(',', (string) $product->ribbons));
+
+			if (\is_string($value)) {
+				return !isset($ribbons[$value]);
+			}
+
+			if (\is_array($value)) {
+				foreach ($value as $ribbon) {
+					if (isset($ribbons[$ribbon])) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			throw new \InvalidArgumentException("Filter 'notRibbon': Input must be string or array!");
+		};
+
+		$this->allowedDynamicFilterExpressions['internalRibbon'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
+			$ribbons = \array_flip(\explode(',', (string) $product->internalRibbons));
+
+			if (\is_string($value)) {
+				return isset($ribbons[$value]);
+			}
+
+			if (\is_array($value)) {
+				foreach ($value as $ribbon) {
+					if (!isset($ribbons[$ribbon])) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			throw new \InvalidArgumentException("Filter 'internalRibbon': Input must be string or array!");
+		};
+
+		$this->allowedDynamicFilterExpressions['notInternalRibbon'] = function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
+			$ribbons = \array_flip(\explode(',', (string) $product->internalRibbons));
+
+			if (\is_string($value)) {
+				return !isset($ribbons[$value]);
+			}
+
+			if (\is_array($value)) {
+				foreach ($value as $ribbon) {
+					if (isset($ribbons[$ribbon])) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			throw new \InvalidArgumentException("Filter 'notInternalRibbon': Input must be string or array!");
+		};
+
+		$this->allowedDynamicFilterExpressions['masterProduct'] = static function (\stdClass $product, mixed $value, array $visibilityLists, array $priceLists): bool {
 			if ($value === true) {
 				return $product->masterProduct === null;
 			}
@@ -905,7 +1046,7 @@ class ProductsCacheGetterService implements AutoWireService
 	 */
 	protected function createCoalesceFromArray(array $values, string|null $prefix = null, string|null $suffix = null, string $separator = '_'): string
 	{
-		return $values ? ('COALESCE(' . \implode(',', \array_map(function (mixed $item) use ($prefix, $suffix, $separator): string {
+		return $values ? ('COALESCE(' . \implode(',', \array_map(static function (mixed $item) use ($prefix, $suffix, $separator): string {
 				return $prefix . ($prefix ? $separator : '') . $item->id . ($suffix ? $separator : '') . $suffix;
 		}, $values)) . ')') : 'NULL';
 	}

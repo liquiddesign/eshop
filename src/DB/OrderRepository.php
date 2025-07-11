@@ -9,6 +9,7 @@ use Admin\DB\IGeneralAjaxRepository;
 use Base\ShopsConfig;
 use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
+use Eshop\Actions\Customer\GetCurrentContextCatalogPermissionByCustomer;
 use Eshop\Admin\HelperClasses\MultipleOperationResult;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Integration\Integrations;
@@ -119,6 +120,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		private readonly Integrations $integrations,
 		private readonly ShopsConfig $shopsConfig,
 		private readonly PricelistRepository $pricelistRepository,
+		private readonly GetCurrentContextCatalogPermissionByCustomer $getEmailBlocksSetting,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -1114,8 +1116,17 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 	 */
 	public function getEmailVariables(Order $order): array
 	{
-		$purchase = $order->purchase;
 		$items = [];
+
+		$purchase = $order->purchase;
+		$customer = $purchase->customer;
+
+		if ($customer && $purchase->account) {
+			$customer->setAccount($purchase->account);
+		}
+
+		// Contains catalog permissions for current context with security account
+		$currentContextCatalogPermissions = $this->getEmailBlocksSetting->execute($customer, $order->shop);
 
 		/** @var \Eshop\DB\CartItem $cartItem */
 		foreach ($purchase->getItems() as $cartItem) {
@@ -1125,21 +1136,27 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			$items[$cartItem->getPK()]['supplierCode'] = $cartItem->getProduct()?->supplierCode;
 			$items[$cartItem->getPK()]['ean'] = $cartItem->getProduct()?->getEan();
 			$items[$cartItem->getPK()]['externalCode'] = $cartItem->getProduct()?->externalCode;
-			$items[$cartItem->getPK()]['totalPrice'] = $cartItem->getPriceSum();
-			$items[$cartItem->getPK()]['totalPriceVat'] = $cartItem->getPriceVatSum();
 
-			if ($this->shopperUser->getCatalogPermission() !== 'price') {
+			if ($currentContextCatalogPermissions->catalogPermission !== 'price') {
 				continue;
 			}
 
-			if ($this->shopperUser->getShowVat() && $this->shopperUser->getShowWithoutVat()) {
-				$items[$cartItem->getPK()]['totalPricePref'] = $this->shopperUser->getMainPriceType() === 'withVat' ? $cartItem->getPriceVatSum() : $cartItem->getPriceSum();
+			$items[$cartItem->getPK()]['price'] = $currentContextCatalogPermissions->showPricesWithoutVat ? $cartItem->price : null;
+			$items[$cartItem->getPK()]['priceVat'] = $currentContextCatalogPermissions->showPricesWithVat ? $cartItem->priceVat : null;
+			$items[$cartItem->getPK()]['totalPrice'] = $currentContextCatalogPermissions->showPricesWithoutVat ? $cartItem->getPriceSum() : null;
+			$items[$cartItem->getPK()]['totalPriceVat'] = $currentContextCatalogPermissions->showPricesWithVat ? $cartItem->getPriceVatSum() : null;
+
+			if ($currentContextCatalogPermissions->showPricesWithVat && $currentContextCatalogPermissions->showPricesWithoutVat) {
+				$items[$cartItem->getPK()]['pricePref'] = $currentContextCatalogPermissions->priorityPrice === 'withVat' ? $cartItem->priceVat : $cartItem->price;
+				$items[$cartItem->getPK()]['totalPricePref'] = $currentContextCatalogPermissions->priorityPrice === 'withVat' ? $cartItem->getPriceVatSum() : $cartItem->getPriceSum();
 			} else {
-				if ($this->shopperUser->getShowVat()) {
+				if ($currentContextCatalogPermissions->showPricesWithVat) {
+					$items[$cartItem->getPK()]['pricePref'] = $cartItem->priceVat;
 					$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceVatSum();
 				}
 
-				if ($this->shopperUser->getShowWithoutVat()) {
+				if ($currentContextCatalogPermissions->showPricesWithoutVat) {
+					$items[$cartItem->getPK()]['pricePref'] = $cartItem->price;
 					$items[$cartItem->getPK()]['totalPricePref'] = $cartItem->getPriceSum();
 				}
 			}
@@ -1161,55 +1178,58 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'email' => $purchase->email,
 			'items' => $items,
 			'note' => $purchase->note,
-			'deliveryType' => $purchase->deliveryType ? $purchase->deliveryType->name : null,
-			'deliveryInfo' => $purchase->deliveryType ? $purchase->deliveryType->instructions : null,
+			'deliveryType' => $purchase->deliveryType?->name,
+			'deliveryInfo' => $purchase->deliveryType?->instructions,
 			'deliveryPrice' => $order->getDeliveries()->firstValue('price'),
 			'totalDeliveryPrice' => $totalDeliveryPrice,
 			'totalDeliveryPriceVat' => $totalDeliveryPriceVat,
 			'deliveryPriceVat' => $order->getDeliveries()->firstValue('priceVat'),
-			'paymentType' => $purchase->paymentType ? $purchase->paymentType->name : null,
-			'paymentInfo' => $purchase->paymentType ? $purchase->paymentType->instructions : null,
+			'paymentType' => $purchase->paymentType?->name,
+			'paymentInfo' => $purchase->paymentType?->instructions,
 			'paymentPrice' => $order->payments->firstValue('price'),
 			'paymentPriceVat' => $order->payments->firstValue('priceVat'),
 			'billName' => $purchase->fullname,
 			'billingAddress' => $purchase->billAddress ? $purchase->billAddress->jsonSerialize() : [],
 			'deliveryAddress' => $purchase->deliveryAddress ? $purchase->deliveryAddress->jsonSerialize() : ($purchase->billAddress ? $purchase->billAddress->jsonSerialize() : []),
-			'totalPrice' => $this->shopperUser->getCatalogPermission() === 'price' ? $order->getTotalPrice() : null,
-			'totalPriceVat' => $this->shopperUser->getCatalogPermission() === 'price' ? $order->getTotalPriceVat() : null,
+			'totalPrice' => $currentContextCatalogPermissions->showPricesWithoutVat ? $order->getTotalPrice() : null,
+			'totalPriceVat' => $currentContextCatalogPermissions->showPricesWithVat ? $order->getTotalPriceVat() : null,
 			'currency' => $order->purchase->currency,
 			'discountCoupon' => $order->getDiscountCoupon(),
-			'discountPrice' => $order->getDiscountPrice(),
-			'discountPriceVat' => $order->getDiscountPriceVat(),
+			'discountPrice' => $currentContextCatalogPermissions->showPricesWithoutVat ? $order->getDiscountPrice() : null,
+			'discountPriceVat' => $currentContextCatalogPermissions->showPricesWithVat ? $order->getDiscountPriceVat() : null,
 			'order' => $order,
 			'withVat' => false,
 			'withoutVat' => false,
-			'catalogPermission' => $this->shopperUser->getCatalogPermission(),
-			'priorityPrices' => $this->shopperUser->showPriorityPrices(),
+			'catalogPermission' => $currentContextCatalogPermissions->catalogPermission,
+			'priorityPrices' => $currentContextCatalogPermissions->priorityPrice,
 			'accountFullname' => $purchase->accountFullname,
+			'displayedTransactionEmailBlocks' => $currentContextCatalogPermissions->getDisplayedTransactionEmailBlocks(),
+			'additionalEmailText' => $currentContextCatalogPermissions->additionalEmailText,
 		];
 
-		if ($this->shopperUser->getCatalogPermission() === 'price') {
-			if ($this->shopperUser->getShowVat() && $this->shopperUser->getShowWithoutVat()) {
-				if ($this->shopperUser->showPriorityPrices() === 'withVat') {
+		if ($currentContextCatalogPermissions->catalogPermission === 'price') {
+			if ($currentContextCatalogPermissions->showPricesWithVat && $currentContextCatalogPermissions->showPricesWithoutVat) {
+				if ($currentContextCatalogPermissions->priorityPrice === 'withVat') {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;
 					$values['paymentPricePref'] = $order->payments->firstValue('priceVat');
 					$values['totalPricePref'] = $order->getTotalPriceVat();
-					$values['withVat'] = true;
 				} else {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPrice;
 					$values['paymentPricePref'] = $order->payments->firstValue('price');
 					$values['totalPricePref'] = $order->getTotalPrice();
-					$values['withoutVat'] = true;
 				}
+
+				$values['withVat'] = true;
+				$values['withoutVat'] = true;
 			} else {
-				if ($this->shopperUser->getShowVat()) {
+				if ($currentContextCatalogPermissions->showPricesWithVat) {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;
 					$values['paymentPricePref'] = $order->payments->firstValue('priceVat');
 					$values['totalPricePref'] = $order->getTotalPriceVat();
 					$values['withVat'] = true;
 				}
 
-				if ($this->shopperUser->getShowWithoutVat()) {
+				if ($currentContextCatalogPermissions->showPricesWithoutVat) {
 					$values['totalDeliveryPricePref'] = $totalDeliveryPrice;
 					$values['paymentPricePref'] = $order->payments->firstValue('price');
 					$values['totalPricePref'] = $order->getTotalPrice();

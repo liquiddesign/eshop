@@ -4,9 +4,9 @@ namespace Eshop;
 
 use Admin\DB\RoleRepository;
 use Base\ShopsConfig;
+use Eshop\Actions\Customer\GetCurrentContextCatalogPermissionByCustomer;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\DB\CartItem;
-use Eshop\DB\CatalogPermission;
 use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\Country;
@@ -24,6 +24,7 @@ use Eshop\DB\MinimalOrderValueRepository;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\Product;
 use Eshop\DB\VisibilityListRepository;
+use Eshop\DTO\CurrentContextCatalogPermissions;
 use Eshop\DTO\ProductWithFormattedPrices;
 use Nette\DI\Container;
 use Nette\Http\Session;
@@ -132,6 +133,7 @@ class ShopperUser extends User
 		protected readonly Translator $translator,
 		protected readonly Session $session,
 		protected readonly VisibilityListRepository $visibilityListRepository,
+		protected readonly GetCurrentContextCatalogPermissionByCustomer $getCurrentContextCatalogPermissions,
 		?Authenticator $authenticator,
 		?Authorizator $authorizator,
 		?UserStorage $storage,
@@ -357,11 +359,17 @@ class ShopperUser extends User
 
 		if (!$customer && $merchant) {
 			$visibilityLists = $merchant->getVisibilityLists();
+
+			$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists, $merchant->shop);
 		} else {
 			$visibilityLists = $customer ? $customer->getVisibilityLists() : $this->getCustomerGroup()->getDefaultVisibilityLists();
+
+			$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists, $customer->shop ?? $this->getCustomerGroup()->shop ?? []);
 		}
 
-		return $this->visibilityLists = $visibilityLists->select(['this.id'])->where('this.hidden', false)->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC'])->toArray();
+		$visibilityLists->select(['this.id'])->where('this.hidden', false)->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
+
+		return $this->visibilityLists = $visibilityLists->toArray();
 	}
 
 	public function canBuyProductAmount(Product $product, $amount): bool
@@ -719,7 +727,7 @@ class ShopperUser extends User
 		return $this->childrenCustomers = $this->getChildrenCustomers()->toArray();
 	}
 
-	public function getCatalogPermissionObject(): CatalogPermission|null
+	public function getCatalogPermissionObject(): ?CurrentContextCatalogPermissions
 	{
 		$customer = $this->getCustomer();
 		$merchant = $this->getMerchant();
@@ -728,11 +736,7 @@ class ShopperUser extends User
 			return null;
 		}
 
-		if (!$customer) {
-			return null;
-		}
-
-		return $customer->getCatalogPermission();
+		return $customer ? $this->getCurrentContextCatalogPermissions->execute($customer) : null;
 	}
 
 	/**
@@ -851,7 +855,7 @@ class ShopperUser extends User
 			$catalogPerm = $this->getCatalogPermissionObject();
 		}
 		
-		return $customer && $catalogPerm ? $catalogPerm->priorityPrice : $this->customerGroupRepository->getUnregisteredGroup()->defaultPriorityPrice;
+		return $customer && $catalogPerm?->priorityPrice ? $catalogPerm->priorityPrice : $this->customerGroupRepository->getUnregisteredGroup()->defaultPriorityPrice;
 	}
 
 	/**

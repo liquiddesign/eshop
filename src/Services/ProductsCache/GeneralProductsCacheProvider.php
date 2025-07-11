@@ -29,14 +29,15 @@ interface GeneralProductsCacheProvider
 	 * @param array<mixed> $filters
 	 * @param string|null $orderByName
 	 * @param 'ASC'|'DESC' $orderByDirection Works only if $orderByName is not null
-	 * @param array<string, \Eshop\DB\Pricelist> $priceLists
-	 * @param array<string, \Eshop\DB\VisibilityList> $visibilityLists
+	 * @param array<string|int, \Eshop\DB\Pricelist> $priceLists
+	 * @param array<string|int, \Eshop\DB\VisibilityList> $visibilityLists
 	 * @return array{
 	 *     "productPKs": list<string>,
 	 *     "attributeValuesCounts": array<string|int, int>,
 	 *     "displayAmountsCounts": array<string|int, int>,
 	 *     "displayDeliveriesCounts": array<string|int, int>,
 	 *     "producersCounts": array<string|int, int>,
+	 *     'categoriesCounts'?: array<string|int, int>,
 	 *     'priceMin': float,
 	 *     'priceMax': float,
 	 *     'priceVatMin': float,
@@ -51,7 +52,20 @@ interface GeneralProductsCacheProvider
 		array $priceLists = [],
 		array $visibilityLists = [],
 		bool $debug = false,
+		bool $countCategories = false,
 	): array|false;
+
+	/**
+	 * @param array<mixed> $filters
+	 * @param array<string|int, \Eshop\DB\Pricelist> $priceLists
+	 * @param array<string|int, \Eshop\DB\VisibilityList> $visibilityLists
+	 */
+	public function getCategoryCount(
+		array $filters,
+		array $priceLists = [],
+		array $visibilityLists = [],
+		bool $debug = false,
+	): int|null;
 
 	public function getIndexByCustomer(Customer|Merchant $customerMerchant): string;
 

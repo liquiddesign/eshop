@@ -112,9 +112,21 @@ class PackageItem extends \StORM\Entity implements IPackageItem
 		return $this->storeAmount->product->getSupplierProduct($supplierCode);
 	}
 
+	/**
+	 * Returns selected supplier product by storeAmount
+	 */
+	public function getSelectedSupplierProductByStoreAmount(): SupplierProduct|null
+	{
+		if (!$this->storeAmount || !$this->storeAmount->store->supplier?->code) {
+			return null;
+		}
+
+		return $this->storeAmount->product->getSupplierProduct($this->storeAmount->store->supplier->code);
+	}
+
 	public function getSupplierProduct(string $supplierCode): ?SupplierProduct
 	{
-		return $this->getSelectedSupplierProductBySupplierCode($supplierCode) ?: ($this->cartItem->product ? $this->cartItem->product->getSupplierProduct($supplierCode) : null);
+		return $this->getSelectedSupplierProductBySupplierCode($supplierCode) ?: $this->cartItem->product?->getSupplierProduct($supplierCode);
 	}
 
 	public function getProduct(): Product|null
