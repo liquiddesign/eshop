@@ -1675,6 +1675,14 @@ class CheckoutManager
 			'group' => $defaultGroup?->getPK(),
 			'discountLevelPct' => $defaultGroup ? $defaultGroup->defaultDiscountLevelPct : 0,
 			'shop' => $this->shopsConfig->getSelectedShop()?->getPK(),
+			'buyAllowed' => $defaultGroup ? $defaultGroup->defaultBuyAllowed : true,
+			'orderAllowed' => true,
+			'viewAllOrders' => $defaultGroup ? $defaultGroup->defaultViewAllOrders : false,
+			'showPricesWithoutVat' => $defaultGroup ? $defaultGroup->defaultPricesWithoutVat : false,
+			'showPricesWithVat' => $defaultGroup ? $defaultGroup->defaultPricesWithVat : false,
+			'priorityPrice' => $defaultGroup ? $defaultGroup->defaultPriorityPrice : 'withoutVat',
+			'displayedTransactionEmailBlocks' => $defaultGroup?->defaultDisplayedTransactionEmailBlocks ?: '',
+			'additionalEmailText' => $defaultGroup?->defaultAdditionalEmailText ?: '',
 		];
 
 		if ($purchase->billAddress) {
@@ -1744,6 +1752,8 @@ class CheckoutManager
 				'priorityPrice' => $defaultGroup ? $defaultGroup->defaultPriorityPrice : 'withoutVat',
 				'customer' => $customer->getPK(),
 				'account' => $account->getPK(),
+				'displayedTransactionEmailBlocks' => $defaultGroup?->defaultDisplayedTransactionEmailBlocks,
+				'additionalEmailText' => $defaultGroup?->defaultAdditionalEmailText,
 			]);
 		}
 		

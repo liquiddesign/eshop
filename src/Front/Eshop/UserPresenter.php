@@ -127,15 +127,16 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 		};
 
 		$form->onAccountCreated[] = function (RegistrationForm $form, Account $account): void {
+			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
 
 			/** @var \Eshop\DB\CustomerGroup|null $defaultGroup */
 			$defaultGroup = $this->customerGroupRepo->getDefaultRegistrationGroup();
 
 			/** @var \Eshop\DB\Customer|null $customer */
-			$customer = $this->customerRepository->many()->match(['email' => $values['login']])->first();
+			$customer = $this->customerRepository->many()->where('email', $values['login'])->first();
 
-			if ($customer && !$this->catalogPermissionRepository->many()->match(['fk_customer' => $customer->getPK()])->isEmpty()) {
+			if ($customer && !$this->catalogPermissionRepository->many()->where('fk_customer', $customer->getPK())->isEmpty()) {
 				$this->accountRepository->many()->where('login', $values['login'])->delete();
 				$this->flashMessage($this->translator->translate('registerForm.emailExists', 'Účet s tímto emailem již existuje'), 'error');
 
@@ -150,14 +151,22 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 				'dic' => $values['dic'],
 				'company' => $values['company'],
 				'deliveryAddress' => null,
-				'group' => $defaultGroup ? $defaultGroup->getPK() : null,
+				'group' => $defaultGroup?->getPK(),
 				'discountLevelPct' => $defaultGroup ? $defaultGroup->defaultDiscountLevelPct : 0,
+				'buyAllowed' => $defaultGroup ? $defaultGroup->defaultBuyAllowed : true,
+				'orderAllowed' => true,
+				'viewAllOrders' => $defaultGroup ? $defaultGroup->defaultViewAllOrders : false,
+				'showPricesWithoutVat' => $defaultGroup ? $defaultGroup->defaultPricesWithoutVat : false,
+				'showPricesWithVat' => $defaultGroup ? $defaultGroup->defaultPricesWithVat : false,
+				'priorityPrice' => $defaultGroup ? $defaultGroup->defaultPriorityPrice : 'withoutVat',
+				'displayedTransactionEmailBlocks' => $defaultGroup?->defaultDisplayedTransactionEmailBlocks ?: '',
+				'additionalEmailText' => $defaultGroup?->defaultAdditionalEmailText ?: '',
 			];
 
 			if ($customer) {
 				$customer->update($customerValues);
 
-				$customer = $this->customerRepository->many()->match(['email' => $values['login']])->first();
+				$customer = $this->customerRepository->many()->where('email', $values['login'])->first();
 			} else {
 				$customer = $this->customerRepository->createOne($customerValues);
 			}
@@ -176,9 +185,11 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 				'priorityPrice' => $defaultGroup ? $defaultGroup->defaultPriorityPrice : 'withoutVat',
 				'customer' => $customer->getPK(),
 				'account' => $account->getPK(),
+				'displayedTransactionEmailBlocks' => $defaultGroup?->defaultDisplayedTransactionEmailBlocks,
+				'additionalEmailText' => $defaultGroup?->defaultAdditionalEmailText,
 			]);
 
-			if (\count($defaultGroup->defaultPricelists->toArray()) > 0) {
+			if ($defaultGroup && \count($defaultGroup->defaultPricelists->toArray()) > 0) {
 				$customer->pricelists->relate(\array_keys($defaultGroup->defaultPricelists->toArray()));
 			}
 
