@@ -4,19 +4,20 @@ declare(strict_types=1);
 
 namespace Eshop\Actions\Offer\StateOperations;
 
+use Base\BaseAction;
 use Carbon\Carbon;
 use Eshop\Actions\Offer\GetOfferState;
 use Eshop\DB\Offer;
 use Eshop\DB\OfferState;
 
-class ApproveOffer extends \Base\BaseAction
+class ApproveOffer extends BaseAction
 {
 	public function __construct(private readonly GetOfferState $getOfferState)
 	{
 	}
 
 	/**
-	 * @throws \Eshop\Actions\Offer\StateOperations\UnauthorizedStateChangeException
+	 * @throws \Eshop\Actions\Offer\StateOperations\UnauthorizedStateChangeException|\StORM\Exception\NotFoundException
 	 */
 	public function execute(Offer $offer): void
 	{

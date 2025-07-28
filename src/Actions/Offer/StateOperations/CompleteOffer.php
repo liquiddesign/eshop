@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\Actions\Offer\StateOperations;
 
+use Base\BaseAction;
 use Carbon\Carbon;
 use Eshop\Actions\Offer\GetOfferState;
 use Eshop\DB\Offer;
 use Eshop\DB\OfferState;
 
-class CompleteOffer extends \Base\BaseAction
+class CompleteOffer extends BaseAction
 {
 	public function __construct(private readonly GetOfferState $getOfferState)
 	{
