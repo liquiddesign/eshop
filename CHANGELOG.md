@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.507](https://github.com/liquiddesign/eshop/compare/v2.1.506...v2.1.507) (2025-07-28)
+
+### Bug Fixes
+
+
+##### Products Cache Diff Update Service
+
+* Correct handling of rowsToInsert keys and values ([b42f8e](https://github.com/liquiddesign/eshop/commit/b42f8e4fecda9f8e82ceb42dcc4764326a17a93e))
+
+
+---
+
 ## [2.1.506](https://github.com/liquiddesign/eshop/compare/v2.1.505...v2.1.506) (2025-07-11)
 
 
