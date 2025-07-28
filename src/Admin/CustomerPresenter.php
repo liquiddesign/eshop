@@ -298,14 +298,34 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			'more' => 'Více objednávek (>1)',
 		])->setPrompt('- Počet obj. -');
 
-		if (!$ribbons = $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_CUSTOMER)) {
-			return;
+		if ($ribbons = $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_CUSTOMER)) {
+			$ribbons += ['0' => 'X - bez štítků'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->filter(['internalRibbon' => Helpers::replaceArrayValue($value, '0', null)]);
+			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
 		}
 
-		$ribbons += ['0' => 'X - bez štítků'];
-		$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
-			$source->filter(['internalRibbon' => Helpers::replaceArrayValue($value, '0', null)]);
-		}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
+		if ($deliveryTypes = $this->deliveryTypeRepo->getArrayForSelect()) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
+				$source->join(
+					['exclusiveDeliveryTypesFilter_deliveryTypeXcustomer' => 'eshop_customer_nxn_eshop_deliverytype'],
+					'this.uuid = exclusiveDeliveryTypesFilter_deliveryTypeXcustomer.fk_customer'
+				);
+				$source->where('exclusiveDeliveryTypesFilter_deliveryTypeXcustomer.fk_deliveryType', $value);
+			}, '', 'exclusiveDeliveryTypes', null, $deliveryTypes, ['placeholder' => '- Povolené exkluzivní dopravy -']);
+		}
+
+		if ($paymentTypes = $this->paymentTypeRepo->getArrayForSelect()) {
+			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
+				$source->join(
+					['exclusivePaymentTypesFilter_paymentTypeXcustomer' => 'eshop_customer_nxn_eshop_paymenttype'],
+					'this.uuid = exclusivePaymentTypesFilter_paymentTypeXcustomer.fk_customer'
+				);
+				$source->where('exclusivePaymentTypesFilter_paymentTypeXcustomer.fk_paymentType', $value);
+			}, '', 'exclusivePaymentTypes', null, $paymentTypes, ['placeholder' => '- Povolené exkluzivní platby -']);
+		}
+
+		return;
 	}
 
 	public function addFiltersToAccountsGrid(AdminGrid $grid): void
