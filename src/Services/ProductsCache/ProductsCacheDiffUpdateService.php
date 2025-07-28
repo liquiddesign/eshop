@@ -764,14 +764,14 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
 					$rowsToUpdate[$relation->getPK()] = $diff;
 				}
 			} else {
-				$rowsToInsert[] = $row;
+				$rowsToInsert[$relation->getPK()] = $row;
 			}
 
 			unset($relationsInCache[$relation->getPK()]);
 		}
 
 		if ($rowsToInsert) {
-			$this->getConnection()->createRows($relationsCacheTableName, $rowsToInsert, chunkSize: 1000);
+			$this->getConnection()->createRows($relationsCacheTableName, \array_values($rowsToInsert), chunkSize: 1000);
 		}
 
 		if ($rowsToUpdate) {
