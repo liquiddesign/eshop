@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Eshop\DB\Customer;
 use Eshop\DevelTools;
 use Nette\DI\MissingServiceException;
+use Nette\Utils\Arrays;
 use StORM\DIConnection;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -718,8 +719,29 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
     INDEX idx_related_master (master, type),
     INDEX idx_related_slave (slave, type),
     INDEX idx_products_related_unique (master, slave),
-    UNIQUE INDEX idx_related_code (master, slave, amount, discountPct, masterPct)
+    UNIQUE INDEX idx_related_code (master, slave, amount, discountPct, masterPct, type)
 );");
+		
+		// if idx_related_code has no type column, refresh it
+		$indexQuery = $link->query("
+			SELECT COLUMN_NAME 
+			FROM INFORMATION_SCHEMA.STATISTICS 
+			WHERE TABLE_SCHEMA = DATABASE() 
+			AND TABLE_NAME = '$relationsCacheTableName' 
+			AND INDEX_NAME = 'idx_related_code' 
+			ORDER BY SEQ_IN_INDEX
+		");
+
+		if ($indexQuery !== false) {
+			$indexColumns = $indexQuery->fetchAll(\PDO::FETCH_COLUMN);
+			
+			// Check if 'type' is in the index columns
+			if ($indexColumns && !Arrays::contains($indexColumns, 'type')) {
+				// Drop the old index and create a new one with 'type' column
+				$link->exec("ALTER TABLE `$relationsCacheTableName` DROP INDEX idx_related_code");
+				$link->exec("ALTER TABLE `$relationsCacheTableName` ADD UNIQUE INDEX idx_related_code (master, slave, amount, discountPct, masterPct, type)");
+			}
+		}
 
 		$relations = $this->relatedRepository->many()
 			->join(['type' => 'eshop_relatedtype'], 'this.fk_type = type.uuid')
@@ -731,13 +753,18 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
 				'slaveId' => 'slaveProduct.id',
 			]);
 
-		$relationsInCache = $this->getConnection()
-			->rows([$relationsCacheTableName])
-			->setIndex('uuid')
-			->fetchArray(\stdClass::class);
+//		$relationsInCache = $this->getConnection()
+//			->rows([$relationsCacheTableName])
+//			->select(['uniIndex' => 'CONCAT(master, "-", slave, "-", amount, "-", discountPct, "-", masterPct, "-", type)'])
+//			->setIndex('uniIndex')
+//			->fetchArray(\stdClass::class);
 
 		$rowsToInsert = [];
-		$rowsToUpdate = [];
+//		$rowsToUpdate = [];
+
+		$link->beginTransaction();
+
+		$this->getConnection()->rows([$relationsCacheTableName])->delete();
 
 		foreach ($relations as $relation) {
 			$row = [
@@ -757,44 +784,52 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
 				continue;
 			}
 
-			if (isset($relationsInCache[$relation->getPK()])) {
-				$diff = \array_diff_assoc($row, (array) $relationsInCache[$relation->getPK()]);
+			$rowsToInsert[$relation->getPK()] = $row;
 
-				if ($diff) {
-					$rowsToUpdate[$relation->getPK()] = $diff;
-				}
-			} else {
-				$rowsToInsert[$relation->getPK()] = $row;
-			}
-
-			unset($relationsInCache[$relation->getPK()]);
+//			$uniIndex = $relation->getValue('masterId') . '-' . $relation->getValue('slaveId') . '-' .
+//				$relation->getValue('amount') . '-' . $relation->getValue('discountPct') . '-' .
+//				$relation->getValue('masterPct') . '-' . $relation->getValue('typeId');
+//
+//			if (isset($relationsInCache[$uniIndex])) {
+//				$diff = \array_diff_assoc($row, (array) $relationsInCache[$uniIndex]);
+//
+//				if ($diff) {
+//					$rowsToUpdate[$uniIndex] = $diff;
+//				}
+//			} else {
+//				$rowsToInsert[$uniIndex] = $row;
+//			}
+//
+//			unset($relationsInCache[$uniIndex]);
 		}
 
 		if ($rowsToInsert) {
 			$this->getConnection()->createRows($relationsCacheTableName, \array_values($rowsToInsert), chunkSize: 1000);
 		}
 
-		if ($rowsToUpdate) {
-			foreach (\array_chunk($rowsToUpdate, 1000, true) as $chunk) {
-				$this->getLink()->beginTransaction();
+//		if ($rowsToUpdate) {
+//			foreach (\array_chunk($rowsToUpdate, 1000, true) as $chunk) {
+//				$this->getLink()->beginTransaction();
+//
+//				foreach ($chunk as $uuid => $row) {
+//					$this->getConnection()->rows([$relationsCacheTableName])
+//						->where('uuid', $uuid)
+//						->update($row);
+//				}
+//
+//				$this->getLink()->commit();
+//			}
+//		}
 
-				foreach ($chunk as $uuid => $row) {
-					$this->getConnection()->rows([$relationsCacheTableName])
-						->where('uuid', $uuid)
-						->update($row);
-				}
+		$link->commit();
 
-				$this->getLink()->commit();
-			}
-		}
-
-		if (!$relationsInCache) {
-			return;
-		}
-
-		$this->getConnection()->rows([$relationsCacheTableName])
-			->where('uuid', \array_keys($relationsInCache))
-			->delete();
+//		if (!$relationsInCache) {
+//			return;
+//		}
+//
+//		$this->getConnection()->rows([$relationsCacheTableName])
+//			->where('uuid', \array_keys($relationsInCache))
+//			->delete();
 	}
 
 	protected function createVisibilityPriceTable(string $pricesCacheTableName): void
