@@ -10,6 +10,7 @@ use Eshop\ShopperUser;
 use Nette\Application\UI\Form;
 use Nette\Localization\Translator;
 use Nette\Security\Passwords;
+use Nette\Utils\Strings;
 use Security\DB\AccountRepository;
 
 class AddressesForm extends Form
@@ -40,14 +41,13 @@ class AddressesForm extends Form
 			->setHtmlAttribute('autocomplete', 'tel')
 			->addRule(self::PATTERN, $translator->translate('AddressesForm.phonePattern', 'Pouze čísla a znak "+" na začátku!'), '^\+?[0-9]+$');
 
-		
 		// address bill
 		$billAddressBox = $this->addContainer('billAddress');
 		$billAddressBox->addText('street', 'AddressesForm.bill_street')->setRequired()->setHtmlAttribute('autocomplete', 'street-address');
 		$billAddressBox->addText('city', 'AddressesForm.bill_city')->setRequired()->setHtmlAttribute('autocomplete', 'address-level2');
 		$billAddressBox->addText('zipcode', 'AddressesForm.bill_zipcode')->setRequired()
 			->setHtmlAttribute('autocomplete', 'postal-code')
-			->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
+			->addRule(self::PATTERN, $translator->translate('AddressesForm.zipBadFormat', 'Neplatný formát! Povolené jsou pouze čísla a maximálně 1 mezera.'), '^\d+ ?\d+$');
 		$billAddressBox->addText('state', 'AddressesForm.bill_state')->setHtmlAttribute('autocomplete', 'address-level1');
 		
 		$otherAddress = $this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool) $this->shopperUser->getCheckoutManager()->getPurchase()->deliveryAddress);
@@ -80,7 +80,7 @@ class AddressesForm extends Form
 		$deliveryAddressBox->addText('zipcode', 'AddressesForm.delivery_zipcode')
 			->setHtmlAttribute('autocomplete', 'postal-code')
 			->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired()
-			->addRule(self::PATTERN, $translator->translate('AddressesForm.onlyNumbers', 'Pouze čísla!'), '^[0-9]+$');
+			->addRule(self::PATTERN, $translator->translate('AddressesForm.zipBadFormat', 'Neplatný formát! Povolené jsou pouze čísla a maximálně 1 mezera.'), '^\d+ ?\d+$');
 		$deliveryAddressBox->addText('state', 'AddressesForm.delivery_state')->setHtmlAttribute('autocomplete', 'address-level1');
 		
 		// company
@@ -166,11 +166,13 @@ class AddressesForm extends Form
 		$values = $form->getValues('array');
 		
 		$values['password'] = $values['createAccount'] && $values['password'] ? $this->passwords->hash($values['password']) : null;
-		
+		$values['billAddress']['zipcode'] = Strings::replace($values['billAddress']['zipcode'], '#\s+#');
+		$values['deliveryAddress']['zipcode'] = Strings::replace($values['deliveryAddress']['zipcode'], '#\s+#');
+
 		if (!$values['otherAddress']) {
 			$values['deliveryAddress'] = null;
 		}
-		
+
 		$this->shopperUser->getCheckoutManager()->syncPurchase($values);
 	}
 }
