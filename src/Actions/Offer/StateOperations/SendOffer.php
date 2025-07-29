@@ -11,7 +11,6 @@ use Eshop\DB\Offer;
 use Eshop\DB\OfferState;
 use Messages\DB\TemplateRepository;
 use Nette\Application\LinkGenerator;
-use Nette\Mail\Mailer;
 use StORM\DIConnection;
 use Tracy\Debugger;
 
@@ -21,7 +20,6 @@ class SendOffer extends BaseAction
 		private readonly GetOfferState $getOfferState,
 		private readonly DIConnection $storm,
 		private readonly TemplateRepository $templateRepository,
-		private readonly Mailer $mailer,
 		private readonly LinkGenerator $linkGenerator,
 	) {
 	}
@@ -41,7 +39,7 @@ class SendOffer extends BaseAction
 				'canceledTs' => null,
 			]);
 
-			$message = $this->templateRepository->createMessage(
+			$this->templateRepository->sendMessage(
 				'offers.create',
 				[
 					'publicUrl' => $this->linkGenerator->link('//:Eshop:Offer:offerPublic', [
@@ -52,7 +50,6 @@ class SendOffer extends BaseAction
 				$offer->order->purchase->accountEmail
 			);
 
-			$this->mailer->send($message);
 			$this->storm->getLink()->commit();
 		} catch (\Exception $exception) {
 			Debugger::barDump($exception);
