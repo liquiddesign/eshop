@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.509](https://github.com/liquiddesign/eshop/compare/v2.1.508...v2.1.509) (2025-07-29)
+
+### Bug Fixes
+
+
+##### Products Cache Diff Update Service
+
+* Add type column to unique index and refresh logic ([81b05d](https://github.com/liquiddesign/eshop/commit/81b05d17bb20ff1132d9b7f3bcf426db1d0174e9))
+
+
+---
+
 ## [2.1.508](https://github.com/liquiddesign/eshop/compare/v2.1.507...v2.1.508) (2025-07-28)
 
 
