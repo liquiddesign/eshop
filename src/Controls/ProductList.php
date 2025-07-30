@@ -91,7 +91,13 @@ class ProductList extends Datalist
 			]);
 		}
 
-		$this->setAllowedOrderColumns(['price' => 'price', 'priority' => 'visibilityListItem.priority', 'name' => 'name']);
+		$this->setAllowedOrderColumns([
+			'price' => 'price',
+			'priority' => 'visibilityListItem.priority',
+			'name' => 'name',
+			'buyCount' => 'this.buyCount',
+			'published' => 'this.published',
+		]);
 
 		$this->addOrderExpression('crossSellOrder', function (ICollection $collection, $value): void {
 			$this->setDefaultOnPage(5);

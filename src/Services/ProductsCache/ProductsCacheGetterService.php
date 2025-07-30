@@ -77,7 +77,9 @@ class ProductsCacheGetterService implements AutoWireService
 	protected array $allowedCollectionOrderColumns = [
 		'priority' => 'visibilityPrice.priority',
 		'price' => 'visibilityPrice.price',
-		'name' => 'name',
+		'name' => 'this.name',
+		'published' => 'this.published',
+		'buyCount' => 'this.buyCount',
 	];
 
 	/**
