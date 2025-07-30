@@ -310,6 +310,8 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				'ean' => 'COALESCE(this.secondaryEan, this.ean)',
 				'ribbons' => 'GROUP_CONCAT(DISTINCT eshop_ribbon.uuid SEPARATOR ",")',
 				'internalRibbons' => 'GROUP_CONCAT(DISTINCT eshop_internalribbon.uuid SEPARATOR ",")',
+				'published' => 'this.published',
+				'buyCount' => 'this.buyCount',
 			])
 			->setTake(1000000)
 			->setGroupBy(['this.id']);
@@ -344,6 +346,8 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				'masterProduct' => $product->fkMasterProduct,
 				'ribbons' => $product->ribbons ?: null,
 				'internalRibbons' => $product->internalRibbons ?: null,
+				'published' => $product->published ?: null,
+				'buyCount' => $product->buyCount ?: null,
 			];
 
 			$primaryCategories = isset($productPrimaryCategories[$product->id]) ? \explode(',', $productPrimaryCategories[$product->id]->groupedValues) : [];
@@ -926,7 +930,38 @@ CREATE TABLE IF NOT EXISTS `$productsCacheTableName` (
 		// Provedení celého dotazu najednou
 		$link->exec($query);
 
-		$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN IF NOT EXISTS ribbons TEXT");
-		$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN IF NOT EXISTS internalRibbons TEXT");
+		// Check if columns exist before adding them
+		$query = $link->query("
+			SELECT COLUMN_NAME
+			FROM INFORMATION_SCHEMA.COLUMNS 
+			WHERE TABLE_SCHEMA = DATABASE() 
+			AND TABLE_NAME = '$productsCacheTableName' 
+			AND COLUMN_NAME IN ('ribbons', 'internalRibbons', 'published', 'buyCount')
+		");
+
+		if ($query === false) {
+			throw new \Exception('Statement creation failed.');
+		}
+
+		$columns = $query->fetchAll(\PDO::FETCH_ASSOC);
+		$columns = \array_combine(\array_column($columns, 'COLUMN_NAME'), \array_column($columns, 'COLUMN_NAME'));
+
+		if (!isset($columns['ribbons'])) {
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `ribbons` TEXT");
+		}
+		
+		if (!isset($columns['internalRibbons'])) {
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `internalRibbons` TEXT");
+		}
+		
+		if (!isset($columns['published'])) {
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `published` DATE");
+		}
+		
+		if (!isset($columns['buyCount'])) {
+			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `buyCount` INT");
+		}
+
+		return;
 	}
 }
