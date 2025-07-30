@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.510](https://github.com/liquiddesign/eshop/compare/v2.1.509...v2.1.510) (2025-07-30)
+
+### Features
+
+
+##### Product List, Products Cache
+
+* Add `published` and `buyCount` columns to allowed orders and cache logic ([5a98c1](https://github.com/liquiddesign/eshop/commit/5a98c17412827c588bb7e1cb37c6101f3d280a2d))
+
+
+---
+
 ## [2.1.509](https://github.com/liquiddesign/eshop/compare/v2.1.508...v2.1.509) (2025-07-29)
 
 ### Bug Fixes
