@@ -1678,8 +1678,8 @@ class CheckoutManager
 			'showPricesWithoutVat' => $defaultGroup ? $defaultGroup->defaultPricesWithoutVat : false,
 			'showPricesWithVat' => $defaultGroup ? $defaultGroup->defaultPricesWithVat : false,
 			'priorityPrice' => $defaultGroup ? $defaultGroup->defaultPriorityPrice : 'withoutVat',
-			'displayedTransactionEmailBlocks' => $defaultGroup?->defaultDisplayedTransactionEmailBlocks ?: '',
-			'additionalEmailText' => $defaultGroup?->defaultAdditionalEmailText ?: '',
+			'displayedTransactionEmailBlocks' => $defaultGroup?->defaultDisplayedTransactionEmailBlocks,
+			'additionalEmailText' => $defaultGroup?->defaultAdditionalEmailText,
 		];
 
 		if ($purchase->billAddress) {
@@ -1690,7 +1690,7 @@ class CheckoutManager
 				$data['name'] = $purchase->fullname;
 			}
 
-			if ($customer?->getValue('billAddress')) {
+			if ($customer?->billAddress) {
 				$customer->billAddress->update($data);
 			} else {
 				$billAddress = $this->addressRepository->createOne($data);

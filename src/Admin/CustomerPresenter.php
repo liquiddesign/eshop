@@ -1323,6 +1323,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		}
 
 		$form->addTextArea('additionalEmailText', 'Dotatečný text objednávky')
+			->setNullable()
 			->setDefaultValue($permission?->additionalEmailText);
 
 		$form->addSubmits(false, false);

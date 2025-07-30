@@ -363,7 +363,7 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	/**
 	 * @column {"type":"text"}
 	 */
-	public string $displayedTransactionEmailBlocks = '';
+	public string|null $displayedTransactionEmailBlocks = null;
 
 	/**
 	 * Oprávnění: katalog
@@ -411,7 +411,7 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * Dodatečný text promítnutý do emailu
 	 * @column{"type":"text"}
 	 */
-	public string $additionalEmailText = '';
+	public string|null $additionalEmailText = null;
 	
 	/**
 	 * @relationNxN{"via":"eshop_catalogpermission"}
