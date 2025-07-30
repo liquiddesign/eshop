@@ -64,7 +64,7 @@ class CatalogPermission extends Entity
 	 * Dodatečný text promítnutý do emailu
 	 * @column{"type":"text"}
 	 */
-	public string $additionalEmailText = '';
+	public string|null $additionalEmailText = null;
 
 	/**
 	 * Zákazník

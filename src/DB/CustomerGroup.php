@@ -99,7 +99,7 @@ class CustomerGroup extends ShopSystemicEntity
 	 * Dodatečný text promítnutý do emailu
 	 * @column{"type":"text"}
 	 */
-	public string $defaultAdditionalEmailText = '';
+	public string|null $defaultAdditionalEmailText = null;
 
 	/**
 	 * @column {"type":"text"}

@@ -159,8 +159,8 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 				'showPricesWithoutVat' => $defaultGroup ? $defaultGroup->defaultPricesWithoutVat : false,
 				'showPricesWithVat' => $defaultGroup ? $defaultGroup->defaultPricesWithVat : false,
 				'priorityPrice' => $defaultGroup ? $defaultGroup->defaultPriorityPrice : 'withoutVat',
-				'displayedTransactionEmailBlocks' => $defaultGroup?->defaultDisplayedTransactionEmailBlocks ?: '',
-				'additionalEmailText' => $defaultGroup?->defaultAdditionalEmailText ?: '',
+				'displayedTransactionEmailBlocks' => $defaultGroup?->defaultDisplayedTransactionEmailBlocks,
+				'additionalEmailText' => $defaultGroup?->defaultAdditionalEmailText,
 			];
 
 			if ($customer) {
