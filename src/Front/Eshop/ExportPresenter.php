@@ -693,6 +693,34 @@ abstract class ExportPresenter extends Presenter
 	 */
 	protected function setTemplateDataForHeureka(callable|null $getProductsCallback = null): void
 	{
+		$this->setBaseTemplateDataForHeureka();
+
+		$this->template->products = $this->cache->load('xml_heureka_products_' . $this->shopsConfig->getSelectedShop()?->getPK(), function (&$dependencies) use ($getProductsCallback) {
+			$dependencies[Cache::Expire] = '1 day';
+			$dependencies[Cache::Tags] = ['export'];
+
+			[$priceLists, $visibilityLists] = $this->getPriceAndVisibilityLists('heureka');
+
+			if ($getProductsCallback) {
+				return $getProductsCallback($priceLists, $visibilityLists);
+			}
+
+			$productsCollection = $this->productRepo->getProducts($priceLists, visibilityLists: $visibilityLists)->where('this.exportHeureka', true);
+			$this->productRepo->filterHidden(false, $productsCollection);
+			$this->productRepo->filterUnavailable(false, $productsCollection);
+			$productsCollection->select(['ean' => 'COALESCE(this.secondaryEan, this.ean)']);
+
+			return $productsCollection->fetchArray(\stdClass::class);
+		});
+
+		$templateData = $this->getTemplateData($this->template->products, 'xml_heureka_' . $this->shopsConfig->getSelectedShop()?->getPK());
+		$this->template->productsFrontendData = $templateData['productsFrontendData'];
+		$this->template->priceType = $templateData['priceType'];
+		$this->template->deliveryTypes = $templateData['deliveryTypes'];
+	}
+
+	protected function setBaseTemplateDataForHeureka(): void
+	{
 		$mainCategoryType = $this->shopperUser->getMainCategoryType();
 		$mainCategoriesCollection = $this->categoryRepository->many()->where('this.fk_type', $mainCategoryType->getPK());
 
@@ -739,29 +767,6 @@ abstract class ExportPresenter extends Presenter
 				}
 			}
 		}
-
-		$this->template->products = $this->cache->load('xml_heureka_products_' . $this->shopsConfig->getSelectedShop()?->getPK(), function (&$dependencies) use ($getProductsCallback) {
-			$dependencies[Cache::Expire] = '1 day';
-			$dependencies[Cache::Tags] = ['export'];
-
-			[$priceLists, $visibilityLists] = $this->getPriceAndVisibilityLists('heureka');
-
-			if ($getProductsCallback) {
-				return $getProductsCallback($priceLists, $visibilityLists);
-			}
-
-			$productsCollection = $this->productRepo->getProducts($priceLists, visibilityLists: $visibilityLists)->where('this.exportHeureka', true);
-			$this->productRepo->filterHidden(false, $productsCollection);
-			$this->productRepo->filterUnavailable(false, $productsCollection);
-			$productsCollection->select(['ean' => 'COALESCE(this.secondaryEan, this.ean)']);
-
-			return $productsCollection->fetchArray(\stdClass::class);
-		});
-
-		$templateData = $this->getTemplateData($this->template->products, 'xml_heureka_' . $this->shopsConfig->getSelectedShop()?->getPK());
-		$this->template->productsFrontendData = $templateData['productsFrontendData'];
-		$this->template->priceType = $templateData['priceType'];
-		$this->template->deliveryTypes = $templateData['deliveryTypes'];
 	}
 
 	/**
