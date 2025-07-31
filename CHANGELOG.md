@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.512](https://github.com/liquiddesign/eshop/compare/v2.1.511...v2.1.512) (2025-07-31)
+
+### Bug Fixes
+
+
+##### Products Cache Getter Service
+
+* Improve null-safe handling for price and VAT ranges ([c401a7](https://github.com/liquiddesign/eshop/commit/c401a7c1e80ba9b78307f949c623761397ebb75d))
+
+
+---
+
 ## [2.1.511](https://github.com/liquiddesign/eshop/compare/v2.1.510...v2.1.511) (2025-07-30)
 
 
