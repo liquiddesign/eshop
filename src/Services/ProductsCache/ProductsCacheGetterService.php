@@ -795,10 +795,10 @@ class ProductsCacheGetterService implements AutoWireService
 			'displayAmountsCounts' => $displayAmountsCounts,
 			'displayDeliveriesCounts' => $displayDeliveriesCounts,
 			'producersCounts' => $producersCounts,
-			'priceMin' => $priceMin < \PHP_FLOAT_MAX ? \floor($priceMin) : 0,
-			'priceMax' => $priceMax > \PHP_FLOAT_MIN ? \ceil($priceMax) : 0,
-			'priceVatMin' => $priceVatMin < \PHP_FLOAT_MAX ? \floor($priceVatMin) : 0,
-			'priceVatMax' => $priceVatMax > \PHP_FLOAT_MIN ? \ceil($priceVatMax) : 0,
+			'priceMin' => $priceMin && $priceMin < \PHP_FLOAT_MAX ? \floor($priceMin) : 0,
+			'priceMax' => $priceMax && $priceMax > \PHP_FLOAT_MIN ? \ceil($priceMax) : 0,
+			'priceVatMin' => $priceVatMin && $priceVatMin < \PHP_FLOAT_MAX ? \floor($priceVatMin) : 0,
+			'priceVatMax' => $priceVatMax && $priceVatMax > \PHP_FLOAT_MIN ? \ceil($priceVatMax) : 0,
 		];
 
 		if ($categoriesCounts) {
