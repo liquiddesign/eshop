@@ -757,18 +757,7 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
 				'slaveId' => 'slaveProduct.id',
 			]);
 
-//		$relationsInCache = $this->getConnection()
-//			->rows([$relationsCacheTableName])
-//			->select(['uniIndex' => 'CONCAT(master, "-", slave, "-", amount, "-", discountPct, "-", masterPct, "-", type)'])
-//			->setIndex('uniIndex')
-//			->fetchArray(\stdClass::class);
-
 		$rowsToInsert = [];
-//		$rowsToUpdate = [];
-
-		$link->beginTransaction();
-
-		$this->getConnection()->rows([$relationsCacheTableName])->delete();
 
 		foreach ($relations as $relation) {
 			$row = [
@@ -789,51 +778,17 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
 			}
 
 			$rowsToInsert[$relation->getPK()] = $row;
-
-//			$uniIndex = $relation->getValue('masterId') . '-' . $relation->getValue('slaveId') . '-' .
-//				$relation->getValue('amount') . '-' . $relation->getValue('discountPct') . '-' .
-//				$relation->getValue('masterPct') . '-' . $relation->getValue('typeId');
-//
-//			if (isset($relationsInCache[$uniIndex])) {
-//				$diff = \array_diff_assoc($row, (array) $relationsInCache[$uniIndex]);
-//
-//				if ($diff) {
-//					$rowsToUpdate[$uniIndex] = $diff;
-//				}
-//			} else {
-//				$rowsToInsert[$uniIndex] = $row;
-//			}
-//
-//			unset($relationsInCache[$uniIndex]);
 		}
+
+		$link->beginTransaction();
+
+		$this->getConnection()->rows([$relationsCacheTableName])->delete();
 
 		if ($rowsToInsert) {
 			$this->getConnection()->createRows($relationsCacheTableName, \array_values($rowsToInsert), chunkSize: 1000);
 		}
 
-//		if ($rowsToUpdate) {
-//			foreach (\array_chunk($rowsToUpdate, 1000, true) as $chunk) {
-//				$this->getLink()->beginTransaction();
-//
-//				foreach ($chunk as $uuid => $row) {
-//					$this->getConnection()->rows([$relationsCacheTableName])
-//						->where('uuid', $uuid)
-//						->update($row);
-//				}
-//
-//				$this->getLink()->commit();
-//			}
-//		}
-
 		$link->commit();
-
-//		if (!$relationsInCache) {
-//			return;
-//		}
-//
-//		$this->getConnection()->rows([$relationsCacheTableName])
-//			->where('uuid', \array_keys($relationsInCache))
-//			->delete();
 	}
 
 	protected function createVisibilityPriceTable(string $pricesCacheTableName): void
