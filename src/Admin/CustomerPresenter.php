@@ -689,15 +689,27 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 	
 	public function renderNewAccount(?Customer $customer = null): void
 	{
-		unset($customer);
-		
 		$this->template->headerLabel = 'Nový účet zákazníka';
 		$this->template->headerTree = [
 			['Obchodníci', 'default'],
 			['Nový účet zákazníka'],
 		];
+
+		$accountForm = $this->getComponent('accountForm');
+
 		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('accountForm')];
+		$this->template->displayControls = [$accountForm];
+
+		/** @var \Nette\Forms\Controls\SelectBox $customerInput */
+		$customerInput = $accountForm['permission']['customer'];
+
+		if ($customer) {
+			$this->template->select2AjaxDefaults[$customerInput->getHtmlId()] = [
+				$customer->getPK() => $customer->getName() . ($customer->externalCode ? " ({$customer->externalCode})" : ''),
+			];
+		}
+
+		return;
 	}
 	
 	public function createComponentForm(): AdminForm

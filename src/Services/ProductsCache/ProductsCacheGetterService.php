@@ -879,9 +879,12 @@ class ProductsCacheGetterService implements AutoWireService
 			$productsCollection->where('this.product', $productArray);
 		};
 
-		$this->allowedCollectionFilterExpressions['producer'] = function (ICollection $productsCollection, string|null $producer, array $visibilityLists, array $priceLists): void {
+		$this->allowedCollectionFilterExpressions['producer'] = function (ICollection $productsCollection, string|null|array $producer, array $visibilityLists, array $priceLists): void {
 			if ($producer !== null) {
-				$producerArray = $this->producerRepository->many()->where('this.uuid', $producer)->setSelect(['this.id'])->toArrayOf('id', toArrayValues: true);
+				$producerArray = $this->producerRepository->many()
+					->where('this.uuid', \is_array($producer) ? \array_values($producer) : $producer)
+					->setSelect(['this.id'])
+					->toArrayOf('id', toArrayValues: true);
 
 				$productsCollection->where('this.producer', $producerArray);
 			} else {
