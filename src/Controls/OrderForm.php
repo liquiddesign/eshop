@@ -41,8 +41,7 @@ class OrderForm extends \Nette\Application\UI\Form
 	public function __construct(
 		protected readonly ShopperUser $shopperUser,
 		protected readonly OfferRepository $offerRepository,
-	)
-	{
+	) {
 		parent::__construct();
 
 		$this->addTextArea('deliveryNote')->setNullable();
