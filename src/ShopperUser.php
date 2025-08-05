@@ -42,6 +42,8 @@ use Web\DB\SettingRepository;
 
 class ShopperUser extends User
 {
+	public const SESSION_USE_SELECTED_CUSTOMER_PRICE_LIST = 'useSelectedCustomerPriceList';
+
 	public const PERMISSIONS = [
 		'none' => 'Nezobrazeno',
 		'catalog' => 'Bez cen',
@@ -116,6 +118,8 @@ class ShopperUser extends User
 	 */
 	private string|false $mainPriceType = false;
 
+	protected ?bool $useSelectedCustomerPriceList = null;
+
 	public function __construct(
 		protected readonly PricelistRepository $pricelistRepository,
 		protected readonly CurrencyRepository $currencyRepository,
@@ -139,6 +143,26 @@ class ShopperUser extends User
 		?UserStorage $storage,
 	) {
 		parent::__construct($storage, $authenticator, $authorizator);
+	}
+
+	public function getUseSelectedCustomerPriceList(): bool
+	{
+		if ($this->useSelectedCustomerPriceList === null) {
+			$this->useSelectedCustomerPriceList = $this->session
+				->getSection($this::SESSION_SECTION_NAME)
+				->get($this::SESSION_USE_SELECTED_CUSTOMER_PRICE_LIST);
+		}
+
+		return $this->useSelectedCustomerPriceList ?? false;
+	}
+
+	public function setUseSelectedCustomerPriceList(bool $useSelectedCustomerPriceList): void
+	{
+		$this->useSelectedCustomerPriceList = $useSelectedCustomerPriceList;
+
+		$this->session
+			->getSection($this::SESSION_SECTION_NAME)
+			->set($this::SESSION_USE_SELECTED_CUSTOMER_PRICE_LIST, $this->useSelectedCustomerPriceList);
 	}
 
 	public function getCheckoutManager(): CheckoutManager
@@ -623,7 +647,7 @@ class ShopperUser extends User
 		$discountCoupon ??= $this->getCheckoutManager()->getDiscountCoupon();
 		$currency = $currency ?: ($this->getCurrency()->isConversionEnabled() ? $this->getCurrency()->convertCurrency : $this->getCurrency());
 
-		$customer = $this->getCustomer();
+		$customer = $this->getSelectedCustomerForPriceListOperations();
 		$merchant = $this->getMerchant();
 
 		$unregistredGroup = $this->getCustomerGroup() ?: $this->customerGroupRepository->getUnregisteredGroup();
@@ -1071,5 +1095,22 @@ class ShopperUser extends User
 		$this->merchant = false;
 		$this->customerGroup = false;
 		$this->mainPriceType = false;
+	}
+
+	/**
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	protected function getSelectedCustomerForPriceListOperations(): ?Customer
+	{
+		if ($this->getCustomer() !== null &&
+			$this->customer->allowUsageOfBranchPriceList === true &&
+			$this->getUseSelectedCustomerPriceList() === true &&
+			$this->getSessionSelectedCustomer() !== null &&
+			$this->getSessionSelectedCustomer() !== $this->getCustomer()
+		) {
+			return $this->getSessionSelectedCustomer();
+		}
+
+		return $this->getCustomer();
 	}
 }
