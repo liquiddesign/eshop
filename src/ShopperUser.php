@@ -96,6 +96,18 @@ class ShopperUser extends User
 	 */
 	protected array $vatRates;
 
+	protected ?bool $useSelectedCustomerPriceList = null;
+
+	/**
+	 * @var array<string>|false
+	 */
+	protected array|false $allPriceLists = false;
+
+	/**
+	 * @var array<string>|false
+	 */
+	protected array|null|false $favouritePriceLists = false;
+
 	/**
 	 * @var array<mixed>
 	 */
@@ -117,8 +129,6 @@ class ShopperUser extends User
 	 * @var 'withVat'|'withoutVat'|false
 	 */
 	private string|false $mainPriceType = false;
-
-	protected ?bool $useSelectedCustomerPriceList = null;
 
 	public function __construct(
 		protected readonly PricelistRepository $pricelistRepository,
@@ -378,7 +388,7 @@ class ShopperUser extends User
 			return $this->visibilityLists;
 		}
 
-		$customer = $this->getCustomer();
+		$customer = $this->getSelectedCustomerForPriceListOperations();
 		$merchant = $this->getMerchant();
 
 		if (!$customer && $merchant) {
@@ -691,6 +701,33 @@ class ShopperUser extends User
 		}
 
 		return $this->priceLists[$index] = $this->getPricelists($currency, $discountCoupon)->toArray();
+	}
+
+	/**
+	 * @return array<string>
+	 */
+	public function getAllPriceLists(): array
+	{
+		if ($this->allPriceLists !== false) {
+			return $this->allPriceLists;
+		}
+
+		return $this->allPriceLists = $this->getPricelists()->toArrayOf('uuid', toArrayValues: true);
+	}
+
+	/**
+	 * @return array<string>|null
+	 */
+	public function getFavouritePriceLists(): array|null
+	{
+		if ($this->favouritePriceLists !== false) {
+			return $this->favouritePriceLists;
+		}
+
+		$customer = $this->getSelectedCustomerForPriceListOperations();
+
+		return $this->favouritePriceLists = ($customer && $favouritePriceLists = $customer->getFavouritePriceLists()->where('this.isActive', true)->toArrayOf('uuid', toArrayValues: true)) ?
+			$favouritePriceLists : null;
 	}
 
 	/**
@@ -1102,11 +1139,10 @@ class ShopperUser extends User
 	 */
 	protected function getSelectedCustomerForPriceListOperations(): ?Customer
 	{
-		if ($this->getCustomer() !== null &&
-			$this->customer->allowUsageOfBranchPriceList === true &&
+		if ($this->getCustomer()?->allowUsageOfBranchPriceList === true &&
 			$this->getUseSelectedCustomerPriceList() === true &&
 			$this->getSessionSelectedCustomer() !== null &&
-			$this->getSessionSelectedCustomer() !== $this->getCustomer()
+			$this->getSessionSelectedCustomer()->getPK() !== $this->getCustomer()->getPK()
 		) {
 			return $this->getSessionSelectedCustomer();
 		}
