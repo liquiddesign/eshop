@@ -13,8 +13,9 @@ class FeedSettings extends \StORM\Entity
 	/**
 	 * ID zákazníka
 	 * @column
+	 * @relation
 	 */
-	public string $customerId;
+	public ?Customer $customerId;
 
 	/**
 	 * ID
