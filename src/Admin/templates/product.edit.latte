@@ -2,6 +2,7 @@
 {varType array $confirutation}
 {varType ?Eshop\DB\Product $product}
 {varType bool $testerAvailable}
+{varType bool $qiSyncAvailable}
 
 {block content}
     <section class="content-header">
@@ -129,6 +130,11 @@
                                     <a class="nav-link {$editTab == 'tester' ? 'active show' : ''} productForm-tab"
                                        id="tester"
                                             n:href=":Eshop:Admin:ProductTester:default, 'withProduct' => $product->getPK()">Tester</a>
+                                </li>
+                                <li n:if="$qiSyncAvailable === true" class="nav-item">
+                                    <a class="nav-link {$editTab == 'productQiSync' ? 'active show' : ''} productForm-tab"
+                                       id="tester"
+                                            n:href=":Eshop:Admin:ProductQiSync:default, 'productCode' => $product->getPK()">Synchronizace do QI</a>
                                 </li>
                             {/ifset}
                         </ul>

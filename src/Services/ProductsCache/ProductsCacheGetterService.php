@@ -244,8 +244,12 @@ class ProductsCacheGetterService implements AutoWireService
 		$categoriesTableName = ProductsCacheBaseWarmUpService::CATEGORIES_TABLE_NAME;
 		$relationsCacheTableName = ProductsCacheBaseWarmUpService::RELATIONS_TABLE_NAME;
 
-		if (!$visibilityLists || !$priceLists) {
-			throw new \Exception('No visibility or price lists supplied.');
+		if (!$visibilityLists) {
+			throw new \Exception('No VisibilityLists supplied.');
+		}
+
+		if (!$priceLists) {
+			throw new \Exception('No PriceLists supplied.');
 		}
 
 		if (isset($filters['pricelist'])) {
@@ -259,6 +263,7 @@ class ProductsCacheGetterService implements AutoWireService
 			->setOrderBy(['this.priority', 'this.uuid'])
 			->where('this.uuid', \array_keys($visibilityLists))
 			->toArrayOf('id', toArrayValues: true);
+
 		$priceListsIds = $this->pricelistRepository->many()
 			->setSelect(['this.id'])
 			->setOrderBy(['this.priority', 'this.uuid'])

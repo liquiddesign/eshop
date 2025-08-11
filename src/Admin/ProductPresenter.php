@@ -703,6 +703,13 @@ class ProductPresenter extends BackendPresenter
 			$this->template->testerAvailable = false;
 		}
 
+		try {
+			$this->getPresenter()->getLinkGenerator()->link(':Eshop:Admin:ProductQiSync:default', ['productCode' => $product->getPK()], $this, 'link');
+			$this->template->qiSyncAvailable = true;
+		} catch (InvalidLinkException) {
+			$this->template->qiSyncAvailable = false;
+		}
+
 		$this->template->setFile(__DIR__ . '/templates/product.edit.latte');
 	}
 

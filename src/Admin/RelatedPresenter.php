@@ -68,13 +68,13 @@ class RelatedPresenter extends BackendPresenter
 		$grid->addColumn($this->relatedType->getMasterInternalName(), function (Related $object, $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$object->master]) : '#';
 
-			return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->master->name . '</a>';
+			return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->master->getName() . '</a>';
 		}, '%s');
 
 		$grid->addColumn($this->relatedType->getSlaveInternalName(), function (Related $object, $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$object->slave]) : '#';
 
-			return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->slave->name . '</a>';
+			return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->slave->getName() . '</a>';
 		}, '%s');
 
 		$grid->addColumnInputInteger('Množství', 'amount', '', '', 'this.amount', [], true);
@@ -193,8 +193,8 @@ class RelatedPresenter extends BackendPresenter
 		$relation = $this->getParameter('relation');
 
 		if ($relation) {
-			$this->template->select2AjaxDefaults[$master->getHtmlId()] = [$relation->getValue('master') => $relation->master->name];
-			$this->template->select2AjaxDefaults[$slave->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->name];
+			$this->template->select2AjaxDefaults[$master->getHtmlId()] = [$relation->getValue('master') => $relation->master->getName()];
+			$this->template->select2AjaxDefaults[$slave->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->getName()];
 		}
 
 		$form->addMultiSelect2('shops', 'Obchody', $this->shopsConfig->getAvailableShopsArrayForSelect());
