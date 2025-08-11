@@ -1433,7 +1433,12 @@ class CheckoutManager
 			$this->getSumWeight($cartId)
 		);
 	}
-	
+
+	public function getDeliveryDiscountAuto(?string $cartId = self::ACTIVE_CART_ID): ?DeliveryDiscount
+	{
+		return $this->getDeliveryDiscount($this->shopperUser->getMainPriceType() === 'withVat', $cartId);
+	}
+
 	public function getPossibleDeliveryDiscount(bool $vat = false, ?string $cartId = self::ACTIVE_CART_ID): ?DeliveryDiscount
 	{
 		$currency = $this->cartExists($cartId) ? $this->getCart($cartId)->currency : $this->shopperUser->getCurrency();
@@ -1444,7 +1449,12 @@ class CheckoutManager
 			$this->getSumWeight($cartId)
 		);
 	}
-	
+
+	public function getPossibleDeliveryDiscountAuto(?string $cartId = self::ACTIVE_CART_ID): ?DeliveryDiscount
+	{
+		return $this->getPossibleDeliveryDiscount($this->shopperUser->getMainPriceType() === 'withVat', $cartId);
+	}
+
 	public function getPriceLeftToNextDeliveryDiscount(?string $cartId = self::ACTIVE_CART_ID): ?float
 	{
 		return $this->getPossibleDeliveryDiscount(false, $cartId) ? $this->getPossibleDeliveryDiscount(false, $cartId)->discountPriceFrom - $this->getCartCheckoutPrice($cartId) : null;
@@ -1454,7 +1464,12 @@ class CheckoutManager
 	{
 		return $this->getPossibleDeliveryDiscount(true, $cartId) ? $this->getPossibleDeliveryDiscount(true, $cartId)->discountPriceFrom - $this->getCartCheckoutPriceVat($cartId) : null;
 	}
-	
+
+	public function getPriceLeftToNextDeliveryDiscountAuto(?string $cartId = self::ACTIVE_CART_ID): ?float
+	{
+		return $this->shopperUser->getMainPriceType() === 'withVat' ? $this->getPriceVatLeftToNextDeliveryDiscount($cartId) : $this->getPriceLeftToNextDeliveryDiscount($cartId);
+	}
+
 	public function getDeliveryDiscountProgress(?string $cartId = self::ACTIVE_CART_ID): ?float
 	{
 		return $this->getPossibleDeliveryDiscount() ? $this->getCartCheckoutPrice($cartId) / $this->getPossibleDeliveryDiscount()->discountPriceFrom * 100 : null;

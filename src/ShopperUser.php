@@ -95,6 +95,16 @@ class ShopperUser extends User
 	protected array $vatRates;
 
 	/**
+	 * @var array<string>|false
+	 */
+	protected array|false $allPriceLists = false;
+
+	/**
+	 * @var array<string>|false
+	 */
+	protected array|null|false $favouritePriceLists = false;
+
+	/**
 	 * @var array<mixed>
 	 */
 	private array $config = [];
@@ -667,6 +677,33 @@ class ShopperUser extends User
 		}
 
 		return $this->priceLists[$index] = $this->getPricelists($currency, $discountCoupon)->toArray();
+	}
+
+	/**
+	 * @return array<string>
+	 */
+	public function getAllPriceLists(): array
+	{
+		if ($this->allPriceLists !== false) {
+			return $this->allPriceLists;
+		}
+
+		return $this->allPriceLists = $this->getPricelists()->toArrayOf('uuid', toArrayValues: true);
+	}
+
+	/**
+	 * @return array<string>|null
+	 */
+	public function getFavouritePriceLists(): array|null
+	{
+		if ($this->favouritePriceLists !== false) {
+			return $this->favouritePriceLists;
+		}
+
+		$customer = $this->getCustomer();
+
+		return $this->favouritePriceLists = ($customer && $favouritePriceLists = $customer->getFavouritePriceLists()->where('this.isActive', true)->toArrayOf('uuid', toArrayValues: true)) ?
+			$favouritePriceLists : null;
 	}
 
 	/**
