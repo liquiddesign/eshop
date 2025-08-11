@@ -15,179 +15,179 @@ class FeedSettings extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
-	public ?Customer $customerId;
+	public ?Customer $customer;
 
 	/**
 	 * ID
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $id = 'Ne';
+	public string $id = 'No';
 
 	/**
 	 * SKU
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $sku = 'Ano';
+	public string $sku = 'Yes';
 
 	/**
 	 * EAN
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $ean = 'Ano';
+	public string $ean = 'Yes';
 
 	/**
 	 * ID skup. zbo
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $skupZboId = 'Ne';
+	public string $skupZboId = 'No';
 
 	/**
 	 * Skup. zbo
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $skupZboName = 'Ne';
+	public string $skupZboName = 'No';
 
 	/**
 	 * Hmotnost
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $pckgWeight = 'Ne';
+	public string $pckgWeight = 'No';
 
 	/**
 	 * Výška
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $pckgHeight = 'Ne';
+	public string $pckgHeight = 'No';
 
 	/**
 	 * šířka
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $pckgWidth = 'Ne';
+	public string $pckgWidth = 'No';
 
 	/**
 	 * Hloubka
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $pckgDepth = 'Ne';
+	public string $pckgDepth = 'No';
 
 	/**
 	 * Množství skladem
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $qtyFree = 'Ano';
+	public string $qtyFree = 'Yes';
 
 	/**
 	 * Termín dodávky
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $stockOnRoad = 'Ne';
+	public string $stockOnRoad = 'No';
 
 	/**
 	 * Vaše nákupní cena bez DPH
-	 * @column{"type":"enum","length":"'Ano, zaokrouhleno na celé čísla', 'Ano, zaokrouhleno na dvě desetiny', 'Ne'"}
+	 * @column{"type":"enum","length":"'YesRoundWhole', 'YesRoundTwo', 'No'"}
 	 */
-	public string $priceExclVat = 'Ano, zaokrouhleno na celé čísla';
+	public string $priceExclVat = 'YesRoundWhole';
 
 	/**
 	 * Vaše nákupní cena s DPH
-	 * @column{"type":"enum","length":"'Ano, zaokrouhleno na celé čísla', 'Ano, zaokrouhleno na dvě desetiny', 'Ne'"}
+	 * @column{"type":"enum","length":"'YesRoundWhole', 'YesRoundTwo', 'No'"}
 	 */
-	public string $priceInclVat = 'Ano, zaokrouhleno na celé čísla';
+	public string $priceInclVat = 'YesRoundWhole';
 
 	/**
 	 * Sazba DPH %
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $vatRate = 'Ne';
+	public string $vatRate = 'No';
 
 	/**
 	 * Doporučená cena MO
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $priceRetail = 'Ne';
+	public string $priceRetail = 'No';
 
 	/**
 	 * Ceníková cena
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $priceList = 'Ne';
+	public string $priceList = 'No';
 
 	/**
 	 * Zákaznická sleva %
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $priceDiscountOrg = 'Ne';
+	public string $priceDiscountOrg = 'No';
 
 	/**
 	 * Celková sleva %
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $priceDiscountTotal = 'Ne';
+	public string $priceDiscountTotal = 'No';
 
 	/**
 	 * Název produktu
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $productTitle = 'Ano';
+	public string $productTitle = 'Yes';
 
 	/**
 	 * Popis produktu
-	 * @column{"type":"enum","length":"'Ano - čistý text bez HTML', 'Ano - verze s HTML', 'Ne'"}
+	 * @column{"type":"enum","length":"'YesWithoutHTML', 'YesWithHTML', 'No'"}
 	 */
-	public string $productDescription = 'Ano - čistý text bez HTML';
+	public string $productDescription = 'YesWithoutHTML';
 
 	/**
 	 * Obrázky
-	 * @column{"type":"enum","length":"'Ne', 'Varianta 1', 'Varianta 2', 'Varianta 3', 'Varianta 4', 'Varianta 5'"}
+	 * @column{"type":"enum","length":"'No', 'v1', 'v2', 'v3', 'v4', 'v5'"}
 	 */
-	public string $productImages = 'Ne';
+	public string $productImages = 'No';
 
 	/**
 	 * Obrázky bez komprese
-	 * @column{"type":"enum","length":"'Ne', 'Varianta 1', 'Varianta 2', 'Varianta 3', 'Varianta 4', 'Varianta 5', 'Varianta 6'"}
+	 * @column{"type":"enum","length":"'No', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6'"}
 	 */
-	public string $productImagesUc = 'Ne';
+	public string $productImagesUc = 'No';
 
 	/**
 	 * Kategorie
-	 * @column{"type":"enum","length":"'Ne', 'Varianta 1', 'Varianta 2', 'Varianta 3', 'Varianta 4'"}
+	 * @column{"type":"enum","length":"'No', 'v1', 'v2', 'v3', 'v4'"}
 	 */
-	public string $productCategories = 'Ne';
+	public string $productCategories = 'No';
 
 	/**
 	 * ID variant
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $productGroupId = 'Ne';
+	public string $productGroupId = 'No';
 
 	/**
 	 * Příznak novinka
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $markNew = 'Ne';
+	public string $markNew = 'No';
 
 	/**
 	 * Příznak výprodej
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $markStockClearance = 'Ne';
+	public string $markStockClearance = 'No';
 
 	/**
 	 * Příznak akce
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $markDiscount = 'Ne';
+	public string $markDiscount = 'No';
 
 	/**
 	 * YouTube URL
-	 * @column{"type":"enum","length":"'Ne', 'Varianta 1', 'Varianta 2'"}
+	 * @column{"type":"enum","length":"'No', 'v1', 'v2'"}
 	 */
-	public string $youtubeUrl = 'Ne';
+	public string $youtubeUrl = 'No';
 
 	/**
 	 * GPSR
-	 * @column{"type":"enum","length":"'Ano','Ne'"}
+	 * @column{"type":"enum","length":"'Yes','No'"}
 	 */
-	public string $gpsr = 'Ne';
+	public string $gpsr = 'No';
 }
