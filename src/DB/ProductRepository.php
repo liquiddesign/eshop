@@ -62,6 +62,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		protected readonly VisibilityListItemRepository $visibilityListItemRepository,
 		protected readonly VisibilityListRepository $visibilityListRepository,
 		protected readonly ShopsConfig $shopsConfig,
+		protected readonly PricelistRepository $pricelistRepository,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -112,6 +113,27 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function getSurchargePct(Customer|null $customer): float
 	{
 		return $customer?->getSurchargeLevelPct() ?? 0;
+	}
+
+	/**
+	 * @param \Eshop\DB\Customer $customer
+	 * @param bool $selects
+	 * @param \Eshop\DB\Currency|null $currency
+	 * @return \StORM\Collection<\Eshop\DB\Product>
+	 */
+	public function getProductsByCustomer(Customer $customer, bool $selects = true, Currency|null $currency = null,): Collection
+	{
+		$country = $this->shopperUser->getCountry();
+		$currency ??= $this->shopperUser->getCurrency();
+
+		return $this->getProducts(
+			$this->pricelistRepository->getCustomerPricelists($customer, $currency, $country)->toArray(),
+			$customer,
+			$selects,
+			$customer->group,
+			$this->visibilityListRepository->getVisibilityListsByCustomer($customer)->toArray(),
+			$currency,
+		);
 	}
 
 	/**
