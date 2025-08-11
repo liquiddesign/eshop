@@ -12,7 +12,7 @@ class FeedSettings extends \StORM\Entity
 {
 	/**
 	 * ID zákazníka
-	 * @column
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public ?Customer $customerId;
