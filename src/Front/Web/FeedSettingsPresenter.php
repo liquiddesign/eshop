@@ -8,10 +8,9 @@ class FeedSettingsPresenter extends \Eshop\Front\FrontendPresenter
 {
 	public function renderDefault(): void
 	{
-
 	}
 
-	public function actionDefault(): void {
-
+	public function actionDefault(): void
+	{
 	}
 }
