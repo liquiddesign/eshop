@@ -13,8 +13,7 @@ class ApiConnection
 		private readonly string $baseUrl,
 		private readonly string $login,
 		private readonly string $password
-	)
-	{
+	) {
 		$this->client = new Client();
 	}
 

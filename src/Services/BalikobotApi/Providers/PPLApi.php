@@ -7,7 +7,6 @@ use Eshop\Services\BalikobotApi\DeliveryProviderInterface;
 use Eshop\Services\BalikobotApi\Responses\PPLReturnShipmentResponse;
 use Nette\Http\IRequest;
 use Nette\Http\IResponse;
-use Nette\Http\Request;
 
 readonly class PPLApi implements DeliveryProviderInterface
 {
@@ -15,12 +14,13 @@ readonly class PPLApi implements DeliveryProviderInterface
 	{
 	}
 
-	function orderReturnShipment(array $requestInfo): PPLReturnShipmentResponse
+	public function orderReturnShipment(array $requestInfo): PPLReturnShipmentResponse
 	{
 		$response = $this->apiConnection->request(IRequest::Post, 'ppl/b2a', (array) $requestInfo);
 
 		if ($response->getStatusCode() !== IResponse::S200_OK) {
-			throw new \Exception(); // TODO
+			// TODO
+			throw new \Exception();
 		}
 
 		$data = \json_decode($response->getBody()->getContents(), true)[0];

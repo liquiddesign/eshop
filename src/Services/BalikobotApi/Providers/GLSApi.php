@@ -15,14 +15,15 @@ readonly class GLSApi implements DeliveryProviderInterface
 	{
 	}
 
-	function orderReturnShipment(array $requestInfo): GLSReturnShipmentResponse
+	public function orderReturnShipment(array $requestInfo): GLSReturnShipmentResponse
 	{
 		$response = $this->apiConnection->request(IRequest::Post, 'gls/b2a', $requestInfo);
 
 		Debugger::barDump($response->getBody()->getContents());
 
 		if ($response->getStatusCode() !== IResponse::S200_OK) {
-			throw new \Exception(); // TODO
+			// TODO
+			throw new \Exception();
 		}
 
 		$data = \json_decode($response->getBody()->getContents(), true)[0];

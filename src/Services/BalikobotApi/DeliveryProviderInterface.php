@@ -4,5 +4,5 @@ namespace Eshop\Services\BalikobotApi;
 
 interface DeliveryProviderInterface
 {
-	function orderReturnShipment(array $requestInfo): ReturnShipmentOrderedResponseInterface;
+	public function orderReturnShipment(array $requestInfo): ReturnShipmentOrderedResponseInterface;
 }

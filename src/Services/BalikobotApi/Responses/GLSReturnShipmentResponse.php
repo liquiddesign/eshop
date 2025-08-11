@@ -8,25 +8,21 @@ class GLSReturnShipmentResponse implements ReturnShipmentOrderedResponseInterfac
 {
 	/**
 	 * Unique ID of the order within the carrier in the API.
-	 * @var int
 	 */
 	private int $packageId;
 
 	/**
 	 * Order ID within the carrier, used for possible track&trace (TRACK method).
-	 * @var ?string
 	 */
 	private ?string $carrierId;
 
 	/**
 	 * URL for shipping tracking.
-	 * @var ?string
 	 */
 	private ?string $trackUrl;
 
 	/**
 	 * Text representation of the status standard output.
-	 * @var string
 	 */
 	private string $statusMessage;
 
@@ -37,7 +33,7 @@ class GLSReturnShipmentResponse implements ReturnShipmentOrderedResponseInterfac
 	 * 208 – transport under the sent eid has already been ordered before,
 	 * 400 – Data validation error,
 	 * 503 – Order creation error
-	 * @var string
+	 * @var int
 	 */
 	private int $status;
 

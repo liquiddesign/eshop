@@ -8,19 +8,16 @@ class PPLReturnShipmentResponse implements ReturnShipmentOrderedResponseInterfac
 {
 	/**
 	 * Unique ID of the order within the carrier in the API
-	 * @var int
 	 */
 	private int $packageId;
 
 	/**
 	 * Carrier's consignment number (only for service 50 - PPL Return Connect)
-	 * @var ?string
 	 */
 	private ?string $carrierId;
 
 	/**
 	 * Text representation of the status standard output.
-	 * @var ?string
 	 */
 	private ?string $statusMessage;
 
@@ -31,7 +28,6 @@ class PPLReturnShipmentResponse implements ReturnShipmentOrderedResponseInterfac
 	 * 208 – transport under the sent eid has already been ordered before,
 	 * 400 – Data validation error,
 	 * 503 – Order creation error
-	 * @var int
 	 */
 	private int $status;
 
