@@ -412,6 +412,11 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @column{"type":"text"}
 	 */
 	public string|null $additionalEmailText = null;
+
+	/**
+	 * @column
+	 */
+	public bool $allowUsageOfBranchPriceList = false;
 	
 	/**
 	 * @relationNxN{"via":"eshop_catalogpermission"}
