@@ -1032,7 +1032,9 @@ class CheckoutManager
 	public function fixCartItems(?string $cartId = self::ACTIVE_CART_ID): void
 	{
 		$incorrectItems = $this->getIncorrectCartItems($cartId);
-		
+
+		Debugger::barDump($incorrectItems);
+
 		if (!$incorrectItems) {
 			return;
 		}
@@ -1056,9 +1058,18 @@ class CheckoutManager
 					$incorrectItem['object']->update([
 						'amount' => $incorrectItem['correctValue'],
 					]);
+				} elseif ($incorrectItem['reason'] === IncorrectItemReason::SLAVE_PRODUCT) {
+					$this->addItemToCart(
+						$incorrectItem['correctValue'],
+						$incorrectItem['object']->variant,
+						$incorrectItem['object']->amount,
+					);
+
+					$incorrectItem['object']->delete();
 				}
 			} catch (\Throwable $e) {
 				Debugger::log($e, ILogger::EXCEPTION);
+				Debugger::barDump($e);
 			}
 		}
 	}
@@ -1067,7 +1078,7 @@ class CheckoutManager
 	 * @return array<int, array{
 	 *     object: \Eshop\DB\CartItem,
 	 *     reason: string,
-	 *     correctValue?: string|int|float|null,
+	 *     correctValue?: string|int|float|null|\Eshop\DB\Product,
 	 *     correctValueVat?: string|int|float|null,
 	 *     correctValueBefore?: null|float,
 	 *     correctValueVatBefore?: null|float
@@ -1135,15 +1146,30 @@ class CheckoutManager
 			
 			$productRoundAmount = $this->getProductRoundAmount($cartItem->amount, $cartItem->product);
 			
-			if ($productRoundAmount === $cartItem->amount) {
-				continue;
+			if ($productRoundAmount !== $cartItem->amount) {
+				$incorrectItems[] = [
+					'object' => $cartItem,
+					'reason' => 'product-round',
+					'correctValue' => $productRoundAmount,
+				];
+			}
+
+			// Try to swap slave for master
+
+			if ($masterProduct = $cartItem->product->getTopMasterProduct()) {
+				/** @var \Eshop\DB\Product|null $buyableProduct */
+				$buyableProduct = $this->productRepository->getProduct($masterProduct->getPK());
+
+				if ($buyableProduct) {
+					$incorrectItems[] = [
+						'object' => $cartItem,
+						'reason' => IncorrectItemReason::SLAVE_PRODUCT,
+						'correctValue' => $buyableProduct,
+					];
+				}
 			}
 			
-			$incorrectItems[] = [
-				'object' => $cartItem,
-				'reason' => 'product-round',
-				'correctValue' => $productRoundAmount,
-			];
+			continue;
 		}
 		
 		return $incorrectItems;

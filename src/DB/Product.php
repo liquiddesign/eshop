@@ -609,6 +609,17 @@ class Product extends \StORM\Entity
 		return Arrays::mergeTree(\array_reverse($up), $down);
 	}
 
+	public function getTopMasterProduct(): Product|null
+	{
+		$masterProduct = $this->masterProduct;
+
+		while ($tmpProduct = $masterProduct?->masterProduct) {
+			$masterProduct = $tmpProduct;
+		}
+
+		return $masterProduct;
+	}
+
 	/**
 	 * @deprecated Use GetProductRibbons
 	 * @return array<\Eshop\DB\Ribbon>|array<\StORM\Entity>

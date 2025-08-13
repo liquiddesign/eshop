@@ -1026,16 +1026,19 @@ class OrderPresenter extends BackendPresenter
 						throw new Exception('Product not found');
 					}
 
-					if (!$product = $this->productRepository->getProduct($product)) {
+					/** @var \Eshop\DB\Product|null $product */
+					$product = $this->productRepository->getProduct($product);
+
+					if (!$product) {
 						throw new Exception('Product not found');
 					}
 
 					if (!$item->getPriceSum() > 0) {
-						$product->price = 0;
+						$product->setValue('price', 0);
 					}
 
 					if (!$item->getPriceVatSum() > 0) {
-						$product->priceVat = 0;
+						$product->setValue('priceVat', 0);
 					}
 
 					$cartItem = $this->shopperUser->getCheckoutManager()->addItemToCart($product, null, $item->amount, null, CheckInvalidAmount::NO_CHECK, false, $targetCart);
