@@ -33,7 +33,6 @@ class GLSReturnShipmentResponse implements ReturnShipmentOrderedResponseInterfac
 	 * 208 – transport under the sent eid has already been ordered before,
 	 * 400 – Data validation error,
 	 * 503 – Order creation error
-	 * @var int
 	 */
 	private int $status;
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use Admin\DB\IGeneralAjaxRepository;
+use Base\BaseHelpers;
 use Base\DB\Shop;
 use Base\ShopsConfig;
 use Common\DB\IGeneralRepository;
@@ -836,24 +837,34 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		
 		return $selects;
 	}
-	
-	public function filterCategory($path, ICollection $collection): void
+
+	/**
+	 * @param string|false|array<string> $paths
+	 * @param \StORM\ICollection<\Eshop\DB\Product> $collection
+	 */
+	public function filterCategory(mixed $paths, ICollection $collection): void
 	{
-		if ($path === false) {
+		if ($paths === false) {
 			$collection->where('categories.uuid IS NULL');
 			
 			return;
 		}
 		
-		/** @var \Eshop\DB\Category|null $category */
-		$category = $this->getConnection()->findRepository(Category::class)->many()->where('path', $path)->first();
+		/** @var array<\Eshop\DB\Category> $categories */
+		$categories = $this->getConnection()->findRepository(Category::class)->many()->where('path', $paths)->toArray();
 		
-		if (!$category) {
+		if (!$categories) {
 			$collection->where('1=0');
 		} else {
-			$descendants = [$category->getPK()];
+			$descendants = [];
 
-			if ($category->showDescendantProducts) {
+			foreach ($categories as $category) {
+				$descendants[] = $category->getPK();
+
+				if (!$category->showDescendantProducts) {
+					continue;
+				}
+
 				$descendants = \array_merge(
 					$descendants,
 					$category->getDescendants()
@@ -868,7 +879,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 			$this->joinPrimaryCategoryToProductCollection($collection);
 
-			$collection->where('productPrimaryCategory.fk_category = :category OR this.uuid IN (' . $subSelect->getSql() . ')', ['category' => $category] + $subSelect->getVars());
+			$collection->where(
+				'productPrimaryCategory.fk_category IN (:category) OR this.uuid IN (' . $subSelect->getSql() . ')',
+				['category' => BaseHelpers::arrayToSqlInStatement(\array_keys($categories))] + $subSelect->getVars()
+			);
 		}
 	}
 	
