@@ -24,6 +24,7 @@ class ApproveOffer extends BaseAction
 		$this->canApproveOffer($offer);
 
 		$offer->update(['approvedTs' => Carbon::now()->toDateTimeString()]);
+		$offer->update(['canceledTs' => null]);
 
 		$this->onOfferApproved($offer);
 	}
