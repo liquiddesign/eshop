@@ -9,7 +9,7 @@ class GLSReturnShipmentResponse implements ReturnShipmentOrderedResponseInterfac
 	/**
 	 * Unique ID of the order within the carrier in the API.
 	 */
-	private int $packageId;
+	private string $packageId;
 
 	/**
 	 * Order ID within the carrier, used for possible track&trace (TRACK method).
@@ -36,7 +36,7 @@ class GLSReturnShipmentResponse implements ReturnShipmentOrderedResponseInterfac
 	 */
 	private int $status;
 
-	public function __construct(int $packageId, ?string $carrierId, ?string $trackUrl, string $statusMessage, int $status)
+	public function __construct(string $packageId, ?string $carrierId, ?string $trackUrl, string $statusMessage, int $status)
 	{
 		$this->packageId = $packageId;
 		$this->carrierId = $carrierId;
@@ -45,7 +45,7 @@ class GLSReturnShipmentResponse implements ReturnShipmentOrderedResponseInterfac
 		$this->status = $status;
 	}
 
-	public function getPackageId(): int
+	public function getPackageId(): string
 	{
 		return $this->packageId;
 	}
@@ -60,7 +60,7 @@ class GLSReturnShipmentResponse implements ReturnShipmentOrderedResponseInterfac
 		return $this->trackUrl;
 	}
 
-	public function getStatusMessage(): string
+	public function getStatusMessage(): ?string
 	{
 		return $this->statusMessage;
 	}

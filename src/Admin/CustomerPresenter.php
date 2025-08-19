@@ -39,6 +39,7 @@ use Forms\Form;
 use Grid\Datagrid;
 use League\Csv\Reader;
 use League\Csv\Writer;
+use LiquidMonitorConnector\Actions\GetCronService;
 use Messages\DB\TemplateRepository;
 use Nette\Application\Responses\FileResponse;
 use Nette\Application\UI\Presenter;
@@ -189,7 +190,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 	public TemplateNamesService $templateNamesService;
 
 	#[Inject]
-	public \LiquidMonitorConnector\Actions\GetCronService $getCronService;
+	public GetCronService $getCronService;
 
 	/**
 	 * @var null|callable(array<mixed> $values, \Admin\Controls\AdminForm $form): bool

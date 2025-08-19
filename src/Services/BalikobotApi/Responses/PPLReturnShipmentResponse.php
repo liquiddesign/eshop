@@ -9,12 +9,7 @@ class PPLReturnShipmentResponse implements ReturnShipmentOrderedResponseInterfac
 	/**
 	 * Unique ID of the order within the carrier in the API
 	 */
-	private int $packageId;
-
-	/**
-	 * Carrier's consignment number (only for service 50 - PPL Return Connect)
-	 */
-	private ?string $carrierId;
+	private string $packageId;
 
 	/**
 	 * Text representation of the status standard output.
@@ -31,22 +26,16 @@ class PPLReturnShipmentResponse implements ReturnShipmentOrderedResponseInterfac
 	 */
 	private int $status;
 
-	public function __construct(int $packageId, ?string $carrierId, ?string $statusMessage, int $status)
+	public function __construct(string $packageId, ?string $statusMessage, int $status)
 	{
 		$this->packageId = $packageId;
-		$this->carrierId = $carrierId;
 		$this->statusMessage = $statusMessage;
 		$this->status = $status;
 	}
 
-	public function getPackageId(): int
+	public function getPackageId(): string
 	{
 		return $this->packageId;
-	}
-
-	public function getCarrierId(): ?string
-	{
-		return $this->carrierId;
 	}
 
 	public function getStatusMessage(): ?string
