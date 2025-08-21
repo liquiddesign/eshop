@@ -12,6 +12,7 @@ use Eshop\Integration\MailerLite;
 use Eshop\Integration\Zasilkovna;
 use Eshop\Services\BalikobotApi\DeliveryProviders;
 use Forms\Form;
+use Nette\Forms\Form as FormAlias;
 use Nette\Utils\Html;
 use Web\DB\ContactItemRepository;
 use Web\DB\SettingRepository;
@@ -22,6 +23,7 @@ class IntegrationPresenter extends BackendPresenter
 	public const ZBOZI_API_KEY = 'zboziApiKey';
 	public const ZBOZI_STORE_ID = 'zboziStoreId';
 	public const BALIKOBOT_PROVIDER_ID = 'balikobotProviderId';
+	public const BALIKOBOT_CC_ADDRESS = 'balikobotCcAddress';
 
 	protected const CONFIGURATION = [
 		'supportBox' => false,
@@ -400,6 +402,14 @@ class IntegrationPresenter extends BackendPresenter
 					DeliveryProviders::PPL->value => 'PPL',
 				]
 			);
+			$shopContainer
+				->addText(
+					self::BALIKOBOT_CC_ADDRESS,
+					Html::fromHtml($shop->getIconImageFormAdmin() . ' Adresa pro kopii emailu'),
+				)
+				->setNullable()
+				->addCondition(FormAlias::Filled)
+				->addRule(FormAlias::Email);
 		}
 
 		if (!$shops) {
@@ -414,6 +424,12 @@ class IntegrationPresenter extends BackendPresenter
 					DeliveryProviders::PPL->value => 'PPL',
 				]
 			);
+			$shopContainer->addText(
+				self::BALIKOBOT_CC_ADDRESS,
+				Html::fromHtml('Adresa pro kopii emailu'),
+			)
+				->addCondition(FormAlias::Filled)
+				->addRule(FormAlias::Email);
 		}
 
 		$form->addSubmit('submit', 'Uložit');
@@ -422,11 +438,15 @@ class IntegrationPresenter extends BackendPresenter
 			$values = $form->getValuesWithAjax();
 
 			foreach (\array_keys($values['shops']) as $key) {
-				if ($values['shops'][$key]['balikobotProviderId'] !== '') {
+				if ($values['shops'][$key][self::BALIKOBOT_PROVIDER_ID] === '') {
+					$values['shops'][$key][self::BALIKOBOT_PROVIDER_ID] = null;
+				}
+
+				if ($values['shops'][$key][self::BALIKOBOT_CC_ADDRESS] !== '') {
 					continue;
 				}
 
-				$values['shops'][$key]['balikobotProviderId'] = null;
+				$values['shops'][$key][self::BALIKOBOT_CC_ADDRESS] = null;
 			}
 
 			$this->saveSettings($values);
