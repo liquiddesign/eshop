@@ -85,13 +85,13 @@ class FeedSettings extends \StORM\Entity
 
 	/**
 	 * Vaše nákupní cena bez DPH
-	 * @column{"type":"enum","length":"'YesRoundWhole', 'YesRoundTwo', 'No'"}
+	 * @column{"type":"enum","length":"'YesRoundWhole','YesRoundTwo','No'"}
 	 */
 	public string $priceExclVat = 'YesRoundWhole';
 
 	/**
 	 * Vaše nákupní cena s DPH
-	 * @column{"type":"enum","length":"'YesRoundWhole', 'YesRoundTwo', 'No'"}
+	 * @column{"type":"enum","length":"'YesRoundWhole','YesRoundTwo','No'"}
 	 */
 	public string $priceInclVat = 'YesRoundWhole';
 
@@ -133,25 +133,25 @@ class FeedSettings extends \StORM\Entity
 
 	/**
 	 * Popis produktu
-	 * @column{"type":"enum","length":"'YesWithoutHTML', 'YesWithHTML', 'No'"}
+	 * @column{"type":"enum","length":"'YesWithoutHTML','YesWithHTML','No'"}
 	 */
 	public string $productDescription = 'YesWithoutHTML';
 
 	/**
 	 * Obrázky
-	 * @column{"type":"enum","length":"'No', 'v1', 'v2', 'v3', 'v4', 'v5'"}
+	 * @column{"type":"enum","length":"'No','v1','v2','v3','v4','v5'"}
 	 */
 	public string $productImages = 'No';
 
 	/**
 	 * Obrázky bez komprese
-	 * @column{"type":"enum","length":"'No', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6'"}
+	 * @column{"type":"enum","length":"'No','v1','v2','v3','v4','v5','v6'"}
 	 */
 	public string $productImagesUc = 'No';
 
 	/**
 	 * Kategorie
-	 * @column{"type":"enum","length":"'No', 'v1', 'v2', 'v3', 'v4'"}
+	 * @column{"type":"enum","length":"'No','v1','v2','v3','v4'"}
 	 */
 	public string $productCategories = 'No';
 
@@ -181,7 +181,7 @@ class FeedSettings extends \StORM\Entity
 
 	/**
 	 * YouTube URL
-	 * @column{"type":"enum","length":"'No', 'v1', 'v2'"}
+	 * @column{"type":"enum","length":"'No','v1','v2'"}
 	 */
 	public string $youtubeUrl = 'No';
 
