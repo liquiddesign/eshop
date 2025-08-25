@@ -31,8 +31,9 @@ class IntegrationPresenter extends BackendPresenter
 	protected const CONFIGURATION = [
 		'supportBox' => false,
 		'targito' => false,
+		'balikobot' => false,
 	];
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public SettingRepository $settingsRepo;
 	
@@ -64,11 +65,14 @@ class IntegrationPresenter extends BackendPresenter
 			'@mailerLite' => 'MailerLite',
 			'@heureka' => 'Heureka',
 			'@zbozi' => 'Zboží',
-			'@balikobot' => 'Balíkobot',
 		];
 		
 		if (isset($this::CONFIGURATION['supportBox']) && $this::CONFIGURATION['supportBox']) {
 			$this->template->tabs['@supportBox'] = 'SupportBox';
+		}
+
+		if (isset($this::CONFIGURATION['balikobot']) && $this::CONFIGURATION['balikobot']) {
+			$this->template->tabs['@balikobot'] = 'Balíkobot';
 		}
 		
 		if (!isset($this::CONFIGURATION['targito']) || !$this::CONFIGURATION['targito']) {
