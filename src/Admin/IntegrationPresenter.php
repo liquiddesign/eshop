@@ -11,7 +11,10 @@ use Eshop\DB\OrderRepository;
 use Eshop\Integration\MailerLite;
 use Eshop\Integration\Zasilkovna;
 use Eshop\Services\BalikobotApi\DeliveryProviders;
+use Eshop\Services\BalikobotApi\Providers\GLSApi;
+use Eshop\Services\BalikobotApi\Providers\PPLApi;
 use Forms\Form;
+use Nette\DI\Container;
 use Nette\Forms\Form as FormAlias;
 use Nette\Utils\Html;
 use Web\DB\ContactItemRepository;
@@ -47,6 +50,9 @@ class IntegrationPresenter extends BackendPresenter
 	
 	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepository;
+
+	#[\Nette\DI\Attributes\Inject]
+	public Container $container;
 	
 	public function beforeRender(): void
 	{
@@ -390,6 +396,16 @@ class IntegrationPresenter extends BackendPresenter
 		$shopsContainer = $form->addContainer('shops');
 		$shops = $this->shopsConfig->getAvailableShops();
 
+		$availableDeliveries = [];
+
+		if (\count($this->container->findByType(GLSApi::class)) > 0) {
+			$availableDeliveries[DeliveryProviders::GLS->value] = 'GLS';
+		}
+
+		if (\count($this->container->findByType(PPLApi::class)) > 0) {
+			$availableDeliveries[DeliveryProviders::PPL->value] = 'PPL';
+		}
+
 		foreach ($shops as $shop) {
 			$shopContainer = $shopsContainer->addContainer($shop->getPK());
 
@@ -398,8 +414,7 @@ class IntegrationPresenter extends BackendPresenter
 				Html::fromHtml($shop->getIconImageFormAdmin() . ' Poskytovatel svozu'),
 				[
 					null => '',
-					DeliveryProviders::GLS->value => 'GLS',
-					DeliveryProviders::PPL->value => 'PPL',
+					...$availableDeliveries,
 				]
 			);
 			$shopContainer
@@ -420,8 +435,7 @@ class IntegrationPresenter extends BackendPresenter
 				Html::fromHtml('Poskytovatel svozu'),
 				[
 					null => '',
-					DeliveryProviders::GLS->value => 'GLS',
-					DeliveryProviders::PPL->value => 'PPL',
+					...$availableDeliveries,
 				]
 			);
 			$shopContainer->addText(
