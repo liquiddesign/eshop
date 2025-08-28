@@ -60,7 +60,7 @@ class PackageInfo
 		string $countryCode,
 		?string $note = null,
 		?Carbon $pickupDate = null,
-		?int $piecesCount = null
+		?int $piecesCount = null,
 	) {
 		$this->id = $id;
 		$this->recipientName = $recipientName;
