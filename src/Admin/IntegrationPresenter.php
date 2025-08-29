@@ -11,8 +11,8 @@ use Eshop\DB\OrderRepository;
 use Eshop\Integration\MailerLite;
 use Eshop\Integration\Zasilkovna;
 use Eshop\Services\BalikobotApi\DeliveryProviders;
-use Eshop\Services\BalikobotApi\Providers\GLSApi;
-use Eshop\Services\BalikobotApi\Providers\PPLApi;
+use Eshop\Services\BalikobotApi\Providers\GLSApiService;
+use Eshop\Services\BalikobotApi\Providers\PPLApiService;
 use Forms\Form;
 use Nette\DI\Container;
 use Nette\Forms\Form as FormAlias;
@@ -402,11 +402,11 @@ class IntegrationPresenter extends BackendPresenter
 
 		$availableDeliveries = [];
 
-		if (\count($this->container->findByType(GLSApi::class)) > 0) {
+		if (\count($this->container->findByType(GLSApiService::class)) > 0) {
 			$availableDeliveries[DeliveryProviders::GLS->value] = 'GLS';
 		}
 
-		if (\count($this->container->findByType(PPLApi::class)) > 0) {
+		if (\count($this->container->findByType(PPLApiService::class)) > 0) {
 			$availableDeliveries[DeliveryProviders::PPL->value] = 'PPL';
 		}
 

@@ -2,6 +2,7 @@
 
 namespace Eshop\Services\BalikobotApi\Providers;
 
+use Base\Bridges\AutoWireService;
 use Eshop\Services\BalikobotApi\ApiConnection;
 use Eshop\Services\BalikobotApi\DeliveryProviderInterface;
 use Eshop\Services\BalikobotApi\PackageInfo;
@@ -11,7 +12,7 @@ use Nette\Http\IResponse;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
-readonly class GLSApi implements DeliveryProviderInterface
+readonly class GLSApiService implements DeliveryProviderInterface, AutoWireService
 {
 	public function __construct(private ApiConnection $apiConnection)
 	{
@@ -61,7 +62,7 @@ readonly class GLSApi implements DeliveryProviderInterface
 	}
 
 	/**
-	 * @param array<\Eshop\Services\BalikobotApi\PackageInfo $packageInfos
+	 * @param array<\Eshop\Services\BalikobotApi\PackageInfo> $packageInfos
 	 * @return array<\Eshop\Services\BalikobotApi\Responses\GLSReturnShipmentResponse>
 	 */
 	public function orderManyReturnShipment(array $packageInfos): array

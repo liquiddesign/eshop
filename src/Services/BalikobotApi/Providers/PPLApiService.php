@@ -2,6 +2,7 @@
 
 namespace Eshop\Services\BalikobotApi\Providers;
 
+use Base\Bridges\AutoWireService;
 use Eshop\Services\BalikobotApi\ApiConnection;
 use Eshop\Services\BalikobotApi\DeliveryProviderInterface;
 use Eshop\Services\BalikobotApi\PackageInfo;
@@ -11,7 +12,7 @@ use Nette\Http\IResponse;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
-readonly class PPLApi implements DeliveryProviderInterface
+readonly class PPLApiService implements DeliveryProviderInterface, AutoWireService
 {
 	public function __construct(private ApiConnection $apiConnection)
 	{

@@ -10,3 +10,6 @@ search:
         in: %appDir%/../vendor/liquiddesign/eshop
         files: [*/Actions/**/*.php]
         implements: Base\Bridges\AutoWireAction
+
+services:
+	balikobot.api: Eshop\Services\BalikobotApi\ApiConnection('https://apiv2.balikobot.cz/', '', '')
