@@ -10,7 +10,12 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\Integration\MailerLite;
 use Eshop\Integration\Zasilkovna;
+use Eshop\Services\BalikobotApi\DeliveryProviders;
+use Eshop\Services\BalikobotApi\Providers\GLSApiService;
+use Eshop\Services\BalikobotApi\Providers\PPLApiService;
 use Forms\Form;
+use Nette\DI\Container;
+use Nette\Forms\Form as FormAlias;
 use Nette\Utils\Html;
 use Web\DB\ContactItemRepository;
 use Web\DB\SettingRepository;
@@ -20,12 +25,15 @@ class IntegrationPresenter extends BackendPresenter
 	public const HEUREKA_API_KEY = 'heurekaApiKey';
 	public const ZBOZI_API_KEY = 'zboziApiKey';
 	public const ZBOZI_STORE_ID = 'zboziStoreId';
+	public const BALIKOBOT_PROVIDER_ID = 'balikobotProviderId';
+	public const BALIKOBOT_CC_ADDRESS = 'balikobotCcAddress';
 
 	protected const CONFIGURATION = [
 		'supportBox' => false,
 		'targito' => false,
+		'balikobot' => false,
 	];
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public SettingRepository $settingsRepo;
 	
@@ -43,6 +51,9 @@ class IntegrationPresenter extends BackendPresenter
 	
 	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepository;
+
+	#[\Nette\DI\Attributes\Inject]
+	public Container $container;
 	
 	public function beforeRender(): void
 	{
@@ -58,6 +69,10 @@ class IntegrationPresenter extends BackendPresenter
 		
 		if (isset($this::CONFIGURATION['supportBox']) && $this::CONFIGURATION['supportBox']) {
 			$this->template->tabs['@supportBox'] = 'SupportBox';
+		}
+
+		if (isset($this::CONFIGURATION['balikobot']) && $this::CONFIGURATION['balikobot']) {
+			$this->template->tabs['@balikobot'] = 'Balíkobot';
 		}
 		
 		if (!isset($this::CONFIGURATION['targito']) || !$this::CONFIGURATION['targito']) {
@@ -155,6 +170,14 @@ class IntegrationPresenter extends BackendPresenter
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('targitoForm');
 		
+		$this->setFormDefaults($form);
+	}
+
+	public function actionBalikobot(): void
+	{
+		/** @var \Admin\Controls\AdminForm $form */
+		$form = $this->getComponent('balikobotForm');
+
 		$this->setFormDefaults($form);
 	}
 	
@@ -369,6 +392,89 @@ class IntegrationPresenter extends BackendPresenter
 		
 		return $form;
 	}
+
+	public function createComponentBalikobotForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+
+		$shopsContainer = $form->addContainer('shops');
+		$shops = $this->shopsConfig->getAvailableShops();
+
+		$availableDeliveries = [];
+
+		if (\count($this->container->findByType(GLSApiService::class)) > 0) {
+			$availableDeliveries[DeliveryProviders::GLS->value] = 'GLS';
+		}
+
+		if (\count($this->container->findByType(PPLApiService::class)) > 0) {
+			$availableDeliveries[DeliveryProviders::PPL->value] = 'PPL';
+		}
+
+		foreach ($shops as $shop) {
+			$shopContainer = $shopsContainer->addContainer($shop->getPK());
+
+			$shopContainer->addSelect(
+				self::BALIKOBOT_PROVIDER_ID,
+				Html::fromHtml($shop->getIconImageFormAdmin() . ' Poskytovatel svozu'),
+				[
+					null => '',
+					...$availableDeliveries,
+				]
+			);
+			$shopContainer
+				->addText(
+					self::BALIKOBOT_CC_ADDRESS,
+					Html::fromHtml($shop->getIconImageFormAdmin() . ' Adresa pro kopii emailu'),
+				)
+				->setNullable()
+				->addCondition(FormAlias::Filled)
+				->addRule(FormAlias::Email);
+		}
+
+		if (!$shops) {
+			$shopContainer = $shopsContainer->addContainer('default');
+
+			$shopContainer->addSelect(
+				self::BALIKOBOT_PROVIDER_ID,
+				Html::fromHtml('Poskytovatel svozu'),
+				[
+					null => '',
+					...$availableDeliveries,
+				]
+			);
+			$shopContainer->addText(
+				self::BALIKOBOT_CC_ADDRESS,
+				Html::fromHtml('Adresa pro kopii emailu'),
+			)
+				->addCondition(FormAlias::Filled)
+				->addRule(FormAlias::Email);
+		}
+
+		$form->addSubmit('submit', 'Uložit');
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$values = $form->getValuesWithAjax();
+
+			foreach (\array_keys($values['shops']) as $key) {
+				if ($values['shops'][$key][self::BALIKOBOT_PROVIDER_ID] === '') {
+					$values['shops'][$key][self::BALIKOBOT_PROVIDER_ID] = null;
+				}
+
+				if ($values['shops'][$key][self::BALIKOBOT_CC_ADDRESS] !== '') {
+					continue;
+				}
+
+				$values['shops'][$key][self::BALIKOBOT_CC_ADDRESS] = null;
+			}
+
+			$this->saveSettings($values);
+
+			$this->flashMessage('Nastavení uloženo', 'success');
+			$form->processRedirect('balikobot');
+		};
+
+		return $form;
+	}
 	
 	public function renderSupportbox(): void
 	{
@@ -439,6 +545,17 @@ class IntegrationPresenter extends BackendPresenter
 		}
 		
 		$this->template->displayControls = [$this->getComponent('zasilkovnaForm')];
+	}
+
+	public function renderBalikobot(): void
+	{
+		$this->template->headerLabel = 'Integrace';
+		$this->template->headerTree = [
+			['Integrace'],
+			['Balíkobot'],
+		];
+		$this->template->displayButtons = [];
+		$this->template->displayControls = [$this->getComponent('balikobotForm')];
 	}
 	
 	public function handleSyncZasilkovnaPoints(): void
