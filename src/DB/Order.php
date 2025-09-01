@@ -15,6 +15,7 @@ use StORM\RelationCollection;
  * @method \StORM\RelationCollection<\Eshop\DB\PaymentResult> getPaymentResults()
  * @method \StORM\RelationCollection<\Eshop\DB\InternalRibbon> getInternalRibbons()
  * @method \StORM\RelationCollection<\Eshop\DB\ImportedDocument> getImportedDocuments()
+ * @method \StORM\RelationCollection<\Eshop\DB\Offer> getOffers()
  * @table
  * @index{"name":"order_code","unique":true,"columns":["code", "fk_shop"]}
  */
@@ -244,6 +245,12 @@ class Order extends ShopEntity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Comgate>
 	 */
 	public RelationCollection $comgate;
+
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\Offer>
+	 */
+	public RelationCollection $offers;
 	
 	/**
 	 * Faktury

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\BuyException;
+use Eshop\DB\OfferRepository;
 use Eshop\ShopperUser;
 use Nette\Application\UI\Form;
 use Tracy\Debugger;
@@ -28,12 +29,19 @@ class OrderForm extends \Nette\Application\UI\Form
 	public $afterOrderCreated = null;
 
 	/**
+	 * @var null|callable(\Eshop\DB\Offer $offer): void
+	 */
+	public $afterOfferCreated = null;
+
+	/**
 	 * @var null|callable(int $code, \Eshop\BuyException $e): void
 	 */
 	public $afterBuyError = null;
 
-	public function __construct(protected readonly ShopperUser $shopperUser)
-	{
+	public function __construct(
+		protected readonly ShopperUser $shopperUser,
+		protected readonly OfferRepository $offerRepository,
+	) {
 		parent::__construct();
 
 		$this->addTextArea('deliveryNote')->setNullable();
@@ -60,8 +68,11 @@ class OrderForm extends \Nette\Application\UI\Form
 			return;
 		}
 
+		/** @var \Nette\Forms\Controls\SubmitButton $submitter */
+		$submitter = $form->isSubmitted();
+
 		try {
-			$order = $this->shopperUser->getCheckoutManager()->createOrder();
+			$order = $this->shopperUser->getCheckoutManager()->createOrder(createOffer: $submitter->getName() === 'offerSubmit');
 		} catch (BuyException $exception) {
 			$this->onBuyError($exception->getCode(), $exception);
 
@@ -72,7 +83,12 @@ class OrderForm extends \Nette\Application\UI\Form
 			return;
 		}
 
-		if ($this->afterOrderCreated) {
+		if ($submitter->getName() === 'offerSubmit' && $this->afterOfferCreated) {
+			$offer = $this->offerRepository->many()->where('fk_order', $order->getPK())->first();
+			\call_user_func($this->afterOfferCreated, $offer);
+		}
+
+		if ($submitter->getName() === 'submit' && $this->afterOrderCreated) {
 			\call_user_func($this->afterOrderCreated, $order);
 		}
 

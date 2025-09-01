@@ -4,6 +4,7 @@ namespace Eshop;
 
 use Base\ShopsConfig;
 use Carbon\Carbon;
+use Eshop\Actions\Offer\StateOperations\CreateOffer;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Common\CheckInvalidAmount;
 use Eshop\Common\IncorrectItemReason;
@@ -31,6 +32,7 @@ use Eshop\DB\DiscountCoupon;
 use Eshop\DB\DiscountCouponRepository;
 use Eshop\DB\LoyaltyProgramHistoryRepository;
 use Eshop\DB\NewsletterUserRepository;
+use Eshop\DB\Offer;
 use Eshop\DB\Order;
 use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
@@ -264,6 +266,7 @@ class CheckoutManager
 		protected readonly Nette\DI\Container $container,
 		protected readonly Integrations $integrations,
 		protected readonly AddressRepository $addressRepository,
+		protected readonly CreateOffer $createOffer,
 	) {
 	}
 	
@@ -1029,7 +1032,9 @@ class CheckoutManager
 	public function fixCartItems(?string $cartId = self::ACTIVE_CART_ID): void
 	{
 		$incorrectItems = $this->getIncorrectCartItems($cartId);
-		
+
+		Debugger::barDump($incorrectItems);
+
 		if (!$incorrectItems) {
 			return;
 		}
@@ -1053,9 +1058,18 @@ class CheckoutManager
 					$incorrectItem['object']->update([
 						'amount' => $incorrectItem['correctValue'],
 					]);
+				} elseif ($incorrectItem['reason'] === IncorrectItemReason::SLAVE_PRODUCT) {
+					$this->addItemToCart(
+						$incorrectItem['correctValue'],
+						$incorrectItem['object']->variant,
+						$incorrectItem['object']->amount,
+					);
+
+					$incorrectItem['object']->delete();
 				}
 			} catch (\Throwable $e) {
 				Debugger::log($e, ILogger::EXCEPTION);
+				Debugger::barDump($e);
 			}
 		}
 	}
@@ -1064,7 +1078,7 @@ class CheckoutManager
 	 * @return array<int, array{
 	 *     object: \Eshop\DB\CartItem,
 	 *     reason: string,
-	 *     correctValue?: string|int|float|null,
+	 *     correctValue?: string|int|float|null|\Eshop\DB\Product,
 	 *     correctValueVat?: string|int|float|null,
 	 *     correctValueBefore?: null|float,
 	 *     correctValueVatBefore?: null|float
@@ -1132,15 +1146,30 @@ class CheckoutManager
 			
 			$productRoundAmount = $this->getProductRoundAmount($cartItem->amount, $cartItem->product);
 			
-			if ($productRoundAmount === $cartItem->amount) {
-				continue;
+			if ($productRoundAmount !== $cartItem->amount) {
+				$incorrectItems[] = [
+					'object' => $cartItem,
+					'reason' => 'product-round',
+					'correctValue' => $productRoundAmount,
+				];
+			}
+
+			// Try to swap slave for master
+
+			if ($masterProduct = $cartItem->product->getTopMasterProduct()) {
+				/** @var \Eshop\DB\Product|null $buyableProduct */
+				$buyableProduct = $this->productRepository->getProduct($masterProduct->getPK());
+
+				if ($buyableProduct) {
+					$incorrectItems[] = [
+						'object' => $cartItem,
+						'reason' => IncorrectItemReason::SLAVE_PRODUCT,
+						'correctValue' => $buyableProduct,
+					];
+				}
 			}
 			
-			$incorrectItems[] = [
-				'object' => $cartItem,
-				'reason' => 'product-round',
-				'correctValue' => $productRoundAmount,
-			];
+			continue;
 		}
 		
 		return $incorrectItems;
@@ -1438,7 +1467,7 @@ class CheckoutManager
 	{
 		return $this->getDeliveryDiscount($this->shopperUser->getMainPriceType() === 'withVat', $cartId);
 	}
-
+	
 	public function getPossibleDeliveryDiscount(bool $vat = false, ?string $cartId = self::ACTIVE_CART_ID): ?DeliveryDiscount
 	{
 		$currency = $this->cartExists($cartId) ? $this->getCart($cartId)->currency : $this->shopperUser->getCurrency();
@@ -1454,7 +1483,7 @@ class CheckoutManager
 	{
 		return $this->getPossibleDeliveryDiscount($this->shopperUser->getMainPriceType() === 'withVat', $cartId);
 	}
-
+	
 	public function getPriceLeftToNextDeliveryDiscount(?string $cartId = self::ACTIVE_CART_ID): ?float
 	{
 		return $this->getPossibleDeliveryDiscount(false, $cartId) ? $this->getPossibleDeliveryDiscount(false, $cartId)->discountPriceFrom - $this->getCartCheckoutPrice($cartId) : null;
@@ -1469,7 +1498,7 @@ class CheckoutManager
 	{
 		return $this->shopperUser->getMainPriceType() === 'withVat' ? $this->getPriceVatLeftToNextDeliveryDiscount($cartId) : $this->getPriceLeftToNextDeliveryDiscount($cartId);
 	}
-
+	
 	public function getDeliveryDiscountProgress(?string $cartId = self::ACTIVE_CART_ID): ?float
 	{
 		return $this->getPossibleDeliveryDiscount() ? $this->getCartCheckoutPrice($cartId) / $this->getPossibleDeliveryDiscount()->discountPriceFrom * 100 : null;
@@ -1790,8 +1819,13 @@ class CheckoutManager
 	 * @throws \Eshop\BuyException
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function createOrder(?Purchase $purchase = null, array $defaultOrderValues = [], ?string $cartId = self::ACTIVE_CART_ID, bool $isLastOrder = true): Order
-	{
+	public function createOrder(
+		?Purchase $purchase = null,
+		array $defaultOrderValues = [],
+		?string $cartId = self::ACTIVE_CART_ID,
+		bool $isLastOrder = true,
+		bool $createOffer = false,
+	): Order {
 		/** @var \Eshop\DB\VatRateRepository $vatRepo */
 		$vatRepo = $this->cartItemRepository->getConnection()->findRepository(VatRate::class);
 
@@ -1815,7 +1849,7 @@ class CheckoutManager
 		$cart = $this->getCart($cartId);
 		$currency = $cart->currency;
 		
-		$this->stm->getLink()->beginTransaction();
+		$this->stm->beginTransaction();
 		
 		if ($customer) {
 			$purchase->update(['customerDiscountLevel' => $this->productRepository->getBestDiscountLevel($customer)]);
@@ -2154,15 +2188,21 @@ class CheckoutManager
 		
 		$this->refreshSumProperties($cartId);
 		
-		$this->stm->getLink()->commit();
+		$this->stm->commit();
 		
 		if ($purchase->email) {
 			$this->reviewRepository->createReviewsFromOrder($order);
 		}
-		
-		Arrays::invoke($this->onOrderCreate, $order);
 
-		$this->onOrderCreate($order);
+		if ($createOffer) {
+			$offer = $this->createOffer->execute($order);
+
+			$this->onOfferCreate($offer);
+		} else {
+			Arrays::invoke($this->onOrderCreate, $order);
+
+			$this->onOrderCreate($order);
+		}
 		
 		return $order;
 	}
@@ -2211,6 +2251,11 @@ class CheckoutManager
 		}
 
 		return $purchase->paymentType;
+	}
+
+	protected function onOfferCreate(Offer $offer): void
+	{
+		unset($offer);
 	}
 
 	protected function onOrderCreate(Order $order): void
