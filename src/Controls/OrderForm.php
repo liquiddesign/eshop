@@ -8,6 +8,7 @@ use Eshop\BuyException;
 use Eshop\DB\OfferRepository;
 use Eshop\ShopperUser;
 use Nette\Application\UI\Form;
+use Nette\Forms\Controls\SubmitButton;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
@@ -68,11 +69,13 @@ class OrderForm extends \Nette\Application\UI\Form
 			return;
 		}
 
-		/** @var \Nette\Forms\Controls\SubmitButton $submitter */
+		/** @var \Nette\Forms\Controls\SubmitButton|true $submitter */
 		$submitter = $form->isSubmitted();
 
+		$createOffer = $submitter instanceOf SubmitButton && $submitter->getName() === 'offerSubmit';
+
 		try {
-			$order = $this->shopperUser->getCheckoutManager()->createOrder(createOffer: $submitter->getName() === 'offerSubmit');
+			$order = $this->shopperUser->getCheckoutManager()->createOrder(createOffer: $createOffer);
 		} catch (BuyException $exception) {
 			$this->onBuyError($exception->getCode(), $exception);
 
