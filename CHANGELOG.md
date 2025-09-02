@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.518](https://github.com/liquiddesign/eshop/compare/v2.1.517...v2.1.518) (2025-09-02)
+
+### Bug Fixes
+
+
+##### Order Form
+
+* Improve submitter handling and streamline createOrder logic ([7b2202](https://github.com/liquiddesign/eshop/commit/7b220261c851a6325be7e55e32e87fee365f065e))
+
+
+---
+
 ## [2.1.517](https://github.com/liquiddesign/eshop/compare/v2.1.516...v2.1.517) (2025-09-01)
 
 
