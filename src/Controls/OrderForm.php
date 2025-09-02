@@ -72,7 +72,7 @@ class OrderForm extends \Nette\Application\UI\Form
 		/** @var \Nette\Forms\Controls\SubmitButton|true $submitter */
 		$submitter = $form->isSubmitted();
 
-		$createOffer = $submitter instanceOf SubmitButton && $submitter->getName() === 'offerSubmit';
+		$createOffer = $submitter instanceof SubmitButton && $submitter->getName() === 'offerSubmit';
 
 		try {
 			$order = $this->shopperUser->getCheckoutManager()->createOrder(createOffer: $createOffer);
