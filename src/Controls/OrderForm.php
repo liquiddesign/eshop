@@ -86,12 +86,12 @@ class OrderForm extends \Nette\Application\UI\Form
 			return;
 		}
 
-		if ($submitter->getName() === 'offerSubmit' && $this->afterOfferCreated) {
+		if ($submitter instanceof SubmitButton && $submitter->getName() === 'offerSubmit' && $this->afterOfferCreated) {
 			$offer = $this->offerRepository->many()->where('fk_order', $order->getPK())->first();
 			\call_user_func($this->afterOfferCreated, $offer);
 		}
 
-		if ($submitter->getName() === 'submit' && $this->afterOrderCreated) {
+		if (($submitter === true || ($submitter instanceof SubmitButton && $submitter->getName() === 'submit')) && $this->afterOrderCreated) {
 			\call_user_func($this->afterOrderCreated, $order);
 		}
 
