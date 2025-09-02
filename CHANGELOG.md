@@ -4,6 +4,19 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.519](https://github.com/liquiddesign/eshop/compare/v2.1.518...v2.1.519) (2025-09-02)
+
+### Bug Fixes
+
+
+##### Order Form
+
+* Enhance submitter validation to avoid type errors ([048b1a](https://github.com/liquiddesign/eshop/commit/048b1ac8951a09c4d14e22aea7921a1213e725a9))
+* Correct instanceof typo in submitter validation ([af535e](https://github.com/liquiddesign/eshop/commit/af535efa1d66e071c9465cddf6cf2909e5f68df3))
+
+
+---
+
 ## [2.1.518](https://github.com/liquiddesign/eshop/compare/v2.1.517...v2.1.518) (2025-09-02)
 
 ### Bug Fixes
