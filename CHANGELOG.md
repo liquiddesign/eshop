@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.520](https://github.com/liquiddesign/eshop/compare/v2.1.519...v2.1.520) (2025-09-03)
+
+### Bug Fixes
+
+
+##### Customer Presenter, Pricelists Presenter
+
+* Enhance grid columns and bulk edit options ([369d8e](https://github.com/liquiddesign/eshop/commit/369d8ebcab4638f3136b2e14230698488ec44603))
+
+
+---
+
 ## [2.1.519](https://github.com/liquiddesign/eshop/compare/v2.1.518...v2.1.519) (2025-09-02)
 
 ### Bug Fixes
