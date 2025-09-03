@@ -414,7 +414,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			->setGroupBy(['this.uuid']), 20, 'createdTs', 'DESC', true, filterShops: false);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Registrace', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
-		$grid->addColumn('Jméno / IČO<hr style=\"margin: 0\">Adresa (Fakt. / Doruč.)', function (Customer $customer) {
+		$grid->addColumn('<span>Jméno / IČO</span><hr style=\"margin: 0\"><span>E-mail / Telefon</span><hr style=\"margin: 0\"><span>Adresa (Fakt. / Doruč.)<span', function (Customer $customer) {
 			$hr = '<hr style="margin: 0">';
 			$billAddress = $customer->billAddress?->getFullAddress();
 			$deliveryAddress = $customer->deliveryAddress?->getFullAddress();
@@ -424,14 +424,24 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 				$ribbons .= "<div class=\"badge\" style=\"font-weight: normal; font-style: italic; background-color: $ribbon->backgroundColor; color: $ribbon->color\">$ribbon->name</div> ";
 			}
 
+			$emailDiv = '';
+			$phoneDiv = '';
+
+			if ($customer->email !== null && Strings::length($customer->email) > 0) {
+				$emailDiv = "<div class='col-12'><a href='mailto:{$customer->email}'><i class='far fa-envelope'></i> {$customer->email}</a></div>";
+			}
+
+			if ($customer->phone !== null && Strings::length($customer->phone) > 0) {
+				$phoneDiv = "<div class='col-12'><a href='tel:{$customer->phone}'><i class='fa fa-phone-alt'></i> {$customer->phone}</a></div>";
+			}
+
 			$customerCode = $customer->externalCode !== null ? " <span style='white-space: nowrap'>({$customer->externalCode})</span>" : '';
 			$firstRow = "<div class='row'><div class='col-6'>{$customer->getName()} " . $customerCode . "</div><div class='col-6'>$customer->ic</div></div>";
-			$secondRow = "<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
+			$secondRow = "<div class='row'>" . $emailDiv . $phoneDiv . '</div>';
+			$thirdRow = "<div class='row'><div class='col-6'>$billAddress</div><div class='col-6'>$deliveryAddress</div></div>";
 
-			return $firstRow . $hr . $secondRow . $ribbons;
+			return $firstRow . $hr . $secondRow . $hr . $thirdRow . $ribbons;
 		});
-		$td = '<a href="mailto:%1$s"><i class="far fa-envelope"></i> %1$s</a><br><a href="tel:%2$s"><i class="fa fa-phone-alt"></i> %2$s</a>';
-		$grid->addColumnTextFit('E-mail / Telefon', ['email', 'phone'], $td)->onRenderCell[] = [$grid, 'decoratorEmpty'];
 
 		$grid->addColumn("$lableMerchants<hr style=\"margin: 0\">Nadřazený zák.", function (Customer $customer) {
 			return [

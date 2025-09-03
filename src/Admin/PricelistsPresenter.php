@@ -229,7 +229,7 @@ class PricelistsPresenter extends BackendPresenter
 
 		$grid->addFilterButtons();
 
-		$grid->addButtonBulkEdit('priceListDetail', ['isActive', 'allowDiscountLevel', 'allowSurchargeLevel'], 'priceLists');
+		$grid->addButtonBulkEdit('priceListDetail', ['isActive', 'allowDiscountLevel', 'allowSurchargeLevel', 'internalRibbons'], 'priceLists');
 
 		if (isset($this::CONFIGURATION['aggregate']) && $this::CONFIGURATION['aggregate']) {
 			$submit = $grid->getForm()->addSubmit('aggregate', 'Agregovat ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
