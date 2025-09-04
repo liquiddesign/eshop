@@ -472,8 +472,12 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			}, '%s');
 		}
 
-		$grid->addColumnText('Poslední obj.', ['lastOrder.code', "lastOrder.createdTs|date:'d.m.Y G:i'"], '%s<br><small>%s</small>', 'lastOrder.createdTs');
-		$grid->addColumnText('Počet obj.', 'ordersCount', '%s', 'ordersCount', ['class' => 'fit']);
+		$grid->addColumnText(
+			'<span>Poslední obj.</span><hr style="margin: 0"><span>Počet obj.</span>',
+			['lastOrder.code', "lastOrder.createdTs|date:'d.m.Y G:i'", 'ordersCount'],
+			'%s<br><small>%s</small><hr style="margin: 0"><span>%s</span>',
+			'lastOrder.createdTs'
+		);
 
 		Arrays::invoke($this->onBeforeAddButtonsCustomersGrid, $grid);
 		$this->addCustomFieldsToCustomerGrid($grid);
