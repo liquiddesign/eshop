@@ -10,6 +10,7 @@ use Eshop\Services\BalikobotApi\Responses\GLSReturnShipmentResponse;
 use Nette\Http\IRequest;
 use Nette\Http\IResponse;
 use Nette\Utils\Json;
+use Nette\Utils\Strings;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
@@ -24,14 +25,14 @@ readonly class GLSApiService implements DeliveryProviderInterface, AutoWireServi
 		$requestData = [
 			'packages' => [
 				'eid' => $packageInfo->getId(),
-				'rec_name' => $packageInfo->getRecipientName(),
+				'rec_name' => Strings::substring($packageInfo->getRecipientName(), 0, 59),
 				'rec_phone' => $packageInfo->getRecipientPhone(),
 				'rec_email' => $packageInfo->getRecipientEmail(),
 				'rec_street' => $packageInfo->getStreetAddress(),
 				'rec_city' => $packageInfo->getCity(),
 				'rec_zip' => $packageInfo->getZipCode(),
 				'rec_country' => $packageInfo->getCountryCode(),
-				'rec_firm' => $packageInfo->getRecipientCompany(),
+				'rec_firm' => Strings::substring($packageInfo->getRecipientCompany(), 0, 59),
 				'del_insurance' => false,
 				'note' => $packageInfo->getNote(),
 				'pickup_date' => $packageInfo->getPickupDate()->format('Y-m-d'),
