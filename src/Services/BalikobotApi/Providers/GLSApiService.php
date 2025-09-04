@@ -9,6 +9,7 @@ use Eshop\Services\BalikobotApi\PackageInfo;
 use Eshop\Services\BalikobotApi\Responses\GLSReturnShipmentResponse;
 use Nette\Http\IRequest;
 use Nette\Http\IResponse;
+use Nette\Utils\Json;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
@@ -20,31 +21,37 @@ readonly class GLSApiService implements DeliveryProviderInterface, AutoWireServi
 
 	public function orderReturnShipment(PackageInfo $packageInfo): GLSReturnShipmentResponse
 	{
+		$requestData = [
+			'packages' => [
+				'eid' => $packageInfo->getId(),
+				'rec_name' => $packageInfo->getRecipientName(),
+				'rec_phone' => $packageInfo->getRecipientPhone(),
+				'rec_email' => $packageInfo->getRecipientEmail(),
+				'rec_street' => $packageInfo->getStreetAddress(),
+				'rec_city' => $packageInfo->getCity(),
+				'rec_zip' => $packageInfo->getZipCode(),
+				'rec_country' => $packageInfo->getCountryCode(),
+				'rec_firm' => $packageInfo->getRecipientCompany(),
+				'del_insurance' => false,
+				'note' => $packageInfo->getNote(),
+				'pickup_date' => $packageInfo->getPickupDate()->format('Y-m-d'),
+				'service_type' => '1',
+			],
+		];
+
 		$response = $this->apiConnection->request(
 			IRequest::Post,
 			'gls/b2a',
-			[
-				'packages' => [
-					'eid' => $packageInfo->getId(),
-					'rec_name' => $packageInfo->getRecipientName(),
-					'rec_phone' => $packageInfo->getRecipientPhone(),
-					'rec_email' => $packageInfo->getRecipientEmail(),
-					'rec_street' => $packageInfo->getStreetAddress(),
-					'rec_city' => $packageInfo->getCity(),
-					'rec_zip' => $packageInfo->getZipCode(),
-					'rec_country' => $packageInfo->getCountryCode(),
-					'rec_firm' => $packageInfo->getRecipientCompany(),
-					'del_insurance' => false,
-					'note' => $packageInfo->getNote(),
-					'pickup_date' => $packageInfo->getPickupDate()->format('Y-m-d'),
-					'service_type' => '1',
-				],
-			]
+			$requestData,
 		);
 
 		if ($response->getStatusCode() !== IResponse::S200_OK) {
-			Debugger::barDump($response->getBody()->getContents());
-			$errorMessage = \sprintf('GLSApi - Collection order API request failed: %d %s', $response->getStatusCode(), $response->getReasonPhrase());
+			Debugger::log(Json::encode([
+				'request' => ['endpoint' => 'gls/b2a', 'data' => $requestData],
+				'response' => ['code' => $response->getStatusCode(), 'reason' => $response->getReasonPhrase(), 'data' => $response->getBody()->getContents()],
+			]), 'gls-api');
+
+			$errorMessage = \sprintf('GLSApi - Collection order API request failed: %d %s. More in "gls-api" log.', $response->getStatusCode(), $response->getReasonPhrase());
 			Debugger::log($errorMessage, ILogger::ERROR);
 
 			throw new \RuntimeException($errorMessage);
