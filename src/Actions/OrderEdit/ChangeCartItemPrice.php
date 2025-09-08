@@ -5,16 +5,20 @@ declare(strict_types=1);
 namespace Eshop\Actions\OrderEdit;
 
 use Eshop\DB\CartItem;
+use Eshop\DB\CartItemRepository;
 use Eshop\DB\RelatedCartItemRepository;
 
 class ChangeCartItemPrice extends \Base\BaseAction
 {
-	public function __construct(private readonly RelatedCartItemRepository $relatedCartItemRepository,)
+	public function __construct(private readonly RelatedCartItemRepository $relatedCartItemRepository, private readonly CartItemRepository $cartItemRepository)
 	{
 	}
 
 	public function execute(CartItem $cartItem, float $price, float $vatPct, float|null $priceBefore = null,): CartItem
 	{
+		// Refresh entity to get updated values
+		$cartItem = $this->cartItemRepository->oneOrFail($cartItem->getPK());
+
 		$priceVat = $price * (100 + $vatPct) / 100;
 
 		if ($priceBefore !== null) {
