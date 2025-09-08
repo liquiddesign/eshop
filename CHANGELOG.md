@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.526](https://github.com/liquiddesign/eshop/compare/v2.1.525...v2.1.526) (2025-09-08)
+
+### Bug Fixes
+
+
+##### Order Edit
+
+* Refresh cart item entity before updating price ([33db75](https://github.com/liquiddesign/eshop/commit/33db750271acde0be2a25f8e2972fada41f67276))
+
+
+---
+
 ## [2.1.525](https://github.com/liquiddesign/eshop/compare/v2.1.524...v2.1.525) (2025-09-08)
 
 
