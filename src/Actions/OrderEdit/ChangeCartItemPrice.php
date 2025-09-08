@@ -44,8 +44,8 @@ class ChangeCartItemPrice extends \Base\BaseAction
 			}
 
 			// Calculate price modifiers
-			$priceModifier = $relatedItemsTotalPrice > 0 ? $price / $relatedItemsTotalPrice : 1;
-			$priceVatModifier = $relatedItemsTotalPriceVat > 0 ? $priceVat / $relatedItemsTotalPriceVat : 1;
+			$priceModifier = $relatedItemsTotalPrice > 0 ? $price * $cartItem->amount / $relatedItemsTotalPrice : 1;
+			$priceVatModifier = $relatedItemsTotalPriceVat > 0 ? $priceVat * $cartItem->amount / $relatedItemsTotalPriceVat : 1;
 
 			// Update each related cart item's price
 			foreach ($relatedCartItems as $relatedCartItem) {
