@@ -1157,8 +1157,12 @@ class CheckoutManager
 			// Try to swap slave for master
 
 			if ($masterProduct = $cartItem->product->getTopMasterProduct()) {
-				/** @var \Eshop\DB\Product|null $buyableProduct */
-				$buyableProduct = $this->productRepository->getProduct($masterProduct->getPK());
+				try {
+					/** @var \Eshop\DB\Product|null $buyableProduct */
+					$buyableProduct = $this->productRepository->getProduct($masterProduct->getPK());
+				} catch (\Exception $e) {
+					continue;
+				}
 
 				if ($buyableProduct) {
 					$incorrectItems[] = [
