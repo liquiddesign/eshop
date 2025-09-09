@@ -85,14 +85,14 @@ readonly class GLSApiService implements DeliveryProviderInterface, AutoWireServi
 		foreach ($packageInfos as $packageInfo) {
 			$packages[] = [
 				'eid' => $packageInfo->getId(),
-				'rec_name' => $packageInfo->getRecipientName(),
+				'rec_name' => Strings::substring($packageInfo->getRecipientName(), 0, 59),
 				'rec_phone' => $packageInfo->getRecipientPhone(),
 				'rec_email' => $packageInfo->getRecipientEmail(),
 				'rec_street' => $packageInfo->getStreetAddress(),
 				'rec_city' => $packageInfo->getCity(),
 				'rec_zip' => $packageInfo->getZipCode(),
 				'rec_country' => $packageInfo->getCountryCode(),
-				'rec_firm' => $packageInfo->getRecipientCompany(),
+				'rec_firm' => Strings::substring($packageInfo->getRecipientCompany(), 0, 59),
 				'del_insurance' => false,
 				'note' => $packageInfo->getNote(),
 				'pickup_date' => $packageInfo->getPickupDate()->format('Y-m-d'),
