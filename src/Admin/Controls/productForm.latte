@@ -833,6 +833,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                         <th>Kód</th>
                         <th>Dodavatelský produkt</th>
                         <th>Dodavatelský kód</th>
+                        <th>Cena</th>
                         <th>Recyklační poplatek</th>
                         <th>Autorský poplatek</th>
                         <th>Mapovaná dostupnost</th>
@@ -857,6 +858,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                                 </a>
                             </td>
                             <td>{$supplierProduct->code}</td>
+                            <td>{$supplierProduct->price|price}</td>
                             <td>{$supplierProduct->recyclingFee}</td>
                             <td>{$supplierProduct->copyrightFee}</td>
                             <td>{$supplierProduct->displayAmount && $supplierProduct->displayAmount->displayAmount ? $supplierProduct->displayAmount->displayAmount->label : ''}</td>
