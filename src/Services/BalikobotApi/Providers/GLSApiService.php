@@ -9,6 +9,7 @@ use Eshop\Services\BalikobotApi\PackageInfo;
 use Eshop\Services\BalikobotApi\Responses\GLSReturnShipmentResponse;
 use Nette\Http\IRequest;
 use Nette\Http\IResponse;
+use Nette\Utils\Arrays;
 use Nette\Utils\Json;
 use Nette\Utils\Strings;
 use Tracy\Debugger;
@@ -46,7 +47,8 @@ readonly class GLSApiService implements DeliveryProviderInterface, AutoWireServi
 			$requestData,
 		);
 
-		if ($response->getStatusCode() !== IResponse::S200_OK) {
+		// Exception out of valid states declared by API
+		if (!Arrays::contains([200, 208, 400, 503], $response->getStatusCode())) {
 			Debugger::log(Json::encode([
 				'request' => ['endpoint' => 'gls/b2a', 'data' => $requestData],
 				'response' => ['code' => $response->getStatusCode(), 'reason' => $response->getReasonPhrase(), 'data' => $response->getBody()->getContents()],
@@ -59,12 +61,17 @@ readonly class GLSApiService implements DeliveryProviderInterface, AutoWireServi
 		}
 
 		$data = \json_decode($response->getBody()->getContents(), true)['packages'][0];
+		$errors = null;
+
+		if ($data['status'] === 400) {
+			$errors = \implode('|', \array_column($data['errors'], 'message'));
+		}
 
 		return new GLSReturnShipmentResponse(
-			$data['package_id'],
-			$data['carrier_id'] ?? $data['carrer_id'],
-			$data['track_url'],
-			$data['status_message'],
+			$data['package_id'] ?? null,
+			$data['carrier_id'] ?? $data['carrer_id'] ?? null,
+			$data['track_url'] ?? null,
+			$data['status_message'] ?? $errors,
 			$data['status'],
 		);
 	}
@@ -122,11 +129,17 @@ readonly class GLSApiService implements DeliveryProviderInterface, AutoWireServi
 		$responses = [];
 
 		foreach ($packagesData as $packageData) {
+			$errors = null;
+
+			if ($packageData['status'] === 400) {
+				$errors = \implode('|', \array_column($packageData['errors'], 'message'));
+			}
+
 			$responses[] = new GLSReturnShipmentResponse(
-				$packageData['package_id'],
-				$packageData['carrier_id'] ?? $packageData['carrer_id'],
-				$packageData['track_url'],
-				$packageData['status_message'],
+				$packageData['package_id'] ?? null,
+				$packageData['carrier_id'] ?? $packageData['carrer_id'] ?? null,
+				$packageData['track_url'] ?? null,
+				$packageData['status_message'] ?? $errors,
 				$packageData['status'],
 			);
 		}

@@ -4,7 +4,7 @@ namespace Eshop\Services\BalikobotApi;
 
 interface ReturnShipmentOrderedResponseInterface
 {
-	public function getPackageId(): string;
+	public function getPackageId(): ?string;
 
 	public function getStatusMessage(): ?string;
 
