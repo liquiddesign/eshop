@@ -8,7 +8,7 @@ use Eshop\Services\BalikobotApi\DeliveryProviderInterface;
 use Eshop\Services\BalikobotApi\PackageInfo;
 use Eshop\Services\BalikobotApi\Responses\PPLReturnShipmentResponse;
 use Nette\Http\IRequest;
-use Nette\Http\IResponse;
+use Nette\Utils\Arrays;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
@@ -43,7 +43,8 @@ readonly class PPLApiService implements DeliveryProviderInterface, AutoWireServi
 			]
 		);
 
-		if ($response->getStatusCode() !== IResponse::S200_OK) {
+		// Exception out of valid states declared by API
+		if (!Arrays::contains([200, 208, 400, 503], $response->getStatusCode())) {
 			$errorMessage = \sprintf('PPLApi - Collection order API request failed: %d %s', $response->getStatusCode(), $response->getReasonPhrase());
 			Debugger::log($errorMessage, ILogger::ERROR);
 
@@ -51,10 +52,15 @@ readonly class PPLApiService implements DeliveryProviderInterface, AutoWireServi
 		}
 
 		$data = \json_decode($response->getBody()->getContents(), true)['packages'][0];
+		$errors = null;
+
+		if ($data['status'] === 400 && isset($data['errors'])) {
+			$errors = \implode('|', \array_column($data['errors'], 'message'));
+		}
 
 		return new PPLReturnShipmentResponse(
-			$data['package_id'],
-			$data['status_message'],
+			$data['package_id'] ?? null,
+			$data['status_message'] ?? $errors,
 			$data['status'],
 		);
 	}

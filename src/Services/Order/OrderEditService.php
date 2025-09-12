@@ -316,6 +316,10 @@ readonly class OrderEditService implements AutoWireService
 
 	public function changeItemAmount(PackageItem $packageItem, CartItem $cartItem, int $amount): void
 	{
+		if ($amount <= 0) {
+			$amount = $cartItem->getProduct()?->minBuyCount ?: 1;
+		}
+
 		$cartItemClone = clone $cartItem;
 
 		foreach ($packageItem->relatedPackageItems as $relatedPackageItem) {
