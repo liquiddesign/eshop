@@ -63,7 +63,7 @@ readonly class GLSApiService implements DeliveryProviderInterface, AutoWireServi
 		$data = \json_decode($response->getBody()->getContents(), true)['packages'][0];
 		$errors = null;
 
-		if ($data['status'] === 400) {
+		if ($data['status'] === 400 && isset($data['errors'])) {
 			$errors = \implode('|', \array_column($data['errors'], 'message'));
 		}
 
@@ -131,7 +131,7 @@ readonly class GLSApiService implements DeliveryProviderInterface, AutoWireServi
 		foreach ($packagesData as $packageData) {
 			$errors = null;
 
-			if ($packageData['status'] === 400) {
+			if ($packageData['status'] === 400 && isset($packageData['errors'])) {
 				$errors = \implode('|', \array_column($packageData['errors'], 'message'));
 			}
 

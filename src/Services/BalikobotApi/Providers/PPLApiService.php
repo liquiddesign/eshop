@@ -54,7 +54,7 @@ readonly class PPLApiService implements DeliveryProviderInterface, AutoWireServi
 		$data = \json_decode($response->getBody()->getContents(), true)['packages'][0];
 		$errors = null;
 
-		if ($data['status'] === 400) {
+		if ($data['status'] === 400 && isset($data['errors'])) {
 			$errors = \implode('|', \array_column($data['errors'], 'message'));
 		}
 
