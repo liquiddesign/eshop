@@ -108,17 +108,23 @@ readonly class GLSApiService implements DeliveryProviderInterface, AutoWireServi
 			];
 		}
 
+		$requestData = [
+			'packages' => $packages,
+		];
+
 		$response = $this->apiConnection->request(
 			IRequest::Post,
 			'gls/b2a',
-			[
-				'packages' => $packages,
-			]
+			$requestData,
 		);
 
 		if ($response->getStatusCode() !== IResponse::S200_OK) {
-			Debugger::barDump($response->getBody()->getContents());
-			$errorMessage = \sprintf('GLSApi - Collection order API request failed: %d %s', $response->getStatusCode(), $response->getReasonPhrase());
+			Debugger::log(Json::encode([
+				'request' => ['endpoint' => 'gls/b2a', 'data' => $requestData],
+				'response' => ['code' => $response->getStatusCode(), 'reason' => $response->getReasonPhrase(), 'data' => $response->getBody()->getContents()],
+			]), 'gls-api');
+
+			$errorMessage = \sprintf('GLSApi - Collection order API request failed: %d %s. More in "gls-api" log.', $response->getStatusCode(), $response->getReasonPhrase());
 			Debugger::log($errorMessage, ILogger::ERROR);
 
 			throw new \RuntimeException($errorMessage);
