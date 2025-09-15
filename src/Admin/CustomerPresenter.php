@@ -783,7 +783,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 				$favouriteDefaults = [];
 
 				foreach ($customer->getFavouriteProducts()->toArray() as $favouriteDefault) {
-					$favouriteDefaults[$favouriteDefault->getPK()] = sprintf("%s (%s)", $favouriteDefault->name, $favouriteDefault->code);
+					$favouriteDefaults[$favouriteDefault->getPK()] = \sprintf('%s (%s)', $favouriteDefault->name, $favouriteDefault->code);
 				}
 
 				$this->template->select2AjaxDefaults[$productInput->getHtmlId()] = $favouriteDefaults;
