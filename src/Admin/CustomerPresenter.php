@@ -780,7 +780,13 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 				->setHtmlAttribute('class', 'w-100');
 
 			if ($customer) {
-				$this->template->select2AjaxDefaults[$productInput->getHtmlId()] = $customer->getFavouriteProducts()->toArrayOf('name');
+				$favouriteDefaults = [];
+
+				foreach ($customer->getFavouriteProducts()->toArray() as $favouriteDefault) {
+					$favouriteDefaults[$favouriteDefault->getPK()] = \sprintf('%s (%s)', $favouriteDefault->name, $favouriteDefault->code);
+				}
+
+				$this->template->select2AjaxDefaults[$productInput->getHtmlId()] = $favouriteDefaults;
 			}
 
 			if (isset($this::CONFIGURATIONS['customerRoles']) && $this::CONFIGURATIONS['customerRoles']) {
