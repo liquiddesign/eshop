@@ -10,23 +10,12 @@ RUN apt install -y \
 
 RUN git config --global --add safe.directory /var/www/html
 
+RUN mkdir -p /.composer /tmp
 RUN chmod 777 -R /tmp
+RUN chmod 777 -R /.composer
 
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir "/home/www-data"
-RUN chown -R www-data:www-data "/home/www-data"
-
 RUN npm install -g concurrently
-
-RUN mkdir -p "/.composer"
-RUN chmod 777 -R "/.composer"
-RUN chmod 777 -R "/tmp"
-
-RUN echo "alias c='composer'" >> /home/www-data/.bashrc
-USER www-data
-RUN source /home/www-data/.bashrc
-
-USER root

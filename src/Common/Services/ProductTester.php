@@ -101,7 +101,7 @@ readonly class ProductTester
 			'fastTest' => (bool) $productFromGetProducts,
 			'availablePriceLists' => $priceLists,
 			'availableVisibilityLists' => $visibilityLists,
-			'usedPriceList' => $usedPrice?->pricelist,
+			'usedPrice' => $usedPrice,
 			'usedVisibilityList' => $usedVisibilityListItem?->visibilityList,
 			'visibilityList' => (bool) $usedVisibilityListItem,
 			'hidden' => $usedVisibilityListItem && !$usedVisibilityListItem->hidden,
@@ -120,7 +120,10 @@ readonly class ProductTester
 
 		foreach ($priceLists as $priceList) {
 			/** @var \Eshop\DB\Price|null $price */
-			$price = $this->priceRepository->many()->where('this.fk_product', $product->getPK())->where('this.fk_pricelist', $priceList->getPK())->first();
+			$price = $this->priceRepository->many()
+				->where('this.fk_product', $product->getPK())
+				->where('this.fk_pricelist', $priceList->getPK())
+				->first();
 
 			if ($price && !$usedPrice) {
 				$usedPrice = $price;

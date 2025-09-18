@@ -25,9 +25,10 @@
             <p n:if="!$testResult['hidden']">Produkt má v použitém záznamu viditelnosti nastaveno Skryto</p>
         </div>
 
-        <div n:class="'callout', $testResult['usedPriceList'] ? 'callout-success' : 'callout-danger'">
-            <h6><i n:class="'icon fas', $testResult['usedPriceList'] ? 'fa-check' : 'fa-ban'"></i> Cena v ceníku</h6>
-            <p n:if="!$testResult['usedPriceList']">Produkt nemá žádný záznam o ceně v žádném aktivním ceníku.</p>
+        <div n:class="'callout', $testResult['usedPrice']?->hidden === false ? 'callout-success' : 'callout-danger'">
+            <h6><i n:class="'icon fas', $testResult['usedPrice']?->hidden === false ? 'fa-check' : 'fa-ban'"></i> Cena v ceníku</h6>
+            <p n:if="$testResult['usedPrice']?->hidden === true">Produkt má skrytý záznam o ceně.</p>
+            <p n:if="!$testResult['usedPrice']">Produkt nemá žádný záznam o ceně v žádném aktivním ceníku.</p>
         </div>
 
         <div n:class="'callout', $testResult['page'] && !$testResult['page']->isOffline ? 'callout-success' : 'callout-warning'">
@@ -52,8 +53,8 @@
 
     <div class="card-body">
         <h6>Použitý:</h6>
-        <span n:if="$testResult['usedPriceList']">{$testResult['usedPriceList']->name} ({$testResult['usedPriceList']->code})</span>
-        <span n:if="!$testResult['usedPriceList']">Žádný vyhovující záznam</span>
+        <span n:if="$testResult['usedPrice']?->hidden === false">{$testResult['usedPrice']->pricelist->name} ({$testResult['usedPrice']->pricelist->code})</span>
+        <span n:if="!$testResult['usedPrice'] || $testResult['usedPrice']?->hidden === true">Žádný vyhovující záznam</span>
 
         <hr>
 
@@ -63,6 +64,7 @@
                 <th>Kód</th>
                 <th>Název</th>
                 <th>Aktivní</th>
+                <th>Skrytý</th>
                 <th>Cena</th>
                 <th>Cena s DPH</th>
             </tr>
@@ -70,6 +72,7 @@
                 <td>{$priceList->code}</td>
                 <td>{$priceList->name}</td>
                 <td>{$priceList->price ? 'ANO' : 'NE'}</td>
+                <td>{$priceList->price?->hidden ? 'ANO' : 'NE'}</td>
                 <td>{$priceList->price?->price}</td>
                 <td>{$priceList->price?->priceVat}</td>
             </tr>
