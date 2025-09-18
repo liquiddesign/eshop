@@ -72,10 +72,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	
 	/**
 	 * @param array<mixed>|string|int $condition
-	 * @return ($condition is array ? array<\Eshop\DB\Product> : \Eshop\DB\Product|null)
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getProduct(array|string|int $condition): mixed
+	public function getProduct(array|string|int $condition): Product
 	{
 		if (\is_array($condition)) {
 			return $this->getProducts()->whereMatch($condition)->first(true);

@@ -1026,12 +1026,7 @@ class OrderPresenter extends BackendPresenter
 						throw new Exception('Product not found');
 					}
 
-					/** @var \Eshop\DB\Product|null $product */
 					$product = $this->productRepository->getProduct($product);
-
-					if (!$product) {
-						throw new Exception('Product not found');
-					}
 
 					if (!$item->getPriceSum() > 0) {
 						$product->setValue('price', 0);
