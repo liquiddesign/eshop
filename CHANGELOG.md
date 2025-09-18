@@ -4,6 +4,11 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.531](https://github.com/liquiddesign/eshop/compare/v2.1.530...v2.1.531) (2025-09-18)
+
+
+---
+
 ## [2.1.529](https://github.com/liquiddesign/eshop/compare/v2.1.528...v2.1.529) (2025-09-15)
 
 
