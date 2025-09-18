@@ -34,7 +34,13 @@ trait FavouriteProductsTrait
 			$productInput = $form->addMultiSelectAjax('favouriteProducts', 'Oblíbené produkty', 'Zvolte produkt', Product::class, ['maximumSelectionLength' => 500]);
 
 			if ($customer) {
-				$this->template->select2AjaxDefaults[$productInput->getHtmlId()] = $customer->getFavouriteProducts()->toArrayOf('name');
+				$favouriteDefaults = [];
+
+				foreach ($customer->getFavouriteProducts()->toArray() as $favouriteDefault) {
+					$favouriteDefaults[$favouriteDefault->getPK()] = \sprintf('%s (%s)', $favouriteDefault->name, $favouriteDefault->code);
+				}
+
+				$this->template->select2AjaxDefaults[$productInput->getHtmlId()] = $favouriteDefaults;
 			}
 
 			$form->addSubmit('submit', 'Uložit');

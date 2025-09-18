@@ -6,7 +6,10 @@ services:
     environment:
       - APP_UID=1000
       - APP_GID=1000
+      - APP_USER=${APP_USER:-www-data}
+      - APP_GROUP=${APP_GROUP:-www-data}
       - COMPOSER=composer.json
+      - DISABLE_AUTORUN_COMPOSER_INSTALL=1
     working_dir: /var/www/html
     stdin_open: true
     tty: true

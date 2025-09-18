@@ -1129,13 +1129,15 @@ class CheckoutManager
 			
 			try {
 				if (!$this->checkCartItemPrice($cartItem)) {
+					$product = $this->productRepository->getProduct($cartItem->product->getPK());
+
 					$incorrectItems[] = [
 						'object' => $cartItem,
 						'reason' => 'incorrect-price',
-						'correctValue' => $this->productRepository->getProduct($cartItem->product->getPK())->getPrice($cartItem->amount),
-						'correctValueVat' => $this->productRepository->getProduct($cartItem->product->getPK())->getPriceVat($cartItem->amount),
-						'correctValueBefore' => $this->productRepository->getProduct($cartItem->product->getPK())->getPriceBefore(),
-						'correctValueVatBefore' => $this->productRepository->getProduct($cartItem->product->getPK())->getPriceVatBefore(),
+						'correctValue' => $product->getPrice($cartItem->amount),
+						'correctValueVat' => $product->getPriceVat($cartItem->amount),
+						'correctValueBefore' => $product->getPriceBefore(),
+						'correctValueVatBefore' => $product->getPriceVatBefore(),
 					];
 				}
 			} catch (\Exception $e) {
@@ -1164,13 +1166,11 @@ class CheckoutManager
 					continue;
 				}
 
-				if ($buyableProduct) {
-					$incorrectItems[] = [
-						'object' => $cartItem,
-						'reason' => IncorrectItemReason::SLAVE_PRODUCT,
-						'correctValue' => $buyableProduct,
-					];
-				}
+				$incorrectItems[] = [
+					'object' => $cartItem,
+					'reason' => IncorrectItemReason::SLAVE_PRODUCT,
+					'correctValue' => $buyableProduct,
+				];
 			}
 			
 			continue;

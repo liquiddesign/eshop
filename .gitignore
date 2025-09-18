@@ -7,5 +7,6 @@ tests/temp_fixed/*
 composer.lock
 changelog/vendor/*
 auth.json
+.env
 
 !/.idea/runConfigurations
