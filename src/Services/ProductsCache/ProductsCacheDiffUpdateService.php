@@ -568,7 +568,13 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 			$currentIndexTableName = "$pricesCacheTableName$index";
 
 			if (!isset($existingPricesCacheTables[$currentIndexTableName])) {
-				$this->createVisibilityPriceTable($currentIndexTableName);
+				try {
+					$this->createVisibilityPriceTable($currentIndexTableName);
+				} catch (\Exception $e) {
+					Debugger::log($e, ILogger::EXCEPTION);
+
+					continue;
+				}
 			}
 
 			unset($existingPricesCacheTables[$currentIndexTableName]);
