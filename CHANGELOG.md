@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.533](https://github.com/liquiddesign/eshop/compare/v2.1.532...v2.1.533) (2025-09-21)
+
+### Code Refactoring
+
+
+##### Products Cache
+
+* Handle long table names in cache logic ([95f042](https://github.com/liquiddesign/eshop/commit/95f04294a2094faf880fe69135e15d574238a2a3))
+
+
+---
+
 ## [2.1.532](https://github.com/liquiddesign/eshop/compare/v2.1.531...v2.1.532) (2025-09-21)
 
 ### Code Refactoring
