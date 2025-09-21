@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.532](https://github.com/liquiddesign/eshop/compare/v2.1.531...v2.1.532) (2025-09-21)
+
+### Code Refactoring
+
+
+##### Products Cache Diff Update Service
+
+* Uncomment and re-enable critical cache update logic ([844a84](https://github.com/liquiddesign/eshop/commit/844a84f2f39950c603d8ac130066523f812ecde5))
+
+
+---
+
 ## [2.1.531](https://github.com/liquiddesign/eshop/compare/v2.1.530...v2.1.531) (2025-09-18)
 
 
