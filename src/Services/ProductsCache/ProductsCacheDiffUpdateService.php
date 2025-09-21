@@ -8,6 +8,7 @@ use Eshop\DB\Customer;
 use Eshop\DevelTools;
 use Nette\DI\MissingServiceException;
 use Nette\Utils\Arrays;
+use Nette\Utils\Strings;
 use StORM\DIConnection;
 use Tracy\Debugger;
 use Tracy\ILogger;
@@ -567,6 +568,10 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		foreach (\array_keys($visibilityPriceListsOptions) as $index) {
 			$currentIndexTableName = "$pricesCacheTableName$index";
 
+			if (Strings::length($currentIndexTableName) > 63) {
+				$currentIndexTableName = DIConnection::generateUuid7('cache_prices', $currentIndexTableName);
+			}
+
 			if (!isset($existingPricesCacheTables[$currentIndexTableName])) {
 				try {
 					$this->createVisibilityPriceTable($currentIndexTableName);
@@ -579,7 +584,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 
 			unset($existingPricesCacheTables[$currentIndexTableName]);
 
-			$currentIndexTableName = "`$pricesCacheTableName$index`";
+			$currentIndexTableName = "`$currentIndexTableName`";
 
 			$pricesToCreate = [];
 			$pricesToUpdate = [];

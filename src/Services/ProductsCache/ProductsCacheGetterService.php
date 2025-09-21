@@ -28,6 +28,7 @@ use Nette\Caching\Storage;
 use Nette\DI\Container;
 use Nette\DI\MissingServiceException;
 use Nette\Utils\Arrays;
+use Nette\Utils\Strings;
 use StORM\DIConnection;
 use StORM\ICollection;
 use Tracy\Debugger;
@@ -296,9 +297,15 @@ class ProductsCacheGetterService implements AutoWireService
 
 		unset($filters['category']);
 
+		$visibilityPricesCacheTableName = "$visibilityPricesCacheTableName$visibilityPriceListsIndex";
+
+		if (Strings::length($visibilityPricesCacheTableName) > 63) {
+			$visibilityPricesCacheTableName = DIConnection::generateUuid7('cache_prices', $visibilityPricesCacheTableName);
+		}
+
 		$productsCollection = $this->getConnection()->rows(['this' => $productsCacheTableName])
 			->join(
-				['visibilityPrice' => "`$visibilityPricesCacheTableName$visibilityPriceListsIndex`"],
+				['visibilityPrice' => "`$visibilityPricesCacheTableName`"],
 				'this.product = visibilityPrice.product',
 				type: 'INNER',
 			);
