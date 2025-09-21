@@ -59,38 +59,38 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 			// Start tracking
 			Debugger::timer();
 
-//			[
-//				$allCategoryTypes,
-//				$allDisplayAmounts,
-//				$allCategories,
-//				$allProductPrimaryCategories,
-//				$productPrimaryCategories,
-//				$productAttributeValues,
-//				$productCategories,
-//			] = $this->getPrefetchedArrays();
+			[
+				$allCategoryTypes,
+				$allDisplayAmounts,
+				$allCategories,
+				$allProductPrimaryCategories,
+				$productPrimaryCategories,
+				$productAttributeValues,
+				$productCategories,
+			] = $this->getPrefetchedArrays();
 			Debugger::log('Prefetch before main table: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
 
-//			$this->createProductsTable($productsCacheTableName, $allCategoryTypes);
+			$this->createProductsTable($productsCacheTableName, $allCategoryTypes);
 
 			// update products table - compare cache vs live data
 			Debugger::timer();
-//			[$productsByCategories, $productsToBeInCache] = $this->diffUpdateMainTable(
-//				$productsCacheTableName,
-//				$allCategoryTypes,
-//				$allDisplayAmounts,
-//				$allCategories,
-//				$allProductPrimaryCategories,
-//				$productPrimaryCategories,
-//				$productAttributeValues,
-//				$productCategories,
-//			);
+			[$productsByCategories, $productsToBeInCache] = $this->diffUpdateMainTable(
+				$productsCacheTableName,
+				$allCategoryTypes,
+				$allDisplayAmounts,
+				$allCategories,
+				$allProductPrimaryCategories,
+				$productPrimaryCategories,
+				$productAttributeValues,
+				$productCategories,
+			);
 
-//			Debugger::log('diffUpdateMainTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
-//			$this->diffUpdateRelations($relationsCacheTableName, $productsCacheTableName, $productsToBeInCache);
-//			Debugger::log('diffUpdateRelations: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
-//
-//			$this->diffUpdateCategories($categoriesTableName, $productsCacheTableName, $productsByCategories, $allCategories);
-//			Debugger::log('createCategoriesTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
+			Debugger::log('diffUpdateMainTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
+			$this->diffUpdateRelations($relationsCacheTableName, $productsCacheTableName, $productsToBeInCache);
+			Debugger::log('diffUpdateRelations: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
+
+			$this->diffUpdateCategories($categoriesTableName, $productsCacheTableName, $productsByCategories, $allCategories);
+			Debugger::log('createCategoriesTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
 
 			$this->diffUpdateVisibilityPriceTable($visibilityPricesCacheTableName, $customers, $customerGroups, $merchants);
 			Debugger::log('diffUpdateVisibilityPriceTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
