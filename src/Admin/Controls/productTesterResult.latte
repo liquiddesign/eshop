@@ -25,7 +25,7 @@
             <p n:if="!$testResult['hidden']">Produkt má v použitém záznamu viditelnosti nastaveno Skryto</p>
         </div>
 
-        <div n:class="'callout', $testResult['usedPrice']?->hidden === false ? 'callout-success' : 'callout-danger'">
+        <div n:class="'callout', isset($testResult['usedPrice']) && $testResult['usedPrice']?->hidden === false ? 'callout-success' : 'callout-danger'">
             <h6><i n:class="'icon fas', $testResult['usedPrice']?->hidden === false ? 'fa-check' : 'fa-ban'"></i> Cena v ceníku</h6>
             <p n:if="$testResult['usedPrice']?->hidden === true">Produkt má skrytý záznam o ceně.</p>
             <p n:if="!$testResult['usedPrice']">Produkt nemá žádný záznam o ceně v žádném aktivním ceníku.</p>
