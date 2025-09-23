@@ -152,7 +152,7 @@ class VisibilityListPresenter extends BackendPresenter
 		$grid->addColumnActionDelete();
 
 		$grid->addButtonSaveAll();
-		$grid->addButtonDeleteSelected();
+		$grid->addButtonDeleteSelected(sourceIdName: 'this.uuid');
 
 		$mutationSuffix = $this->visibilityListItemRepository->getConnection()->getMutationSuffix();
 		$grid->addFilterTextInput('product', ["product.name$mutationSuffix", 'product.code', 'product.ean'], null, 'Produkt - Jméno, kód, ean');
