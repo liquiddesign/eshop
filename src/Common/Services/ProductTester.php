@@ -69,7 +69,7 @@ readonly class ProductTester
 			'fastTest' => (bool) $productFromGetProducts,
 			'availablePriceLists' => $priceLists,
 			'availableVisibilityLists' => $visibilityLists,
-			'usedPriceList' => $usedPrice?->pricelist,
+			'usedPrice' => $usedPrice,
 			'usedVisibilityList' => $usedVisibilityListItem?->visibilityList,
 			'visibilityList' => (bool) $usedVisibilityListItem,
 			'hidden' => $usedVisibilityListItem && !$usedVisibilityListItem->hidden,
