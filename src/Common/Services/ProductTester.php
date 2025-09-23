@@ -41,7 +41,7 @@ readonly class ProductTester
 	 *     availablePriceLists: array<\Eshop\DB\Pricelist>,
 	 *     availableVisibilityLists: array<\Eshop\DB\VisibilityList>,
 	 *     visibilityList: bool,
-	 *     usedPriceList: \Eshop\DB\Pricelist|null,
+	 *     usedPrice: \Eshop\DB\Price|null,
 	 *     usedVisibilityList: \Eshop\DB\VisibilityList|null,
 	 *  }
 	 * @throws \StORM\Exception\NotFoundException
@@ -82,6 +82,11 @@ readonly class ProductTester
 	 * @param \Eshop\DB\CustomerGroup $customerGroup
 	 * @return array{
 	 *     fastTest: bool,
+	 *     availablePriceLists: array<\Eshop\DB\Pricelist>,
+	 *     availableVisibilityLists: array<\Eshop\DB\VisibilityList>,
+	 *     visibilityList: bool,
+	 *     usedPrice: \Eshop\DB\Price|null,
+	 *     usedVisibilityList: \Eshop\DB\VisibilityList|null,
 	 *  }
 	 * @throws \StORM\Exception\NotFoundException
 	 */
