@@ -89,8 +89,9 @@ class ProductGridFactory
 			}
 
 			$source->join(["visibilityListItem$suffix" => 'eshop_visibilitylistitem'], "visibilityListItem$suffix.fk_product = this.uuid")
-				->join(["visibilityList$suffix" => 'eshop_visibilitylist'], "visibilityListItem$suffix.fk_visibilityList = visibilityList$suffix.uuid")
-				->where("visibilityList$suffix.uuid IN(:visibilityListIn$suffix) OR visibilityList$suffix.uuid IS NULL", [
+				->join(["visibilityList$suffix" => 'eshop_visibilitylist'], "
+				visibilityListItem$suffix.fk_visibilityList = visibilityList$suffix.uuid AND
+				visibilityList$suffix.uuid IN(:visibilityListIn$suffix)", [
 					"visibilityListIn$suffix" => Helpers::arrayToSqlInStatement($visibilityListsCollection->toArrayOf('uuid', toArrayValues: true)),
 				]);
 
