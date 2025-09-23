@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.534](https://github.com/liquiddesign/eshop/compare/v2.1.533...v2.1.534) (2025-09-23)
+
+### Bug Fixes
+
+
+##### Product Tester Result
+
+* Ensure isset check for usedPrice to avoid errors ([3baa9a](https://github.com/liquiddesign/eshop/commit/3baa9a1ca56faad34c4722148bc51db498e952df))
+
+### Builds
+
+* Docker cli fix ([89e732](https://github.com/liquiddesign/eshop/commit/89e7323e09f7556535c27a115293640abe08bb1d))
+
+
+---
+
 ## [2.1.533](https://github.com/liquiddesign/eshop/compare/v2.1.532...v2.1.533) (2025-09-21)
 
 ### Code Refactoring
