@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.535](https://github.com/liquiddesign/eshop/compare/v2.1.534...v2.1.535) (2025-09-23)
+
+### Code Refactoring
+
+
+##### Product Tester
+
+* Rename `usedPriceList` to `usedPrice` in result structure for clarity ([0cec6b](https://github.com/liquiddesign/eshop/commit/0cec6b2a008a3a57a1f6dea3b5ca215198b3f4dd))
+
+
+---
+
 ## [2.1.534](https://github.com/liquiddesign/eshop/compare/v2.1.533...v2.1.534) (2025-09-23)
 
 ### Bug Fixes
