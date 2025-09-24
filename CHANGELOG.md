@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.537](https://github.com/liquiddesign/eshop/compare/v2.1.536...v2.1.537) (2025-09-24)
+
+### Features
+
+
+##### Product Grid Factory
+
+* Enhance filter inputs and visibility item preloading ([9721fb](https://github.com/liquiddesign/eshop/commit/9721fb2e79f04009db00ff7e720ed2d7614d43bc))
+
+
+---
+
 ## [2.1.536](https://github.com/liquiddesign/eshop/compare/v2.1.535...v2.1.536) (2025-09-23)
 
 
