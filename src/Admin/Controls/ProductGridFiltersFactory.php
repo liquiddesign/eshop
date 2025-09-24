@@ -66,7 +66,17 @@ class ProductGridFiltersFactory
 			}
 		}
 
-		$grid->addFilterTextInput('code', $columns, null, 'Název, EAN, kód, P/N', '');
+		$nameColumns = [];
+
+		foreach ($this->categoryRepository->getConnection()->getAvailableMutations() as $mutationSuffix) {
+			$nameColumns[] = 'this.name' . $mutationSuffix;
+		}
+
+		$grid->addFilterTextInput('full', $columns, null, 'Název, EAN, kód, P/N', '');
+		$grid->addFilterTextInput('code', ['this.code', 'this.externalCode', 'this.supplierCode',], null, 'Kód', '');
+		$grid->addFilterTextInput('ean', ['this.ean', 'this.secondaryEan',], null, 'EAN', '');
+		$grid->addFilterTextInput('mpn', ['this.mpn'], null, 'P/N', '');
+		$grid->addFilterTextInput('name', $nameColumns, null, 'Název', '');
 
 		if ($shops = $this->shopsConfig->getAvailableShops()) {
 			$categoryTypes = [];

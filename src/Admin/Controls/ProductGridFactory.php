@@ -7,13 +7,13 @@ namespace Eshop\Admin\Controls;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Base\ShopsConfig;
-use Eshop\Common\Helpers;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\SupplierProductRepository;
+use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\Integration\Integrations;
 use Grid\Datagrid;
@@ -48,6 +48,7 @@ class ProductGridFactory
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly VisibilityListRepository $visibilityListRepository,
 		protected readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
+		protected readonly VisibilityListItemRepository $visibilityListItemRepository,
 	) {
 	}
 
@@ -62,52 +63,16 @@ class ProductGridFactory
 			->setGroupBy(['this.uuid'])
 			->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = this.uuid')
 			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'primaryCategory.fk_product = this.uuid')
-//          ->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
-//          ->join(['pricelist' => 'eshop_pricelist'], 'pricelist.uuid=price.fk_pricelist')
 			->select([
 				'primaryCategoryPKs' => 'GROUP_CONCAT(primaryCategory.fk_category)',
-//              'priceCount' => 'COUNT(DISTINCT price.uuid)',
 				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
-//              'pricelistActive' => 'MAX(pricelist.isActive)',
 			]);
-
-		$shops = $this->shopsConfig->getAvailableShops();
-
-		if (!$shops) {
-			$shops[] = 'default';
-		}
-
-		foreach ($shops as $shop) {
-			$visibilityListsCollection = $this->visibilityListRepository->getCollection();
-
-			if ($shop !== 'default') {
-				$this->shopsConfig->filterShopsInShopEntityCollection($visibilityListsCollection, $shop);
-
-				$suffix = "_{$shop->getPK()}";
-			} else {
-				$suffix = '_default';
-			}
-
-			$source->join(["visibilityListItem$suffix" => 'eshop_visibilitylistitem'], "visibilityListItem$suffix.fk_product = this.uuid")
-				->join(["visibilityList$suffix" => 'eshop_visibilitylist'], "
-				visibilityListItem$suffix.fk_visibilityList = visibilityList$suffix.uuid AND
-				visibilityList$suffix.uuid IN(:visibilityListIn$suffix)", [
-					"visibilityListIn$suffix" => Helpers::arrayToSqlInStatement($visibilityListsCollection->toArrayOf('uuid', toArrayValues: true)),
-				]);
-
-			$source->select([
-				"hidden$suffix" => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem$suffix.hidden ORDER BY visibilityList$suffix.priority), ',', 1)",
-				"unavailable$suffix" => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem$suffix.unavailable ORDER BY visibilityList$suffix.priority), ',', 1)",
-			]);
-		}
 
 		$grid = $this->gridFactory->create($source, 20, 'this.uuid', 'ASC', true, defaultShowPaginator: false);
 
 		$grid->setItemCountCallback(function (Collection $collection): int {
 			$pkName = $collection->getRepository()->getStructure()->getPK()->getName();
 			$collection->setSelect([
-//				'hidden' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.hidden ORDER BY visibilityList.priority), ',', 1)",
-//				'unavailable' => "SUBSTRING_INDEX(GROUP_CONCAT(visibilityListItem.unavailable ORDER BY visibilityList.priority), ',', 1)",
 				'categoryCount' => 'COUNT(DISTINCT nxnCategory.fk_category)',
 			])->setOrderBy([]);
 			$subCollection = AdminGrid::processCollectionBaseFrom($collection, useOrder: false, join: false);
@@ -121,32 +86,75 @@ class ProductGridFactory
 
 		$grid->addColumnSelector();
 
+		/** @var array<string|int, array<string|int, \Eshop\DB\VisibilityListItem>> $preLoadedVisibilityItemsByProduct */
+		$preLoadedVisibilityItemsByProduct = [];
+
+		/**
+		 * @param array<\Eshop\DB\Product> $items
+		 */
+		$grid->onAfterGetItemsOnPage[] = function (array $items) use (&$preLoadedVisibilityItemsByProduct): void {
+			$visibilityItems = $this->visibilityListItemRepository->many()->where('this.fk_product', \array_keys($items))->toArray();
+
+			foreach ($visibilityItems as $visibilityItem) {
+				$preLoadedVisibilityItemsByProduct[$visibilityItem->getValue('product')][$visibilityItem->getValue('visibilityList')] = $visibilityItem;
+			}
+		};
+
+		$visibilityListsByShop = [];
+		$shops = $this->shopsConfig->getAvailableShops();
+
+		if (!$shops) {
+			$shops[] = 'default';
+		}
+
 		foreach ($shops as $shop) {
-			$grid->addColumn((string) ($shop === 'default' ? '' : $shop->getIconImageFormAdmin()), function (Product $object, Datagrid $datagrid) use ($shop): string {
-				$suffix = '_' . ($shop === 'default' ? 'default' : $shop->getPK());
+			$shopPK = \is_string($shop) ? $shop : $shop->getPK();
+			$visibilityListsCollection = $this->visibilityListRepository->getCollection();
 
-				if ($object->getValue("hidden$suffix")) {
-					$label = 'Neviditelný: Skrytý';
-					$color = 'danger';
-//          } elseif ($object->getValue('priceCount') === 0) {
-//              $label = 'Neviditelný: Bez ceny';
-//              $color = 'danger';
-//          } elseif ($object->getValue('pricelistActive') === 0) {
-//              $label = 'Neviditelný: Žádné aktivní ceny';
-//              $color = 'danger';
-				} elseif ($object->getValue("unavailable$suffix")) {
-					$label = 'Viditelný: Neprodejný';
-					$color = 'warning';
-				} elseif ($object->getValue('categoryCount') === 0) {
-					$label = 'Viditelný: Bez kategorie';
-					$color = 'warning';
-				} else {
-					$label = 'Viditelný';
-					$color = 'success';
-				}
+			if ($shopPK !== 'default') {
+				$this->shopsConfig->filterShopsInShopEntityCollection($visibilityListsCollection, $shop);
+			}
 
-				return '<i title="' . $label . '" class="fa fa-circle fa-sm text-' . $color . '">';
-			}, '%s', null, ['class' => 'fit']);
+			$visibilityListsByShop[$shopPK] = $visibilityListsCollection->toArrayOf('uuid', toArrayValues: true);
+		}
+
+		foreach ($shops as $shop) {
+			$grid->addColumn(
+				(string) ($shop === 'default' ? '' : $shop->getIconImageFormAdmin()),
+				function (Product $object, Datagrid $datagrid) use ($shop, &$preLoadedVisibilityItemsByProduct, $visibilityListsByShop): string {
+					$visibilityItemByProduct = null;
+					$shopPK = \is_string($shop) ? $shop : $shop->getPK();
+
+					foreach ($visibilityListsByShop[$shopPK] ?? [] as $tmpShop) {
+						if (!isset($preLoadedVisibilityItemsByProduct[$object->getPK()][$tmpShop])) {
+							continue;
+						}
+
+						$visibilityItemByProduct = $preLoadedVisibilityItemsByProduct[$object->getPK()][$tmpShop];
+
+						break;
+					}
+
+					if ($visibilityItemByProduct->hidden) {
+						$label = 'Neviditelný: Skrytý';
+						$color = 'danger';
+					} elseif ($visibilityItemByProduct->unavailable) {
+						$label = 'Viditelný: Neprodejný';
+						$color = 'warning';
+					} elseif ($object->getValue('categoryCount') === 0) {
+						$label = 'Viditelný: Bez kategorie';
+						$color = 'warning';
+					} else {
+						$label = 'Viditelný';
+						$color = 'success';
+					}
+
+					return '<i title="' . $label . '" class="fa fa-circle fa-sm text-' . $color . '">';
+				},
+				'%s',
+				null,
+				['class' => 'fit'],
+			);
 		}
 
 		$grid->addColumnText('Vytvořeno', 'createdTs|date', '%s', 'createdTs', ['class' => 'fit']);
