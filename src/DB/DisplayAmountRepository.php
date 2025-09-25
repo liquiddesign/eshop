@@ -29,7 +29,11 @@ class DisplayAmountRepository extends \StORM\Repository implements IGeneralRepos
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return $this->getCollection($includeHidden)->toArrayOf('label');
+		$mutationSuffix = $this->connection->getMutationSuffix();
+
+		return $this->getCollection($includeHidden)
+			->select(['computedInternalName' => "IF(internalLabel$mutationSuffix IS NULL, label$mutationSuffix, CONCAT(internalLabel$mutationSuffix, ' (', label$mutationSuffix, ')'))"])
+			->toArrayOf('computedInternalName');
 	}
 	
 	/**
