@@ -17,6 +17,12 @@ class DisplayAmount extends ShopSystemicEntity
 	 * @column{"mutations":true}
 	 */
 	public ?string $label;
+
+	/**
+	 * Popisek - interní
+	 * @column{"mutations":true}
+	 */
+	public ?string $internalLabel;
 	
 	/**
 	 * Množství od

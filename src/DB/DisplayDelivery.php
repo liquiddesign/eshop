@@ -41,4 +41,10 @@ class DisplayDelivery extends ShopEntity
 	 * @column
 	 */
 	public int $priority = 10;
+
+	/**
+	 * Počet dní do expedice od objednání
+	 * @column
+	 */
+	public ?int $daysToExpedition = null;
 }
