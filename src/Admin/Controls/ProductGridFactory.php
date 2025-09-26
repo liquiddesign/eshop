@@ -135,10 +135,10 @@ class ProductGridFactory
 						break;
 					}
 
-					if ($visibilityItemByProduct->hidden) {
+					if ($visibilityItemByProduct?->hidden) {
 						$label = 'Neviditelný: Skrytý';
 						$color = 'danger';
-					} elseif ($visibilityItemByProduct->unavailable) {
+					} elseif ($visibilityItemByProduct?->unavailable) {
 						$label = 'Viditelný: Neprodejný';
 						$color = 'warning';
 					} elseif ($object->getValue('categoryCount') === 0) {
