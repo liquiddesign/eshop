@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.538](https://github.com/liquiddesign/eshop/compare/v2.1.537...v2.1.538) (2025-09-26)
+
+### Bug Fixes
+
+
+##### Product Grid Factory
+
+* Safeguard visibility property access with null coalescing operator ([bf45f9](https://github.com/liquiddesign/eshop/commit/bf45f9782623115976bc713569afa8642f43b84f))
+
+
+---
+
 ## [2.1.537](https://github.com/liquiddesign/eshop/compare/v2.1.536...v2.1.537) (2025-09-24)
 
 ### Features
