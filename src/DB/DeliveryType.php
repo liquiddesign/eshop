@@ -12,6 +12,7 @@ use StORM\RelationCollection;
 /**
  * Typ dopravy
  * @table
+ * @method \StORM\RelationCollection<\Eshop\DB\DeliveryTypeThreshold> getDeliveryTypeThresholds()
  * @property float $priceVatWithCod
  * @index{"name":"deliverytype_codeshop","unique":true,"columns":["code", "fk_shop"]}
  */
@@ -175,6 +176,12 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	 * @var \StORM\RelationCollection<\Eshop\DB\SupplierDeliveryType>
 	 */
 	public RelationCollection $supplierDeliveryTypes;
+
+	/**
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\DeliveryTypeThreshold>
+	 */
+	public RelationCollection $deliveryTypeThresholds;
 	
 	/**
 	 * Výdejní typ

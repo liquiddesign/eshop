@@ -66,4 +66,20 @@ class DeliveryTypeThreshold extends ShopEntity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public DeliveryType $deliveryType;
+
+	/**
+	 * @return array<int, bool>
+	 */
+	public function getActiveWeekDays(): array
+	{
+		return [
+			1 => $this->monday,
+			2 => $this->tuesday,
+			3 => $this->wednesday,
+			4 => $this->thursday,
+			5 => $this->friday,
+			6 => $this->saturday,
+			7 => $this->sunday,
+		];
+	}
 }
