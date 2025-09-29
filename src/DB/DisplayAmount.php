@@ -60,4 +60,10 @@ class DisplayAmount extends ShopSystemicEntity
 	 * @relation
 	 */
 	public ?DisplayDelivery $displayDelivery;
+
+	/**
+	 * Počet dní do expedice od objednání
+	 * @column
+	 */
+	public ?int $daysToExpedition = null;
 }

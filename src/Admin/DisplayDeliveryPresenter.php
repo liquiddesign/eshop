@@ -53,7 +53,6 @@ class DisplayDeliveryPresenter extends BackendPresenter
 			$timeThreshold->toggle("frm-newForm-beforeTimeThresholdLabel-$mutation-toogle")->toggle("frm-newForm-afterTimeThresholdLabel-$mutation-toogle");
 		}
 
-		$form->addIntegerNullable('daysToExpedition', 'Počet dní do expedice');
 		$form->addLocaleText('beforeTimeThresholdLabel', 'Popisek před');
 		$form->addLocaleText('afterTimeThresholdLabel', 'Popisek po');
 

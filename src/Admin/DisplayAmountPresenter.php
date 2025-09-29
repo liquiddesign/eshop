@@ -60,6 +60,7 @@ class DisplayAmountPresenter extends BackendPresenter
 		$form->addSelect2('displayDelivery', 'Přednastavené doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('Nepřiřazeno')
 			->setHtmlAttribute('data-info', 'Pokud nastavíte "Přednastavené doručení", tak u produktů s nastaveným doručením na "Automaticky" bude zvoleno toto doručení.');
 		$form->addCheckbox('isSold', 'Označit jako vyprodáno');
+		$form->addIntegerNullable('daysToExpedition', 'Počet dní do expedice');
 
 		$form->addSubmits(!$this->getParameter('displayAmount'));
 
