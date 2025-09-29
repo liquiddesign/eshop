@@ -48,6 +48,11 @@ class OrderForm extends \Nette\Application\UI\Form
 		$this->addTextArea('deliveryNote')->setNullable();
 		$this->addSubmit('submit');
 		$this->addSubmit('offerSubmit');
+
+		if ($this->shopperUser->getMerchant() !== null) {
+			$this->addCheckbox('sendEmail')->setDefaultValue(true);
+		}
+
 		$this->onSuccess[] = [$this, 'success'];
 		$this->onValidate[] = [$this, 'validateOrder'];
 	}
@@ -73,6 +78,11 @@ class OrderForm extends \Nette\Application\UI\Form
 		$submitter = $form->isSubmitted();
 
 		$createOffer = $submitter instanceof SubmitButton && $submitter->getName() === 'offerSubmit';
+
+		if (isset($form->getValues('array')['sendEmail'])) {
+			$sendEmail = (bool) $form->getValues('array')['sendEmail'];
+			$this->shopperUser->getCheckoutManager()->setSendNewOrderEmail($sendEmail);
+		}
 
 		try {
 			$order = $this->shopperUser->getCheckoutManager()->createOrder(createOffer: $createOffer);
