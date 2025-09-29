@@ -50,7 +50,7 @@ class OrderForm extends \Nette\Application\UI\Form
 		$this->addSubmit('offerSubmit');
 
 		if ($this->shopperUser->getMerchant() !== null) {
-			$this->addCheckbox('sendEmail')->setDefaultValue(true);
+			$this->addCheckbox('dontSendEmail')->setDefaultValue(false);
 		}
 
 		$this->onSuccess[] = [$this, 'success'];
@@ -79,9 +79,9 @@ class OrderForm extends \Nette\Application\UI\Form
 
 		$createOffer = $submitter instanceof SubmitButton && $submitter->getName() === 'offerSubmit';
 
-		if (isset($form->getValues('array')['sendEmail'])) {
-			$sendEmail = (bool) $form->getValues('array')['sendEmail'];
-			$this->shopperUser->getCheckoutManager()->setSendNewOrderEmail($sendEmail);
+		if (isset($form->getValues('array')['dontSendEmail'])) {
+			$dontSendEmail = (bool) $form->getValues('array')['dontSendEmail'];
+			$this->shopperUser->getCheckoutManager()->setSendNewOrderEmail(!$dontSendEmail);
 		}
 
 		try {
