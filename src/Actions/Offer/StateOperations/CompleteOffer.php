@@ -26,7 +26,6 @@ class CompleteOffer extends BaseAction
 		$date = Carbon::now()->toDateTimeString();
 
 		$offer->update(['approvedTs' => $date]);
-		$offer->update(['completedTs' => $date]);
 
 		$this->onOfferCompleted($offer);
 	}
@@ -38,7 +37,7 @@ class CompleteOffer extends BaseAction
 	{
 		$state = $this->getOfferState->execute($offer);
 
-		if ($state === OfferState::Sent || $state === OfferState::Approved || $state === OfferState::Canceled) {
+		if ($state === OfferState::Sent || $state === OfferState::Approved) {
 			return;
 		}
 

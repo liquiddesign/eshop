@@ -13,6 +13,8 @@ use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\DeliveryType;
 use Eshop\DB\DeliveryTypePriceRepository;
 use Eshop\DB\DeliveryTypeRepository;
+use Eshop\DB\DeliveryTypeThreshold;
+use Eshop\DB\DeliveryTypeThresholdRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\PaymentTypeRepository;
 use Eshop\DB\PickupPointTypeRepository;
@@ -20,15 +22,25 @@ use Eshop\DB\SupplierDeliveryTypeRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\ShopperUser;
 use Forms\Form;
+use Nette\Application\Attributes\Persistent;
 use Nette\DI\Attributes\Inject;
 use Nette\Http\Request;
 use Nette\Utils\Arrays;
 use Nette\Utils\Html;
 use Nette\Utils\Image;
 use StORM\DIConnection;
+use StORM\ICollection;
 
 class DeliveryTypePresenter extends BackendPresenter
 {
+	public const TABS = [
+		'deliveries' => 'Typy dopravy',
+		'thresholds' => 'Časové prahy',
+	];
+
+	#[Persistent]
+	public string $tab = 'deliveries';
+
 	#[Inject]
 	public DeliveryTypeRepository $deliveryRepo;
 	
@@ -64,6 +76,9 @@ class DeliveryTypePresenter extends BackendPresenter
 
 	#[Inject]
 	public DisplayDeliveryRepository $displayDeliveryRepository;
+
+	#[Inject]
+	public DeliveryTypeThresholdRepository $deliveryTypeThresholdRepository;
 	
 	public function createComponentGrid(): AdminGrid
 	{
@@ -109,6 +124,38 @@ class DeliveryTypePresenter extends BackendPresenter
 		
 		return $grid;
 	}
+
+	public function createComponentThresholdGrid(): AdminGrid
+	{
+		$grid = $this->gridFactory->create($this->deliveryTypeThresholdRepository->many(), 20, 'time', 'ASC', true, useShops: false);
+
+		$grid->addColumnSelector();
+
+		$grid->addColumnText('Typ dopravy', 'deliveryType.name', '%s', 'deliveryType.name_cs',);
+		$grid->addColumnInputTime('Časový práh', 'time', '', '', 'time');
+		$grid->addColumnInputCheckbox('Pondělí', 'monday', 'monday', 'monday');
+		$grid->addColumnInputCheckbox('Úterý', 'tuesday', 'tuesday', 'tuesday');
+		$grid->addColumnInputCheckbox('Středa', 'wednesday', 'wednesday', 'wednesday');
+		$grid->addColumnInputCheckbox('Čtvrtek', 'thursday', 'thursday', 'thursday');
+		$grid->addColumnInputCheckbox('Pátek', 'friday', 'friday', 'friday');
+		$grid->addColumnInputCheckbox('Sobota', 'saturday', 'saturday', 'saturday');
+		$grid->addColumnInputCheckbox('Neděle', 'sunday', 'sunday', 'sunday');
+
+		$grid->addColumnActionDelete();
+
+		$grid->addButtonSaveAll();
+		$grid->addButtonDeleteSelected(sourceIdName: 'this.uuid');
+
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			$source->where('this.fk_deliveryType', $value);
+		}, '', 'deliveryType', null, $this->deliveryRepo->getArrayForSelect())->setPrompt('- Typ dopravy -');
+
+		$grid->addFilterButtons();
+
+		$grid->onDelete[] = [$this, 'onDelete'];
+
+		return $grid;
+	}
 	
 	public function createComponentNewForm(): Form
 	{
@@ -149,6 +196,8 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->addCheckbox('externalCarrier', 'Externí dopravce');
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
+		$form->addIntegerNullable('daysToDelivery', 'Počet dní doručení')->setHtmlAttribute('data-info', 'Pouze pracovní dny');
+		$form->addIntegerNullable('daysFromThresholdToExpedition', 'Počet dní od prahu k expedici')->setHtmlAttribute('data-info', 'Pouze pracovní dny');
 		$form->addIntegerNullable('totalMaxWeight', 'Maximální celková váha objednávky');
 
 		$form->addGroup('Maximální přepravní jednotka (na 1 balík)');
@@ -230,15 +279,84 @@ class DeliveryTypePresenter extends BackendPresenter
 		
 		return $form;
 	}
+
+	public function createComponentThresholdForm(): Form
+	{
+		$form = $this->formFactory->create(true);
+
+		/** @var \Eshop\DB\DeliveryTypeThreshold|null $deliveryTypeThreshold */
+		$deliveryTypeThreshold = $this->getParameter('deliveryTypeThreshold');
+
+		$form->addText('time', 'Časový práh')->setHtmlType('time')->setRequired();
+		
+		$form->addCheckbox('monday', 'Pondělí')->setDefaultValue(true);
+		$form->addCheckbox('tuesday', 'Úterý')->setDefaultValue(true);
+		$form->addCheckbox('wednesday', 'Středa')->setDefaultValue(true);
+		$form->addCheckbox('thursday', 'Čtvrtek')->setDefaultValue(true);
+		$form->addCheckbox('friday', 'Pátek')->setDefaultValue(true);
+		$form->addCheckbox('saturday', 'Sobota');
+		$form->addCheckbox('sunday', 'Neděle');
+
+		$form->addDataSelect('deliveryType', 'Typ dopravy', $this->deliveryRepo->getArrayForSelect())
+			->setPrompt('')
+			->setRequired();
+
+		$form->addSubmits(!$deliveryTypeThreshold);
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			/** @var array<mixed> $values */
+			$values = $form->getValues('array');
+
+			$deliveryTypeThreshold = $this->deliveryTypeThresholdRepository->syncOne($values, ignore: false);
+
+			$this->flashMessage('Uloženo', 'success');
+			$form->processRedirect('thresholdDetail', 'default', [$deliveryTypeThreshold]);
+		};
+
+		return $form;
+	}
 	
 	public function renderDefault(): void
 	{
+		$this->template->tabs = self::TABS;
 		$this->template->headerLabel = 'Typy dopravy';
 		$this->template->headerTree = [
 			['Typy dopravy', 'default'],
 		];
-		$this->template->displayButtons = [$this->createNewItemButton('new')];
-		$this->template->displayControls = [$this->getComponent('grid')];
+
+		if ($this->tab === 'deliveries') {
+			$this->template->displayButtons = [$this->createNewItemButton('new')];
+			$this->template->displayControls = [$this->getComponent('grid')];
+		} elseif ($this->tab === 'thresholds') {
+			$this->template->displayButtons = [$this->createNewItemButton('thresholdNew')];
+			$this->template->displayControls = [$this->getComponent('thresholdGrid')];
+		}
+	}
+
+	public function renderThresholdNew(): void
+	{
+		$this->template->headerLabel = 'Nová položka';
+		$this->template->headerTree = [
+			['Typy dopravy', 'default'],
+			['Časové prahy', 'default'],
+			['Nová položka'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('thresholdForm')];
+	}
+
+	public function renderThresholdDetail(DeliveryTypeThreshold $deliveryTypeThreshold): void
+	{
+		unset($deliveryTypeThreshold);
+
+		$this->template->headerLabel = 'Nová položka';
+		$this->template->headerTree = [
+			['Typy dopravy', 'default'],
+			['Časové prahy', 'default'],
+			['detail'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('thresholdForm')];
 	}
 	
 	public function renderNew(): void

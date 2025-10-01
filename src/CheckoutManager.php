@@ -226,6 +226,8 @@ class CheckoutManager
 	protected int $cartExpiration = 30;
 
 	protected string|null $selectedCartId = null;
+
+	protected bool $sendNewOrderEmail = true;
 	
 	public function __construct(
 		protected readonly ShopperUser $shopperUser,
@@ -2209,6 +2211,16 @@ class CheckoutManager
 		}
 		
 		return $order;
+	}
+
+	public function getSendNewOrderEmail(): bool
+	{
+		return $this->sendNewOrderEmail;
+	}
+
+	public function setSendNewOrderEmail(bool $sendNewOrderEmail): void
+	{
+		$this->sendNewOrderEmail = $sendNewOrderEmail;
 	}
 
 	public function getAttributeNumericSumOfItemsInCart(Attribute $attribute, ?string $cartId = self::ACTIVE_CART_ID): ?float

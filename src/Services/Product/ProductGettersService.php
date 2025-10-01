@@ -13,6 +13,7 @@ use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\ShopperUser;
 use Nette\Application\ApplicationException;
+use Nette\Localization\Translator;
 use Nette\Utils\Arrays;
 use Web\DB\SettingRepository;
 
@@ -33,6 +34,7 @@ class ProductGettersService implements AutoWireService
 		protected readonly ShopperUser $shopperUser,
 		protected readonly SettingRepository $settingRepository,
 		protected readonly DisplayAmountRepository $displayAmountRepository,
+		protected readonly Translator $translator,
 	) {
 	}
 

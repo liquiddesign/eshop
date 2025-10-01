@@ -27,6 +27,7 @@ class DisplayAmountPresenter extends BackendPresenter
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Popisek', 'label', '%s', 'label');
+		$grid->addColumnText('Interní popisek', 'internalLabel', '%s', 'internalLabel');
 //		$grid->addColumnText('Množství od', 'amountFrom', '%s', 'amountFrom', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 //		$grid->addColumnText('Množství do', 'amountTo', '%s', 'amountTo', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
@@ -52,12 +53,14 @@ class DisplayAmountPresenter extends BackendPresenter
 		$form = $this->formFactory->create(true, useShops: true);
 
 		$form->addLocaleText('label', 'Popisek');
+		$form->addLocaleText('internalLabel', 'Interní popisek');
 //		$form->addIntegerNullable('amountFrom', 'Množství od');
 //		$form->addIntegerNullable('amountTo', 'Množství do');
 		$form->addInteger('priority', 'Priorita')->setDefaultValue(10)->setRequired();
 		$form->addSelect2('displayDelivery', 'Přednastavené doručení', $this->displayDeliveryRepository->getArrayForSelect())->setPrompt('Nepřiřazeno')
 			->setHtmlAttribute('data-info', 'Pokud nastavíte "Přednastavené doručení", tak u produktů s nastaveným doručením na "Automaticky" bude zvoleno toto doručení.');
 		$form->addCheckbox('isSold', 'Označit jako vyprodáno');
+		$form->addIntegerNullable('daysToExpedition', 'Počet dní do expedice')->setHtmlAttribute('data-info', 'Pouze pracovní dny');
 
 		$form->addSubmits(!$this->getParameter('displayAmount'));
 
