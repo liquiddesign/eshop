@@ -196,7 +196,8 @@ class DeliveryTypePresenter extends BackendPresenter
 		$form->addCheckbox('externalCarrier', 'Externí dopravce');
 		$form->addCheckbox('recommended', 'Doporučeno');
 		$form->addCheckbox('hidden', 'Skryto');
-		$form->addIntegerNullable('daysToDelivery', 'Počet dní doručení');
+		$form->addIntegerNullable('daysToDelivery', 'Počet dní doručení')->setHtmlAttribute('data-info', 'Pouze pracovní dny');
+		$form->addIntegerNullable('daysFromThresholdToExpedition', 'Počet dní od prahu k expedici')->setHtmlAttribute('data-info', 'Pouze pracovní dny');
 		$form->addIntegerNullable('totalMaxWeight', 'Maximální celková váha objednávky');
 
 		$form->addGroup('Maximální přepravní jednotka (na 1 balík)');

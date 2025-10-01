@@ -154,6 +154,12 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	public ?int $daysToDelivery = null;
 
 	/**
+	 * Počet dní od prahu k expedici
+	 * @column
+	 */
+	public ?int $daysFromThresholdToExpedition = null;
+
+	/**
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
