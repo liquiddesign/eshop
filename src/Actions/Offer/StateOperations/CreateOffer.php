@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Actions\Offer\StateOperations;
 
+use Carbon\Carbon;
 use Eshop\Actions\Offer\Code\GenerateOfferCode;
 use Eshop\DB\Offer;
 use Eshop\DB\OfferRepository;
@@ -37,6 +38,8 @@ class CreateOffer extends \Base\BaseAction
 				$offer = $this->offerRepository->createOne([
 					'code' => $this->generateOfferCode->execute(),
 					'order' => $order->getPK(),
+					'validFromTs' => Carbon::now()->toDateString(),
+					'validUntilTs' => Carbon::now()->addDays(14)->toDateString(),
 				]);
 
 				if ($inTransaction) {
