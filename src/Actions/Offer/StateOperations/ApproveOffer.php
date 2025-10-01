@@ -36,7 +36,7 @@ class ApproveOffer extends BaseAction
 	{
 		$state = $this->getOfferState->execute($offer);
 
-		if ($state === OfferState::Sent || $state === OfferState::Canceled) {
+		if ($state === OfferState::Sent) {
 			return;
 		}
 
