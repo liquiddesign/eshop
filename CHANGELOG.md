@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.540](https://github.com/liquiddesign/eshop/compare/v2.1.539...v2.1.540) (2025-10-02)
+
+### Bug Fixes
+
+* Update customer UUID filter in CustomerRepository ([1a5a26](https://github.com/liquiddesign/eshop/commit/1a5a26706f2388fb4fa9b820c5e1a501ab788760))
+
+
+---
+
 ## [2.1.539](https://github.com/liquiddesign/eshop/compare/v2.1.538...v2.1.539) (2025-10-01)
 
 
