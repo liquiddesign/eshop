@@ -183,7 +183,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 		$collection = $this->getCollection();
 
 		if (\count($customers) > 0) {
-			$collection->where('merchants.fk_merchant', \array_keys($customers));
+			$collection->where('this.uuid', \array_keys($customers));
 		} elseif ($merchant->customerGroups->count() !== 0) {
 			$collection->where('this.fk_group', $merchant->getCustomerGroups()->toArrayOf('uuid', toArrayValues: true));
 		}
