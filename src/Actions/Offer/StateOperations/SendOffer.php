@@ -9,7 +9,7 @@ use Carbon\Carbon;
 use Eshop\Actions\Offer\GetOfferState;
 use Eshop\DB\Offer;
 use Eshop\DB\OfferState;
-use Eshop\DB\OrderRepository;
+use Eshop\Services\Offer\OfferService;
 use Messages\DB\TemplateRepository;
 use Nette\Application\LinkGenerator;
 use StORM\DIConnection;
@@ -22,7 +22,7 @@ class SendOffer extends BaseAction
 		private readonly DIConnection $storm,
 		private readonly TemplateRepository $templateRepository,
 		private readonly LinkGenerator $linkGenerator,
-		private readonly OrderRepository $orderRepository,
+		private readonly OfferService $offerService,
 	) {
 	}
 
@@ -48,9 +48,7 @@ class SendOffer extends BaseAction
 						$offer->code,
 						$offer->getPK(),
 					]),
-					'offerCode' => $offer->code,
-					'offer' => $offer->toJsonArray(),
-				] + $this->orderRepository->getEmailVariables($offer->order),
+				] + $this->offerService->getEmailVariables($offer),
 				$offer->order->purchase->accountEmail
 			);
 
