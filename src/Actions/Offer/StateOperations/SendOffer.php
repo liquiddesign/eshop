@@ -49,6 +49,7 @@ class SendOffer extends BaseAction
 						$offer->getPK(),
 					]),
 					'offerCode' => $offer->code,
+					'offer' => $offer->toJsonArray(),
 				] + $this->orderRepository->getEmailVariables($offer->order),
 				$offer->order->purchase->accountEmail
 			);
