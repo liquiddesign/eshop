@@ -11,7 +11,6 @@ use Eshop\DB\Offer;
 use Eshop\DB\OfferState;
 use Eshop\Services\Offer\OfferService;
 use Messages\DB\TemplateRepository;
-use Nette\Application\LinkGenerator;
 use StORM\DIConnection;
 use Tracy\Debugger;
 
@@ -21,7 +20,6 @@ class SendOffer extends BaseAction
 		private readonly GetOfferState $getOfferState,
 		private readonly DIConnection $storm,
 		private readonly TemplateRepository $templateRepository,
-		private readonly LinkGenerator $linkGenerator,
 		private readonly OfferService $offerService,
 	) {
 	}
