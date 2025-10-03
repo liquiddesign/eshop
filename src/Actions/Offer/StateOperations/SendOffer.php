@@ -43,12 +43,7 @@ class SendOffer extends BaseAction
 
 			$this->templateRepository->sendMessage(
 				'offers.create',
-				[
-					'publicUrl' => $this->linkGenerator->link('//:Eshop:Offer:offerPublic', [
-						$offer->code,
-						$offer->getPK(),
-					]),
-				] + $this->offerService->getEmailVariables($offer),
+				$this->offerService->getEmailVariables($offer),
 				$offer->order->purchase->accountEmail
 			);
 
