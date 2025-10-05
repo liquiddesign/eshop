@@ -896,11 +896,15 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 					->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
 			}
 
-			$form->addGroup('Cache');
-			$form->addText('cacheIndex', 'Index')
-				->setDisabled()
-				->setDefaultValue($customer ? $this->generalProductsCacheProvider->getIndexByCustomer($customer) : null);
+			try {
+				$index = $customer ? $this->generalProductsCacheProvider->getIndexByCustomer($customer) : null;
 
+				$form->addGroup('Cache');
+				$form->addText('cacheIndex', 'Index')
+					->setDisabled()
+					->setDefaultValue($index);
+			} catch (\Exception) {
+			}
 
 			$this->addCustomFieldsToCustomerForm($form, $customer);
 
