@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.541](https://github.com/liquiddesign/eshop/compare/v2.1.540...v2.1.541) (2025-10-06)
+
+### Bug Fixes
+
+* Update email variables and cache handling ([447478](https://github.com/liquiddesign/eshop/commit/447478f08bfcb917aa1c5e6c89c0882e84acb1fe))
+
+
+---
+
 ## [2.1.540](https://github.com/liquiddesign/eshop/compare/v2.1.539...v2.1.540) (2025-10-02)
 
 ### Bug Fixes
