@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file.
 <!--- END HEADER -->
 
+## [2.1.542](https://github.com/liquiddesign/eshop/compare/v2.1.541...v2.1.542) (2025-10-06)
+
+### Features
+
+
+##### Offer Service
+
+* Add OfferService with email variables support ([8bb438](https://github.com/liquiddesign/eshop/commit/8bb4383747d400943da70e4c5b1200bb4fecd542))
+
+
+---
+
 ## [2.1.541](https://github.com/liquiddesign/eshop/compare/v2.1.540...v2.1.541) (2025-10-06)
 
 ### Bug Fixes
