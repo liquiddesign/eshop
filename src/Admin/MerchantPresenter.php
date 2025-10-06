@@ -212,10 +212,15 @@ class MerchantPresenter extends BackendPresenter
 				'Posílat e-mailem informace o objednávkách přiřazených zákazníků.',
 			);
 
-			$form->addGroup('Cache');
-			$form->addText('cacheIndex', 'Index')
-				->setDisabled()
-				->setDefaultValue($merchant ? $this->productsCacheGetterService->getIndexByCustomer($merchant) : null);
+			try {
+				$index = $merchant ? $this->productsCacheGetterService->getIndexByCustomer($merchant) : null;
+
+				$form->addGroup('Cache');
+				$form->addText('cacheIndex', 'Index')
+					->setDisabled()
+					->setDefaultValue($index);
+			} catch (\Exception) {
+			}
 
 			$form->addGroup('Externí');
 			$form->addText('externalId', 'Externí ID')->setNullable();
