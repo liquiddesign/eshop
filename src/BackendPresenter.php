@@ -37,13 +37,6 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 	#[Inject]
 	public Application $application;
 
-	protected function startup(): void
-	{
-		parent::startup();
-
-		$this->template->adminIdentity = $this->administratorRepositoryBackendPresenter->oneOrFail($this->admin->getIdentity()->getId());
-	}
-
 	public function afterRender(): void
 	{
 		\Tracy\Debugger::$maxLength = 100000;
@@ -204,6 +197,13 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 	public function onDeleteImagePublic(Entity $object, string $propertyName = 'imageFileName'): void
 	{
 		$this->onDeleteImage($object, $propertyName);
+	}
+
+	protected function startup(): void
+	{
+		parent::startup();
+
+		$this->template->adminIdentity = $this->administratorRepositoryBackendPresenter->oneOrFail($this->admin->getIdentity()->getId());
 	}
 
 	protected function getBulkFormActionLink(): string
