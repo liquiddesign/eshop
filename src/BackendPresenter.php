@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Eshop;
 
 use Admin\Controls\AdminGrid;
-use Admin\DB\AdministratorRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CustomerRepository;
@@ -30,9 +29,6 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 	#[Inject]
 	public CustomerRepository $customerRepository;
-
-	#[Inject]
-	public AdministratorRepository $administratorRepositoryBackendPresenter;
 
 	#[Inject]
 	public Application $application;
@@ -197,13 +193,6 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 	public function onDeleteImagePublic(Entity $object, string $propertyName = 'imageFileName'): void
 	{
 		$this->onDeleteImage($object, $propertyName);
-	}
-
-	protected function startup(): void
-	{
-		parent::startup();
-
-		$this->template->adminIdentity = $this->administratorRepositoryBackendPresenter->oneOrFail($this->admin->getIdentity()->getId());
 	}
 
 	protected function getBulkFormActionLink(): string
