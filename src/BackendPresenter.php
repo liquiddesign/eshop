@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Eshop;
 
 use Admin\Controls\AdminGrid;
+use Admin\DB\AdministratorRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CustomerRepository;
@@ -31,7 +32,17 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 	public CustomerRepository $customerRepository;
 
 	#[Inject]
+	public AdministratorRepository $administratorRepositoryBackendPresenter;
+
+	#[Inject]
 	public Application $application;
+
+	protected function startup(): void
+	{
+		parent::startup();
+
+		$this->template->adminIdentity = $this->administratorRepositoryBackendPresenter->oneOrFail($this->admin->getIdentity()->getId());
+	}
 
 	public function afterRender(): void
 	{
