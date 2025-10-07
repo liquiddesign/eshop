@@ -14,6 +14,7 @@ use Eshop\DB\SupplierRepository;
 use Eshop\Integration\Integrations;
 use Eshop\Providers\IProducerSyncSupplier;
 use Forms\Form;
+use Illuminate\Support\Str;
 use Nette\DI\Attributes\Inject;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
@@ -186,6 +187,20 @@ class SupplierProductPresenter extends BackendPresenter
 			['0' => 'Bez párování', '1' => 'Napárované'],
 			'mapped',
 		);
+
+		$grid->addFilterText(function (ICollection $source, $value): void {
+			if ($value === null || Str::trim($value) === '') {
+				return;
+			}
+
+			$source->join(['pairedAtProduct' => 'eshop_product'], 'this.fk_product = pairedAtProduct.uuid');
+			$source->where('pairedAtProduct.code LIKE :pairedAt', ['pairedAt' => '%' . $value . '%']);
+		},
+			'',
+			'pairedAt')
+			->setHtmlAttribute('placeholder', 'Párováno na produkt (kód)')
+			->setHtmlAttribute('class', 'form-control form-control-sm');
+
 //		$grid->addFilterCheckboxInput('notmapped', 'fk_product IS NOT NULL', 'Napárované');
 
 		$grid->addButtonBulkEdit('form', ['active']);
