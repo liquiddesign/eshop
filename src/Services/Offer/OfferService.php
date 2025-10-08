@@ -15,8 +15,7 @@ class OfferService implements AutoWireService
 
 	/**
 	 * @param \Eshop\DB\Offer $offer
-	 * @return array{offerCode: string, offer: array<string, mixed>, order: array<string, mixed>}
-	 * @throws \StORM\Exception\NotFoundException
+	 * @return array<string, mixed>
 	 */
 	public function getEmailVariables(Offer $offer): array
 	{
@@ -27,7 +26,6 @@ class OfferService implements AutoWireService
 			]),
 			'offerCode' => $offer->code,
 			'offer' => $offer->toJsonArray(),
-			'order' => $this->orderRepository->getEmailVariables($offer->order),
-		];
+		] + $this->orderRepository->getEmailVariables($offer->order);
 	}
 }
