@@ -20,10 +20,11 @@ use Web\DB\Setting;
  * @table
  * @index{"name":"code_subcode","unique":true,"columns":["code","subCode"]}
  * @index{"name":"ean","unique":true,"columns":["ean"]}
- * @method \StORM\ICollection<\Eshop\DB\Category> getCategories():
- * @method \StORM\ICollection<\Eshop\DB\ProductPrimaryCategory> getPrimaryCategories():
- * @method \StORM\ICollection<\Eshop\DB\File> getFiles():
- * @method \StORM\ICollection<\Eshop\DB\Ribbon> getRibbons():
+ * @method \StORM\ICollection<\Eshop\DB\Category> getCategories()
+ * @method \StORM\ICollection<\Eshop\DB\ProductPrimaryCategory> getPrimaryCategories()
+ * @method \StORM\ICollection<\Eshop\DB\File> getFiles()
+ * @method \StORM\ICollection<\Eshop\DB\Ribbon> getRibbons()
+ * @method \StORM\ICollection<\Eshop\DB\InternalRibbon> getInternalRibbons()
  */
 class Product extends \StORM\Entity
 {

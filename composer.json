@@ -50,7 +50,8 @@
         "liquiddesign/liquid-monitor-connector": "^1.0.19",
         "illuminate/database": "^11.0|^12.0",
         "illuminate/support": "^11.0|^12.0",
-        "dave-liddament/php-language-extensions": "^0.9"
+        "dave-liddament/php-language-extensions": "^0.9",
+        "liquiddesign/vies": "^1.0"
     },
     "minimum-stability": "stable",
     "require-dev": {
@@ -66,8 +67,8 @@
         "jetbrains/phpstorm-attributes": "^1.2"
     },
     "scripts": {
-        "c:f": "@fix-code",
-        "c:c": "@check-code",
+        "cf": "@fix-code",
+        "ch": "@check-code",
         "fix-code": [
             "@phpcsfix"
         ],
