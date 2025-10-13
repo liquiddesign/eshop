@@ -6,9 +6,11 @@ namespace Eshop\DB;
 
 use Admin\DB\IGeneralAjaxRepository;
 use Base\ShopsConfig;
+use Carbon\Carbon;
 use Common\DB\IGeneralRepository;
 use Eshop\Providers\Helpers;
 use League\Csv\Writer;
+use Nette\Application\LinkGenerator;
 use Nette\Utils\Strings;
 use Nette\Utils\Validators;
 use Security\DB\IUserRepository;
@@ -26,7 +28,7 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 {
 	use UserRepositoryTrait;
 
-	public function __construct(DIConnection $connection, SchemaManager $schemaManager, protected readonly ShopsConfig $shopsConfig)
+	public function __construct(DIConnection $connection, SchemaManager $schemaManager, protected readonly ShopsConfig $shopsConfig, protected readonly LinkGenerator $linkGenerator)
 	{
 		parent::__construct($connection, $schemaManager);
 	}
