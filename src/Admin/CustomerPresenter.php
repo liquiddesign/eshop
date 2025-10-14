@@ -576,7 +576,9 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		$grid = $button->lookup(Datagrid::class);
 		
 		$tempFilename = \tempnam($this->tempDir, 'csv');
-		$collection = $grid->getSource()->where('this.' . $grid->getSourceIdName(), $grid->getSelectedIds());
+
+		$collection = $grid->getSelectedIds() ? $grid->getSource()->where('this.' . $grid->getSourceIdName(), $grid->getSelectedIds()) : $grid->getFilteredSource();
+
 		$this->customerRepository->csvExportAccounts($collection, Writer::createFromPath($tempFilename, 'w+'));
 		
 		$response = new FileResponse($tempFilename, 'accounts.csv', 'text/csv');
