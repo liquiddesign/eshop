@@ -507,7 +507,16 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder'], false, null, 'this.uuid');
 		
-		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers', copyRawValues: [
+		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers', onProcess: function ($id, $object, $localValues, $localRelations): array {
+			if (!isset($localValues['values']['defaultCatalogPermission'])) {
+				return [$localValues, $localRelations];
+			}
+
+			$localValues['values']['catalogPermissionSetting'] = $localValues['values']['defaultCatalogPermission'];
+			unset($localValues['values']['defaultCatalogPermission']);
+
+			return [$localValues, $localRelations];
+		}, copyRawValues: [
 			'pricelists' => 'pricelists',
 			'favouritePriceLists' => 'favouritePriceLists',
 			'visibilityLists' => 'visibilityLists',

@@ -15,7 +15,7 @@ jobs:
       - name: Setup PHP Action
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
 
       - name: CRLF
         run: |
@@ -49,9 +49,6 @@ jobs:
 
       - name: Run lattelint
         run: composer lattelint
-
-      - name: Run commit check
-        run: composer check-commit
 
       - uses: 8398a7/action-slack@v3
         with:

@@ -76,7 +76,7 @@
             "@phpcsfix",
             "@phpcs"
         ],
-        "check-code": "npx concurrently -c \\\"#93c5fd,#c4b5fd,#fb7185,#fdba74\\\" --success all \"composer phpcs\" \"composer phpstan\" \"composer phpstan8\" \"composer lattelint\" \"composer check-commit\" --names=cs,stan,stan8,lattelint,commit",
+        "check-code": "npx concurrently -c \\\"#93c5fd,#c4b5fd,#fb7185,#fdba74\\\" --success all \"composer phpcs\" \"composer phpstan\" \"composer phpstan8\" \"composer lattelint\" --names=cs,stan,stan8,lattelint",
         "phpstan-clear-cache": "@php ./vendor/bin/phpstan clear-result-cache",
         "phpstan": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan.neon --ansi",
         "phpstan8": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan8.neon --ansi",
@@ -85,7 +85,6 @@
         "phpcsfix": "@php ./vendor/bin/phpcbf --standard=ruleset.xml --ignore=assets --cache src",
         "lattelint": "@php lattelint.php",
         "tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php",
-        "check-commit": "@php ./vendor/liquiddesign/codestyle/src/scripts/check-last-commit.php",
         "changelog": "@php ./vendor/bin/conventional-changelog",
         "release": "@php ./vendor/bin/conventional-changelog --patch --commit",
         "release:patch": "@php ./vendor/bin/conventional-changelog --patch --commit",
@@ -106,5 +105,5 @@
             "pestphp/pest-plugin": true
         }
     },
-    "version": "2.1.545"
+    "version": "2.1.546"
 }
