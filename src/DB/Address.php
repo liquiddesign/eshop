@@ -33,6 +33,18 @@ class Address extends \StORM\Entity
 	 * @column
 	 */
 	public string $street;
+	
+	/**
+	 * Číslo popisné
+	 * @column
+	 */
+	public ?string $houseNumber;
+	
+	/**
+	 * Číslo orientační
+	 * @column
+	 */
+	public ?string $orientationNumber;
 
 	/**
 	 * Město
