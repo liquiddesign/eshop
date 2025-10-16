@@ -39,20 +39,20 @@ class ScriptsPresenter extends \Admin\BackendPresenter
 	{
 		$this->template->setFile(__DIR__ . '/templates/Scripts.default.latte');
 
-		$this->template->scripts = [
-			(object) [
-				'name' => 'Vymazat vybrané tagy cache',
-				'link' => 'clearCache!',
-				'info' => '
-				Není pravidelně spouštěný<br>
-				Maže pouze vybrané tagy cache související s produkty. Po vymazání může být první průchod eshopem pomalý!',
-			],
-			(object) [
-				'name' => 'Odeslat aktivní hlídací psy',
-				'link' => 'checkWatchers!',
-				'info' => 'Odešle e-maily zákazníkům o případných změnách v dostupnosit jejich hlídaných produktů.',
-			],
-		];
+//		$this->template->scripts = [
+//			(object) [
+//				'name' => 'Vymazat vybrané tagy cache',
+//				'link' => 'clearCache!',
+//				'info' => '
+//				Není pravidelně spouštěný<br>
+//				Maže pouze vybrané tagy cache související s produkty. Po vymazání může být první průchod eshopem pomalý!',
+//			],
+//			(object) [
+//				'name' => 'Odeslat aktivní hlídací psy',
+//				'link' => 'checkWatchers!',
+//				'info' => 'Odešle e-maily zákazníkům o případných změnách v dostupnosit jejich hlídaných produktů.',
+//			],
+//		];
 	}
 
 	public function handleCheckWatchers(): void

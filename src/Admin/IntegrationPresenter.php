@@ -27,6 +27,8 @@ class IntegrationPresenter extends BackendPresenter
 	public const ZBOZI_STORE_ID = 'zboziStoreId';
 	public const BALIKOBOT_PROVIDER_ID = 'balikobotProviderId';
 	public const BALIKOBOT_CC_ADDRESS = 'balikobotCcAddress';
+	public const COLLECTION_ORDER_PROFILE_INFO_SETTING = 'collectionOrderProfileInfoSetting';
+	public const COLLECTION_ORDER_ORDER_COMPLETE_INFO_SETTING = 'collectionOrderOrderCompleteInfoSetting';
 
 	protected const CONFIGURATION = [
 		'supportBox' => false,
@@ -411,6 +413,7 @@ class IntegrationPresenter extends BackendPresenter
 		}
 
 		foreach ($shops as $shop) {
+			/** @var \Admin\Controls\AdminContainer $shopContainer */
 			$shopContainer = $shopsContainer->addContainer($shop->getPK());
 
 			$shopContainer->addSelect(
@@ -429,9 +432,19 @@ class IntegrationPresenter extends BackendPresenter
 				->setNullable()
 				->addCondition(FormAlias::Filled)
 				->addRule(FormAlias::Email);
+
+			$shopContainer->addRichEdit(
+				self::COLLECTION_ORDER_PROFILE_INFO_SETTING,
+				\sprintf('(%s) Informace zobrazené v profilu uživatele (seznam svozů)', $shop->name)
+			);
+			$shopContainer->addRichEdit(
+				self::COLLECTION_ORDER_ORDER_COMPLETE_INFO_SETTING,
+				\sprintf('(%s) Informace zobrazené po dokončení objednávky', $shop->name),
+			);
 		}
 
 		if (!$shops) {
+			/** @var \Admin\Controls\AdminContainer $shopContainer */
 			$shopContainer = $shopsContainer->addContainer('default');
 
 			$shopContainer->addSelect(
@@ -448,6 +461,9 @@ class IntegrationPresenter extends BackendPresenter
 			)
 				->addCondition(FormAlias::Filled)
 				->addRule(FormAlias::Email);
+
+			$shopContainer->addRichEdit(self::COLLECTION_ORDER_PROFILE_INFO_SETTING, 'Informace zobrazené v profilu uživatele (seznam svozů)');
+			$shopContainer->addRichEdit(self::COLLECTION_ORDER_ORDER_COMPLETE_INFO_SETTING, 'Informace zobrazené po dokončení objednávky');
 		}
 
 		$form->addSubmit('submit', 'Uložit');
