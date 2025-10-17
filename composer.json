@@ -14,7 +14,7 @@
         }
     },
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.4",
         "nette/application": "^3.1",
         "nette/http": "^3.2",
         "nette/utils": "^4.0",
@@ -48,8 +48,8 @@
         "latte/latte": "^3.0",
         "ramsey/uuid": "^4.7",
         "liquiddesign/liquid-monitor-connector": "^1.0.19",
-        "illuminate/database": "^11.0|^12.0",
-        "illuminate/support": "^11.0|^12.0",
+        "illuminate/database": "^12.0",
+        "illuminate/support": "^12.0",
         "dave-liddament/php-language-extensions": "^0.9",
         "liquiddesign/vies": "^1.0"
     },
@@ -57,13 +57,11 @@
     "require-dev": {
         "tracy/tracy": "^2.10",
         "composer/composer": "^2.0",
-        "liquiddesign/codestyle": "^3.0.13",
+        "liquiddesign/codestyle": "dev-main",
         "liquiddesign/migrator": "~1.0",
-        "phpstan/phpstan-nette": "~1.0",
-        "marcocesarato/php-conventional-changelog": "^1.17",
-        "pestphp/pest": "^3.1",
+        "phpstan/phpstan-nette": "~2.0",
         "dave-liddament/phpstan-php-language-extensions": "^0.9",
-        "phpstan/phpstan-deprecation-rules": "^1.2",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
         "jetbrains/phpstorm-attributes": "^1.2"
     },
     "scripts": {
@@ -83,27 +81,12 @@
         "phpstan9": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan9.neon --ansi",
         "phpcs": "@php ./vendor/bin/phpcs --standard=ruleset.xml --ignore=assets --cache src",
         "phpcsfix": "@php ./vendor/bin/phpcbf --standard=ruleset.xml --ignore=assets --cache src",
-        "lattelint": "@php lattelint.php",
-        "tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php",
-        "changelog": "@php ./vendor/bin/conventional-changelog",
-        "release": "@php ./vendor/bin/conventional-changelog --patch --commit",
-        "release:patch": "@php ./vendor/bin/conventional-changelog --patch --commit",
-        "rp": "@release:patch-full",
-        "release:minor": "@php ./vendor/bin/conventional-changelog --minor --commit",
-        "release:major": "@php ./vendor/bin/conventional-changelog --major --commit",
-        "release:patch-full": [
-            "git pull",
-            "@release:patch",
-            "git push",
-            "git push --tags"
-        ]
+        "lattelint": "@php lattelint.php"
     },
     "config": {
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true,
-            "php-http/discovery": true,
-            "pestphp/pest-plugin": true
+            "php-http/discovery": true
         }
-    },
-    "version": "2.1.468"
+    }
 }

@@ -91,16 +91,14 @@ class CategoryForm extends Control
 		$nameInput = $form->addLocaleText('name', 'Název');
 		$form->addLocaleText('alternativeName', 'Alternativní název');
 		$form->addLocalePerexEdit('perex', 'Perex', [
-			/** @codingStandardsIgnoreStart Long string*/
+			// phpcs:ignore
 			'toolbar1' => 'undo redo | styleselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | link unlink anchor | table | copy cut paste pastetext insertcontent code',
-			/** @codingStandardsIgnoreEnd */
 			'plugins' => 'table code link',
 		]);
 		$form->addLocaleRichEdit('content', 'Obsah');
 		$form->addLocalePerexEdit('defaultProductPerex', 'Výchozí perex produktů', [
-			/** @codingStandardsIgnoreStart Long string */
+			// phpcs:ignore
 			'toolbar1' => 'undo redo | styleselect | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | link unlink anchor | table | copy cut paste pastetext insertcontent code',
-			/** @codingStandardsIgnoreEnd */
 			'plugins' => 'table code link',
 		]);
 		$form->addLocaleRichEdit('defaultProductContent', 'Výchozí obsah produktů');

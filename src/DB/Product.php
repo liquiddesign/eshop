@@ -815,7 +815,6 @@ class Product extends \StORM\Entity
 	 */
 	public function getCategoryTree(string $property, bool $reversed = false, string $type = 'main'): array
 	{
-		/** @var \Eshop\DB\Product|\stdClass $product */
 		$product = $this;
 
 		if (!isset($product->primaryCategoryPath) || !$product->primaryCategoryPath) {

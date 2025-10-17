@@ -209,6 +209,7 @@ class DPD
 					foreach ($result->NewShipmentResult->NewShipmentResultVO as $parcel) {
 						$dpdCodes .= $parcel->ParcelVO->PARCELNO . ',';
 					}
+
 					/** @codingStandardsIgnoreEnd */
 
 					$order->update(['dpdCode' => $dpdCodes, 'dpdError' => false,]);

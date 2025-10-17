@@ -164,8 +164,9 @@ class PPL
 			$i = 1;
 
 			foreach ($order->packages as $package) {
+				$delivery = $package->delivery;
+
 				try {
-					$delivery = $package->delivery;
 					$deliveryType = $delivery->type;
 
 					if (!$deliveryType || $deliveryType->getPK() !== $pplDeliveryType) {
@@ -236,7 +237,7 @@ class PPL
 						$cityRoutingResponse->RouteCode,
 						$cityRoutingResponse->DepoCode,
 						$cityRoutingResponse->Highlighted
-					/** @codingStandardsIgnoreEnd */
+						/** @codingStandardsIgnoreEnd */
 					);
 
 					if ($isCod) {
@@ -426,7 +427,7 @@ class PPL
 						$cityRoutingResponse->RouteCode,
 						$cityRoutingResponse->DepoCode,
 						$cityRoutingResponse->Highlighted,
-					/** @codingStandardsIgnoreEnd */
+						/** @codingStandardsIgnoreEnd */
 					);
 
 					$isCod = $pplCodType && $order->purchase->paymentType && Arrays::contains($pplCodType, $order->purchase->paymentType->getPK());

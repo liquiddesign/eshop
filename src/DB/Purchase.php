@@ -297,13 +297,13 @@ class Purchase extends \StORM\Entity
 	/**
 	 * @var array<string>
 	 */
-	private ?array $cartIds;
+	private array $cartIds;
 	
 	public function getFirstName(): ?string
 	{
 		$array = \explode(' ', $this->fullname, 2);
 		
-		return isset($array[0]) ? Strings::trim($array[0]) : null;
+		return Strings::trim($array[0]);
 	}
 	
 	public function getLastName(): ?string

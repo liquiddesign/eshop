@@ -41,7 +41,7 @@ class Algolia
 			return $this->client;
 		}
 
-		return SearchClient::create($this->applicationId, $this->adminApiKey);
+		return $this->client = SearchClient::create($this->applicationId, $this->adminApiKey);
 	}
 
 	/**
