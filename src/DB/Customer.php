@@ -117,6 +117,24 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	public ?string $bankAccount;
 
 	/**
+	 * Fakturační email
+	 * @column
+	 */
+	public ?string $invoiceEmail;
+	
+	/**
+	 * Splatnost faktur - počet dní
+	 * @column
+	 */
+	public ?int $invoiceMaturityDays;
+	
+	/**
+	 * Povolené saldo
+	 * @column
+	 */
+	public ?int $saldoLimit;
+	
+	/**
 	 * Kód banky
 	 * @column
 	 */
