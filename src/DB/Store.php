@@ -15,7 +15,7 @@ class Store extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $code;
-	
+
 	/**
 	 * Název
 	 * @column{"mutations":true}
@@ -27,7 +27,7 @@ class Store extends \StORM\Entity
 	 * @column
 	 */
 	public int $systemicLock = 0;
-	
+
 	/**
 	 * Dodavatel / externí sklad
 	 * @relation

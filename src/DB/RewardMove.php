@@ -20,55 +20,55 @@ class RewardMove extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $reason;
-	
+
 	/**
 	 * @column
 	 */
 	public bool $applied = false;
-	
+
 	/**
 	 * Platnost od
 	 * @column{"type":"datetime"}
 	 */
 	public ?string $validFrom;
-	
+
 	/**
 	 * Platnost do
 	 * @column{"type":"datetime"}
 	 */
 	public ?string $validTo;
-	
+
 	/**
 	 * Částka - doplatek +-
 	 * @column
 	 */
 	public ?float $price;
-	
+
 	/**
 	 * Částka - doplatek +-
 	 * @column
 	 */
 	public ?float $priceVat;
-	
+
 	/**
 	 * Kusů +-
 	 * @column
 	 */
 	public ?float $productAmount;
-	
+
 	/**
 	 * Nárok na produkt
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Product $product;
-	
+
 	/**
 	 * @relation
 	 * @constraint{"onUpdate":"RESTRICT","onDelete":"RESTRICT"}
 	 */
 	public ?Currency $currency;
-	
+
 	/**
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}

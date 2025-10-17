@@ -180,7 +180,7 @@ class CategoryPresenter extends BackendPresenter
 			if ($this::SHOW_DESCENDANT_PRODUCTS) {
 				$bulkInputs[] = 'showDescendantProducts';
 			}
-			
+
 			$grid->addButtonBulkEdit(
 				'categoryForm',
 				$bulkInputs,
@@ -386,7 +386,7 @@ class CategoryPresenter extends BackendPresenter
 
 		return $form;
 	}
-	
+
 	/**
 	 * @param array<string|int> $ids
 	 */
@@ -394,7 +394,7 @@ class CategoryPresenter extends BackendPresenter
 	{
 		unset($ids);
 	}
-	
+
 	/**
 	 * @param array<string|int> $ids
 	 */
@@ -867,7 +867,7 @@ Očekává se formát kategorií dle formátu Heuréky. Tedy "Subcategory 1" atd
 
 		return $form;
 	}
-	
+
 	/**
 	 * @param array<string|int> $ids
 	 */

@@ -57,7 +57,7 @@ class MerchantPresenter extends BackendPresenter
 
 	#[Inject]
 	public Mailer $mailer;
-	
+
 	#[Inject]
 	public Passwords $passwords;
 
@@ -269,7 +269,7 @@ class MerchantPresenter extends BackendPresenter
 
 			return;
 		};
-		
+
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValuesWithAjax();
 

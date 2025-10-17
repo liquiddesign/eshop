@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Eshop\Admin;
@@ -520,17 +521,17 @@ class AttributePresenter extends BackendPresenter
 		$form = $this->formFactory->create(true);
 
 		$form->addText('code', 'Kód')->setRequired();
-		
+
 		$attributeInput = $form->addSelect2('attribute', 'Atribut', $this->attributeRepository->getArrayForSelect())->setRequired()
 							   ->setHtmlAttribute('data-info', 'Hodnoty systémových atributů "' . \implode(', ', ProductFilter::SYSTEMIC_ATTRIBUTES) . '" nebudou použity.')
 							   ->setDisabled($this->getParameter('attributeValue') && $this->attributeValueRepository->isValuePairedWithProducts($this->getParameter('attributeValue')));
-		
+
 		$attribute = $this->getParameter('attribute') ?: $attributeValue?->attribute;
-		
+
 		if ($attribute) {
 			$attributeInput->setDefaultValue($attribute->getPK());
 		}
-		
+
 		$form->addText('internalName', 'Interní název')->setNullable()
 			->setHtmlAttribute('data-info', 'Používá se pro lepší přehlednost v adminu. Pokud není vyplněn, tak se použije "Popisek".');
 		$nameInput = $form->addLocaleText('label', 'Popisek');
@@ -653,9 +654,9 @@ class AttributePresenter extends BackendPresenter
 			$this->clearNetteCache();
 
 			$this->flashMessage('Uloženo', 'success');
-			
+
 			$attributeValue = $this->attributeValueRepository->one($object->getPK());
-			
+
 			$form->processRedirect(
 				'valueDetail',
 				'default',
@@ -841,7 +842,7 @@ class AttributePresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default', ['attribute' => $this->getParameter('attribute')])];
 		$this->template->displayControls = [$this->getComponent('valuesForm')];
 	}
-	
+
 	/**
 	 * @param array<string|int> $ids
 	 * @param bool $createOrDelete

@@ -338,8 +338,10 @@ class PricelistsPresenter extends BackendPresenter
 		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
 		$grid->addButtonSaveAll(onRowUpdate: function (string $id, array &$prices, Price $price) use ($autoPriceConfig): void {
-			if ((!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && !isset($prices['price']) ||
-				($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT && !isset($prices['priceVat']))) {
+			if (
+				(!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && !isset($prices['price']) ||
+				($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT && !isset($prices['priceVat']))
+			) {
 				return;
 			}
 
@@ -568,8 +570,10 @@ class PricelistsPresenter extends BackendPresenter
 		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
 		$grid->addButtonSaveAll(onRowUpdate: function (string $id, array &$prices, Price $price) use ($autoPriceConfig): void {
-			if ((!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && !isset($prices['price']) ||
-				($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT && !isset($prices['priceVat']))) {
+			if (
+				(!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && !isset($prices['price']) ||
+				($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT && !isset($prices['priceVat']))
+			) {
 				return;
 			}
 
@@ -600,7 +604,7 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addFilterButtons(['priceListItems', $this->getParameter('pricelist')]);
 
 		$grid->addFilterTextInput('code', ['products.code', 'products.ean', 'products.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
-		
+
 		$grid->addFilterInteger(function (ICollection $source, $value): void {
 			$source->where('this.price >= :price', ['price' => $value]);
 		}, null, 'priceFrom', 'Cena od')

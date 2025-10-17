@@ -31,13 +31,13 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	 * @column
 	 */
 	public ?string $code;
-	
+
 	/**
 	 * Jméno
 	 * @column
 	 */
 	public string $fullname;
-	
+
 	/**
 	 * Email
 	 * @column
@@ -143,7 +143,7 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	 * @var \StORM\RelationCollection<\Eshop\DB\VisibilityList>
 	 */
 	public RelationCollection $visibilityLists;
-	
+
 	/**
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Security\DB\Account>
@@ -155,9 +155,9 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	 * @column{"type":"enum","length":"'customer','merchant','merge'"}
 	 */
 	public string $priceListsMode = 'customer';
-	
+
 	protected ?Account $account = null;
-	
+
 	public function getId(): string
 	{
 		return $this->getPK();
@@ -170,12 +170,12 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	{
 		return [];
 	}
-	
+
 	public function getAccount(): ?Account
 	{
 		return $this->account;
 	}
-	
+
 	public function setAccount(Account $account): void
 	{
 		$this->account = $account;

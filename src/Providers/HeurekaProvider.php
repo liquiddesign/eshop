@@ -23,7 +23,7 @@ class HeurekaProvider extends SupplierProvider
 	public bool $importImages;
 
 	private Supplier $supplier;
-	
+
 	public function __construct(
 		Container $container,
 		DIConnection $connection,
@@ -37,17 +37,17 @@ class HeurekaProvider extends SupplierProvider
 		$this->supplier = $supplierRepository->one(['code' => $supplierCode], true);
 		$this->importImages = $images;
 	}
-	
+
 	public function getSupplierId(): string
 	{
 		return $this->supplier->getPK();
 	}
-	
+
 	public function getName(): string
 	{
 		return $this->supplier->name ?? '';
 	}
-	
+
 	public function getProductCodePrefix(): string
 	{
 		return $this->supplier->productCodePrefix ?? '';
@@ -64,7 +64,7 @@ class HeurekaProvider extends SupplierProvider
 
 		return $this->supplier;
 	}
-	
+
 	public function getDataProperties(array &$data, array $item): void
 	{
 		$vat = isset($item['VAT']) ? \round(Helpers::parsePrice($item['VAT']), self::ROUND_PRECISION) : 21.0;
@@ -90,9 +90,9 @@ class HeurekaProvider extends SupplierProvider
 				'supplier' => $this->getSupplierId(),
 			];
 		}
-		
+
 		$catTree = \explode(' | ', $item['CATEGORYTEXT']);
-		
+
 		if (\count($catTree) <= 1) {
 			return;
 		}
@@ -110,39 +110,39 @@ class HeurekaProvider extends SupplierProvider
 			'supplier' => $this->getSupplierId(),
 		];
 	}
-	
+
 	public function getImageUrl(array $item): ?string
 	{
 		return $item['IMGURL'] ?? null;
 	}
-	
+
 	/**
 	 * @throws \Nette\Application\ApplicationException
 	 */
 	public function import(): Supplier
 	{
 		$supplier = $this->initSupplier();
-		
+
 		try {
 			$this->importResultRepository->createLog($supplier, $this->logDirectory);
-			
+
 			$xml = \simplexml_load_file($supplier->url);
-			
+
 			if ($xml === false) {
 				$this->importResultRepository->markAsError('cannot get or parse xml file');
 			}
-			
+
 			$this->importResultRepository->markAsReceived($xml);
 
 			foreach ($xml->SHOPITEM as $item) {
 				$this->importDataItem(Helpers::convertToArray($item));
 			}
-			
+
 			$this->importResultRepository->markAsImported($this);
 		} catch (\Throwable $exception) {
 			$this->importResultRepository->markAsError($exception->getMessage());
 		}
-		
+
 		return $supplier;
 	}
 }

@@ -143,28 +143,28 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 
 		$grid->addBulkAction('item', 'itemSelected', 'Generovat CSV');
 		$grid->addBulkAction('mark', 'markSent', 'Hromadně označit');
-		
+
 		return $grid;
 	}
-	
+
 	public function createComponentForm(): Form
 	{
 		/** @var \Eshop\DB\CartItem|null $cartItem */
 		$cartItem = $this->getParameter('cartItem');
 
 		$form = $this->formFactory->create(true);
-		
+
 		$form->addSubmits(!$cartItem);
-		
+
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
 			$cartItem = $this->cartItemRepository->syncOne($values);
-			
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$cartItem]);
 		};
-		
+
 		return $form;
 	}
 
@@ -225,7 +225,7 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('markSentForm')];
 	}
-	
+
 	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Objednané položky';
@@ -235,7 +235,7 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 		//      $this->template->displayButtons = [$this->createNewItemButton('new')];
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
-	
+
 	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nová položka';
@@ -246,7 +246,7 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
-	
+
 	public function renderDetail(CartItem $cartItem): void
 	{
 		unset($cartItem);
@@ -259,7 +259,7 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
-	
+
 	public function actionDetail(CartItem $cartItem): void
 	{
 		/** @var \Forms\Form $form */

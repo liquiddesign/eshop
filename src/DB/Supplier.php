@@ -15,19 +15,19 @@ class Supplier extends \StORM\Entity
 	 * @column{"unique":true}
 	 */
 	public ?string $code;
-	
+
 	/**
 	 * Prefix kódu produktu
 	 * @column{"unique":true}
 	 */
 	public ?string $productCodePrefix;
-	
+
 	/**
 	 * Název
 	 * @column
 	 */
 	public string $name;
-	
+
 	/**
 	 * Třída importu
 	 * @column
@@ -39,13 +39,13 @@ class Supplier extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $url;
-	
+
 	/**
 	 * Priorita importu
 	 * @column
 	 */
 	public int $importPriority = 0;
-	
+
 	/**
 	 * Procentuální změna cen
 	 * @column
@@ -57,31 +57,31 @@ class Supplier extends \StORM\Entity
 	 * @column
 	 */
 	public bool $importImages = true;
-	
+
 	/**
 	 * Aktualizován
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
 	public string $updatedTs;
-	
+
 	/**
 	 * Poslední import
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $lastImportTs;
-	
+
 	/**
 	 * Poslední update z importu
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $lastUpdateTs;
-	
+
 	/**
 	 * Rozdělí při importu ceníky na dostupné a nedostupné
 	 * @column
 	 */
 	public bool $splitPricelists = true;
-	
+
 	/**
 	 * Defaultně skryté produkty
 	 * @column
@@ -123,14 +123,14 @@ class Supplier extends \StORM\Entity
 	 * @column
 	 */
 	public bool $defaultActive = true;
-	
+
 	/**
 	 * Defaultní zobrazení množství
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?DisplayAmount $defaultDisplayAmount;
-	
+
 	/**
 	 * Defaultní zobrazení doručení
 	 * @relation

@@ -15,7 +15,7 @@ class ComplaintState extends \StORM\Entity
 	 * @column{"mutations":true}
 	 */
 	public ?string $name;
-	
+
 	/**
 	 * Pořadí
 	 * @column

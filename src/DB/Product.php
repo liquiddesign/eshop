@@ -216,25 +216,25 @@ class Product extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $weight;
-	
+
 	/**
 	 * Šířka
 	 * @column
 	 */
 	public ?float $width;
-	
+
 	/**
 	 * Délka
 	 * @column
 	 */
 	public ?float $length;
-	
+
 	/**
 	 * Hloubka
 	 * @column
 	 */
 	public ?float $depth;
-	
+
 	/**
 	 * Při přepravě nechat naplacato
 	 * @column
@@ -377,26 +377,26 @@ class Product extends \StORM\Entity
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?DisplayDelivery $displayDelivery;
-	
+
 	/**
 	 * Exportní název kategori pro Google
 	 * @column
 	 */
 	public ?string $exportGoogleCategory;
-	
+
 	/**
 	 * Exportní ID kategorie Google
 	 * @column
 	 */
 	public ?string $exportGoogleCategoryId;
-	
+
 	/**
 	 * Kategorie pro Heuréku
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Category $exportHeurekaCategory;
-	
+
 	/**
 	 * Kategorie pro Zboží.cz
 	 * @relation
@@ -1122,24 +1122,24 @@ class Product extends \StORM\Entity
 			return 0;
 		}
 	}
-	
+
 	public function getGoogleExportCategory(?CategoryType $categoryType = null): ?string
 	{
 		if ($this->exportGoogleCategory) {
 			return $this->exportGoogleCategory;
 		}
-		
+
 		if ($category = $this->getPrimaryCategory($categoryType)) {
 			$exportGoogleCategory = $category->exportGoogleCategory;
-			
+
 			while ($exportGoogleCategory === null && $category->ancestor !== null) {
 				$category = $category->ancestor;
 				$exportGoogleCategory = $category->exportGoogleCategory;
 			}
-			
+
 			return $exportGoogleCategory;
 		}
-		
+
 		return null;
 	}
 
@@ -1217,7 +1217,7 @@ class Product extends \StORM\Entity
 
 		return $array;
 	}
-	
+
 	/**
 	 * @return \StORM\RelationCollection<\Eshop\DB\File>
 	 */

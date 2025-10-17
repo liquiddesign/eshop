@@ -321,7 +321,7 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 
 		$this->template->merchants = $this->merchantRepository->getMerchantsByCustomer($this->shopperUser->getCustomer());
 		$this->template->order = $purchase;
-		
+
 		$this->template->billAddress = $purchase->billAddress;
 		$this->template->deliveryAddress = $purchase->deliveryAddress ?: $purchase->billAddress;
 		$this->template->items = $this->shopperUser->getCheckoutManager()->getItems();

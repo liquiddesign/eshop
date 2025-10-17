@@ -16,14 +16,14 @@ use StORM\SchemaManager;
 class DisplayAmountRepository extends \StORM\Repository implements IGeneralRepository
 {
 	private ProductRepository $productRepository;
-	
+
 	public function __construct(DIConnection $connection, SchemaManager $schemaManager, ProductRepository $productRepository)
 	{
 		parent::__construct($connection, $schemaManager);
-		
+
 		$this->productRepository = $productRepository;
 	}
-	
+
 	/**
 	 * @return array<string>
 	 */
@@ -35,7 +35,7 @@ class DisplayAmountRepository extends \StORM\Repository implements IGeneralRepos
 			->select(['computedInternalName' => "IF(internalLabel$mutationSuffix IS NULL, label$mutationSuffix, CONCAT(internalLabel$mutationSuffix, ' (', label$mutationSuffix, ')'))"])
 			->toArrayOf('computedInternalName');
 	}
-	
+
 	/**
 	 * @throws \StORM\Exception\NotFoundException
 	 */
@@ -43,17 +43,17 @@ class DisplayAmountRepository extends \StORM\Repository implements IGeneralRepos
 	{
 		return $this->many()->where('amountFrom <= :amount AND amountTo >= :amount', ['amount' => $amount])->orderBy(['priority'])->setTake(1)->first();
 	}
-	
+
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		unset($includeHidden);
-		
+
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 		$collection = $this->many();
-		
+
 		return $collection->orderBy(['this.priority', "this.label$mutationSuffix",]);
 	}
-	
+
 	/**
 	 * @param array<string, mixed> $filters
 	 * @return array<string, string>

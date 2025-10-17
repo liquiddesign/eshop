@@ -13,28 +13,28 @@ class CartChecker extends Control
 	public function __construct(private readonly ProductRepository $productRepository, private readonly ShopperUser $shopperUser)
 	{
 	}
-	
+
 	public function handleConfirmChanges(?string $cartItemId): void
 	{
 		foreach ($this->shopperUser->getCheckoutManager()->getIncorrectCartItems() as $cartItem) {
 			if ($cartItemId && $cartItem['object']->getPK() !== $cartItemId) {
 				continue;
 			}
-			
+
 			if ($cartItem['reason'] === 'incorrect-amount' || $cartItem['reason'] === 'product-round') {
 				$product = $this->productRepository->getProduct($cartItem['object']->product->getPK());
 				$this->shopperUser->getCheckoutManager()->updateItemInCart($cartItem['object'], $product, null, $cartItem['correctValue'], false, false);
-				
+
 				continue;
 			}
-			
+
 			if ($cartItem['reason'] === 'incorrect-price') {
 				$product = $this->productRepository->getProduct($cartItem['object']->product->getPK());
 				$this->shopperUser->getCheckoutManager()->updateItemInCart($cartItem['object'], $product, null, $cartItem['object']->amount, false, false);
-				
+
 				continue;
 			}
-			
+
 			if ($cartItem['reason'] !== 'unavailable') {
 				continue;
 			}
@@ -45,23 +45,23 @@ class CartChecker extends Control
 		if (!$this->shopperUser->getCheckoutManager()->checkDiscountCoupon()) {
 			$this->shopperUser->getCheckoutManager()->setDiscountCoupon(null);
 		}
-		
+
 		$this->redirect('this');
 	}
-	
+
 	public function handleRejectChanges(?string $cartItemId): void
 	{
 		foreach ($this->shopperUser->getCheckoutManager()->getIncorrectCartItems() as $cartItem) {
 			if ($cartItemId && $cartItem['object']->getPK() !== $cartItemId) {
 				continue;
 			}
-			
+
 			$this->shopperUser->getCheckoutManager()->deleteItem($cartItem['object']);
 		}
-		
+
 		$this->redirect('this');
 	}
-	
+
 	public function render(): void
 	{
 		$this->template->incorrectCartItems = $this->shopperUser->getCheckoutManager()->getIncorrectCartItems();

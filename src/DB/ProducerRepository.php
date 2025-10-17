@@ -22,22 +22,22 @@ class ProducerRepository extends Repository implements IGeneralRepository
 	private ProductRepository $productRepository;
 
 	private Storage $storage;
-	
+
 	public function __construct(DIConnection $connection, SchemaManager $schemaManager, ProductRepository $productRepository, Storage $storage, protected readonly ShopperUser $shopperUser)
 	{
 		parent::__construct($connection, $schemaManager);
-		
+
 		$this->productRepository = $productRepository;
 		$this->storage = $storage;
 	}
-	
+
 	/**
 	 * @inheritDoc
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
-		
+
 		return $this->getCollection($includeHidden)->setOrderBy(["this.name$suffix"])->toArrayOf('name');
 	}
 
@@ -49,11 +49,11 @@ class ProducerRepository extends Repository implements IGeneralRepository
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$collection = $this->many();
-		
+
 		if (!$includeHidden) {
 			$collection->where('this.hidden', false);
 		}
-		
+
 		return $collection->orderBy(['this.priority', "this.name$suffix"]);
 	}
 
@@ -64,7 +64,7 @@ class ProducerRepository extends Repository implements IGeneralRepository
 	{
 		return $this->many()->where('this.hidden', false);
 	}
-	
+
 	/**
 	 * @param array<string, mixed> $filters
 	 * @return array<string, string>

@@ -63,7 +63,7 @@ class Address extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $externalCode;
-	
+
 	/**
 	 * Externí ID
 	 * @column

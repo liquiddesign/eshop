@@ -122,7 +122,7 @@ abstract class ExportPresenter extends Presenter
 
 	#[Inject]
 	public PhotoRepository $photoRepository;
-	
+
 	#[Inject]
 	public PageRepository $pageRepository;
 
@@ -150,7 +150,7 @@ abstract class ExportPresenter extends Presenter
 
 	#[Inject]
 	public LatteFactory $latteFactory;
-	
+
 	#[Inject]
 	public CustomerGroupRepository $customerGroupRepository;
 
@@ -219,12 +219,12 @@ abstract class ExportPresenter extends Presenter
 		try {
 			$pricelists = $this->getPricelistFromSetting('targitoExportPricelist', false);
 			//$flavourRelationTypeSetting = $this->settingRepo->getValueByName('flavourRelationType');
-			
+
 			$products = $pricelists !== null && \count($pricelists) ? $this->productRepo->getProducts($pricelists) : $this->productRepo->getProductsAsCustomer(null);
 			$this->productRepo->filterHidden(false, $products);
-			
+
 			$this->template->products = $products;
-			
+
 			$this->export('targito');
 		} catch (\Exception $e) {
 			$this->template->error = $e->getMessage();

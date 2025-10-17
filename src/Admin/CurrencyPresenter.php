@@ -27,7 +27,7 @@ class CurrencyPresenter extends BackendPresenter
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit']);
 		$grid->addColumnText('Symbol', 'symbol', '%s', 'symbol', ['class' => 'fit']);
 		$grid->addColumnText('Název', 'name', '%s', 'name');
-		
+
 		$grid->addColumnText('Kurz', 'convertRatio', '%s', 'convertRatio');
 
 		$grid->addColumnLinkDetail('detail');

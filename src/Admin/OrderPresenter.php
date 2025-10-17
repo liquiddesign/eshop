@@ -1734,8 +1734,10 @@ class OrderPresenter extends BackendPresenter
 		];
 
 		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
-			if (!isset($this::ORDER_STATES_EVENTS[$state]) || !Arrays::contains($this::ORDER_STATES_EVENTS[$state], $targetState) ||
-				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())) {
+			if (
+				!isset($this::ORDER_STATES_EVENTS[$state]) || !Arrays::contains($this::ORDER_STATES_EVENTS[$state], $targetState) ||
+				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())
+			) {
 				continue;
 			}
 
@@ -2587,11 +2589,11 @@ class OrderPresenter extends BackendPresenter
 	public function handleResetTransport(string $uuid): void
 	{
 		$order = $this->orderRepository->one(['uuid' => $uuid], true);
-		
+
 		if ($this->dpd && $order->dpdCode) {
 			$this->dpd->deletePackages([$order->dpdCode]);
 		}
-		
+
 		$order->update([
 			'pplCode' => null,
 			'dpdCode' => null,
@@ -2600,10 +2602,10 @@ class OrderPresenter extends BackendPresenter
 			'pplPrinted' => false,
 			'dpdPrinted' => false,
 		]);
-		
-		
+
+
 		$this->flashMessage('Poslaní k dopravci bylo resetováno', 'success');
-		
+
 		$this->redirect('this');
 	}
 

@@ -20,7 +20,7 @@ class PriceRepository extends \StORM\Repository
 			->join(['rates' => 'eshop_vatrate'], 'rates.uuid = products.vatRate AND rates.fk_country=pricelists.fk_country')
 			->where('fk_pricelist', $priceList->getPK());
 	}
-	
+
 	public function getPricesCountByPriceList(Pricelist $priceList): int
 	{
 		return $this->many()->where('fk_pricelist', $priceList->getPK())->count();

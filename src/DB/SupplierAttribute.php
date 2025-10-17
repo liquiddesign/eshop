@@ -16,13 +16,13 @@ class SupplierAttribute extends \StORM\Entity
 	 * @column
 	 */
 	public string $name;
-	
+
 	/**
 	 * Kód
 	 * @column
 	 */
 	public ?string $code = null;
-	
+
 	/**
 	 * Typ pro filtraci
 	 * @column{"type":"enum","length":"'and','or'"}
@@ -34,27 +34,27 @@ class SupplierAttribute extends \StORM\Entity
 	 * @column
 	 */
 	public bool $active = true;
-	
+
 	/**
 	 * Mapování atributu, jestli je zadáno
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Attribute $attribute;
-	
+
 	/**
 	 * Dodavatel
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public Supplier $supplier;
-	
+
 	/**
 	 * Aktualizován
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP","extra":"on update CURRENT_TIMESTAMP"}
 	 */
 	public string $updateTs;
-	
+
 	/**
 	 * Vytvořen
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}

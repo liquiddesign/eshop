@@ -14,7 +14,7 @@ class IRegisterFormFactory
 		protected readonly ShopperUser $shopperUser
 	) {
 	}
-	
+
 	public function create(): RegistrationForm
 	{
 		$registerConfig = $this->shopperUser->getRegistrationConfiguration();
@@ -53,7 +53,7 @@ class IRegisterFormFactory
 
 		$password->setRequired($this->translator->translate('registrationForm.enterPwd', 'Zadejte prosím heslo'));
 		$passwordCheck->setRequired($this->translator->translate('registrationForm.enterPwdCheck', 'Zadejte prosím heslo pro kontrolu'));
-		
+
 		return $form;
 	}
 }

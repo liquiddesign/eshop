@@ -734,7 +734,7 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
     INDEX idx_products_related_unique (master, slave),
     UNIQUE INDEX idx_related_code (master, slave, amount, discountPct, masterPct, type)
 );");
-		
+
 		// if idx_related_code has no type column, refresh it
 		$indexQuery = $link->query("
 			SELECT COLUMN_NAME 
@@ -747,7 +747,7 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
 
 		if ($indexQuery !== false) {
 			$indexColumns = $indexQuery->fetchAll(\PDO::FETCH_COLUMN);
-			
+
 			// Check if 'type' is in the index columns
 			if ($indexColumns && !Arrays::contains($indexColumns, 'type')) {
 				// Drop the old index and create a new one with 'type' column
@@ -913,15 +913,15 @@ CREATE TABLE IF NOT EXISTS `$productsCacheTableName` (
 		if (!isset($columns['ribbons'])) {
 			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `ribbons` TEXT");
 		}
-		
+
 		if (!isset($columns['internalRibbons'])) {
 			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `internalRibbons` TEXT");
 		}
-		
+
 		if (!isset($columns['published'])) {
 			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `published` DATE");
 		}
-		
+
 		if (!isset($columns['buyCount'])) {
 			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `buyCount` INT");
 		}
