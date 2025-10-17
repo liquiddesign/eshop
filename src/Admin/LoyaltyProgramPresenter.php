@@ -189,7 +189,7 @@ class LoyaltyProgramPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->loyaltyProgramDiscountLevelRepository->many(), 20, 'priceThreshold', 'ASC', true);
 		$grid->addColumnSelector();
 
-//		$grid->addColumnText('Věrnostní program', 'loyaltyProgram.name', '%s', 'loyaltyProgram.name');
+		//      $grid->addColumnText('Věrnostní program', 'loyaltyProgram.name', '%s', 'loyaltyProgram.name');
 		$grid->addColumnText('Obratový práh', 'priceThreshold', '%s', 'priceThreshold');
 		$grid->addColumnText('Procentuální sleva', 'discountLevel', '%s %%', 'discountLevel');
 

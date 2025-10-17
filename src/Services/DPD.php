@@ -215,7 +215,7 @@ class DPD
 					$order->update(['dpdCode' => $dpdCodes, 'dpdError' => false,]);
 
 					$ordersCompleted[] = $order;
-				/** @codingStandardsIgnoreStart Camel caps*/
+					/** @codingStandardsIgnoreStart Camel caps*/
 				} elseif ($dpdCode = $result->NewShipmentResult->NewShipmentResultVO->ParcelVO->PARCELNO) {
 					/** @codingStandardsIgnoreEnd */
 					$order->update(['dpdCode' => $dpdCode, 'dpdError' => false,]);

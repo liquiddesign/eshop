@@ -37,11 +37,9 @@ class BuyForm extends Form
 			->addRule($this::MIN, null, $product->minBuyCount)
 			->setRequired();
 
-		if ($maxCount !== null) {
-			$countInput->addRule($this::MAX, null, $maxCount);
-		}
+		$countInput->addRule($this::Max, null, $maxCount);
 
-		if ($product->buyStep !== null) {
+		if ($product->buyStep > 0) {
 			$countInput->addRule([$this, 'validateNumber'], 'Není to násobek', [$product->buyStep, $minCount, $maxCount, $defaultBuyCount]);
 			$countInput->setHtmlAttribute('step', $product->buyStep);
 		}

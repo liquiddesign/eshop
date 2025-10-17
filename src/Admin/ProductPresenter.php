@@ -662,7 +662,7 @@ class ProductPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [
 			$this->createBackButton('default'),
-//			$this->createCloneButton($product),
+		//          $this->createCloneButton($product),
 		];
 		$this->template->displayControls = [
 			'productForm' => $this->getComponent('productForm'),
@@ -677,7 +677,7 @@ class ProductPresenter extends BackendPresenter
 		$this->template->relatedTypes = $this->relatedTypeRepository->getArrayForSelect();
 
 		$data = [];
-		/** @var array<\Eshop\DB\Photo> $photos */
+		/** @var \StORM\GenericCollection<\Eshop\DB\Photo> $photos */
 		$photos = $this->photoRepository->many()->where('fk_product', $product->getPK())->orderBy(['priority']);
 
 		$basePath = $this->container->parameters['wwwDir'] . '/userfiles/' . Product::GALLERY_DIR . '/origin/';
@@ -763,7 +763,7 @@ class ProductPresenter extends BackendPresenter
 			}
 
 			$this->template->displayControls = [
-//				$this->getComponent('productGridPreFilterForm'),
+			//              $this->getComponent('productGridPreFilterForm'),
 				$this->getComponent('productGrid'),
 			];
 		}
@@ -847,7 +847,7 @@ class ProductPresenter extends BackendPresenter
 
 			$functionName = 'newsletterExport' . Strings::firstUpper($values['type']);
 
-//          try {
+			//          try {
 			if ($values['bulkType'] === 'selected') {
 				if (!$values['products']) {
 					return;
@@ -864,9 +864,9 @@ class ProductPresenter extends BackendPresenter
 				$this->$functionName(\array_keys($productGrid->getFilteredSource()->toArrayOf('uuid')), $values['text']);
 			}
 
-//          } catch (\Exception $e) {
-//              bdump($e);
-//          }
+			//          } catch (\Exception $e) {
+			//              bdump($e);
+			//          }
 		};
 
 		return $form;
@@ -1451,23 +1451,23 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 		// Scalar
 		$clonedFieldsSelection->addCheckbox('producer', 'Výrobce')->setDefaultValue(false);
 		$clonedFieldsSelection->addCheckbox('related', 'Související produkty')->setDefaultValue(false);
-//		$clonedFieldsSelection->addCheckbox('alternative', 'Alternativa')->setDefaultValue(false);
-//		$clonedFieldsSelection->addCheckbox('taxes', 'Daně')->setDefaultValue(false);
+		//      $clonedFieldsSelection->addCheckbox('alternative', 'Alternativa')->setDefaultValue(false);
+		//      $clonedFieldsSelection->addCheckbox('taxes', 'Daně')->setDefaultValue(false);
 		$clonedFieldsSelection->addCheckbox('internalRibbons', 'Interní štítky')->setDefaultValue(false);
 		$clonedFieldsSelection->addCheckbox('ribbons', 'Veřejné štítky')->setDefaultValue(false);
 		$clonedFieldsSelection->addCheckbox('categories', 'Kategorie')->setDefaultValue(false);
-//		$clonedFieldsSelection->addCheckbox('masterProduct', 'Nadřazený produkt')->setDefaultValue(false);
-//		$clonedFieldsSelection->addCheckbox('exportZboziCategory', 'Export Zboží Kategorie')->setDefaultValue(false);
-//		$clonedFieldsSelection->addCheckbox('exportHeurekaCategory', 'Export Heureka Kategorie')->setDefaultValue(false);
-//		$clonedFieldsSelection->addCheckbox('supplierSource', 'Zdroj Dodavatele')->setDefaultValue(false);
-//		$clonedFieldsSelection->addCheckbox('displayAmount', 'Zobrazit Množství')->setDefaultValue(false);
-//		$clonedFieldsSelection->addCheckbox('displayDelivery', 'Zobrazit Dodání')->setDefaultValue(false);
-//		$clonedFieldsSelection->addCheckbox('loyaltyPrograms', 'Věrnostní Programy')->setDefaultValue(false);
+		//      $clonedFieldsSelection->addCheckbox('masterProduct', 'Nadřazený produkt')->setDefaultValue(false);
+		//      $clonedFieldsSelection->addCheckbox('exportZboziCategory', 'Export Zboží Kategorie')->setDefaultValue(false);
+		//      $clonedFieldsSelection->addCheckbox('exportHeurekaCategory', 'Export Heureka Kategorie')->setDefaultValue(false);
+		//      $clonedFieldsSelection->addCheckbox('supplierSource', 'Zdroj Dodavatele')->setDefaultValue(false);
+		//      $clonedFieldsSelection->addCheckbox('displayAmount', 'Zobrazit Množství')->setDefaultValue(false);
+		//      $clonedFieldsSelection->addCheckbox('displayDelivery', 'Zobrazit Dodání')->setDefaultValue(false);
+		//      $clonedFieldsSelection->addCheckbox('loyaltyPrograms', 'Věrnostní Programy')->setDefaultValue(false);
 		$clonedFieldsSelection->addCheckbox('contents', 'Obsahy')->setDefaultValue(false);
-//		$clonedFieldsSelection->addCheckbox('variants', 'Varianty')->setDefaultValue(false);
-//		$clonedFieldsSelection->addCheckbox('reviews', 'Recenze')->setDefaultValue(false);
-//		$clonedFieldsSelection->addCheckbox('visibilityListItems', 'Položky Seznamu Viditelnosti')->setDefaultValue(false);
-//		$clonedFieldsSelection->addCheckbox('quantityPrices', 'Množstevní Ceny')->setDefaultValue(false);
+		//      $clonedFieldsSelection->addCheckbox('variants', 'Varianty')->setDefaultValue(false);
+		//      $clonedFieldsSelection->addCheckbox('reviews', 'Recenze')->setDefaultValue(false);
+		//      $clonedFieldsSelection->addCheckbox('visibilityListItems', 'Položky Seznamu Viditelnosti')->setDefaultValue(false);
+		//      $clonedFieldsSelection->addCheckbox('quantityPrices', 'Množstevní Ceny')->setDefaultValue(false);
 		$clonedFieldsSelection->addCheckbox('photos', 'Fotografie')->setDefaultValue(false);
 		$clonedFieldsSelection->addCheckbox('files', 'Soubory')->setDefaultValue(false);
 		$clonedFieldsSelection->addCheckbox('primaryCategories', 'Primární kategorie')->setDefaultValue(false);

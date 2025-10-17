@@ -465,10 +465,10 @@ class PricelistsPresenter extends BackendPresenter
 		}
 
 		// @TODO add from old grid
-//		$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
-//		$submit->onClick[] = function ($button) use ($grid): void {
-//			$grid->getPresenter()->redirect('copyToPricelist', [$grid->getSelectedIds(), $this->getParameter('pricelist'), 'standard']);
-//		};
+		//      $submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+		//      $submit->onClick[] = function ($button) use ($grid): void {
+		//          $grid->getPresenter()->redirect('copyToPricelist', [$grid->getSelectedIds(), $this->getParameter('pricelist'), 'standard']);
+		//      };
 
 		return $grid;
 	}
@@ -934,8 +934,8 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 				'btn btn-outline-primary btn-sm',
 				$pricelist->getPK(),
 			),
-//			$this->createButtonWithClass('copyToPricelist', '<i class="far fa-copy"></i> Kopírovat do ...',
-//				'btn btn-outline-primary btn-sm', $pricelist, 'quantity'),
+		//          $this->createButtonWithClass('copyToPricelist', '<i class="far fa-copy"></i> Kopírovat do ...',
+		//              'btn btn-outline-primary btn-sm', $pricelist, 'quantity'),
 		];
 		$this->template->displayControls = [$this->getComponent('quantityPricesGrid')];
 	}
@@ -1104,19 +1104,19 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 		unset($ids);
 		unset($pricelist);
 		unset($type);
-//		/** @var \Forms\Form $form */
-//		$form = $this->getComponent('newsletterExportProducts');
-//
-//		$products = '';
-//		foreach ($ids as $id) {
-//			$products .= $this->productRepository->one($id)->getFullCode() . ';';
-//		}
-//
-//		if (Strings::length($products) > 0) {
-//			$products = Strings::substring($products, 0, -1);
-//		}
-//
-//		$form->setDefaults(['products' => $products]);
+		//      /** @var \Forms\Form $form */
+		//      $form = $this->getComponent('newsletterExportProducts');
+		//
+		//      $products = '';
+		//      foreach ($ids as $id) {
+		//          $products .= $this->productRepository->one($id)->getFullCode() . ';';
+		//      }
+		//
+		//      if (Strings::length($products) > 0) {
+		//          $products = Strings::substring($products, 0, -1);
+		//      }
+		//
+		//      $form->setDefaults(['products' => $products]);
 	}
 
 	public function actionAggregate(array $ids): void

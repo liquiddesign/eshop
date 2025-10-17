@@ -9,6 +9,7 @@ use Eshop\DB\Customer;
 use Eshop\DB\Product;
 use Nette\Application\UI\Presenter;
 
+/** @phpstan-ignore trait.unused */
 #[RestrictTraitTo(BackendPresenter::class)]
 trait FavouriteProductsTrait
 {

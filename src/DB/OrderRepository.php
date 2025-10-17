@@ -1099,7 +1099,10 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		return \array_slice(\array_reverse($data), 0, 10);
 	}
 
-	public function getOrdersByUser($user): Collection
+	/**
+	 * @return \StORM\Collection<\Eshop\DB\Order>
+	 */
+	public function getOrdersByUser(Merchant|Customer|null $user = null): Collection
 	{
 		$collection = $this->many()
 			->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL')
@@ -1385,12 +1388,12 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		unset($order);
 		unset($status);
 		// in array
-//		if (1) {
-//		}
-//
-//		$order->update([$status . 'Ts' => (string)new DateTime()]);
-//
-//		Arrays::invoke($this->onChangeState);
+		//      if (1) {
+		//      }
+		//
+		//      $order->update([$status . 'Ts' => (string)new DateTime()]);
+		//
+		//      Arrays::invoke($this->onChangeState);
 	}
 
 	/**

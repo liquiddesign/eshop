@@ -57,7 +57,7 @@
     "require-dev": {
         "tracy/tracy": "^2.10",
         "composer/composer": "^2.0",
-        "liquiddesign/codestyle": "dev-main",
+        "liquiddesign/codestyle": "4.x-dev",
         "liquiddesign/migrator": "~1.0",
         "phpstan/phpstan-nette": "~2.0",
         "dave-liddament/phpstan-php-language-extensions": "^0.9",
@@ -78,9 +78,9 @@
         "phpstan-clear-cache": "@php ./vendor/bin/phpstan clear-result-cache",
         "phpstan": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan.neon --ansi",
         "phpstan8": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan8.neon --ansi",
-        "phpstan9": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan9.neon --ansi",
-        "phpcs": "@php ./vendor/bin/phpcs --standard=ruleset.xml --ignore=assets --cache src",
-        "phpcsfix": "@php ./vendor/bin/phpcbf --standard=ruleset.xml --ignore=assets --cache src",
+        "phpstan8-full": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan8_phpstorm.neon --ansi",
+        "phpcs": "@php ./vendor/bin/phpcs --standard=ruleset.xml --ignore=assets --cache --parallel=8 -s src",
+        "phpcsfix": "@php ./vendor/bin/phpcbf --standard=ruleset.xml --ignore=assets --cache --parallel=8 src",
         "lattelint": "@php lattelint.php"
     },
     "config": {

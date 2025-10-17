@@ -125,7 +125,7 @@ class ProductFilter extends Control
 		$productList = $this->getProductList();
 
 		$productList->getItemsOnPage();
-		$providerOutput = $productList->getProviderOutput();
+		$providerOutput = $productList->providerOutput;
 		$filters = $productList->getFilters();
 
 		$withVat = $this->shopperUser->getMainPriceType() === 'withVat';
@@ -343,7 +343,7 @@ class ProductFilter extends Control
 		/** @var array<array<array<string>>> $filters */
 		$filters = $this->getProductList()->getFilters();
 
-		$providerOutput = $this->getProductList()->getProviderOutput();
+		$providerOutput = $this->getProductList()->providerOutput;
 
 		return $this->systemicCounts ??= [
 			'availability' => $providerOutput['displayAmountsCounts'] ?? $this->displayAmountRepository->getCounts($filters),
@@ -364,7 +364,7 @@ class ProductFilter extends Control
 		/** @var array<array<array<string>>> $filters */
 		$filters = $this->getProductList()->getFilters();
 
-		$providerOutput = $this->getProductList()->getProviderOutput();
+		$providerOutput = $this->getProductList()->providerOutput;
 
 		$this->attributesValuesCounts = ($providerOutput['attributeValuesCounts'] ?? $this->attributeRepository->getCounts($this->attributeValues, $filters));
 

@@ -54,7 +54,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 			$pickupPoint->setHtmlAttribute('data-' . $deliveryType->getPK(), Nette\Utils\Json::encode($pickupPoints));
 		}
 		
-		/** @var \Nette\Forms\Control $deliveries */
+		/** @var \Nette\Forms\Controls\RadioList $deliveries */
 		$deliveries = $this['deliveries'];
 		
 		$pickupPoint->setItems($allPoints)->setPrompt('Vyberte výdejní místo')->addConditionOn($deliveries, $this::IsIn, $typesWithPoints)->addRule($this::Required);
@@ -173,12 +173,12 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		 * @var \Eshop\DB\DeliveryType $deliveryType
 		 */
 		foreach ($deliveryTypes as $deliveryId => $deliveryType) {
-			$deliveriesCondition = $deliveriesList->addCondition($this::EQUAL, $deliveryId);
+			$deliveriesCondition = $deliveriesList->addCondition($this::Equal, $deliveryId);
 			
-			/** @var \Nette\Forms\Control $deliveries */
+			/** @var \Nette\Forms\Controls\RadioList $deliveries */
 			$deliveries = $this['deliveries'];
 			
-			$paymentsCondition = $paymentsList->addConditionOn($deliveries, $this::EQUAL, $deliveryId);
+			$paymentsCondition = $paymentsList->addConditionOn($deliveries, $this::Equal, $deliveryId);
 			
 			$allowedPaymentTypes = \array_keys($deliveryType->allowedPaymentTypes->toArray());
 			

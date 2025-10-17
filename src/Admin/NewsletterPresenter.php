@@ -61,7 +61,7 @@ class NewsletterPresenter extends BackendPresenter
 			$source->where('nxn.fk_newsletterusergroup', $value);
 		}, '', 'group', null, $this->newsletterUserGroupRepository->getArrayForSelect())->setPrompt('- Skupina -');
 
-//		$grid->addFilterDataSelect('group', 'nxn.fk_newsletterusergroup = :t', null, '- Typ -', null, $this->newsletterUserGroupRepository->getArrayForSelect(), 't');
+		//      $grid->addFilterDataSelect('group', 'nxn.fk_newsletterusergroup = :t', null, '- Typ -', null, $this->newsletterUserGroupRepository->getArrayForSelect(), 't');
 		$grid->addFilterButtons();
 
 		return $grid;

@@ -131,10 +131,10 @@ class OrderList extends Datalist
 				}
 			}
 
-			/** @var \Nette\Application\UI\Component $submitButton */
+			/** @var bool|\Nette\Forms\SubmitterControl|\Nette\Forms\Controls\SubmitButton $submitButton */
 			$submitButton = $form->isSubmitted();
 
-			$submitName = $submitButton->getName();
+			$submitName = $submitButton instanceof \Nette\Forms\Controls\SubmitButton ? $submitButton->getName() : '';
 
 			if ($submitName === 'export') {
 				$this->exportOrders($values);

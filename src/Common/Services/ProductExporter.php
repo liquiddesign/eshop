@@ -287,7 +287,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 			->join(['masterProduct' => 'eshop_product'], 'this.fk_masterProduct = masterProduct.uuid')
 			->join(['productContent' => 'eshop_productcontent'], 'this.uuid = productContent.fk_product')
 			->join(['primaryCategory' => 'eshop_productprimarycategory'], 'this.uuid = primaryCategory.fk_product')
-//			->join(['exportPage' => 'web_page'], "exportPage.params like CONCAT('%product=', this.uuid, '&%') and exportPage.type = 'product_detail'")
+		//          ->join(['exportPage' => 'web_page'], "exportPage.params like CONCAT('%product=', this.uuid, '&%') and exportPage.type = 'product_detail'")
 			->select([
 				'producerCodeName' => "CONCAT(COALESCE(producer.name$mutationSuffix, ''), '#', COALESCE(producer.code, ''))",
 				'amounts' => "GROUP_CONCAT(DISTINCT CONCAT(storeAmount.inStock, '#', store.code) SEPARATOR ':')",
@@ -296,7 +296,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 				'masterProductCode' => 'masterProduct.code',
 			])
 			->selectAliases([
-//				'exportPage' => Page::class,
+		//              'exportPage' => Page::class,
 				'productContent' => ProductContent::class,
 			]);
 

@@ -1777,7 +1777,7 @@ class OrderPresenter extends BackendPresenter
 			}
 		}
 
-//      $this->template->displayButtons[] = $this->createButton('cloneOrder!', '<i class="far fa-clone mr-1"></i>Objednat znovu', [$order->getPK()]);
+		//      $this->template->displayButtons[] = $this->createButton('cloneOrder!', '<i class="far fa-clone mr-1"></i>Objednat znovu', [$order->getPK()]);
 		$this->template->displayButtons[] =
 			'<a href="#" data-toggle="modal" data-target="#modal-emailForm"><button class="btn btn-sm btn-primary"><i class="fas fa-envelope mr-1"></i> Poslat e-mail</button></a>';
 
@@ -2236,7 +2236,7 @@ class OrderPresenter extends BackendPresenter
 		$form->addRadioList('bulkType', 'Exportovat', [
 			'selected' => "vybrané ($selectedNo)",
 			'all' => "celý výsledek ($totalNo)",
-//          'total' => 'vše',
+		//          'total' => 'vše',
 		])->setDefaultValue('selected');
 
 		$form->addSubmit('submit', 'Exportovat');

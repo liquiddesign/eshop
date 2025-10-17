@@ -234,7 +234,7 @@ abstract class ExportPresenter extends Presenter
 	public function actionCategoriesTargito(): void
 	{
 		try {
-			$tempFilename = \tempnam($this->context->parameters['tempDir'], 'csv');
+			$tempFilename = \tempnam($this->context->getParameters()['tempDir'], 'csv');
 
 			$this->application->onShutdown[] = function () use ($tempFilename): void {
 				try {
@@ -244,14 +244,13 @@ abstract class ExportPresenter extends Presenter
 				}
 			};
 
-			/** @var \Web\DB\Setting|null $categoryTypeSetting */
 			$categoryTypeSetting = $this->settingRepo->getValueByName('heurekaCategoryTypeToParse');
 
 			if (!$categoryTypeSetting) {
 				throw new \Exception('Missing Heureka category type setting!');
 			}
 
-			$this->categoryRepository->csvExportTargito(Writer::createFromPath($tempFilename, 'w+'), $this->categoryRepository->many()->where('this.fk_type', $categoryTypeSetting));
+			$this->categoryRepository->csvExportTargito(Writer::from($tempFilename, 'w+'), $this->categoryRepository->many()->where('this.fk_type', $categoryTypeSetting));
 
 			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'categories.csv', 'text/csv'));
 		} catch (\Exception $e) {
@@ -381,7 +380,6 @@ abstract class ExportPresenter extends Presenter
 			$customer = $perm->customer;
 		}
 
-		/** @var array<\Eshop\DB\Order> $orders */
 		$orders = $this->orderRepo->getOrdersByUser($customer);
 
 		$data = [
@@ -833,10 +831,9 @@ abstract class ExportPresenter extends Presenter
 
 			$productsFrontendData = [];
 
-			foreach ($products as $product) {
-				/** @var \StORM\IEntityParent<\StORM\Entity> $productRepo */
-				$productRepo = $this->productRepo;
+			$productRepo = $this->productRepo;
 
+			foreach ($products as $product) {
 				$productEntity = new Product([
 					'parameters' => $product->parameters,
 					'imageFileName' => $product->imageFileName,
@@ -844,6 +841,7 @@ abstract class ExportPresenter extends Presenter
 					'displayAmount' => $product->fk_displayAmount ? $allDisplayAmounts[$product->fk_displayAmount] : null,
 					'price' => $product->price,
 					'priceVat' => $product->priceVat,
+				/** @phpstan-ignore argument.type */
 				], $productRepo);
 
 				$productsFrontendData[$product->uuid] = [

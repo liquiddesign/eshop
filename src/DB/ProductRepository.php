@@ -683,7 +683,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$priceWhere = new Expression();
 		
 		foreach ($pricelists as $id => $pricelist) {
-//			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
+			//          $collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
 			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "' AND prices$id.hidden = 0");
 
 			$priceZeroWhere = null;
@@ -1859,10 +1859,10 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'subCode' => $supplierProduct->productSubCode,
 				'supplierCode' => $supplierProduct->code,
 				'name' => [$mutation => $supplierProduct->name],
-//				'content' => [$mutation => $supplierProduct->content],
+			//              'content' => [$mutation => $supplierProduct->content],
 				'unit' => $supplierProduct->unit,
-//				'unavailable' => $supplierProduct->unavailable,
-//				'hidden' => $supplier->defaultHiddenProduct,
+			//              'unavailable' => $supplierProduct->unavailable,
+			//              'hidden' => $supplier->defaultHiddenProduct,
 				'storageDate' => $supplierProduct->storageDate,
 				'defaultBuyCount' => $supplierProduct->defaultBuyCount,
 				'minBuyCount' => $supplierProduct->minBuyCount,
@@ -1871,7 +1871,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'inCarton' => $supplierProduct->inCarton,
 				'inPalett' => $supplierProduct->inPalett,
 				'weight' => $supplierProduct->weight,
-//				'primaryCategory' => $category->getPK(),
+			//              'primaryCategory' => $category->getPK(),
 				'supplierLock' => $supplier->importPriority,
 				'supplierSource' => $supplier,
 				'categories' => [$category->getPK(),],
@@ -2001,71 +2001,71 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		throw new InvalidArgumentException('There is no unique parameter');
 	}
 
-//	protected function getProductsWithPrices(): array
-//	{
-//		return $this->cache->load('main_productsWithPrices', function (&$dependencies): array {
-//			$dependencies = [
-//				Cache::Tags => [
-//					ScriptsPresenter::PRODUCTS_CACHE_TAG,
-//					ScriptsPresenter::PRICELISTS_CACHE_TAG,
-//				],
-//			];
-//
-//			$collection = $this->priceRepository->many()
-//				->setGroupBy(['this.uuid']);
-//
-//			$result = [];
-//
-//			while ($object = $collection->fetch()) {
-//				$result[$object->getValue('product')][$object->getValue('pricelist')] = $object->toArray();
-//			}
-//
-//			$collection->__destruct();
-//
-//			return $result;
-//		});
-//	}
-//
-//	protected function getProductsByCategories(): array
-//	{
-//		return $this->cache->load('main_productsByCategories', function (&$dependencies): array {
-//			$dependencies = [
-//				Cache::Tags => [
-//					ScriptsPresenter::PRODUCTS_CACHE_TAG,
-//					ScriptsPresenter::CATEGORIES_CACHE_TAG,
-//				],
-//			];
-//
-//			$productsCollection = $this->many()
-//				->setGroupBy(['this.uuid'])
-//				->setSelect(['this.uuid'])
-//				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'this.uuid = nxnCategory.fk_product')
-//				->select(['assignedCategories' => 'GROUP_CONCAT(nxnCategory.fk_category)']);
-//
-//			$result = [];
-//
-//			while ($product = $productsCollection->fetch()) {
-//				if (!$product->getValue('assignedCategories')) {
-//					continue;
-//				}
-//
-//				$categories = \explode(',', $product->getValue('assignedCategories'));
-//
-//				foreach ($categories as $category) {
-//					$result[$category][] = $product->getPK();
-//				}
-//			}
-//
-//			$productsCollection->__destruct();
-//
-//			return $result;
-//		});
-//	}
-//
-//	protected function getProductsByPrimaryCategories(): array
-//	{
-//		return [];
-//	}
+	//  protected function getProductsWithPrices(): array
+	//  {
+	//      return $this->cache->load('main_productsWithPrices', function (&$dependencies): array {
+	//          $dependencies = [
+	//              Cache::Tags => [
+	//                  ScriptsPresenter::PRODUCTS_CACHE_TAG,
+	//                  ScriptsPresenter::PRICELISTS_CACHE_TAG,
+	//              ],
+	//          ];
+	//
+	//          $collection = $this->priceRepository->many()
+	//              ->setGroupBy(['this.uuid']);
+	//
+	//          $result = [];
+	//
+	//          while ($object = $collection->fetch()) {
+	//              $result[$object->getValue('product')][$object->getValue('pricelist')] = $object->toArray();
+	//          }
+	//
+	//          $collection->__destruct();
+	//
+	//          return $result;
+	//      });
+	//  }
+	//
+	//  protected function getProductsByCategories(): array
+	//  {
+	//      return $this->cache->load('main_productsByCategories', function (&$dependencies): array {
+	//          $dependencies = [
+	//              Cache::Tags => [
+	//                  ScriptsPresenter::PRODUCTS_CACHE_TAG,
+	//                  ScriptsPresenter::CATEGORIES_CACHE_TAG,
+	//              ],
+	//          ];
+	//
+	//          $productsCollection = $this->many()
+	//              ->setGroupBy(['this.uuid'])
+	//              ->setSelect(['this.uuid'])
+	//              ->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'this.uuid = nxnCategory.fk_product')
+	//              ->select(['assignedCategories' => 'GROUP_CONCAT(nxnCategory.fk_category)']);
+	//
+	//          $result = [];
+	//
+	//          while ($product = $productsCollection->fetch()) {
+	//              if (!$product->getValue('assignedCategories')) {
+	//                  continue;
+	//              }
+	//
+	//              $categories = \explode(',', $product->getValue('assignedCategories'));
+	//
+	//              foreach ($categories as $category) {
+	//                  $result[$category][] = $product->getPK();
+	//              }
+	//          }
+	//
+	//          $productsCollection->__destruct();
+	//
+	//          return $result;
+	//      });
+	//  }
+	//
+	//  protected function getProductsByPrimaryCategories(): array
+	//  {
+	//      return [];
+	//  }
 
 	/**
 	 * @param \StORM\Collection<\Eshop\DB\Pricelist> $collection

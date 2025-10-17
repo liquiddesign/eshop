@@ -86,7 +86,7 @@ class ProductTesterPresenter extends BackendPresenter
 			$typeInput = $form->addSelect('type', 'Hledat podle', [
 				'customer' => 'Zákazník',
 				'group' => 'Skupina zákazníků',
-//				'custom' => 'Ručně',
+			//              'custom' => 'Ručně',
 			])->setRequired();
 
 			$defaultProduct = null;

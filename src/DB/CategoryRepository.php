@@ -114,7 +114,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			try {
 				$filters['hidden'] = false;
 
-//				\Tracy\Debugger::timer('getProductsFromCacheTable');
+				//              \Tracy\Debugger::timer('getProductsFromCacheTable');
 
 				$result = $productsProvider->getCategoryCount(
 					$filters,
@@ -126,8 +126,8 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 					throw new \Exception('No results returned', 204);
 				}
 
-//				\Tracy\Debugger::barDump($this->countsCumulativeTime, 'cacheProducts');
-//				\Tracy\Debugger::barDump($result);
+				//              \Tracy\Debugger::barDump($this->countsCumulativeTime, 'cacheProducts');
+				//              \Tracy\Debugger::barDump($result);
 
 				return $result;
 			} catch (\Throwable $e) {
@@ -309,13 +309,16 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			->first();
 	}
 
+	/**
+	 * @param array<scalar>|null $activeProducers
+	 */
 	public function generateCategoryProducerPages(?array $activeProducers = null): void
 	{
-		/** @var array<\Eshop\DB\Category> $categories */
+		/** @var \StORM\GenericCollection<\Eshop\DB\Category> $categories */
 		$categories = $this->getCollection(true);
 
 		foreach ($categories as $category) {
-			/** @var array<\Eshop\DB\Producer> $producers */
+			/** @var \StORM\GenericCollection<\Eshop\DB\Producer> $producers */
 			$producers = $this->producerRepository->many()
 				->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid')
 				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid')
@@ -619,16 +622,19 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		return \implode($separator, $branch);
 	}
 
+	/**
+	 * @param array<scalar> $categories
+	 */
 	public function generateProducerCategories(array $categories, bool $deep = false): void
 	{
 		$connection = $this->getConnection();
 		$mutations = $connection->getAvailableMutations();
 
-		/** @var array<\Eshop\DB\Category> $categories */
+		/** @var \StORM\GenericCollection<\Eshop\DB\Category> $categories */
 		$categories = $this->many()->where('uuid', $categories);
 
 		foreach ($categories as $category) {
-			/** @var array<\Eshop\DB\Producer>|\StORM\ICollection $producers */
+			/** @var \StORM\GenericCollection<\Eshop\DB\Producer> $producers */
 			$producers = $this->producerRepository->many()
 				->join(['product' => 'eshop_product'], 'product.fk_producer = this.uuid', [], 'INNER')
 				->join(['nxnCategory' => 'eshop_product_nxn_eshop_category'], 'nxnCategory.fk_product = product.uuid');

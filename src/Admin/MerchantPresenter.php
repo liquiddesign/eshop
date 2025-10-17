@@ -138,11 +138,11 @@ class MerchantPresenter extends BackendPresenter
 
 		$grid->addFilterTextInput('search', ['this.code', 'this.fullName', 'this.email'], null, 'Jméno, kód, e-mail');
 
-//		if ($items = $this->customerRepository->getArrayForSelect()) {
-//			$grid->addFilterDataSelect(function (Collection $source, $value): void {
-//				$source->where('customers.uuid', $value);
-//			}, '', 'customers', null, $items)->setPrompt('- Zákazník -');
-//		}
+		//      if ($items = $this->customerRepository->getArrayForSelect()) {
+		//          $grid->addFilterDataSelect(function (Collection $source, $value): void {
+		//              $source->where('customers.uuid', $value);
+		//          }, '', 'customers', null, $items)->setPrompt('- Zákazník -');
+		//      }
 
 		$this->addCustomFiltersToMerchantGrid($grid);
 
@@ -352,9 +352,16 @@ class MerchantPresenter extends BackendPresenter
 
 	public function actionEditAccount(Merchant $merchant): void
 	{
-		/** @var \Admin\Controls\AdminForm|array<mixed> $form */
+		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('accountForm');
-		$form['account']['email']->setDefaultValue($merchant->email);
+
+		/** @var \Nette\Forms\Container $accountContainer */
+		$accountContainer = $form['account'];
+
+		/** @var \Nette\Forms\Controls\TextInput $emailInput */
+		$emailInput = $accountContainer['email'];
+
+		$emailInput->setDefaultValue($merchant->email);
 
 		if ($account = $merchant->accounts->clear()->first()) {
 			/** @var \Forms\Container $accountForm */
@@ -386,10 +393,24 @@ class MerchantPresenter extends BackendPresenter
 
 	public function actionNewAccount(Merchant $merchant): void
 	{
-		/** @var \Admin\Controls\AdminForm|array<mixed> $form */
+		/** @var \Admin\Controls\AdminForm|null $form */
 		$form = $this->getComponent('accountForm');
-		$form['account']['password']->setRequired();
-		$form['account']['passwordCheck']->setRequired();
+
+		if (!$form instanceof AdminForm) {
+			throw new \RuntimeException('Account form is not an instance of AdminForm');
+		}
+
+		/** @var \Nette\Forms\Container $accountContainer */
+		$accountContainer = $form['account'];
+
+		/** @var \Nette\Forms\Controls\TextInput $accountPassword */
+		$accountPassword = $accountContainer['password'];
+		$accountPassword->setRequired();
+
+		/** @var \Nette\Forms\Controls\TextInput $accountPasswordCheck */
+		$accountPasswordCheck = $accountContainer['passwordCheck'];
+		$accountPasswordCheck->setRequired();
+
 		unset($form['delete']);
 
 		$this->accountFormFactory->onCreateAccount[] = function (Account $account) use ($merchant): void {

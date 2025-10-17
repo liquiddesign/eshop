@@ -906,7 +906,10 @@ class CheckoutManager
 		
 		return !$someProductNotFound;
 	}
-	
+
+	/**
+	 * @return \StORM\Collection<\Eshop\DB\PaymentType>
+	 */
 	public function getPaymentTypes(): Collection
 	{
 		return $this->paymentTypes ??= $this->paymentTypeRepository->getPaymentTypes(
@@ -947,7 +950,7 @@ class CheckoutManager
 			try {
 				$boxes = $deliveryType->maxWeight !== null ? \count($deliveryType->getBoxesForItems($this->getTopLevelItems()->toArray())) : 1;
 			} catch (\Exception $e) {
-//				Debugger::barDump($e);
+				//              Debugger::barDump($e);
 
 				$deliveryType->setValue('packagesNo', 1);
 
@@ -1116,7 +1119,7 @@ class CheckoutManager
 					$correctAmount = $cartItem->product->minBuyCount;
 				} elseif ($cartItem->product->maxBuyCount !== null && $cartItem->amount > $cartItem->product->maxBuyCount) {
 					$correctAmount = $cartItem->product->maxBuyCount;
-				} elseif ($cartItem->product->buyStep !== null && $cartItem->amount % $cartItem->product->buyStep !== 0) {
+				} elseif ($cartItem->amount % $cartItem->product->buyStep !== 0) {
 					$correctAmount = $this->cartItemRepository->roundUpToNextMultiple($cartItem->amount, $cartItem->product->buyStep);
 				} else {
 					$correctAmount = null;
@@ -1162,7 +1165,7 @@ class CheckoutManager
 
 			if ($masterProduct = $cartItem->product->getTopMasterProduct()) {
 				try {
-					/** @var \Eshop\DB\Product|null $buyableProduct */
+					/** @var \Eshop\DB\Product $buyableProduct */
 					$buyableProduct = $this->productRepository->getProduct($masterProduct->getPK());
 				} catch (\Exception $e) {
 					continue;
@@ -1542,7 +1545,9 @@ class CheckoutManager
 	
 	public function getPurchaseDiscount(?string $cartId = self::ACTIVE_CART_ID): int
 	{
-		return $this->getPurchase(false, $cartId)?->discountPct ?? 0;
+		$purchase = $this->getPurchase(false, $cartId);
+
+		return $purchase ? $purchase->discountPct : 0;
 	}
 	
 	public function setPurchaseDiscount(int $value, ?string $cartId = self::ACTIVE_CART_ID): void
@@ -1754,7 +1759,7 @@ class CheckoutManager
 			unset($data['uuid'], $data['id']);
 
 			if ($customer?->getValue('deliveryAddress')) {
-				$customer->deliveryAddress->update($data);
+				$customer->deliveryAddress?->update($data);
 			} else {
 				$deliveryAddress = $this->addressRepository->createOne($data);
 
@@ -1766,14 +1771,9 @@ class CheckoutManager
 			$customerValues['uuid'] = $customer->getPK();
 		}
 		
-		/** @var \Eshop\DB\Customer|null $customer */
-		$customer = $this->customerRepository->syncOne($customerValues);
-		
-		if (!$customer) {
-			return null;
-		}
-		
-		$customer = $this->customerRepository->one($customer->getPK(), true);
+		/** @var \Eshop\DB\Customer $customer */
+		$customer = $this->customerRepository->syncOne($customerValues, ignore: false);
+		$customer = $this->customerRepository->oneOrFail($customer->getPK());
 		
 		if ($createAccount) {
 			$customer->account = $account;

@@ -6,6 +6,20 @@ use DaveLiddament\PhpLanguageExtensions\InjectableVersion;
 use Eshop\DB\Customer;
 use Eshop\DB\Merchant;
 
+/**
+ * @phpstan-type CacheOutput array{
+ *      "productPKs": list<string>,
+ *      "attributeValuesCounts": array<string|int, int>,
+ *      "displayAmountsCounts": array<string|int, int>,
+ *      "displayDeliveriesCounts": array<string|int, int>,
+ *      "producersCounts": array<string|int, int>,
+ *      'categoriesCounts'?: array<string|int, int>,
+ *      'priceMin': float,
+ *      'priceMax': float,
+ *      'priceVatMin': float,
+ *      'priceVatMax': float
+ *  }
+ */
 #[InjectableVersion]
 interface GeneralProductsCacheProvider
 {
@@ -31,18 +45,7 @@ interface GeneralProductsCacheProvider
 	 * @param 'ASC'|'DESC' $orderByDirection Works only if $orderByName is not null
 	 * @param array<string|int, \Eshop\DB\Pricelist> $priceLists
 	 * @param array<string|int, \Eshop\DB\VisibilityList> $visibilityLists
-	 * @return array{
-	 *     "productPKs": list<string>,
-	 *     "attributeValuesCounts": array<string|int, int>,
-	 *     "displayAmountsCounts": array<string|int, int>,
-	 *     "displayDeliveriesCounts": array<string|int, int>,
-	 *     "producersCounts": array<string|int, int>,
-	 *     'categoriesCounts'?: array<string|int, int>,
-	 *     'priceMin': float,
-	 *     'priceMax': float,
-	 *     'priceVatMin': float,
-	 *     'priceVatMax': float
-	 * }|false
+	 * @return CacheOutput|false
 	 * @throws \StORM\Exception\NotFoundException|\Throwable
 	 */
 	public function getProductsFromCacheTable(

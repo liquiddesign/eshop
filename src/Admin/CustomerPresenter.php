@@ -523,15 +523,15 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			'favouriteProducts' => 'favouriteProducts',
 			'parentCustomer' => 'parentCustomer',
 		]);
-//		$grid->addButtonBulkEdit(
-//			'editFavouriteProducts',
-//			['favouriteProducts'],
-//			'customers',
-//			'favouriteProducts',
-//			'Upravit oblíbené produkty',
-//			'bulkEdit',
-//			copyRawValues: ['favouriteProducts' => 'favouriteProducts'],
-//		);
+		//      $grid->addButtonBulkEdit(
+		//          'editFavouriteProducts',
+		//          ['favouriteProducts'],
+		//          'customers',
+		//          'favouriteProducts',
+		//          'Upravit oblíbené produkty',
+		//          'bulkEdit',
+		//          copyRawValues: ['favouriteProducts' => 'favouriteProducts'],
+		//      );
 
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů')
 			->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');

@@ -2,6 +2,7 @@
 
 namespace Eshop\DB\Extensions\Order;
 
+/** @phpstan-ignore trait.unused */
 trait HasDropShippingTrait
 {
 	/**

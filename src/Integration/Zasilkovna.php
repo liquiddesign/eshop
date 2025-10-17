@@ -80,23 +80,23 @@ class Zasilkovna
 				'note' => $value['special'] ?? null,
 			]);
 
-//			$open = true;
-//			$openSince = isset($value['openSince']) ? new DateTime($value['openSince']) : null;
-//			$openUntil = isset($value['openUntil']) ? new DateTime($value['openUntil']) : null;
-//			$enterableUntil = isset($value['enterableUntil']) ? new DateTime($value['enterableUntil']) : null;
-//			$today = (new DateTime())->setTime(0, 0);
+			//          $open = true;
+			//          $openSince = isset($value['openSince']) ? new DateTime($value['openSince']) : null;
+			//          $openUntil = isset($value['openUntil']) ? new DateTime($value['openUntil']) : null;
+			//          $enterableUntil = isset($value['enterableUntil']) ? new DateTime($value['enterableUntil']) : null;
+			//          $today = (new DateTime())->setTime(0, 0);
 
-//			if ($openSince && $openSince > $today) {
-//				$open = false;
-//			}
-//
-//			if ($openUntil && $openUntil < $today) {
-//				$open = false;
-//			}
-//
-//			if ($enterableUntil && $enterableUntil < $today) {
-//				$open = false;
-//			}
+			//          if ($openSince && $openSince > $today) {
+			//              $open = false;
+			//          }
+			//
+			//          if ($openUntil && $openUntil < $today) {
+			//              $open = false;
+			//          }
+			//
+			//          if ($enterableUntil && $enterableUntil < $today) {
+			//              $open = false;
+			//          }
 
 			$point = $this->pickupPointRepository->syncOne([
 				'uuid' => 'zasilkovna_' . $value['id'],
@@ -148,9 +148,9 @@ class Zasilkovna
 				}
 			}
 
-//			if ($upcomingOpeningHours = $openingHours['upcoming']['startDate'] ?? null) {
-//
-//			}
+			//          if ($upcomingOpeningHours = $openingHours['upcoming']['startDate'] ?? null) {
+			//
+			//          }
 
 			$this->openingHoursRepository->many()->where('date IS NOT NULL')->where('fk_pickupPoint', $point->getPK())->delete();
 

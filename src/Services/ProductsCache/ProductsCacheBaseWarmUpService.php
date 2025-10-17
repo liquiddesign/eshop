@@ -160,7 +160,7 @@ abstract class ProductsCacheBaseWarmUpService
 	 */
 	protected function loadDataInfile(string $tableName, array $data, int $chunkSize = 10000): void
 	{
-//      Debugger::timer('loadDataInfile');
+		//      Debugger::timer('loadDataInfile');
 		$tmpFileName = \tempnam($this->container->getParameter('tempDir'), 'csv');
 
 		$buffer = \fopen('php://memory', 'rw');
@@ -219,7 +219,7 @@ abstract class ProductsCacheBaseWarmUpService
 
 		\fclose($file);
 
-//      Debugger::dump('Insert to CSV: ' . Debugger::timer('loadDataInfile'));
+		//      Debugger::dump('Insert to CSV: ' . Debugger::timer('loadDataInfile'));
 
 		$tmpFileName = \str_replace('\\', '\\\\', $tmpFileName);
 
@@ -231,7 +231,7 @@ abstract class ProductsCacheBaseWarmUpService
 
 		FileSystem::delete($tmpFileName);
 
-//      Debugger::dump('Insert to DB: ' . Debugger::timer('loadDataInfile'));
+		//      Debugger::dump('Insert to DB: ' . Debugger::timer('loadDataInfile'));
 	}
 
 	protected function getLink(): \PDO

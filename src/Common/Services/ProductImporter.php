@@ -532,16 +532,12 @@ class ProductImporter
 				}
 			}
 
-			/**
-			 * @var string $visibilityListPK
-			 * @var array<mixed> $value
-			 */
 			foreach ($relatedToSync['visibility'] as $visibilityListPK => $value) {
 				foreach ($value as $productPK => $data) {
 					$this->visibilityListItemRepository->syncOne([
 							'visibilityList' => $visibilityListPK,
 							'product' => $productPK,
-						] + $data, ignore: false);
+					] + (array) $data, ignore: false);
 				}
 			}
 
@@ -744,9 +740,9 @@ class ProductImporter
 				'this.ean',
 				'this.supplierContentLock',
 				'this.mpn',
-//				'export_page_uuid' => 'export_page.uuid',
+		//              'export_page_uuid' => 'export_page.uuid',
 			], [], true)
-//			->join(['export_page' => 'web_page'], "export_page.params like CONCAT('%product=', this.uuid, '&%') and export_page.type = 'product_detail'")
+		//          ->join(['export_page' => 'web_page'], "export_page.params like CONCAT('%product=', this.uuid, '&%') and export_page.type = 'product_detail'")
 			->setGroupBy(['this.uuid'])
 			->fetchArray(\stdClass::class);
 

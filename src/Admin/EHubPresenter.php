@@ -35,7 +35,7 @@ class EHubPresenter extends \Eshop\BackendPresenter
 	
 	public function createComponentGridTransactions(): AdminGrid
 	{
-//		$btnSecondary = 'btn btn-sm btn-outline-primary';
+		//      $btnSecondary = 'btn btn-sm btn-outline-primary';
 
 		$grid = $this->gridFactory->create($this->EHubTransactionRepository->many(), 20, 'this.createdTs', 'DESC', true);
 
@@ -141,10 +141,10 @@ class EHubPresenter extends \Eshop\BackendPresenter
 				if ($EHubTransaction) {
 					$this->EHub->updateTransaction($EHubTransaction, $values['status']);
 				} else {
-//					$order = $this->orderRepository->one($values['order']);
-//
-//					$newTransaction = $this->EHub->updateTransactionByOrder($order);
-//					$values['transactionId'] = $newTransaction['transaction']['id'];
+					//                  $order = $this->orderRepository->one($values['order']);
+					//
+					//                  $newTransaction = $this->EHub->updateTransactionByOrder($order);
+					//                  $values['transactionId'] = $newTransaction['transaction']['id'];
 				}
 			} catch (\Exception $e) {
 				$this->flashMessage('Transakci nelze odeslat!', 'error');

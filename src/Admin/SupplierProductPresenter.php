@@ -201,7 +201,7 @@ class SupplierProductPresenter extends BackendPresenter
 			->setHtmlAttribute('placeholder', 'Párováno na produkt (kód)')
 			->setHtmlAttribute('class', 'form-control form-control-sm');
 
-//		$grid->addFilterCheckboxInput('notmapped', 'fk_product IS NOT NULL', 'Napárované');
+		//      $grid->addFilterCheckboxInput('notmapped', 'fk_product IS NOT NULL', 'Napárované');
 
 		$grid->addButtonBulkEdit('form', ['active']);
 

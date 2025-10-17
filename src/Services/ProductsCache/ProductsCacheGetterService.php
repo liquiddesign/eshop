@@ -274,21 +274,21 @@ class ProductsCacheGetterService implements AutoWireService
 		$visibilityPriceListsIndex = \implode(',', $visibilityListsIds) . '-' . \implode(',', $priceListsIds);
 		Debugger::barDump($visibilityPriceListsIndex);
 
-//		$dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
+		//      $dataCacheIndex = \serialize($filters) . '_' . $orderByName . '-' . $orderByDirection . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
 
-//		$cachedData = $this->cache->load($dataCacheIndex, dependencies: [
-//		  Cache::Tags => [GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
-//		]);
-//
-//		if ($cachedData) {
-//			return $cachedData;
-//		}
+		//      $cachedData = $this->cache->load($dataCacheIndex, dependencies: [
+		//        Cache::Tags => [GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
+		//      ]);
+		//
+		//      if ($cachedData) {
+		//          return $cachedData;
+		//      }
 
 		// TODO check for category type cannot be done for use cases where there are many category types per shop
 		// This comes with small probability of wrong category type, when two categories from different category types have the same path
-//		$mainCategoryType = $this->shopsConfig->getSelectedShop() ?
-//			$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
-//			'main';
+		//      $mainCategoryType = $this->shopsConfig->getSelectedShop() ?
+		//          $this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
+		//          'main';
 
 		/** @var \Eshop\DB\Category|null $category */
 		$category = isset($filters['category']) ?
@@ -519,11 +519,11 @@ class ProductsCacheGetterService implements AutoWireService
 		$priceVatMax = \PHP_FLOAT_MIN;
 
 		$dynamicallyCountedDynamicFilters = [];
-//		Debugger::dump(Debugger::timer());
+		//      Debugger::dump(Debugger::timer());
 
 		$fetchedProducts = $productsCollection->fetchArray(\stdClass::class);
 
-//		Debugger::dump(Debugger::timer());
+		//      Debugger::dump(Debugger::timer());
 
 		foreach ($fetchedProducts as $product) {
 			$attributeValues = $product->attributeValues ? \array_flip(\explode(',', $product->attributeValues)) : [];
@@ -757,7 +757,7 @@ class ProductsCacheGetterService implements AutoWireService
 			}
 		}
 
-//		Debugger::dump(Debugger::timer());
+		//      Debugger::dump(Debugger::timer());
 		$displayAmounts = $this->displayAmountRepository->many()->setSelect(['this.uuid'])->where('this.id', \array_keys($displayAmountsCounts))->setIndex('this.id')->toArrayOf('uuid');
 
 		foreach ($displayAmounts as $displayAmountId => $displayAmountUuid) {
@@ -779,7 +779,7 @@ class ProductsCacheGetterService implements AutoWireService
 			unset($producersCounts[$producerId]);
 		}
 
-//		Debugger::dump(Debugger::timer());
+		//      Debugger::dump(Debugger::timer());
 		$attributeValues = $this->attributeValueRepository->many()
 			->setSelect([
 				'this.uuid',
@@ -819,10 +819,10 @@ class ProductsCacheGetterService implements AutoWireService
 
 		return $result;
 
-//		$this->saveDataCacheIndex($dataCacheIndex, $result);
+		//      $this->saveDataCacheIndex($dataCacheIndex, $result);
 
-//		Debugger::dump(Debugger::timer());
-//		return $result;
+		//      Debugger::dump(Debugger::timer());
+		//      return $result;
 	}
 
 	protected function startUp(): void

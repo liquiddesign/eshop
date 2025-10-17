@@ -244,7 +244,7 @@ class Invoice extends \StORM\Entity
 		try {
 			$first = $this->items->clear(true)->select(['priceSum' => 'SUM(this.price)'])->first();
 
-			return (float) $first->getValue('priceSum');
+			return (float) $first?->getValue('priceSum');
 		} catch (\Throwable $e) {
 			return 0;
 		}
@@ -255,7 +255,7 @@ class Invoice extends \StORM\Entity
 		try {
 			$first = $this->items->clear(true)->select(['priceSum' => 'SUM(this.priceVat)'])->first();
 
-			return (float) $first->getValue('priceSum');
+			return (float) $first?->getValue('priceSum');
 		} catch (\Throwable $e) {
 			return 0;
 		}
@@ -274,19 +274,21 @@ class Invoice extends \StORM\Entity
 				continue;
 			}
 
-			isset($basePrices[$invoiceItem->vatPct]['base']) ?
-				$basePrices[$invoiceItem->vatPct]['base'] += $invoiceItem->getPriceSum() :
-				$basePrices[$invoiceItem->vatPct]['base'] = $invoiceItem->getPriceSum();
+			$vatPct = (int) ($invoiceItem->vatPct);
 
-			isset($basePrices[$invoiceItem->vatPct]['vat']) ?
-				$basePrices[$invoiceItem->vatPct]['vat'] += $invoiceItem->getPriceVatSum() - $invoiceItem->getPriceSum() :
-				$basePrices[$invoiceItem->vatPct]['vat'] = $invoiceItem->getPriceVatSum() - $invoiceItem->getPriceSum();
+			isset($basePrices[$vatPct]['base']) ?
+				$basePrices[$vatPct]['base'] += $invoiceItem->getPriceSum() :
+				$basePrices[$vatPct]['base'] = $invoiceItem->getPriceSum();
+
+			isset($basePrices[$vatPct]['vat']) ?
+				$basePrices[$vatPct]['vat'] += $invoiceItem->getPriceVatSum() - $invoiceItem->getPriceSum() :
+				$basePrices[$vatPct]['vat'] = $invoiceItem->getPriceVatSum() - $invoiceItem->getPriceSum();
 		}
 
 		/** @var \Eshop\DB\Order $order */
 		foreach ($this->orders->clear(true) as $order) {
 			if ($order->purchase->deliveryType) {
-				$vatPct = $order->getDeliveryPriceSum() > 0 ? \round($order->getDeliveryPriceVatSum() / $order->getDeliveryPriceSum() * 100 - 100) : 0;
+				$vatPct = (int) ($order->getDeliveryPriceSum() > 0 ? \round($order->getDeliveryPriceVatSum() / $order->getDeliveryPriceSum() * 100 - 100) : 0);
 
 				if ($vatPct > 0) {
 					isset($basePrices[$vatPct]['base']) ?
@@ -303,7 +305,7 @@ class Invoice extends \StORM\Entity
 				continue;
 			}
 
-			$vatPct = $order->getPaymentPriceSum() > 0 ? \round($order->getPaymentPriceVatSum() / $order->getPaymentPriceSum() * 100 - 100) : 0;
+			$vatPct = (int) ($order->getPaymentPriceSum() > 0 ? \round($order->getPaymentPriceVatSum() / $order->getPaymentPriceSum() * 100 - 100) : 0);
 
 			if ($vatPct <= 0) {
 				continue;

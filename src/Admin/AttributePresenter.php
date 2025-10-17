@@ -144,9 +144,9 @@ class AttributePresenter extends BackendPresenter
 
 		$grid = $this->gridFactory->create($source, 20, null, null, true);
 
-//		$grid->setItemCountCallback(function (ICollection $filteredSource) use ($connection): int {
-//			return (int) \count($filteredSource->toArray());
-//		});
+		//      $grid->setItemCountCallback(function (ICollection $filteredSource) use ($connection): int {
+		//          return (int) \count($filteredSource->toArray());
+		//      });
 
 		$grid->addColumnSelector();
 		$grid->addColumnTextFit('Kód', 'code', '%s', 'code', ['class' => 'minimal']);
@@ -318,7 +318,7 @@ class AttributePresenter extends BackendPresenter
 		if (!$hardSystemic) {
 			$form->addCheckbox('showRange', 'Zobrazit jako rozsahy')->setHtmlAttribute('data-info', 'Hodnoty atributu nebudou zobrazeny jako jednotlivé položky, ale souhrnně dle nastavení rozsahů.');
 			$form->addCheckbox('showNumericSlider', 'Zobrazit jako slider')->setHtmlAttribute('data-info', 'Hodnoty atributu nebudou zobrazeny jako jednotlivé položky, ale jako slider OD - DO.');
-//			$form->addFloat('sliderStep', 'Krok slideru')->setDefaultValue(1)->setRequired();
+			//          $form->addFloat('sliderStep', 'Krok slideru')->setDefaultValue(1)->setRequired();
 		}
 
 		$form->addInteger('showCount', 'Počet položek zobrazených při načtení')->setNullable()
@@ -612,7 +612,7 @@ class AttributePresenter extends BackendPresenter
 				$values['uuid'] = DIConnection::generateUuid();
 			}
 
-			/** @var \Eshop\BackendPresenter $presenter */
+			/** @var static $presenter */
 			$presenter = $this->getPresenter();
 
 			$presenter->createImageDirs(AttributeValue::IMAGE_DIR);

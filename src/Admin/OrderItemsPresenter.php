@@ -96,10 +96,10 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 			return $cartItem->getValue('e_pai_exportedTs') ? '<i class="fa fa-check text-success"></i>' : '<i class="fa fa-times text-danger"></i>';
 		}, '%s', null, ['class' => 'minimal']);
 
-//		$btnSecondary = 'btn btn-sm btn-outline-primary';
-//		$sendIco = "<a href='%s' class='$btnSecondary' title='Objednat'><i class='fas fa-paper-plane'></i></a>";
+		//      $btnSecondary = 'btn btn-sm btn-outline-primary';
+		//      $sendIco = "<a href='%s' class='$btnSecondary' title='Objednat'><i class='fas fa-paper-plane'></i></a>";
 
-//		$grid->addColumnAction('', $sendIco, [$this, 'sendItem'], [], null, ['class' => 'minimal']);
+		//      $grid->addColumnAction('', $sendIco, [$this, 'sendItem'], [], null, ['class' => 'minimal']);
 
 		$grid->addFilterTextInput('search', ['this.productName_cs', 'this.productCode', 'e_pr.name_cs', 'e_pr.code'], null, 'Kód, název');
 
@@ -232,7 +232,7 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 		$this->template->headerTree = [
 			['Objednané položky', 'default'],
 		];
-//		$this->template->displayButtons = [$this->createNewItemButton('new')];
+		//      $this->template->displayButtons = [$this->createNewItemButton('new')];
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
 	

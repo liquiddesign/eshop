@@ -285,8 +285,8 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		}
 
 		$mutationSuffix = $this->getMutationSuffix();
-//		$this->connection->setDebug(true);
-//		$this->getConnection()->setDebug(true);
+		//      $this->connection->setDebug(true);
+		//      $this->getConnection()->setDebug(true);
 
 		$productsCollection = $this->productRepository->many()
 			->join(['masterProduct' => 'eshop_product'], 'this.fk_masterProduct = masterProduct.uuid')
@@ -615,9 +615,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 			}
 
 			[$visibilityListsString, $priceListsString] = $explodedIndex;
-			/** @var array<int> $visibilityLists */
 			$visibilityLists = \explode(',', $visibilityListsString);
-			/** @var array<int> $priceLists */
 			$priceLists = \explode(',', $priceListsString);
 
 			foreach ($allProductsWithVLI as $product => $vliItems) {

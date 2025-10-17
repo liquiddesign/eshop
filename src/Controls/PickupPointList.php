@@ -17,9 +17,9 @@ class PickupPointList extends \Grid\Datalist
 	private Nette\Localization\Translator $translator;
 
 	/**
-	 * @var array|array<float>|null
+	 * @var array|array<float>
 	 */
-	private ?array $gpsLocation;
+	private array $gpsLocation;
 
 	public function __construct(PickupPointRepository $pickupPointRepository, Nette\Localization\Translator $translator, Nette\Http\Request $request)
 	{

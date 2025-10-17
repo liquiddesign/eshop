@@ -538,12 +538,9 @@ class IntegrationPresenter extends BackendPresenter
 	
 	public function renderZasilkovna(): void
 	{
-		$active = ($setting = $this->settingsRepo->many()->where('name', 'zasilkovnaApiKey')->first()) !== null &&
-			$setting->getValue('value') !== null &&
-			$setting->getValue('value') !== '' &&
-			($setting = $this->settingsRepo->many()->where('name', 'zasilkovnaApiPassword')->first()) !== null &&
-			$setting->getValue('value') !== null &&
-			$setting->getValue('value') !== '';
+		$apiKey = $this->settingsRepo->getValueByName('zasilkovnaApiKey');
+		$apiPass = $this->settingsRepo->getValueByName('zasilkovnaApiPassword');
+		$active = ($apiKey !== null && $apiKey !== '') && ($apiPass !== null && $apiPass !== '');
 		
 		$this->template->headerLabel = 'Integrace';
 		$this->template->headerTree = [
@@ -613,9 +610,8 @@ class IntegrationPresenter extends BackendPresenter
 			['MailerLite'],
 		];
 		
-		$active = ($setting = $this->settingsRepo->many()->where('name', 'mailerLiteApiKey')->first()) !== null &&
-			$setting->getValue('value') !== null &&
-			$setting->getValue('value') !== '';
+		$mlApiKey = $this->settingsRepo->many()->where('name', 'mailerLiteApiKey')->first()?->getValue('value');
+		$active = $mlApiKey !== null && $mlApiKey !== '';
 		
 		if ($active) {
 			$this->template->displayButtons = [$this->createButtonWithClass('syncMailerLite!', '<i class="fa fa-sync"></i>  Synchronizovat s MailerLite', 'btn btn-sm btn-outline-primary')];

@@ -288,39 +288,39 @@ class ProductGridFiltersFactory
 			}, '', 'displayAmount', null, $displayAmounts, ['placeholder' => '- Dostupnost -']);
 		}
 
-//		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-//			$source->where('hidden', (bool) $value);
-//		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
-//
-//		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-//			$source->where('recommended', (bool) $value);
-//		}, '', 'recommended', null, ['1' => 'Doporučené', '0' => 'Normální'])->setPrompt('- Doporučené -');
-//
-//		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-//			$source->where('unavailable', (bool) $value);
-//		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
+		//      $grid->addFilterDataSelect(function (ICollection $source, $value): void {
+		//          $source->where('hidden', (bool) $value);
+		//      }, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
+		//
+		//      $grid->addFilterDataSelect(function (ICollection $source, $value): void {
+		//          $source->where('recommended', (bool) $value);
+		//      }, '', 'recommended', null, ['1' => 'Doporučené', '0' => 'Normální'])->setPrompt('- Doporučené -');
+		//
+		//      $grid->addFilterDataSelect(function (ICollection $source, $value): void {
+		//          $source->where('unavailable', (bool) $value);
+		//      }, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 
-//		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
-//			if ($value === 'green') {
-//				$source->setGroupBy(
-//					['this.uuid'],
-//					//'hidden = "0" AND unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) > 0 AND pricelistActive = "1"',
-//					'hidden = "0" AND unavailable = "0" AND COUNT(DISTINCT nxnCategory.fk_category) > 0',
-//				);
-//			} elseif ($value === 'orange') {
-//				$source->setGroupBy(
-//					['this.uuid'],
-//					//'hidden = "0" AND unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) = 0 AND pricelistActive = "1"',
-//					'hidden = "0" AND unavailable = "0" AND COUNT(DISTINCT nxnCategory.fk_category) = 0',
-//				);
-//			} else {
-//				$source->setGroupBy(
-//					['this.uuid'],
-//					//'hidden = "1" OR unavailable = "1" OR COUNT(DISTINCT price.uuid) = 0 OR COUNT(DISTINCT nxnCategory.fk_category) = 0 OR pricelistActive = "0"',
-//					'hidden = "1" OR unavailable = "1" OR COUNT(DISTINCT nxnCategory.fk_category) = 0',
-//				);
-//			}
-//		}, '', 'show', null, ['green' => 'Viditelné', 'orange' => 'Viditelné: bez kategorie', 'red' => 'Neviditelné'])->setPrompt('- Viditelnost v eshopu -');
+		//      $grid->addFilterDataSelect(function (ICollection $source, $value): void {
+		//          if ($value === 'green') {
+		//              $source->setGroupBy(
+		//                  ['this.uuid'],
+		//                  //'hidden = "0" AND unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) > 0 AND pricelistActive = "1"',
+		//                  'hidden = "0" AND unavailable = "0" AND COUNT(DISTINCT nxnCategory.fk_category) > 0',
+		//              );
+		//          } elseif ($value === 'orange') {
+		//              $source->setGroupBy(
+		//                  ['this.uuid'],
+		//                  //'hidden = "0" AND unavailable = "0" AND COUNT(DISTINCT price.uuid) > 0 AND COUNT(DISTINCT nxnCategory.fk_category) = 0 AND pricelistActive = "1"',
+		//                  'hidden = "0" AND unavailable = "0" AND COUNT(DISTINCT nxnCategory.fk_category) = 0',
+		//              );
+		//          } else {
+		//              $source->setGroupBy(
+		//                  ['this.uuid'],
+		//                  //'hidden = "1" OR unavailable = "1" OR COUNT(DISTINCT price.uuid) = 0 OR COUNT(DISTINCT nxnCategory.fk_category) = 0 OR pricelistActive = "0"',
+		//                  'hidden = "1" OR unavailable = "1" OR COUNT(DISTINCT nxnCategory.fk_category) = 0',
+		//              );
+		//          }
+		//      }, '', 'show', null, ['green' => 'Viditelné', 'orange' => 'Viditelné: bez kategorie', 'red' => 'Neviditelné'])->setPrompt('- Viditelnost v eshopu -');
 
 		if ($suppliers) {
 			$locks = [];

@@ -30,6 +30,7 @@ use Tracy\ILogger;
  * @package Eshop\Controls
  * @method onWatcherCreated(\Eshop\DB\Watcher $watcher)
  * @method onWatcherDeleted(\Eshop\DB\Watcher $watcher)
+ * @phpstan-import-type CacheOutput from \Eshop\Services\ProductsCache\GeneralProductsCacheProvider
  */
 class ProductList extends Datalist
 {
@@ -48,9 +49,17 @@ class ProductList extends Datalist
 	 */
 	public array $onBuyFormSuccessBeforeRedirect = [];
 
-	/** @var array<array<string, int>>|null */
-	protected array|null $providerOutput = null;
+	/**
+	 * @var CacheOutput|null $providerOutput
+	 */
+	private(set) array|null $providerOutput = null {
+		get => $this->providerOutput;
+	}
 
+	/**
+	 * @param array<string, mixed> $order
+	 * @param \StORM\Collection<\Eshop\DB\Product>|null $source
+	 */
 	public function __construct(
 		protected readonly ProductRepository $productRepository,
 		protected readonly WatcherRepository $watcherRepository,
@@ -184,14 +193,6 @@ class ProductList extends Datalist
 		$this->addFilterExpression('relatedTypeSlave', function (ICollection $collection, $value): void {
 			$this->productRepository->filterRelatedTypeSlave($value, $collection);
 		});
-	}
-
-	/**
-	 * @return array<array<string, int>>|null
-	 */
-	public function getProviderOutput(): array|null
-	{
-		return $this->providerOutput;
 	}
 
 	/**
@@ -374,7 +375,7 @@ class ProductList extends Datalist
 	}
 
 	/**
-	 * @return array<string>
+	 * @return array<array<string>>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	private function getFiltersForTemplate(): array

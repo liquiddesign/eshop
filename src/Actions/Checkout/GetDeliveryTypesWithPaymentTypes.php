@@ -21,9 +21,7 @@ class GetDeliveryTypesWithPaymentTypes extends BaseAction
 		return $this->getLocalCachedOutput($this::class, function (): array {
 			$checkoutManager = $this->shopperUser->getCheckoutManager();
 			$withVat = $this->shopperUser->getMainPriceType() === 'withVat';
-			/** @var \StORM\Collection<\Eshop\DB\DeliveryType> $deliveryTypes */
 			$deliveryTypes = $checkoutManager->getDeliveryTypes($withVat);
-			/** @var array<\Eshop\DB\PaymentType> $paymentTypes */
 			$paymentTypes = $checkoutManager->getPaymentTypes()->toArray();
 
 			$result = [];
