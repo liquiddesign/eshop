@@ -9,7 +9,6 @@
 {varType Eshop\DB\Product $product}
 
 <form n:name="form">
-    {dump $form->getErrors()}
     {var $activeMutation = $form->getActiveMutation()}
 	    {var $renderer = $form->getRenderer()}
     <ul class="error" n:ifcontent>
@@ -246,24 +245,28 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                 <legend>Daně</legend>
 
                 <table class="mt-1 mb-1" style="width: auto;">
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label vatRate/}</th>
+                    {formContainer vatRates}
+                        {foreach $form['vatRates']->getComponents() as $vatRateInput}
+                            <tr class="m-0 mt-1 has-danger">
+                                <th class="col-label col-form-label col">{label $vatRateInput->getName()/}</th>
 
-                        <td class="align-middle">{input vatRate class=>'form-control form-control-sm '}
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError vatRate}</span>
-                        </td>
-                        <td colspan="3"></td>
-
-                    </tr>
-
-                    <tr n:if="isset($configuration['taxes']) && $configuration['taxes']" class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label taxes/}</th>
-
-                        <td class="align-middle">{input taxes}
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError taxes}</span>
-                        </td>
-                    </tr>
+                                <td class="align-middle">{input $vatRateInput->getName() class=>'form-control form-control-sm '}
+                                    <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError $vatRateInput->getName()}</span>
+                                </td>
+                            </tr>
+                        {/foreach}
+                    {/formContainer}
                 </table>
+
+{*                        <tr n:if="isset($configuration['taxes']) && $configuration['taxes']" class="m-0 mt-1 has-danger">*}
+{*                            <th class="col-label col-form-label col">{label taxes/}</th>*}
+
+{*                            <td class="align-middle">{input taxes}*}
+{*                                <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError taxes}</span>*}
+{*                            </td>*}
+{*                        </tr>*}
+{*  *}
+{*                </table>*}
             </fieldset>
 
             <fieldset n:if="$pricelists">

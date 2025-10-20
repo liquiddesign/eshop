@@ -564,6 +564,11 @@ class ProductPresenter extends BackendPresenter
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('productForm')['form'];
 
+		/** @var \Forms\Container $vatRatesContainer */
+		$vatRatesContainer = $form['vatRates'];
+
+		$vatRatesContainer->setDefaults($product->getVatRates()->setIndex('fk_country')->toArrayOf('vatRate'));
+
 		$prices = $this->pricelistRepository->many()->orderBy(['this.priority'])
 			->join(['prices' => 'eshop_price'], 'prices.fk_product=:product AND prices.fk_pricelist=this.uuid', ['product' => $product])
 			->select([

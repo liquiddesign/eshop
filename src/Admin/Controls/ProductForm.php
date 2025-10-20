@@ -15,6 +15,7 @@ use Eshop\BackendPresenter;
 use Eshop\DB\AmountRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryTypeRepository;
+use Eshop\DB\CountryRepository;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\DisplayDeliveryRepository;
 use Eshop\DB\InternalRibbonRepository;
@@ -27,6 +28,7 @@ use Eshop\DB\Product;
 use Eshop\DB\ProductContentRepository;
 use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\ProductVatRateRepository;
 use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedType;
 use Eshop\DB\RelatedTypeRepository;
@@ -35,9 +37,9 @@ use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\TaxRepository;
-use Eshop\DB\VatRateRepository;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
+use Eshop\DevelTools;
 use Eshop\FormValidators;
 use Eshop\Integration\Integrations;
 use Eshop\ShopperUser;
@@ -49,7 +51,6 @@ use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\DIConnection;
 use StORM\ICollection;
-use Tracy\Debugger;
 use Web\DB\PageRepository;
 use Web\DB\SettingRepository;
 
@@ -88,7 +89,6 @@ class ProductForm extends Control
 		RibbonRepository $ribbonRepository,
 		InternalRibbonRepository $internalRibbonRepository,
 		ProducerRepository $producerRepository,
-		private readonly VatRateRepository $vatRateRepository,
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
 		private readonly ShopsConfig $shopsConfig,
@@ -104,6 +104,8 @@ class ProductForm extends Control
 		private readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
 		private readonly VisibilityListRepository $visibilityListRepository,
 		private readonly VisibilityListItemRepository $visibilityListItemRepository,
+		private readonly CountryRepository $countryRepository,
+		private readonly ProductVatRateRepository $productVatRateRepository,
 		SettingRepository $settingRepository,
 		Integrations $integrations,
 		$product = null,
@@ -144,7 +146,18 @@ class ProductForm extends Control
 		$form->addText('deletedTs', 'Čas smazání')
 			->setHtmlAttribute('data-info', 'Čas vyřazení produktu. Vyplňuje se automaticky.')
 			->setNullable();
-		$form->addSelect('vatRate', 'Úroveň DPH (%)', $vatRateRepository->getDefaultVatRates());
+
+		$vatRatesContainer = $form->addContainer('vatRates');
+
+		foreach ($this->countryRepository->many() as $country) {
+			$vatRatesContainer->addSelect(
+				(string) $country->getPK(),
+				'Úroveň DPH (%) ' . $country->name,
+				$country->getVatRates()->toArrayOf('rate'),
+			)
+				->setRequired()
+				->setPrompt('Vyberte úroveň DPH');
+		}
 
 		/** @var array<\Eshop\DB\CategoryType> $categoryTypes */
 		$categoryTypes = $this->categoryTypeRepository->getCollection(true)->toArray();
@@ -574,7 +587,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 	public function validate(AdminForm $form): void
 	{
-		Debugger::barDump($form->getErrors());
+		DevelTools::bdumpFormErrors($form);
 
 		if (!$form->isValid()) {
 			return;
@@ -668,6 +681,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		/** @var array<mixed> $primaryCategories */
 		$primaryCategories = Arrays::pick($values, 'primaryCategories', []);
 
+		$vatRates = Arrays::pick($values, 'vatRates', []);
+
 		/** @var array<mixed> $content */
 		$content = Arrays::pick($values, 'content', []);
 
@@ -689,6 +704,14 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
+
+		foreach ($vatRates as $country => $rate) {
+			$this->productVatRateRepository->syncOne([
+				'country' => $country,
+				'vatRate' => $rate,
+				'product' => $product->getPK(),
+			], ignore: false);
+		}
 
 		$product->categories->unrelateAll();
 
@@ -850,11 +873,14 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		if ($pricesPermission) {
 			foreach ($values['prices'] as $pricelistId => $prices) {
-				$pricelist = $this->pricelistRepository->one($pricelistId);
+				/** @var \Eshop\DB\Pricelist $pricelist */
+				$pricelist = $this->pricelistRepository->oneOrFail($pricelistId);
 
 				if ($pricelist->isReadonly) {
 					continue;
 				}
+
+				$priceListCountry = $pricelist->country;
 
 				/** @var null|string $autoPriceConfig */
 				$autoPriceConfig = $this->configuration[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
@@ -875,17 +901,19 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 					continue;
 				}
 
+				$vatPct = $product->getVatPctByCountry($priceListCountry);
+
 				if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
-					$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), ShopperUser::PRICE_PRECISSION);
+					$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $vatPct), ShopperUser::PRICE_PRECISSION);
 					$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
-						\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), ShopperUser::PRICE_PRECISSION) :
+						\round($prices['priceVatBefore'] * \fdiv(100, 100 + $vatPct), ShopperUser::PRICE_PRECISSION) :
 						null;
 				}
 
 				if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
-					$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), ShopperUser::PRICE_PRECISSION);
+					$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $vatPct, 100), ShopperUser::PRICE_PRECISSION);
 					$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
-						\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), ShopperUser::PRICE_PRECISSION) :
+						\round($prices['priceBefore'] * \fdiv(100 + $vatPct, 100), ShopperUser::PRICE_PRECISSION) :
 						null;
 				}
 

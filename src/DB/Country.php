@@ -11,6 +11,7 @@ use StORM\RelationCollection;
  * Země
  * @table
  * @index{"name":"country_unique_code","unique":true,"columns":["code","fk_shop"]}
+ * @method \StORM\RelationCollection<\Eshop\DB\ProductVatRate> getVatRates()
  */
 class Country extends ShopSystemicEntity
 {

@@ -345,17 +345,19 @@ class PricelistsPresenter extends BackendPresenter
 				return;
 			}
 
+			$vatPct = $price->product->getVatPctByCountry($price->pricelist->country);
+
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
-				$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), ShopperUser::PRICE_PRECISSION);
+				$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $vatPct), ShopperUser::PRICE_PRECISSION);
 				$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
-					\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), ShopperUser::PRICE_PRECISSION) :
+					\round($prices['priceVatBefore'] * \fdiv(100, 100 + $vatPct), ShopperUser::PRICE_PRECISSION) :
 					null;
 			}
 
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
-				$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), ShopperUser::PRICE_PRECISSION);
+				$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $vatPct, 100), ShopperUser::PRICE_PRECISSION);
 				$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
-					\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), ShopperUser::PRICE_PRECISSION) :
+					\round($prices['priceBefore'] * \fdiv(100 + $vatPct, 100), ShopperUser::PRICE_PRECISSION) :
 					null;
 			}
 
@@ -577,17 +579,19 @@ class PricelistsPresenter extends BackendPresenter
 				return;
 			}
 
+			$vatPct = $price->product->getVatPctByCountry($price->pricelist->country);
+
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
-				$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), ShopperUser::PRICE_PRECISSION);
+				$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $vatPct), ShopperUser::PRICE_PRECISSION);
 				$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
-					\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate]), ShopperUser::PRICE_PRECISSION) :
+					\round($prices['priceVatBefore'] * \fdiv(100, 100 + $vatPct), ShopperUser::PRICE_PRECISSION) :
 					null;
 			}
 
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
-				$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), ShopperUser::PRICE_PRECISSION);
+				$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $vatPct, 100), ShopperUser::PRICE_PRECISSION);
 				$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
-					\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$price->product->vatRate], 100), ShopperUser::PRICE_PRECISSION) :
+					\round($prices['priceBefore'] * \fdiv(100 + $vatPct, 100), ShopperUser::PRICE_PRECISSION) :
 					null;
 			}
 

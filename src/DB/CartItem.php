@@ -140,6 +140,13 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	public ?string $note;
 
 	/**
+	 * Daně produktu
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 * @relation
+	 */
+	public ?ProductVatRate $productVatRate;
+
+	/**
 	 * Produkt
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 * @relation

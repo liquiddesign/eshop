@@ -174,7 +174,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		$surchargeLevel = $this->getSurchargePct($customer);
 
-		$vatRates = $this->shopperUser->getVatRates();
 		$prec = $currency->calculationPrecision;
 
 		$generalPricelistIds = [];
@@ -295,9 +294,17 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				}
 			}
 
+			$collection->join(
+				['productVatRate' => 'eshop_productvatrate'],
+				'this.uuid=productVatRate.fk_product AND productVatRate.fk_country = :productVatRate_country',
+				['productVatRate_country' => $this->shopperUser->getCountry()->getPK()],
+				'INNER',
+			);
+
+			$collection->join(['vatRate' => 'eshop_vatrate'], 'productVatRate.fk_vatRate=vatRate.uuid AND productVatRate.fk_country = vatRate.fk_country');
+
 			$collection->select([
-				'vatPct' => "IF(vatRate = 'standard'," . ($vatRates['standard'] ?? 0) . ",IF(vatRate = 'reduced-high'," .
-					($vatRates['reduced-high'] ?? 0) . ",IF(vatRate = 'reduced-low'," . ($vatRates['reduced-low'] ?? 0) . ',0)))',
+				'vatPct' => 'vatRate.rate',
 			]);
 
 			$subSelect = $this->getConnection()

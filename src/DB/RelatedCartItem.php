@@ -140,6 +140,13 @@ class RelatedCartItem extends \StORM\Entity
 	 */
 	public ?RelatedType $relatedType;
 
+	/**
+	 * Daně produktu
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 * @relation
+	 */
+	public ?ProductVatRate $productVatRate;
+
 	public function getProduct(): ?Product
 	{
 		if ($this->product) {

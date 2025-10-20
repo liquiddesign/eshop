@@ -53,8 +53,8 @@ use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\ReviewRepository;
 use Eshop\DB\TaxRepository;
 use Eshop\DB\Variant;
-use Eshop\DB\VatRate;
 use Eshop\Integration\Integrations;
+use http\Exception\RuntimeException;
 use JetBrains\PhpStorm\Deprecated;
 use Nette;
 use Nette\Http\Request;
@@ -385,7 +385,7 @@ class CheckoutManager
 			return $item;
 		}
 
-		$cartItem = $this->cartItemRepository->syncItem($cart ?? $this->getCart($cartId), null, $product, $variant, $amount, $disabled);
+		$cartItem = $this->cartItemRepository->syncItem($cart ?? $this->getCart($cartId), null, $product, $variant, $amount, $this->shopperUser->getCountry(), $disabled);
 
 		if ($upsell) {
 			$cartItem->update(['upsell' => $upsell->getPK(),]);
@@ -670,7 +670,7 @@ class CheckoutManager
 			throw new BuyException("Invalid amount: $amount", BuyException::INVALID_AMOUNT);
 		}
 
-		$this->cartItemRepository->syncItem($this->getCart($cartId), $item, $product, $variant, $amount);
+		$this->cartItemRepository->syncItem($this->getCart($cartId), $item, $product, $variant, $amount, $this->shopperUser->getCountry());
 	}
 
 	/**
@@ -695,12 +695,9 @@ class CheckoutManager
 			return $this->cartItemRepository->getUpsellByObjects($cartItem, $upsell);
 		}
 
-		/** @var \Eshop\DB\VatRateRepository $vatRepo */
-		$vatRepo = $this->cartItemRepository->getConnection()->findRepository(VatRate::class);
-		/** @var \Eshop\DB\VatRate|null $vat */
-		$vat = $vatRepo->one($upsell->vatRate);
+		$vatRate = $upsell->getProductVatRateByCountry($this->shopperUser->getCountry());
+		$vatPct = $vatRate->vatRate->rate;
 
-		$vatPct = $vat ? $vat->rate : 0;
 		$amount = $realAmount ? $realAmount * $cartItem->amount : $upsell->getValue('amount');
 
 		return $this->cartItemRepository->createOne([
@@ -713,7 +710,8 @@ class CheckoutManager
 			'realAmount' => $realAmount,
 			'price' => $upsell->getPrice($amount),
 			'priceVat' => $upsell->getPriceVat($amount),
-			'vatPct' => (float) $vatPct,
+			'vatPct' => $vatPct,
+			'productVatRate' => $vatRate->getPK(),
 			'product' => $upsell->getPK(),
 			'cart' => $cartItem->getValue('cart'),
 			'upsell' => $cartItem->getPK(),
@@ -1658,6 +1656,8 @@ class CheckoutManager
 			$values['currency'] = $this->getCart($cartId)->getValue('currency');
 		}
 
+		$values['country'] = $this->shopperUser->getCountry()->getPK();
+
 		/** @var \Eshop\DB\Purchase $purchase */
 		$purchase = $this->getCart($cartId)->syncRelated('purchase', $values);
 
@@ -1831,13 +1831,20 @@ class CheckoutManager
 		bool $isLastOrder = true,
 		bool $createOffer = false,
 	): Order {
-		/** @var \Eshop\DB\VatRateRepository $vatRepo */
-		$vatRepo = $this->cartItemRepository->getConnection()->findRepository(VatRate::class);
-
 		/** @var \Eshop\DB\Purchase $purchase */
 		$purchase = $purchase ?: $this->getPurchase(true, $cartId);
 
 		$banned = $purchase->email && $this->bannedEmailRepository->isEmailBanned($purchase->email);
+
+		if ($purchase->country === null) {
+			$purchase->update(['country' => $this->shopperUser->getCountry()->getPK()]);
+		}
+
+		$country = $purchase->country;
+
+		if (!$country) {
+			throw new RuntimeException('Country in purchase ' . $purchase->getPK() . ' is not set');
+		}
 
 		if (!$this->shopperUser->getAllowBannedEmailOrder() && $banned) {
 			throw new BuyException('Banned email', BuyException::BANNED_EMAIL);
@@ -2028,8 +2035,10 @@ class CheckoutManager
 
 				foreach ($relatedProducts as $relatedProduct) {
 					if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
+						$vatPct = $relatedProduct->slave->getVatPctByCountry($country);
+
 						$slaveProductsTotalPrice += $relatedProduct->amount;
-						$slaveProductsTotalPriceVat += (($this->shopperUser->getVatRates()[$relatedProduct->slave->vatRate] / 100) + 1) * $relatedProduct->amount;
+						$slaveProductsTotalPriceVat += (($vatPct / 100) + 1) * $relatedProduct->amount;
 
 						continue;
 					}
@@ -2045,8 +2054,10 @@ class CheckoutManager
 					if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
 						$product = $this->productRepository->one($relatedProduct->getValue('slave'), true);
 
+						$vatPct = $product->getVatPctByCountry($country);
+
 						$product->setValue('price', 1);
-						$product->setValue('priceVat', ($this->shopperUser->getVatRates()[$product->vatRate] / 100) + 1);
+						$product->setValue('priceVat', ($vatPct / 100) + 1);
 						$product->setValue('priceBefore', null);
 						$product->setValue('priceVatBefore', null);
 
@@ -2057,9 +2068,8 @@ class CheckoutManager
 						$slaveProductUsed = true;
 					}
 
-					/** @var \Eshop\DB\VatRate|null $vat */
-					$vat = $vatRepo->one($product->vatRate);
-					$vatPct = $vat ? $vat->rate : 0;
+					$vatRate = $product->getProductVatRateByCountry($country);
+					$vatPct = $product->getVatPctByCountry($country);
 
 					/* Create related cart items with price computed to match unit price of top-level cart item */
 					$relatedCartItems[] = [
@@ -2081,7 +2091,8 @@ class CheckoutManager
 						'priceVat' => $product->getPriceVat() * $setTotalPriceVatModifier,
 						'priceBefore' => $product->getPriceBefore() ?: ($slaveProductUsed ? $product->getPrice() : null),
 						'priceVatBefore' => $product->getPriceVatBefore() ?: ($slaveProductUsed ? $product->getPriceVat() : null),
-						'vatPct' => (float) $vatPct,
+						'vatPct' => $vatPct,
+						'productVatRate' => $vatRate,
 					];
 				}
 

@@ -96,14 +96,9 @@ class CartItemRepository extends \StORM\Repository
 		return $this->many()->where('fk_cart', $cart)->where('this.uuid', $item)->delete();
 	}
 
-	public function syncItem(Cart $cart, ?CartItem $item, \Eshop\DB\Product $product, ?Variant $variant, int $amount, bool $disabled = false): CartItem
+	public function syncItem(Cart $cart, ?CartItem $item, \Eshop\DB\Product $product, ?Variant $variant, int $amount, Country $country, bool $disabled = false): CartItem
 	{
-		/** @var \Eshop\DB\VatRateRepository $vatRepo */
-		$vatRepo = $this->getConnection()->findRepository(VatRate::class);
-		/** @var \Eshop\DB\VatRate|null $vat */
-		$vat = $vatRepo->one($product->vatRate);
-
-		$vatPct = $vat ? $vat->rate : 0;
+		$vatRate = $product->getProductVatRateByCountry($country);
 
 		return $this->syncOne([
 			'uuid' => $item,
@@ -123,7 +118,8 @@ class CartItemRepository extends \StORM\Repository
 			'priceVat' => $product->getPriceVat($amount),
 			'priceBefore' => $product->getPriceBefore(),
 			'priceVatBefore' => $product->getPriceVatBefore(),
-			'vatPct' => (float) $vatPct,
+			'vatPct' => $vatRate->vatRate->rate,
+			'productVatRate' => $vatRate->getPK(),
 			'product' => !$disabled ? $product->getPK() : null,
 			'pricelist' => $product->pricelist ?? null,
 			'variant' => $variant?->getPK(),

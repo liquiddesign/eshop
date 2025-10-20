@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop;
 
-use Nette\Application\UI\Form;
 use StORM\ICollection;
 use Tracy\Debugger;
 
@@ -50,19 +49,8 @@ class DevelTools
 		Debugger::barDump(self::showCollection($collection));
 	}
 
-	public static function bdumpFormErrors(Form $form): void
+	public static function bdumpFormErrors(\Forms\Form $form): void
 	{
-		$errors = [];
-
-		/** @var \Nette\Forms\Control|\Nette\Forms\Container $component */
-		foreach ($form->getComponents(true) as $component) {
-			if (!$component->getErrors()) {
-				continue;
-			}
-
-			$errors[$component->getName()] = $component->getErrors();
-		}
-
-		Debugger::barDump($errors);
+		Debugger::barDump($form->getControlsErrors());
 	}
 }

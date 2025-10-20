@@ -62,7 +62,7 @@ class Currency extends \StORM\Entity
 	/**
 	 * Konverze změny
 	 * @relation
-	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Currency $convertCurrency;
 

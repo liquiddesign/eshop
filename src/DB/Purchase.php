@@ -295,6 +295,13 @@ class Purchase extends \StORM\Entity
 	public RelationCollection $orders;
 
 	/**
+	 * Země
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?Country $country;
+
+	/**
 	 * @var array<string>
 	 */
 	private array $cartIds;

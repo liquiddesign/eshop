@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 use Base\DB\Shop;
 use Eshop\Admin\SettingsPresenter;
+use JetBrains\PhpStorm\Deprecated;
 use Nette\Application\ApplicationException;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
@@ -25,6 +26,7 @@ use Web\DB\Setting;
  * @method \StORM\ICollection<\Eshop\DB\File> getFiles()
  * @method \StORM\ICollection<\Eshop\DB\Ribbon> getRibbons()
  * @method \StORM\ICollection<\Eshop\DB\InternalRibbon> getInternalRibbons()
+ * @method \StORM\RelationCollection<\Eshop\DB\ProductVatRate> getVatRates()
  */
 class Product extends \StORM\Entity
 {
@@ -171,9 +173,16 @@ class Product extends \StORM\Entity
 
 	/**
 	 * Úroveň DPH
-	 * @column{"type":"enum","length":"'standard','reduced-high','reduced-low','zero'"}
 	 */
+	#[Deprecated('Replaced by ProductVatRate', 'Use getVatRateByCountry() instead')]
 	public string $vatRate;
+
+	/**
+	 * Daně
+	 * @relation{"targetKey":"fk_product"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\ProductVatRate>
+	 */
+	public RelationCollection $vatRates;
 
 	/**
 	 * Zokrouhlení od procent na balení
@@ -1216,6 +1225,19 @@ class Product extends \StORM\Entity
 		}
 
 		return $array;
+	}
+
+	/**
+	 * There should be **one** ProductVatRate for any given country
+	 */
+	public function getProductVatRateByCountry(Country $country): ProductVatRate
+	{
+		return $this->getVatRates()->where('fk_country', $country->getPK())->first(true);
+	}
+
+	public function getVatPctByCountry(Country $country): float
+	{
+		return $this->getProductVatRateByCountry($country)->vatRate->rate;
 	}
 
 	/**

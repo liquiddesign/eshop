@@ -71,6 +71,12 @@ readonly class OrderEditService implements AutoWireService
 		$this->beforeProcess($order, $customer);
 		$purchase = $order->purchase;
 
+		$country = $purchase->country;
+
+		if (!$country) {
+			throw new \RuntimeException('Country not found');
+		}
+
 		if (!$product instanceof Product) {
 			$product = $this->productRepository->one($product);
 		}
@@ -272,9 +278,7 @@ readonly class OrderEditService implements AutoWireService
 				$product = $slaveProducts[$relatedProduct->getValue('slave')];
 			}
 
-			/** @var \Eshop\DB\VatRate|null $vat */
-			$vat = $this->vatRateRepository->one($product->vatRate);
-			$vatPct = $vat ? $vat->rate : 0;
+			$vatPct = $product->getVatPctByCountry($country);
 
 			/* Create related cart items with price computed to match unit price of top-level cart item */
 			$relatedCartItems[] = [
