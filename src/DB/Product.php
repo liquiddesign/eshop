@@ -6,7 +6,6 @@ namespace Eshop\DB;
 
 use Base\DB\Shop;
 use Eshop\Admin\SettingsPresenter;
-use JetBrains\PhpStorm\Deprecated;
 use Nette\Application\ApplicationException;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
@@ -170,12 +169,6 @@ class Product extends \StORM\Entity
 	 * @column
 	 */
 	public ?int $inPalett;
-
-	/**
-	 * Úroveň DPH
-	 */
-	#[Deprecated('Replaced by ProductVatRate', 'Use getVatRateByCountry() instead')]
-	public string $vatRate;
 
 	/**
 	 * Daně

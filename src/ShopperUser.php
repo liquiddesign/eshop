@@ -860,7 +860,7 @@ class ShopperUser extends User
 	 */
 	public function getVatRates(): array
 	{
-		return $this->vatRates ??= $this->getCountry()->vatRates->toArrayOf('rate');
+		return $this->vatRates ??= $this->getCountry()->getVatRates()->toArrayOf('rate');
 	}
 
 	public function showPricesWithVat(): bool

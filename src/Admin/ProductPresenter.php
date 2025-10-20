@@ -348,76 +348,6 @@ class ProductPresenter extends BackendPresenter
 		return $grid;
 	}
 
-	public function createComponentPriceGrid(): AdminGrid
-	{
-		$product = $this->getParameter('product');
-
-		$collection = $this->pricelistRepository->many()
-			->select([
-				'price' => 'prices.price',
-				'priceVat' => 'prices.priceVat',
-				'priceBefore' => 'prices.priceBefore',
-				'priceVatBefore' => 'prices.priceVatBefore',
-				'rate' => 'rates.rate',
-			])
-			->join(['prices' => 'eshop_price'], 'prices.fk_pricelist=this.uuid AND prices.fk_product=:product', ['product' => $product])
-			->join(['rates' => 'eshop_vatrate'], 'rates.uuid = :rate AND rates.fk_country=this.fk_country', ['rate' => $product->vatRate]);
-
-		$grid = $this->gridFactory->create($collection, 20, 'priority', 'ASC');
-
-		$grid->addColumnText('Kód', 'code', '%s', 'code');
-		$grid->addColumnText('Ceník', 'name', '%s', 'name');
-		$grid->addColumnText('Měna', 'currency.code', '%s', 'currency.code');
-		$grid->addColumnInputPrice('Cena', 'price');
-
-		if ($this->shopperUser->getShowVat()) {
-			$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
-		}
-
-		$grid->addColumnInputPrice('Cena před slevou', 'priceBefore');
-
-		if ($this->shopperUser->getShowVat()) {
-			$grid->addColumnInputPrice('Cena před slevou s DPH', 'priceVatBefore');
-		}
-
-		$grid->addColumnActionDelete([$this, 'deletePrice'], true);
-
-		$submit = $grid->getForm()->addSubmit('submit', 'Uložit');
-		$submit->setHtmlAttribute('class', 'btn btn-sm btn-primary');
-		$submit->onClick[] = function ($button) use ($grid, $product): void {
-			foreach ($grid->getInputData() as $id => $data) {
-				if (!isset($data['price'])) {
-					continue;
-				}
-
-				$newData = [
-					'price' => \floatval(\str_replace(',', '.', $data['price'])),
-					'priceBefore' => isset($data['priceBefore']) ? \floatval(\str_replace(',', '.', $data['priceBefore'])) : null,
-					'product' => $product,
-					'pricelist' => $id,
-				];
-
-				if ($this->shopperUser->getShowVat()) {
-					$newData += [
-						'priceVat' => isset($data['priceVat']) ? \floatval(\str_replace(',', '.', $data['priceVat'])) : $data['price'] +
-							($data['price'] * \fdiv(\floatval($this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), 100)),
-						'priceVatBefore' => isset($data['priceVatBefore']) ? \floatval(\str_replace(',', '.', $data['priceVatBefore'])) : null,
-					];
-				}
-
-				$this->priceRepository->syncOne($newData);
-			}
-
-			$grid->getPresenter()->flashMessage('Uloženo', 'success');
-			$grid->getPresenter()->redirect('this');
-		};
-
-		$grid->addFilterTextInput('search', ['code'], null, 'Kód ceníku');
-		$grid->addFilterButtons(['prices', $product]);
-
-		return $grid;
-	}
-
 	public function deletePrice(Pricelist $pricelist): void
 	{
 		$this->priceRepository->getPricesByPriceList($pricelist)->where('fk_product', $this->getParameter('product'))->delete();
@@ -716,17 +646,6 @@ class ProductPresenter extends BackendPresenter
 		}
 
 		$this->template->setFile(__DIR__ . '/templates/product.edit.latte');
-	}
-
-	public function renderPrices(Product $product): void
-	{
-		$this->template->headerLabel = 'Ceny - ' . $product->name;
-		$this->template->headerTree = [
-			['Produkty', 'default'],
-			['Ceny'],
-		];
-		$this->template->displayButtons = [$this->createBackButton('default')];
-		$this->template->displayControls = [$this->getComponent('priceGrid')];
 	}
 
 	public function renderFiles(Product $product): void

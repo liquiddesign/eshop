@@ -249,7 +249,9 @@ class PricelistsPresenter extends BackendPresenter
 				->setGroupBy(['this.uuid'])
 				->select(['rate' => 'rates.rate'])
 				->join(['products' => 'eshop_product'], 'products.uuid=this.fk_product')
-				->join(['rates' => 'eshop_vatrate'], 'rates.uuid = products.vatRate AND rates.fk_country=pricelist.fk_country'),
+				->join(['pricelist' => 'eshop_pricelist'], 'pricelist.uuid=this.fk_pricelist')
+				->join(['productVatRate' => 'eshop_productvatrate'], 'productVatRate.fk_product = products.uuid AND productVatRate.fk_country=pricelist.fk_country')
+				->join(['rates' => 'eshop_vatrate'], 'rates.uuid = productVatRate.fk_vatrate'),
 			20,
 			null,
 			'ASC',

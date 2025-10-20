@@ -33,7 +33,7 @@
             <STORAGE_DATE n:if="$product->storageDate">{$product->storageDate}</STORAGE_DATE>
             <PRICE>{$product->getPrice()}</PRICE>
             <PRICE_VAT>{$product->getPriceVat()}</PRICE_VAT>
-            <VAT>{$vatRates[$product->vatRate]}</VAT>
+            <VAT>{$product->getValue('vatPct')}</VAT>
             <MOQ>{$product->minBuyCount}</MOQ>
             <PACKAGE>{$product->inPackage}</PACKAGE>
             <INNER_PACKAGE>{$product->inCarton}</INNER_PACKAGE>
