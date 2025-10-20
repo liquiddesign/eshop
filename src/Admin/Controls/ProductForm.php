@@ -562,7 +562,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 					'data-info',
 					'Pokud necháte prázdné tak se bude vypočítávat ze skutečných nákupů. Pokud chcete vygenerovat náhodné hodnoty, použijte tlačítko "Generovat zakoupení" na seznamu produktů.',
 				)
-				->addFilter('intval')->addCondition($form::FILLED)->addRule($form::MIN, 'Zadejte číslo rovné nebo větší než 0!', 0);
+				->addFilter('intval')->addCondition($form::Filled)->addRule($form::Min, 'Zadejte číslo rovné nebo větší než 0!', 0);
 		}
 
 		$form->addPageContainer(
