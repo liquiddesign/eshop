@@ -11,8 +11,14 @@
 <form n:name="form">
     {var $activeMutation = $form->getActiveMutation()}
 	    {var $renderer = $form->getRenderer()}
-    <ul class="error" n:ifcontent>
-        <li n:foreach="$form->getOwnErrors() as $error">{$error}</li>
+    <ul class="error alert alert-danger" n:ifcontent>
+        {foreach $form->getControlsErrors() as $controlWithErrors}
+            <li>{$controlWithErrors['label']|noescape}</li>
+
+            <ul>
+                <li n:foreach="$controlWithErrors['errors'] as $error">{$error}</li>
+            </ul>
+        {/foreach}
     </ul>
 
     {if isset($form['__MUTATION_SELECTOR'])}
