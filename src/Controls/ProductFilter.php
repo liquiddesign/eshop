@@ -425,11 +425,11 @@ class ProductFilter extends Control
 	protected function getSystemicAttributeValues(string $uuid): array
 	{
 		if ($uuid === 'availability') {
-			return $this->displayAmountRepository->getArrayForSelect(false);
+			return $this->displayAmountRepository->getCollection()->toArrayOf('label');
 		}
 
 		if ($uuid === 'delivery') {
-			return $this->displayDeliveryRepository->getArrayForSelect(false);
+			return $this->displayDeliveryRepository->getCollection()->toArrayOf('label');
 		}
 
 		if ($uuid === 'producer') {
