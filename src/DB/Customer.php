@@ -104,10 +104,35 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	public ?Address $deliveryAddress;
 	
 	/**
+	 * Dodací adresy
+	 * @relationNxN{"via":"eshop_customer_nxn_eshop_address"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Address>
+	 */
+	public RelationCollection $deliveryAddresses;
+	
+	/**
 	 * Účet
 	 * @column
 	 */
 	public ?string $bankAccount;
+	
+	/**
+	 * Fakturační email
+	 * @column
+	 */
+	public ?string $invoiceEmail;
+	
+	/**
+	 * Splatnost faktur - počet dní
+	 * @column
+	 */
+	public ?int $invoiceMaturityDays;
+	
+	/**
+	 * Povolené saldo
+	 * @column
+	 */
+	public ?int $saldoLimit;
 	
 	/**
 	 * Kód banky
