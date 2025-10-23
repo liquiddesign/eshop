@@ -23,6 +23,7 @@ use Eshop\DB\Pricelist;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\PriceRepository;
 use Eshop\DB\ProducerRepository;
+use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\QuantityPrice;
 use Eshop\DB\QuantityPriceRepository;
@@ -38,6 +39,7 @@ use League\Csv\Reader;
 use League\Csv\Writer;
 use Nette\Application\Attributes\Persistent;
 use Nette\Application\Responses\FileResponse;
+use Nette\Application\UI\Presenter;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\DI\Attributes\Inject;
@@ -338,7 +340,8 @@ class PricelistsPresenter extends BackendPresenter
 		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
 		$grid->addButtonSaveAll(onRowUpdate: function (string $id, array &$prices, Price $price) use ($autoPriceConfig): void {
-			if ((!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && !isset($prices['price']) ||
+			if (
+				(!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && !isset($prices['price']) ||
 				($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT && !isset($prices['priceVat']))
 			) {
 				return;
@@ -569,7 +572,8 @@ class PricelistsPresenter extends BackendPresenter
 		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
 		$grid->addButtonSaveAll(onRowUpdate: function (string $id, array &$prices, Price $price) use ($autoPriceConfig): void {
-			if ((!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && !isset($prices['price']) ||
+			if (
+				(!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && !isset($prices['price']) ||
 				($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT && !isset($prices['priceVat']))
 			) {
 				return;
@@ -840,6 +844,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		];
 		$this->template->displayButtons = [
 			$this->createBackButton('default'),
+			$this->createNewItemButton('priceNew', [$pricelist]),
 			$this->createButtonWithClass(
 				'importPriceList',
 				'<i class="fas fa-file-import"></i> Import',
@@ -1137,6 +1142,108 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('aggregateForm')];
+	}
+
+	public function actionPriceNew(Pricelist $pricelist): void
+	{
+		/** @var \Admin\Controls\AdminForm $form */
+		$form = $this->getComponent('priceNewForm');
+
+		$form->setDefaults(['pricelist' => $pricelist->getPK()]);
+	}
+
+	public function renderPriceNew(Pricelist $pricelist): void
+	{
+		$this->template->headerLabel = 'Nová cena - ' . $pricelist->name . ' (' . $pricelist->currency->code . ')';
+		$this->template->headerTree = [
+			['Ceníky', 'default'],
+			['Ceny', 'priceListItems', $pricelist],
+			['Nová cena'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('priceListItems', $pricelist)];
+		$this->template->displayControls = [$this->getComponent('priceNewForm')];
+	}
+
+	public function createComponentPriceNewForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+
+		$productInput = null;
+
+		$form->monitor(Presenter::class, function () use (&$productInput, $form): void {
+			$productInput = $form->addSelectAjax('product', 'Produkt', '- Vyberte produkt -', Product::class);
+
+			$form->addHidden('pricelist')->setRequired();
+
+			$form->addText('price', 'Cena')->addRule($form::FLOAT)->setRequired();
+
+			if ($this->shopperUser->getShowVat()) {
+				$form->addText('priceVat', 'Cena s DPH')->addRule($form::FLOAT);
+			}
+
+			$form->addText('priceBefore', 'Cena před slevou')->addRule($form::FLOAT)->setNullable();
+
+			if ($this->shopperUser->getShowVat()) {
+				$form->addText('priceVatBefore', 'Cena před slevou s DPH')->addRule($form::FLOAT)->setNullable();
+			}
+
+			$form->addSubmits();
+		});
+
+		$form->onValidate[] = function (AdminForm $form) use ($productInput): void {
+			$values = $form->getValuesWithAjax();
+
+			if (isset($values['product']) && $values['product']) {
+				return;
+			}
+
+			$productInput->addError('Toto pole je povinné!');
+		};
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$values = $form->getValuesWithAjax();
+
+			if (!isset($values['priceVat']) || $values['priceVat'] === '') {
+				$values['priceVat'] = null;
+			}
+
+			if (!isset($values['priceBefore']) || $values['priceBefore'] === '') {
+				$values['priceBefore'] = null;
+			}
+
+			if (!isset($values['priceVatBefore']) || $values['priceVatBefore'] === '') {
+				$values['priceVatBefore'] = null;
+			}
+
+			$product = $this->productRepository->one($values['product'], true);
+			$pricelist = $this->priceListRepository->one($values['pricelist'], true);
+
+			// Auto-calculate VAT prices
+			$vatRate = $this->vatRateRepository->getDefaultVatRates()[$product->vatRate];
+
+			if ($values['price'] !== null && $values['priceVat'] === null) {
+				$values['priceVat'] = \round($values['price'] * \fdiv(100 + $vatRate, 100), ShopperUser::PRICE_PRECISSION);
+			}
+
+			if ($values['priceVat'] !== null && $values['price'] === null) {
+				$values['price'] = \round($values['priceVat'] * \fdiv(100, 100 + $vatRate), ShopperUser::PRICE_PRECISSION);
+			}
+
+			if ($values['priceBefore'] !== null && $values['priceVatBefore'] === null) {
+				$values['priceVatBefore'] = \round($values['priceBefore'] * \fdiv(100 + $vatRate, 100), ShopperUser::PRICE_PRECISSION);
+			}
+
+			if ($values['priceVatBefore'] !== null && $values['priceBefore'] === null) {
+				$values['priceBefore'] = \round($values['priceVatBefore'] * \fdiv(100, 100 + $vatRate), ShopperUser::PRICE_PRECISSION);
+			}
+
+			$this->priceRepository->syncOne($values, null, true);
+
+			$this->flashMessage('Uloženo', 'success');
+			$form->processRedirect('this', 'priceListItems', [$pricelist], [$pricelist]);
+		};
+
+		return $form;
 	}
 
 	public function createComponentAggregateForm(): AdminForm
