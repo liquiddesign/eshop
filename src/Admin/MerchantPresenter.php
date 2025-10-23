@@ -10,6 +10,7 @@ use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\Customer;
 use Eshop\DB\CustomerGroupRepository;
+use Eshop\DB\CustomerRegionRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
 use Eshop\DB\MerchantRepository;
@@ -66,6 +67,9 @@ class MerchantPresenter extends BackendPresenter
 
 	#[Inject]
 	public GeneralProductsCacheProvider $productsCacheGetterService;
+
+	#[Inject]
+	public CustomerRegionRepository $customerRegionRepository;
 
 	/**
 	 * @var null|callable(array<mixed> $values, \Admin\Controls\AdminForm $form): bool
@@ -183,6 +187,9 @@ class MerchantPresenter extends BackendPresenter
 			}
 
 			$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect());
+
+			$form->addMultiSelect2('customerRegions', 'Regiony', $this->customerRegionRepository->getArrayForSelect())
+				->setDefaultValue($merchant?->customerRegions->toArrayOf('uuid') ?? null);
 
 			if ($this::CONFIGURATIONS['customers']) {
 				$customersInput = $form->addMultiSelectAjax('customers', 'Zákazníci', 'Zvolte zákazníky', Customer::class);

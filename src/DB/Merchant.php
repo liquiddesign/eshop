@@ -151,6 +151,13 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	public RelationCollection $accounts;
 
 	/**
+	 * Regióny
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\CustomerRegion>
+	 */
+	public RelationCollection $customerRegions;
+
+	/**
 	 * Určuje odkud se berou ceníky
 	 * @column{"type":"enum","length":"'customer','merchant','merge'"}
 	 */

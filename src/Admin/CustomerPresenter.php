@@ -15,6 +15,7 @@ use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\Customer;
 use Eshop\DB\CustomerGroupRepository;
+use Eshop\DB\CustomerRegionRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\CustomerRoleRepository;
 use Eshop\DB\DeliveryTypeRepository;
@@ -192,6 +193,9 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 	#[Inject]
 	public GetCronService $getCronService;
+
+	#[Inject]
+	public CustomerRegionRepository $customerRegionRepository;
 
 	/**
 	 * @var null|callable(array<mixed> $values, \Admin\Controls\AdminForm $form): bool
@@ -785,6 +789,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			}
 
 			$form->addDataMultiSelect('merchants', $lableMerchants, $this->merchantRepository->getArrayForSelect());
+			$form->addDataSelect('customerRegion', 'Region', $this->customerRegionRepository->getArrayForSelect());
 			$form->addDataSelect('group', 'Skupina', $this->groupsRepo->getArrayForSelect(true, $this::CONFIGURATIONS['showUnregisteredGroup']))
 				->setPrompt('Žádná');
 

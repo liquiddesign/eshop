@@ -109,7 +109,7 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @var \StORM\RelationCollection<\Eshop\DB\Address>
 	 */
 	public RelationCollection $deliveryAddresses;
-	
+
 	/**
 	 * Účet
 	 * @column
@@ -121,19 +121,19 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @column
 	 */
 	public ?string $invoiceEmail;
-	
+
 	/**
 	 * Splatnost faktur - počet dní
 	 * @column
 	 */
 	public ?int $invoiceMaturityDays;
-	
+
 	/**
 	 * Povolené saldo
 	 * @column
 	 */
 	public ?int $saldoLimit;
-	
+
 	/**
 	 * Kód banky
 	 * @column
@@ -461,6 +461,13 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @var \StORM\RelationCollection<\Eshop\DB\InternalRibbon>
 	 */
 	public RelationCollection $internalRibbons;
+
+	/**
+	 * Customer region
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?CustomerRegion $customerRegion;
 
 	public ?Account $account = null;
 
