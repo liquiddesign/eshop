@@ -844,7 +844,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		];
 		$this->template->displayButtons = [
 			$this->createBackButton('default'),
-			$this->createNewItemButton('priceNew', [$pricelist]),
+			$pricelist->isReadonly ? null : $this->createNewItemButton('priceNew', [$pricelist]),
 			$this->createButtonWithClass(
 				'importPriceList',
 				'<i class="fas fa-file-import"></i> Import',
