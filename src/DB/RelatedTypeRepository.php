@@ -21,7 +21,7 @@ use Web\DB\SettingRepository;
 class RelatedTypeRepository extends \StORM\Repository implements IGeneralRepository
 {
 	private LatteFactory $latteFactory;
-	
+
 	private SettingRepository $settingRepository;
 
 	public function __construct(DIConnection $connection, SchemaManager $schemaManager, SettingRepository $settingRepository, LatteFactory $latteFactory)
@@ -113,11 +113,11 @@ class RelatedTypeRepository extends \StORM\Repository implements IGeneralReposit
 			return false;
 		}
 	}
-	
+
 	public function getAttributeBySettingName(string $settingName): ?RelatedType
 	{
 		$setting = $this->settingRepository->getValueByName($settingName);
-		
+
 		return $setting ? $this->one($setting) : null;
 	}
 }

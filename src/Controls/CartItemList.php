@@ -35,7 +35,7 @@ class CartItemList extends Datalist
 	 * @var array<callable(): void> Occurs on delete all items
 	 */
 	public array $onDeleteAll = [];
-	
+
 	public ?string $cartId = CheckoutManager::ACTIVE_CART_ID;
 
 	public function __construct(
@@ -122,29 +122,29 @@ class CartItemList extends Datalist
 
 		$this->shopperUser->getCheckoutManager()->changeCartItemAmount($cartItem->getProduct(), $cartItem, $amount);
 	}
-	
+
 	public function handleChangeUpsell($cartItem, $upsell, bool $isUnique = false): void
 	{
 		/** @var \Eshop\DB\CartItem $cartItem */
 		$cartItem = $this->cartItemsRepository->one($cartItem, true);
-		
+
 		if ($isUnique) {
 			$upsellIds = \array_keys($this->productRepository->getCartItemRelations($cartItem));
 			$this->cartItemsRepository->deleteUpsellByObjects($cartItem, $upsellIds);
 		}
-		
+
 		$upsell = $this->productRepository->getCartItemRelations($cartItem)[$upsell];
-		
+
 		if ($this->isUpsellActive($cartItem->getPK(), $upsell->getPK())) {
 			$cartItem = $this->cartItemsRepository->getUpsellByObjects($cartItem, $upsell);
-			
+
 			if ($cartItem) {
 				$this->shopperUser->getCheckoutManager()->deleteItem($cartItem);
 			}
 		} else {
 			$this->shopperUser->getCheckoutManager()->addUpsellToCart($cartItem, $upsell);
 		}
-		
+
 		$this->redirect('this');
 	}
 

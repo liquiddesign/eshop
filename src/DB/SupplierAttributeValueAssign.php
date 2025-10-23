@@ -17,7 +17,7 @@ class SupplierAttributeValueAssign extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public SupplierAttributeValue $supplierAttributeValue;
-	
+
 	/**
 	 * Dodavatelský produkt
 	 * @relation

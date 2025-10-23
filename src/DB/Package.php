@@ -18,26 +18,26 @@ class Package extends \StORM\Entity
 	 * @column
 	 */
 	public int $id = 1;
-	
+
 	/**
 	 * Váha
 	 * @column
 	 */
 	public ?float $weight = null;
-	
+
 	/**
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\PackageItem>
 	 */
 	public RelationCollection $items;
-	
+
 	/**
 	 * Doručení
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public Delivery $delivery;
-	
+
 	/**
 	 * Objednávka
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}

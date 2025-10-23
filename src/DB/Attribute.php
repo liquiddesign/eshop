@@ -32,7 +32,7 @@ class Attribute extends \StORM\Entity
 	 * @column{"mutations":true}
 	 */
 	public ?string $name;
-	
+
 	/**
 	 * Dodatečné informace pro front, např.: na otazník
 	 * @column{"mutations":true, "type":"longtext"}
@@ -181,7 +181,7 @@ class Attribute extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\AttributeGroup>
 	 */
 	public RelationCollection $groups;
-	
+
 	/**
 	 * Dodavatel / externí
 	 * @relation

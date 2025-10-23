@@ -31,37 +31,37 @@ class Producer extends SystemicEntity
 	 * @column{"mutations":true}
 	 */
 	public ?string $name;
-	
+
 	/**
 	 * Perex
 	 * @column{"type":"text","mutations":true}
 	 */
 	public ?string $perex;
-	
+
 	/**
 	 * Obsah
 	 * @column{"type":"longtext","mutations":true}
 	 */
 	public ?string $content;
-	
+
 	/**
 	 * Logo výrobce
 	 * @column
 	 */
 	public ?string $imageFileName;
-	
+
 	/**
 	 * Priorita
 	 * @column
 	 */
 	public int $priority = 10;
-	
+
 	/**
 	 * Doporučené
 	 * @column
 	 */
 	public bool $recommended = false;
-	
+
 	/**
 	 * Skryto
 	 * @column

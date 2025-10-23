@@ -31,44 +31,44 @@ class SupplierPresenter extends BackendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public SupplierRepository $supplierRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public ImportResultRepository $importResultRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public SupplierCategoryRepository $supplierCategoryRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public SupplierProductRepository $supplierProductRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $pricelistRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public StoreRepository $storeRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public DisplayDeliveryRepository $displayDeliveryRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public DisplayAmountRepository $displayAmountRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $customerGroupRepository;
-	
+
 	public function beforeRender(): void
 	{
 		parent::beforeRender();
-		
+
 		$this->template->tabs = [
 			'@default' => 'Zdroje',
 			'@history' => 'Historie importů a zápisů',
 		];
 	}
-	
+
 	public function createComponentSupplierGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->supplierRepository->many(), 20, 'name', 'ASC', true);
@@ -85,14 +85,14 @@ class SupplierPresenter extends BackendPresenter
 				'"><i class="fa fa-play"></i> Zapsat do katalogu</a>';
 		});
 		$grid->addColumnLinkDetail();
-		
+
 		$grid->addFilterTextInput('search', ['name', 'code'], null, 'Název, kód');
 		$grid->addFilterButtons();
 		$grid->addButtonSaveAll();
-		
+
 		return $grid;
 	}
-	
+
 	public function createComponentHistoryGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->importResultRepository->many(), 20, 'startedTs', 'DESC', true);
@@ -107,7 +107,7 @@ class SupplierPresenter extends BackendPresenter
 			} else {
 				$color = 'info';
 			}
-			
+
 			return '<i title="" class="fa fa-circle fa-sm text-' . $color . '">';
 		}, '%s', null, ['class' => 'fit']);
 		$grid->addColumnText('Zahájeno', "startedTs|date:'d.m.Y G:i'", '%s', 'startedTs', ['class' => 'minimal'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
@@ -134,14 +134,14 @@ class SupplierPresenter extends BackendPresenter
 
 			return $object->type === 'import' ? 'Import běží / nedokončen' : 'Zápis do katalogu běží / nedokončen';
 		}, '%s', null);
-		
+
 		$grid->addColumnText('Nových', 'insertedCount', '%s', 'insertedCount', ['class' => 'minimal'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Upravených', 'updatedCount', '%s', 'updatedCount', ['class' => 'minimal'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumnText('Přeskočených', 'skippedCount', '%s', 'skippedCount', ['class' => 'minimal'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 		$grid->addColumn('Obrázků', function (ImportResult $object, Datagrid $datagrid) {
 			return $object->imageDownloadCount . ( $object->imageErrorCount ? ' (<span style="color: red;"> ' . $object->imageErrorCount . ' </span>)' : '');
 		}, '%s', null, ['class' => 'minimal'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
-		
+
 		$grid->addColumn('', function (ImportResult $object, Datagrid $datagrid): string {
 			if (!\is_file($this->tempDir . '/log/import/' . $object->id . '.log')) {
 				return '';
@@ -151,11 +151,11 @@ class SupplierPresenter extends BackendPresenter
 
 			return '<a class="btn btn-outline-primary btn-sm text-xs" target="_blank" style="white-space: nowrap" href="' . $link . '">Podrobný log</a>';
 		}, '%s', null, ['class' => 'minimal']);
-		
-		
+
+
 		$grid->addFilterTextInput('search', ['supplier.name', 'supplier.code'], null, 'Název, kód');
 		$grid->addFilterButtons();
-		
+
 		return $grid;
 	}
 
@@ -241,7 +241,7 @@ class SupplierPresenter extends BackendPresenter
 		$form->addCheckbox('defaultHiddenProduct', 'Produkty budou skryté');
 		$form->addCheckbox('defaultActive', 'Nové dodavatelské produkty budou neaktivní');
 		$form->addCheckbox('pairWithAlgolia', 'Povolit párování pomocí Algolia')->setHtmlAttribute('data-info', 'Pro zobrazení je nutné mít v Integraci nastavené API.');
-		
+
 		$form->addGroup('Nastavení importu');
 		$form->addInteger('importPriority', 'Priorita')->setRequired();
 		$form->addInteger('importPriceRatio', 'Procentuální změna ceny')->setRequired();
@@ -249,55 +249,55 @@ class SupplierPresenter extends BackendPresenter
 		$form->addCheckbox('importImages', 'Importovat obrázky');
 
 		$this->addCustomFieldsToSupplierForm($form);
-		
+
 		$form->addSubmits(!$supplier);
-		
+
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
-			
+
 			/** @var \Eshop\DB\Supplier $supplier */
 			$supplier = $this->supplierRepository->syncOne($values, null, true);
-			
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$supplier]);
 		};
-		
+
 		return $form;
 	}
-	
+
 	public function createComponentPairForm(): AdminForm
 	{
 		/** @var \Eshop\DB\Supplier $supplier */
 		$supplier = $this->getParameter('supplier');
-		
+
 		$form = $this->formFactory->create();
-		
+
 		$form->addCheckbox('only_new', 'Jen nové produkty')->setDefaultValue(false);
 		$form->addCheckbox('allowImportImages', 'Kopírovat obrázky')->setDefaultValue($supplier->importImages);
-		
+
 		$form->addSubmit('submit', 'Potvrdit');
-		
+
 		$form->onSuccess[] = function (AdminForm $form) use ($supplier): void {
 			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
-			
+
 			$this->supplierRepository->catalogEntry($supplier, $this->tempDir . '/log/import', $values['only_new'], $values['allowImportImages']);
-			
+
 			$this->flashMessage('Zapsáno do katalogu', 'success');
 			$form->getPresenter()?->redirect('default');
 		};
-		
+
 		return $form;
 	}
-	
+
 	public function actionPair(Supplier $supplier): void
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('pairForm');
-		
+
 		$form->setDefaults($supplier->toArray());
 	}
-	
+
 	public function renderPair(): void
 	{
 		$this->template->headerLabel = 'Import';
@@ -308,14 +308,14 @@ class SupplierPresenter extends BackendPresenter
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('pairForm')];
 	}
-	
+
 	public function actionLogItems(ImportResult $importResult): void
 	{
 		echo \nl2br(\file_get_contents($this->tempDir . '/log/import/' . $importResult->id . '.log'));
-		
+
 		$this->terminate();
 	}
-	
+
 	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Přehled zdrojů';
@@ -336,7 +336,7 @@ class SupplierPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
-	
+
 	public function renderHistory(): void
 	{
 		$this->template->headerLabel = 'Historie importů a zápisů';
@@ -346,7 +346,7 @@ class SupplierPresenter extends BackendPresenter
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('historyGrid')];
 	}
-	
+
 	public function renderDetail(): void
 	{
 		$this->template->headerLabel = 'Detail zdroje';
@@ -359,23 +359,23 @@ class SupplierPresenter extends BackendPresenter
 		];
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
-	
+
 	public function actionDetail(Supplier $supplier): void
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('form');
-		
+
 		$form->setDefaults($supplier->toArray());
 	}
-	
+
 	public function actionImport(Supplier $supplier): void
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('importForm');
-		
+
 		$form->setDefaults($supplier->toArray());
 	}
-	
+
 	public function renderImport(): void
 	{
 		$this->template->headerLabel = 'Import';

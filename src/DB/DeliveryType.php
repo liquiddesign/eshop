@@ -19,13 +19,13 @@ use StORM\RelationCollection;
 class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 {
 	public const IMAGE_DIR = 'deliverytype_images';
-	
+
 	/**
 	 * Kód
 	 * @column
 	 */
 	public string $code;
-	
+
 	/**
 	 * Externí ID
 	 * @column
@@ -43,68 +43,68 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	 * @column
 	 */
 	public ?string $externalIdZbozi;
-	
+
 	/**
 	 * Název
 	 * @column{"mutations":true}
 	 */
 	public ?string $name;
-	
+
 	/**
 	 * Popisek
 	 * @column{"type":"text","mutations":true}
 	 */
 	public ?string $perex;
-	
+
 	/**
 	 * Instrukce (např. do emailu)
 	 * @column{"type":"text","mutations":true}
 	 */
 	public ?string $instructions;
-	
+
 	/**
 	 * Náhledový obrázek
 	 * @column
 	 */
 	public ?string $imageFileName;
-	
+
 	/**
 	 * Trakovací odkaz v printf formátu
 	 * @column
 	 */
 	public ?string $trackingLink;
-	
+
 	/**
 	 * Exportovat do feedu
 	 * @column
 	 */
 	public bool $exportToFeed = false;
-	
+
 	/**
 	 * Exclusivní pro skupiny uživatelů
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public ?CustomerGroup $exclusive;
-	
+
 	/**
 	 * Priorita
 	 * @column
 	 */
 	public int $priority = 10;
-	
+
 	/**
 	 * Skryto
 	 * @column
 	 */
 	public bool $hidden = false;
-	
+
 	/**
 	 * Doporučeno
 	 * @column
 	 */
 	public bool $recommended = false;
-	
+
 	/**
 	 * Externí dopravce
 	 * @column
@@ -122,25 +122,25 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	 * @column
 	 */
 	public ?float $maxWeight;
-	
+
 	/**
 	 * Max rozměr
 	 * @column
 	 */
 	public ?float $maxDimension;
-	
+
 	/**
 	 * Šířka
 	 * @column
 	 */
 	public ?int $maxWidth;
-	
+
 	/**
 	 * Délka
 	 * @column
 	 */
 	public ?int $maxLength;
-	
+
 	/**
 	 * Hloubka
 	 * @column
@@ -164,7 +164,7 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?DisplayDelivery $defaultDisplayDelivery;
-	
+
 	/**
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentType>
@@ -188,21 +188,21 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	 * @var \StORM\RelationCollection<\Eshop\DB\DeliveryTypeThreshold>
 	 */
 	public RelationCollection $deliveryTypeThresholds;
-	
+
 	/**
 	 * Výdejní typ
 	 * @relation
 	 * @constraint
 	 */
 	public ?PickupPointType $pickupPointType;
-	
+
 	private BoxPacker\PackedBoxList $boxesForItems;
-	
+
 	public function getPackagesNo(): int
 	{
 		return $this->getValue('packagesNo') ?? 1;
 	}
-	
+
 	/**
 	 * @param array<\Eshop\DB\CartItem> $items
 	 */
@@ -211,24 +211,24 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 		if ($this->maxWeight === null && $this->maxDepth === null && $this->maxLength === null && $this->maxWidth === null) {
 			$packedBox = new BoxPacker\PackedBoxList();
 			$packedBox->insert(new BoxPacker\PackedBox($this, new BoxPacker\PackedItemList()));
-			
+
 			return $packedBox;
 		}
-		
+
 		if (isset($this->boxesForItems)) {
 			return $this->boxesForItems;
 		}
-		
+
 		$packer = new Packer();
 		$packer->addBox($this);
-		
+
 		foreach ($items as $item) {
 			$packer->addItem($item, $item->amount);
 		}
-		
+
 		return $this->boxesForItems = $packer->pack();
 	}
-	
+
 	/**
 	 * Reference for box type (e.g. SKU or description).
 	 */
@@ -236,7 +236,7 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	{
 		return $this->code ?: $this->name;
 	}
-	
+
 	/**
 	 * Outer width in mm.
 	 */
@@ -244,7 +244,7 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	{
 		return (int) $this->maxWidth;
 	}
-	
+
 	/**
 	 * Outer length in mm.
 	 */
@@ -252,7 +252,7 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	{
 		return (int) $this->maxLength;
 	}
-	
+
 	/**
 	 * Outer depth in mm.
 	 */
@@ -260,7 +260,7 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	{
 		return (int) $this->maxDepth;
 	}
-	
+
 	/**
 	 * Empty weight in g.
 	 */
@@ -268,7 +268,7 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	{
 		return 0;
 	}
-	
+
 	/**
 	 * Inner width in mm.
 	 */
@@ -276,7 +276,7 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	{
 		return (int) $this->maxWidth;
 	}
-	
+
 	/**
 	 * Inner length in mm.
 	 */
@@ -284,7 +284,7 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	{
 		return (int) $this->maxLength;
 	}
-	
+
 	/**
 	 * Inner depth in mm.
 	 */
@@ -292,7 +292,7 @@ class DeliveryType extends ShopSystemicEntity implements BoxPacker\Box
 	{
 		return (int) $this->maxDepth;
 	}
-	
+
 	/**
 	 * Max weight the packaging can hold in g.
 	 */

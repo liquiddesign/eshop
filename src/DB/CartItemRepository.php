@@ -14,11 +14,11 @@ use StORM\SchemaManager;
 class CartItemRepository extends \StORM\Repository
 {
 	private ProductRepository $productRepository;
-	
+
 	public function __construct(DIConnection $connection, SchemaManager $schemaManager, ProductRepository $productRepository)
 	{
 		parent::__construct($connection, $schemaManager);
-		
+
 		$this->productRepository = $productRepository;
 	}
 
@@ -30,12 +30,12 @@ class CartItemRepository extends \StORM\Repository
 	{
 		return (float) $this->many()->where('fk_cart', $cartIds)->sum($property === 'amount' ? 'this.amount' : "this.$property * this.amount");
 	}
-	
+
 	public function getSumItems(Cart $cart): int
 	{
 		return $this->many()->where('fk_cart', $cart->getPK())->where('fk_upsell IS NULL')->count();
 	}
-	
+
 	public function getItem(Cart $cart, Product $product, ?Variant $variant = null): ?CartItem
 	{
 		$query = $this->many()
@@ -48,7 +48,7 @@ class CartItemRepository extends \StORM\Repository
 
 		return $query->first();
 	}
-	
+
 	public function updateItemAmount(Cart $cart, ?Variant $variant, Product $product, int $amount): int
 	{
 		$qeury = $this->many()
@@ -68,7 +68,7 @@ class CartItemRepository extends \StORM\Repository
 			->where('this.uuid', $cartItem->getPK())
 			->update(['amount' => $amount, 'price' => $product->getPrice($amount), 'priceVat' => $product->getPriceVat($amount)]);
 	}
-	
+
 	public function updateNote(Cart $cart, Product $product, ?Variant $variant, ?string $note): int
 	{
 		$query = $this->many()
@@ -90,7 +90,7 @@ class CartItemRepository extends \StORM\Repository
 	{
 		return clone $this->many()->where('fk_cart', $cartIds);
 	}
-	
+
 	public function deleteItem(Cart $cart, CartItem $item): int
 	{
 		return $this->many()->where('fk_cart', $cart)->where('this.uuid', $item)->delete();
@@ -102,9 +102,9 @@ class CartItemRepository extends \StORM\Repository
 		$vatRepo = $this->getConnection()->findRepository(VatRate::class);
 		/** @var \Eshop\DB\VatRate|null $vat */
 		$vat = $vatRepo->one($product->vatRate);
-		
+
 		$vatPct = $vat ? $vat->rate : 0;
-		
+
 		return $this->syncOne([
 			'uuid' => $item,
 			'productName' => $product->toArray()['name'],
@@ -130,7 +130,7 @@ class CartItemRepository extends \StORM\Repository
 			'cart' => $cart->getPK(),
 		]);
 	}
-	
+
 	/**
 	 * Vrací další násobek počtu kusů
 	 * @param int $amount
@@ -140,7 +140,7 @@ class CartItemRepository extends \StORM\Repository
 	{
 		return \intVal(\round(($amount + $multiple / 2) / $multiple) * $multiple);
 	}
-	
+
 	/**
 	 * Vrací počet kusů zaokrohlený na balení/karton/paletu
 	 * @param int $amount
@@ -150,36 +150,36 @@ class CartItemRepository extends \StORM\Repository
 	public function roundUpToProductRoundAmount(int $amount, float $prAmount, int $multiple): int
 	{
 		$nextMultiple = \ceil($amount) % $multiple === 0 ? \ceil($amount) : \round(($amount + $multiple / 2) / $multiple) * $multiple;
-		
+
 		if ($prAmount >= $nextMultiple) {
 			$amount = $nextMultiple;
 		}
-		
+
 		return \intval($amount);
 	}
-	
+
 	public function isUpsellActive(string $cartItem, string $upsell): bool
 	{
 		/** @var \Eshop\DB\CartItem $cartItem */
 		$cartItem = $this->one($cartItem, true);
-		
+
 		/** @var \Eshop\DB\Product $upsell */
 		$upsell = $this->productRepository->one($upsell);
-		
+
 		return (bool) $this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->count() > 0;
 	}
-	
+
 	public function getUpsell(string $cartItem, string $upsell): ?CartItem
 	{
 		/** @var \Eshop\DB\CartItem $cartItem */
 		$cartItem = $this->one($cartItem, true);
-		
+
 		/** @var \Eshop\DB\Product $upsell */
 		$upsell = $this->productRepository->one($upsell);
-		
+
 		return $this->getUpsellByObjects($cartItem, $upsell);
 	}
-	
+
 	public function getUpsellByObjects(CartItem $cartItem, Product $upsell): ?CartItem
 	{
 		return $this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsell->getPK())->first();
@@ -193,7 +193,7 @@ class CartItemRepository extends \StORM\Repository
 	{
 		return $this->many()->where('this.fk_upsell', $cartItem->getPK())->where('product.uuid', $upsellIds)->delete();
 	}
-	
+
 	/**
 	 * @param \StORM\Collection<\Eshop\DB\CartItem> $items
 	 * @param \Eshop\DB\RelatedType $relatedType

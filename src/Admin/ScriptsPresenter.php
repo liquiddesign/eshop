@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Eshop\Admin;
@@ -86,11 +87,13 @@ class ScriptsPresenter extends \Admin\BackendPresenter
 		$i = 0;
 
 		/** @var \Eshop\DB\Product $product */
-		foreach ($this->productRepository->many()
+		foreach (
+			$this->productRepository->many()
 					 ->where('this.imageFileName IS NULL')
 					 ->join(['gallery' => 'eshop_photo'], 'this.uuid = gallery.fk_product')
 					 ->select(['galleryFilename' => 'gallery.filename'])
-					 ->where('gallery.uuid IS NOT NULL') as $product) {
+					 ->where('gallery.uuid IS NOT NULL') as $product
+		) {
 			$product->update([
 				'imageFileName' => $product->getValue('galleryFilename'),
 			]);

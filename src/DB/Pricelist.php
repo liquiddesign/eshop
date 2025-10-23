@@ -20,19 +20,19 @@ class Pricelist extends ShopSystemicEntity
 	 * @column
 	 */
 	public ?string $code;
-	
+
 	/**
 	 * Název
 	 * @column
 	 */
 	public ?string $name;
-	
+
 	/**
 	 * Popis
 	 * @column
 	 */
 	public ?string $description;
-	
+
 	/**
 	 * Je aktivní?
 	 * @column
@@ -44,13 +44,13 @@ class Pricelist extends ShopSystemicEntity
 	 * @column
 	 */
 	public bool $isReadonly = false;
-	
+
 	/**
 	 * Je nákupní?
 	 * @column
 	 */
 	public bool $isPurchase = false;
-	
+
 	/**
 	 * Povolit slevovou hladinu
 	 * @column
@@ -68,7 +68,7 @@ class Pricelist extends ShopSystemicEntity
 	 * @column
 	 */
 	public bool $activeOnlyWithCoupon = false;
-	
+
 	/**
 	 * Priorita
 	 * @column
@@ -81,14 +81,14 @@ class Pricelist extends ShopSystemicEntity
 	 * @unique
 	 */
 	public ?string $customLabel;
-	
+
 	/**
 	 * Měna
 	 * @relation
 	 * @constraint
 	 */
 	public Currency $currency;
-	
+
 	/**
 	 * Země DPH
 	 * @relation
@@ -102,7 +102,7 @@ class Pricelist extends ShopSystemicEntity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Discount>
 	 */
 	public RelationCollection $discounts;
-	
+
 	/**
 	 * Dodavatel / externí ceník
 	 * @relation

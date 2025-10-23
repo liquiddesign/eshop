@@ -20,13 +20,13 @@ class PackageItem extends \StORM\Entity implements IPackageItem
 	 * @column
 	 */
 	public int $amount = 0;
-	
+
 	/**
 	 * Expedováno kusů
 	 * @column
 	 */
 	public int $dispatchedAmount = 0;
-	
+
 	/**
 	 * Výdejka
 	 * @column

@@ -859,9 +859,14 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				/** @var null|string $autoPriceConfig */
 				$autoPriceConfig = $this->configuration[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
-				if (((!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT)
-						&& $prices['price'] === null) ||
-					($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT && $prices['priceVat'] === null)) {
+				if (
+					((!$autoPriceConfig
+					|| $autoPriceConfig === ProductFormAutoPriceConfig::NONE
+					|| $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT)
+						&& $prices['price'] === null)
+					|| ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT
+					&& $prices['priceVat'] === null)
+				) {
 					$this->priceRepository->many()
 						->where('this.fk_pricelist', $pricelistId)
 						->where('this.fk_product', $values['uuid'])

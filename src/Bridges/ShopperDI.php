@@ -91,7 +91,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			]),
 		]);
 	}
-	
+
 	public function loadConfiguration(): void
 	{
 		$config = (array) $this->getConfig();

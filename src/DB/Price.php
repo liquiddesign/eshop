@@ -17,19 +17,19 @@ class Price extends \StORM\Entity
 	 * @column
 	 */
 	public float $price;
-	
+
 	/**
 	 * Cena s DPH
 	 * @column
 	 */
 	public ?float $priceVat;
-	
+
 	/**
 	 * Cena před (pokud je akční)
 	 * @column
 	 */
 	public ?float $priceBefore;
-	
+
 	/**
 	 * Cena před (pokud je akční) s DPH
 	 * @column
@@ -46,14 +46,14 @@ class Price extends \StORM\Entity
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
 	public string $createdTs;
-	
+
 	/**
 	 * Produkt
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public Product $product;
-	
+
 	/**
 	 * Ceník
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}

@@ -24,37 +24,37 @@ class GroupPresenter extends BackendPresenter
 		'defaultAfterRegistration' => true,
 		'prices' => true,
 	];
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepo;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $userGroupRepo;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public PricelistRepository $pricelistRepo;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public ShopperUser $shopperUser;
 
 	#[Inject]
 	public VisibilityListRepository $visibilityListRepository;
-	
+
 	public function createComponentGrid(): AdminGrid
 	{
 		$collection = $this::CONFIGURATION['unregistred'] ? $this->userGroupRepo->many() : $this->userGroupRepo->many()->where('uuid != :s', ['s' => CustomerGroupRepository::UNREGISTERED_PK]);
-		
+
 		$grid = $this->gridFactory->create($collection, 20, 'name', 'ASC', true, filterShops: false);
 		$grid->addColumnSelector();
-		
+
 		$grid->addColumnText('Název', 'name', '%s', 'name');
-		
+
 		$grid->addColumn('Ceníky / Viditelníky', function (CustomerGroup $group) {
 			$pricelistsResultString = '';
-			
+
 			foreach ($group->getDefaultPricelists()->orderBy(['priority' => 'ASC', 'uuid' => 'ASC'])->toArray() as $pricelist) {
 				$link = ':Eshop:Admin:Pricelists:priceListDetail';
-				
+
 				if (!$this->admin->isAllowed($link)) {
 					$pricelistsResultString .= $pricelist->name . ', ';
 				} else {
@@ -73,24 +73,24 @@ class GroupPresenter extends BackendPresenter
 					$visibilityListsResultString .= '<a href=' . $this->link($link, [$visibilityList]) . '>' . $visibilityList->name . '</a>, ';
 				}
 			}
-			
+
 			return [Strings::substring($pricelistsResultString, 0, -2), Strings::substring($visibilityListsResultString, 0, -2)];
 		}, '%s<hr style="margin: 0">%s');
-		
+
 		$grid->addColumn('Katalogové oprávnění', function (CustomerGroup $group) {
 			return ShopperUser::PERMISSIONS[$group->defaultCatalogPermission];
 		}, '%s', null, ['class' => 'fit']);
-		
+
 		$grid->addColumn('Povolený nákup', function (CustomerGroup $group) {
 			return $group->defaultBuyAllowed ? 'Ano' : 'Ne';
 		}, '%s', null, ['class' => 'fit']);
-		
+
 		if ($this::CONFIGURATION['defaultAfterRegistration']) {
 			$grid->addColumn('Výchozí po registraci', function (CustomerGroup $group) {
 				return $group->defaultAfterRegistration ? 'Ano' : 'Ne';
 			}, '%s', null, ['class' => 'fit']);
 		}
-		
+
 		//		if (isset(static::CONFIGURATION['prices']) && static::CONFIGURATION['prices']) {
 		//			if ($this->shopper->getShowWithoutVat()) {
 		//				$grid->addColumnInputCheckbox('Zobrazit cenu bez daně', 'defaultPricesWithoutVat', '', '', 'defaultPricesWithoutVat');
@@ -100,16 +100,16 @@ class GroupPresenter extends BackendPresenter
 		//				$grid->addColumnInputCheckbox('Zobrazit cenu s daní', 'defaultPricesWithVat', '', '', 'defaultPricesWithVat');
 		//			}
 		//		}
-		
+
 		$grid->addColumnLinkDetail('Detail');
 		$grid->addColumnActionDeleteSystemic();
-		
-		
+
+
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected(null, false, function (CustomerGroup $customerGroup) {
 			return !$customerGroup->isSystemic();
 		});
-		
+
 		$grid->addFilterTextInput('search', ['name'], null, 'Název');
 
 		$grid->addFilterButtons();
@@ -126,41 +126,41 @@ class GroupPresenter extends BackendPresenter
 			'defaultVisibilityLists',
 			'defaultViewAllOrders',
 		], 'grid');
-		
+
 		$grid->onRenderRow[] = function (\Nette\Utils\Html $row, $object): void {
 			/** @var \Eshop\DB\CustomerGroup $object */
 			if ($object->getPK() === CustomerGroupRepository::UNREGISTERED_PK) {
 				$row->appendAttribute('style', 'background-color: lavender;');
 			}
 		};
-		
+
 		return $grid;
 	}
 
 	public function createComponentNewForm(): Form
 	{
 		$form = $this->formFactory->create(useShops: true);
-		
+
 		/** @var \Eshop\DB\CustomerGroup|null $group */
 		$group = $this->getParameter('group');
-		
+
 		$form->addText('name', 'Název')->setRequired();
-		
+
 		$catalogPermInput = $form->addSelect('defaultCatalogPermission', 'Katalogové oprávnění', ShopperUser::PERMISSIONS);
-		
+
 		$catalogPermInput->addCondition($form::EQUAL, 'price')
 			->toggle('frm-newForm-defaultPricesWithoutVat-toogle')
 			->toggle('frm-newForm-defaultPricesWithVat-toogle');
-		
+
 		if (isset($this::CONFIGURATION['prices']) && $this::CONFIGURATION['prices']) {
 			if ($this->shopperUser->getShowWithoutVat()) {
 				$withoutVatInput = $form->addCheckbox('defaultPricesWithoutVat', 'Zobrazit ceny bez daně');
 			}
-			
+
 			if ($this->shopperUser->getShowVat()) {
 				$withVatInput = $form->addCheckbox('defaultPricesWithVat', 'Zobrazit ceny s daní');
 			}
-			
+
 			if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
 				$form->addSelect('defaultPriorityPrice', 'Prioritní cena', [
 					'withoutVat' => 'Bez daně',
@@ -171,7 +171,7 @@ class GroupPresenter extends BackendPresenter
 					->toggle('frm-newForm-defaultPriorityPrice-toogle');
 			}
 		}
-		
+
 		$form->addInteger('defaultDiscountLevelPct', 'Výchozí sleva (%)')->setRequired()->setDefaultValue(0);
 		$form->addInteger('defaultMaxDiscountProductPct', 'Výchozí max. sleva u prod. (%)')->setRequired()->setDefaultValue(100);
 		$form->addCheckbox('defaultBuyAllowed', 'Povolený nákup');
@@ -179,20 +179,20 @@ class GroupPresenter extends BackendPresenter
 		$form->addMultiSelect2('defaultPricelists', 'Ceníky', $this->pricelistRepo->getArrayForSelect())
 			->setHtmlAttribute('placeholder', 'Vyberte položky...');
 		$form->addMultiSelect2('defaultVisibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect());
-		
+
 		if ($this::CONFIGURATION['defaultAfterRegistration']) {
 			$form->addCheckbox('defaultAfterRegistration', 'Výchozí po registraci');
 		}
-		
+
 		$form->addCheckbox('autoActiveCustomers', 'Zákazníci budou automaticky aktivní po registraci');
 
 		$form->addSubmits(!$group);
-		
+
 		$form->onSuccess[] = function (AdminForm $form) use ($group): void {
 			$values = $form->getValues('array');
 
 			$group = $this->userGroupRepo->syncOne($values, null, true, ignore: false);
-			
+
 			if (isset($values['defaultAfterRegistration']) && $values['defaultAfterRegistration']) {
 				$query = $this->userGroupRepo->many()->whereNot('this.uuid', $group->getPK());
 
@@ -200,14 +200,14 @@ class GroupPresenter extends BackendPresenter
 
 				$query->update(['defaultAfterRegistration' => false]);
 			}
-			
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$group]);
 		};
-		
+
 		return $form;
 	}
-	
+
 	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Skupiny zákazníků';
@@ -217,7 +217,7 @@ class GroupPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createNewItemButton('new')];
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
-	
+
 	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nový';
@@ -228,7 +228,7 @@ class GroupPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
-	
+
 	public function renderDetail(): void
 	{
 		$this->template->headerLabel = 'Detail';
@@ -239,7 +239,7 @@ class GroupPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
-	
+
 	public function actionDetail(CustomerGroup $group): void
 	{
 		/** @var \Forms\Form $form */

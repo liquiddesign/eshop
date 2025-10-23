@@ -35,14 +35,14 @@ class DiscountRepository extends \StORM\Repository implements IGeneralRepository
 
 		return $this->many()->orderBy(['name'])->toArrayOf('name');
 	}
-	
+
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		unset($includeHidden);
 
 		return $this->many()->orderBy(['validTo', 'validFrom', 'name']);
 	}
-	
+
 	public function getActiveDiscounts(): Collection
 	{
 		return $this->many()

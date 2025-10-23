@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Eshop\Admin;
@@ -68,7 +69,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		'customers' => 'Zákazníci',
 		'accounts' => 'Účty',
 	];
-	
+
 	protected const CONFIGURATIONS = [
 		'labels' => [
 			'merchants' => 'Obchodníci',
@@ -110,31 +111,31 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 	#[Inject]
 	public AccountFormFactory $accountFormFactory;
-	
+
 	#[Inject]
 	public CustomerRepository $customerRepository;
-	
+
 	#[Inject]
 	public AccountRepository $accountRepository;
-	
+
 	#[Inject]
 	public MerchantRepository $merchantRepository;
-	
+
 	#[Inject]
 	public TemplateRepository $templateRepository;
-	
+
 	#[Inject]
 	public ProductRepository $productRepo;
-	
+
 	#[Inject]
 	public PaymentTypeRepository $paymentTypeRepo;
-	
+
 	#[Inject]
 	public DeliveryTypeRepository $deliveryTypeRepo;
-	
+
 	#[Inject]
 	public CurrencyRepository $currencyRepo;
-	
+
 	#[Inject]
 	public CustomerGroupRepository $groupsRepo;
 
@@ -143,31 +144,31 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 	#[Inject]
 	public OrderRepository $orderRepository;
-	
+
 	#[Inject]
 	public AddressRepository $addressRepo;
-	
+
 	#[Inject]
 	public Mailer $mailer;
-	
+
 	#[Inject]
 	public PricelistRepository $pricelistRepo;
-	
+
 	#[Inject]
 	public CatalogPermissionRepository $catalogPermissionRepo;
-	
+
 	#[Inject]
 	public Connection $storm;
-	
+
 	#[Inject]
 	public ShopperUser $shopperUser;
-	
+
 	#[Inject]
 	public LoyaltyProgramRepository $loyaltyProgramRepository;
-	
+
 	#[Inject]
 	public NewsletterUserRepository $newsletterUserRepository;
-	
+
 	#[Inject]
 	public NewsletterUserGroupRepository $newsletterUserGroupRepository;
 
@@ -400,7 +401,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			$value === false ? $source->where('internalRibbons.fk_internalRibbon IS NULL') : $source->where('internalRibbons.fk_internalRibbon', $value);
 		}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
 	}
-	
+
 	public function createComponentCustomers(): AdminGrid
 	{
 		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
@@ -457,14 +458,14 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		}
 
 		$grid->addColumnText('Ceníky / Viditelníky', ['pricelists_names', 'visibilityLists_names'], '%s<hr style="margin: 0">%s');
-		
+
 		if (isset($this::CONFIGURATIONS['loyaltyProgram']) && $this::CONFIGURATIONS['loyaltyProgram']) {
 			$grid->addColumn('Věrnostní prog.', function (Customer $object) {
 				$link = $this->admin->isAllowed(':Eshop:Admin:LoyaltyProgram:programDetail') && $object->getValue('loyaltyProgram') ? $this->link(
 					':Eshop:Admin:LoyaltyProgram:programDetail',
 					[$object->loyaltyProgram],
 				) : '#';
-				
+
 				return $object->getValue('loyaltyProgram') ?
 					"<a href='" . $link . "'>" . $object->loyaltyProgram->name . '</a><small><br>Bodů: ' . $object->getLoyaltyProgramPoints() .
 					' | Sleva: ' . ($object->loyaltyProgramDiscountLevel ? $object->loyaltyProgramDiscountLevel->discountLevel : 0) . '%</small>' :
@@ -486,7 +487,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		$grid->addColumn('Feed', function (Customer $customer) use ($btnSecondary) {
 			return "<a class='$btnSecondary' target='_blank' href='" . $this->link('//:Eshop:Export:customer', $customer->getPK()) . "'><i class='fa fa-sm fa-rss'></i></a>";
 		}, '%s', null, ['class' => 'minimal']);
-		
+
 		$grid->addColumn('', function (Customer $object, Datagrid $datagrid) use ($btnSecondary) {
 			return \count($object->accounts) > 0 ?
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('this', [
@@ -498,15 +499,15 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 				]) . "'>Účty</a>" :
 				"<a class='$btnSecondary' href='" . $datagrid->getPresenter()->link('newAccount', $object) . "'>Vytvořit&nbsp;účet</a>";
 		}, '%s', null, ['class' => 'minimal']);
-		
+
 		$grid->addColumnLink('editAddress', 'Adresy');
 		$grid->addColumnLinkDetail('edit');
 
 		$grid->addColumnActionDelete([$this->accountFormFactory, 'deleteAccountHolder']);
-		
+
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected([$this->accountFormFactory, 'deleteAccountHolder'], false, null, 'this.uuid');
-		
+
 		$grid->addButtonBulkEdit('form', $this->getBulkEdits(), 'customers', onProcess: function ($id, $object, $localValues, $localRelations): array {
 			if (!isset($localValues['values']['defaultCatalogPermission'])) {
 				return [$localValues, $localRelations];
@@ -536,7 +537,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů')
 			->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
 		$submit->onClick[] = [$this, 'exportCustomers'];
-		
+
 		if (isset($this::CONFIGURATIONS['targito']) && $this::CONFIGURATIONS['targito']) {
 			$submit = $grid->getForm()->addSubmit('downloadContactsTargito', 'Export Targito (CSV)')
 				->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
@@ -546,7 +547,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		$this->addFiltersToCustomersGrid($grid);
 
 		$grid->addFilterButtons();
-		
+
 		return $grid;
 	}
 
@@ -554,46 +555,46 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
-		
+
 		$tempFilename = \tempnam($this->tempDir, 'csv');
 		$collection = $grid->getFilteredSource();
 		$this->customerRepository->csvExport($collection, Writer::createFromPath($tempFilename, 'w+'));
-		
+
 		$response = new FileResponse($tempFilename, 'customers.csv', 'text/csv');
 		$this->sendResponse($response);
 	}
-	
+
 	public function exportTargito(Button $button): void
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
 		unset($button);
-		
+
 		$tempFilename = \tempnam($this->tempDir, 'csv');
-		
+
 		$origin = $this::CONFIGURATIONS['targitoOrigin'] ?? null;
-		
+
 		$this->customerRepository->csvExportTargito($grid->getFilteredSource(), Writer::createFromPath($tempFilename, 'w+'), $origin);
-		
+
 		$response = new FileResponse($tempFilename, 'customers.csv', 'text/csv');
 		$this->sendResponse($response);
 	}
-	
+
 	public function exportAccounts(Button $button): void
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $button->lookup(Datagrid::class);
-		
+
 		$tempFilename = \tempnam($this->tempDir, 'csv');
 
 		$collection = $grid->getSelectedIds() ? $grid->getSource()->where('this.' . $grid->getSourceIdName(), $grid->getSelectedIds()) : $grid->getFilteredSource();
 
 		$this->customerRepository->csvExportAccounts($collection, Writer::createFromPath($tempFilename, 'w+'));
-		
+
 		$response = new FileResponse($tempFilename, 'accounts.csv', 'text/csv');
 		$this->sendResponse($response);
 	}
-	
+
 	public function handleLoginCustomer($login): void
 	{
 		$customer = $this->customerRepository->getByAccountLogin($login);
@@ -604,21 +605,21 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 		}
 
 		$this->user->login($customer, null, [Customer::class]);
-		
+
 		$this->redirect(':Web:Index:default');
 	}
-	
+
 	public function actionEditAccount(Account $account): void
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('accountForm');
-		
+
 		/** @var \Forms\Container $container */
 		$container = $form['account'];
 		$container->setDefaults($account->toArray());
-		
+
 		$permission = $this->catalogPermissionRepo->many()->where('fk_account', $account->getPK())->first();
-		
+
 		if ($permission) {
 			/** @var \Forms\Container $container */
 			$container = $form['permission'];
@@ -635,17 +636,17 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 			$container->setDefaults($permissionDefaults);
 		}
-		
+
 		/** @var \Forms\Container $container */
 		$container = $form['newsletter'];
-		
+
 		$newsletterUser = $this->newsletterUserRepository->one(['fk_customerAccount' => $account->getPK()]);
-		
+
 		$container->setDefaults([
 			'newsletter' => (bool) $newsletterUser,
 			'newsletterGroups' => $newsletterUser ? $newsletterUser->toArray(['groups'])['groups'] : [],
 		]);
-		
+
 		$this->accountFormFactory->onUpdateAccount[] = function (Account $account, array $values, array $oldValues) use ($permission, $form): void {
 			$this->modifyPermissions($values);
 
@@ -654,19 +655,19 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 			} else {
 				$this->catalogPermissionRepo->createOne($values['permission'] + ['account' => $account->getPK()]);
 			}
-			
+
 			if ($this::CONFIGURATIONS['sendEmailAccountActivated']) {
 				if (!$oldValues['active'] && $values['account']['active'] === true) {
 					$this->templateRepository->sendMessage('account.activated', ['email' => $account->login], $account->login, null, null, $account->getPreferredMutation(), shops: $account->shop);
 				}
 			}
-			
+
 			/** @var bool $newsletter */
 			$newsletter = Arrays::pick($values['newsletter'], 'newsletter', false);
 			$newsletterGroups = Arrays::pick($values['newsletter'], 'newsletterGroups', null);
-			
+
 			$this->newsletterUserRepository->many()->where('fk_customerAccount', $account->getPK())->delete();
-			
+
 			if ($newsletter && Validators::isEmail($account->login)) {
 				$this->newsletterUserRepository->syncOne([
 					'email' => $account->login,
@@ -674,32 +675,32 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 					'groups' => $newsletterGroups,
 				]);
 			}
-			
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('editAccount', 'default', [$account]);
 		};
 	}
-	
+
 	public function actionNewAccount(?Customer $customer = null): void
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('accountForm');
 		$form['account']['password']->setRequired();
-		
+
 		if ($customer) {
 			$form['permission']['customer']->setDefaultValue($customer);
 		}
-		
+
 		$this->accountFormFactory->onCreateAccount[] = function (Account $account, array $values) use ($form): void {
 			$this->modifyPermissions($values);
 			$this->catalogPermissionRepo->createOne($values['permission'] + ['account' => $account]);
-			
+
 			/** @var bool $newsletter */
 			$newsletter = Arrays::pick($values['newsletter'], 'newsletter', false);
 			$newsletterGroups = Arrays::pick($values['newsletter'], 'newsletterGroups', null);
-			
+
 			$this->newsletterUserRepository->many()->where('fk_customerAccount', $account->getPK())->delete();
-			
+
 			if ($newsletter && Validators::isEmail($account->login)) {
 				$this->newsletterUserRepository->syncOne([
 					'email' => $account->login,
@@ -707,12 +708,12 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 					'groups' => $newsletterGroups,
 				]);
 			}
-			
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('editAccount', 'default', [$account]);
 		};
 	}
-	
+
 	public function renderNewAccount(?Customer $customer = null): void
 	{
 		$this->template->headerLabel = 'Nový účet zákazníka';
@@ -737,7 +738,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 		return;
 	}
-	
+
 	public function createComponentForm(): AdminForm
 	{
 		$lableMerchants = $this::CONFIGURATIONS['labels']['merchants'];
@@ -997,7 +998,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$this->flashMessage('Vytvořeno', 'success');
 			$form->processRedirect('edit', 'default', [$customer]);
 		};
-		
+
 		return $form;
 	}
 
@@ -1009,7 +1010,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 	public function createComponentEditAddress(): AdminForm
 	{
 		$form = $this->formFactory->create();
-		
+
 		$form->addGroup('Fakturační adresa');
 		$billAddress = $form->addContainer('billAddress');
 		$billAddress->addText('name', ' Jméno a příjmení / název firmy');
@@ -1018,7 +1019,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$billAddress->addText('city', 'Město');
 		$billAddress->addText('zipcode', 'PSČ');
 		$billAddress->addText('state', 'Stát');
-		
+
 		$form->addGroup('Doručovací adresa');
 		$deliveryAddress = $form->addContainer('deliveryAddress');
 		$deliveryAddress->addText('name', ' Jméno a příjmení / název firmy');
@@ -1027,23 +1028,23 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$deliveryAddress->addText('city', 'Město');
 		$deliveryAddress->addText('zipcode', 'PSČ');
 		$deliveryAddress->addText('state', 'Stát');
-		
+
 		$form->bind(null, [
 			'deliveryAddress' => $this->addressRepo->getStructure(),
 			'billAddress' => $this->addressRepo->getStructure(),
 		]);
 
 		Arrays::invoke($this->onBeforeSubmitEditAddress, $form);
-		
+
 		$form->addSubmits();
-		
+
 		return $form;
 	}
-	
+
 	public function renderDefault(?Customer $customer = null): void
 	{
 		unset($customer);
-		
+
 		if ($this->tab === 'customers') {
 			$this->template->headerLabel = 'Zákazníci';
 			$this->template->headerTree = [
@@ -1064,7 +1065,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$this->template->displayButtons[] = $this->createButton2('importInternalRibbonsCsv', '<i class="fas fa-file-upload mr-1"></i>Importovat interní štítky');
 		$this->template->tabs = self::TABS;
 	}
-	
+
 	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nový zákazník';
@@ -1075,7 +1076,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
-	
+
 	public function renderEdit(): void
 	{
 		$this->template->headerLabel = 'Detail';
@@ -1124,7 +1125,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$this->template->displayButtons = [$this->createBackButton('default'), $this->createButton2('edit', 'Zákazník', linkArgs: [$customer])];
 		$this->template->displayControls = [$this->getComponent('editAddress')];
 	}
-	
+
 	public function renderEditAccount(Account $account): void
 	{
 		$this->template->headerLabel = 'Účet';
@@ -1170,18 +1171,18 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 		$this->redirect('this');
 	}
-	
+
 	public function actionEdit(Customer $customer): void
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('form');
-		
+
 		$merchants = $this->merchantRepository->many()
 			->setSelect(['this.uuid'])
 			->join(['nxn' => 'eshop_merchant_nxn_eshop_customer'], 'this.uuid = nxn.fk_merchant')
 			->where('fk_customer', $customer)
 			->toArray();
-		
+
 		$defaults = $customer->toArray([
 				'pricelists',
 				'favouritePriceLists',
@@ -1190,39 +1191,39 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				'exclusiveDeliveryTypes',
 				'accounts',
 			]) + ['merchants' => $merchants];
-		
+
 		if ($customer->loyaltyProgramDiscountLevel) {
 			$defaults['loyaltyProgramDiscountLevel'] = (string) $customer->loyaltyProgramDiscountLevel->discountLevel;
 		}
 
 		$defaults['lastOrder'] = $customer->lastOrder ? $customer->lastOrder->code : null;
-		
+
 		$form->setDefaults($defaults);
 	}
-	
+
 	public function actionEditAddress(Customer $customer): void
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('editAddress');
-		
+
 		$form->setDefaults($customer->toArray(['billAddress', 'deliveryAddress']));
-		
+
 		$form->onSuccess[] = function (AdminForm $form) use ($customer): void {
 			$values = $form->getValues('array');
-			
+
 			$bill = $this->addressRepo->syncOne($values['billAddress']);
 			$delivery = $this->addressRepo->syncOne($values['deliveryAddress']);
-			
+
 			$customer->update([
 				'billAddress' => $bill,
 				'deliveryAddress' => $delivery,
 			]);
-			
+
 			$form->getPresenter()->flashMessage('Uloženo', 'success');
 			$form->processRedirect('this', 'default');
 		};
 	}
-	
+
 	public function createComponentAccountForm(): AdminForm
 	{
 		$callback = function (AdminForm $form): void {
@@ -1252,11 +1253,11 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				->addSelect('catalogPermission', 'Zobrazení', $shopperPermissions)
 				->setPrompt('↑ Převzít od zákazníka ↑')
 				->setDefaultValue('price');
-			
+
 			$catalogInput->addCondition($form::Equal, 'price')
 				->toggle('frm-accountForm-permission-showPricesWithoutVat-toogle')
 				->toggle('frm-accountForm-permission-showPricesWithVat-toogle');
-			
+
 			if (isset($this::CONFIGURATIONS['prices']) && $this::CONFIGURATIONS['prices']) {
 				if ($this->shopperUser->getShowWithoutVat()) {
 					$withoutVatInput = $container->addSelect('showPricesWithoutVat', 'Zobrazit ceny bez daně', [
@@ -1264,14 +1265,14 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 						'0' => 'Ne',
 					])->setPrompt('↑ Převzít od zákazníka ↑');
 				}
-				
+
 				if ($this->shopperUser->getShowVat()) {
 					$withVatInput = $container->addSelect('showPricesWithVat', 'Zobrazit ceny s daní', [
 						'1' => 'Ano',
 						'0' => 'Ne',
 					])->setPrompt('↑ Převzít od zákazníka ↑');
 				}
-				
+
 				if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
 					$container->addSelect('priorityPrice', 'Prioritní cena', [
 						'withoutVat' => 'Bez daně',
@@ -1283,7 +1284,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 						->toggle('frm-accountForm-permission-priorityPrice-toogle');
 				}
 			}
-			
+
 			$container
 				->addSelect('buyAllowed', 'Povolit nákup', [
 					'1' => 'Ano',
@@ -1295,12 +1296,12 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 					'1' => 'Ano',
 					'0' => 'Ne',
 				])->setPrompt('↑ Převzít od zákazníka ↑');
-			
+
 			$container = $form->addContainer('newsletter');
-			
+
 			$newsletterInput = $container->addCheckbox('newsletter', 'Přihlášen k newsletteru');
 			$newsletterGroupsInput = $container->addMultiSelect2('newsletterGroups', 'Skupiny newsletteru', $this->newsletterUserGroupRepository->getArrayForSelect());
-			
+
 			$newsletterInput->addCondition($form::Filled)->toggle($newsletterGroupsInput->getHtmlId() . '-toogle');
 
 			$this->addCustomFieldsToAccountForm($form, $account);
@@ -1419,7 +1420,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$this->sendNewPasswordToAccount($values, $collection);
 		}, $this->getBulkFormActionLink(), $this->accountRepository->many(), $this->getBulkFormIds());
 	}
-	
+
 	public function createComponentAccountGrid(): AdminGrid
 	{
 		$collection = $this->accountRepository->many()
@@ -1439,7 +1440,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				'permission' => 'catalogPermission.catalogPermission',
 				'buyAllowed' => 'catalogPermission.buyAllowed',
 			]);
-		
+
 		$grid = $this->gridFactory->create($collection, 20, 'createdTs', 'DESC', true);
 		$grid->addColumnSelector();
 		$grid->addColumnText('Vytvořen<hr style="margin: 0">Poslední přihl.', ['tsRegistered|date', 'tsLastLogin|date'], '%s<hr style="margin: 0">%s', 'tsRegistered', ['class' => 'fit']);
@@ -1477,27 +1478,27 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			if (!$account->getValue('permission')) {
 				return '';
 			}
-			
+
 			$label = ShopperUser::PERMISSIONS;
-			
+
 			return $label[$account->getValue('permission')] . ' + ' . ($account->getValue('buyAllowed') ? 'nákup' : 'bez nákupu');
 		});
-		
+
 		$grid->addColumnText('Aktivní od', "activeFrom|date:'d.m.Y G:i'", '%s', 'activeFrom', ['class' => 'fit']);
 		$grid->addColumnText('Aktivní do', "activeTo|date:'d.m.Y G:i'", '%s', 'activeTo', ['class' => 'fit']);
 		$grid->addColumnInputCheckbox('Aktivní', 'active');
-		
+
 		if ($this::CONFIGURATIONS['showAuthorized']) {
 			$grid->addColumnInputCheckbox('Autorizovaný', 'authorized');
 		}
 
 		Arrays::invoke($this->onBeforeAddButtonsAccountsGrid, $grid);
 		$this->addCustomFieldsToCustomerGrid($grid);
-		
+
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
 		$grid->addColumn('Login', function (Account $object, Datagrid $grid) use ($btnSecondary) {
 			$link = $grid->getPresenter()->link('loginCustomer!', [$object->login]);
-			
+
 			return $object->isActive() ?
 				"<a class='$btnSecondary' target='_blank' href='$link'><i class='fa fa-sign-in-alt'></i></a>" :
 				"<a class='$btnSecondary disabled' href='#'><i class='fa fa-sign-in-alt'></i></a>";
@@ -1508,26 +1509,26 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$grid->addColumnLinkDetail('editAccount');
 
 		$grid->addColumnActionDelete();
-		
+
 		$grid->addButtonSaveAll([], [], null, false, null, function ($id, $data): void {
 			if ($this::CONFIGURATIONS['sendEmailAccountActivated']) {
 				/** @var \Security\DB\Account $account */
 				$account = $this->accountRepository->one($id);
-				
+
 				if (!$account->active && $data['active'] === true) {
 					$this->templateRepository->sendMessage('account.activated', ['email' => $account->login], $account->login, null, null, $account->getPreferredMutation(), shops: $account->shop);
 				}
 			}
 		});
-		
+
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
-		
+
 		$submit = $grid->getForm()->addSubmit('permBulkEdit', 'Hromadná úprava')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
-		
+
 		$submit->onClick[] = function () use ($grid): void {
 			$grid->getPresenter()->redirect('permBulkEdit', [$grid->getSelectedIds()]);
 		};
-		
+
 		$submit = $grid->getForm()->addSubmit('downloadEmails', 'Export e-mailů');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-outline-primary');
 		$submit->onClick[] = [$this, 'exportAccounts'];
@@ -1542,11 +1543,11 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 
 		return $grid;
 	}
-	
+
 	public function renderPermBulkEdit(array $ids): void
 	{
 		unset($ids);
-		
+
 		$this->template->headerLabel = 'Hromadná úprava';
 		$this->template->headerTree = [
 			['Zákazníci', 'default'],
@@ -1556,27 +1557,27 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('permBulkEditForm')];
 	}
-	
+
 	public function createComponentPermBulkEditForm(): AdminForm
 	{
 		/** @var \Grid\Datagrid $grid */
 		$grid = $this->getComponent('accountGrid');
-		
+
 		$ids = $this->getParameter('ids') ?: [];
 		$totalNo = $grid->getFilteredSource()->setGroupBy([])->enum($grid->getFilteredSource()->getPrefix(true) . $grid->getSourceIdName());
 		$selectedNo = \count($ids);
-		
+
 		$form = $this->formFactory->create();
 		unset($form['uuid']);
-		
+
 		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
 		$form->addRadioList('bulkType', 'Upravit', [
 			'selected' => "vybrané ($selectedNo)",
 			'all' => "celý výsledek ($totalNo)",
 		])->setDefaultValue('selected');
-		
+
 		$values = $form->addContainer('values');
-		
+
 		$values->addSelect('catalogPermission', 'Zobrazení', ShopperUser::PERMISSIONS)->setPrompt('Původní');
 
 		if (isset($this::CONFIGURATIONS['prices']) && $this::CONFIGURATIONS['prices']) {
@@ -1616,58 +1617,58 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 		])->setPrompt('Původní');
 		$values->addCheckbox('newsletterGroupsCheck', 'Původní')->setDefaultValue(true);
 		$values->addMultiSelect2('newsletterGroups', 'Skupiny pro newsletter', $this->newsletterUserGroupRepository->getArrayForSelect());
-		
+
 		$form->addSubmits(false, false);
-		
+
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $grid): void {
 			$values = $form->getValues('array');
-			
+
 			if (\count($values['values']) === 0) {
 				return;
 			}
-			
+
 			if ($values['values']['newsletterGroupsCheck']) {
 				unset($values['values']['newsletterGroups']);
 			}
-			
+
 			unset($values['values']['newsletterGroupsCheck']);
-			
+
 			foreach ($values['values'] as $key => $value) {
 				if ($value === null) {
 					unset($values['values'][$key]);
 				}
 			}
-			
+
 			/** @var null|int $newsletter */
 			$newsletter = Arrays::pick($values['values'], 'newsletter', null);
 			$newsletterGroups = Arrays::pick($values['values'], 'newsletterGroups', []);
-			
+
 			/** @var array<\Eshop\DB\NewsletterUser> $existingNewsletters */
 			$existingNewsletters = $this->newsletterUserRepository->many()
 				->where('this.fk_customerAccount IS NOT NULL')
 				->setIndex('this.fk_customerAccount')
 				->toArray();
-			
+
 			$ids = $values['bulkType'] === 'selected' ? $ids : $grid->getFilteredSource()->toArrayOf($grid->getSourceIdName());
-			
+
 			foreach ($ids as $id) {
 				if (\count($values['values']) > 0) {
 					$this->catalogPermissionRepo->many()->where('fk_account', $id)->update($values['values']);
 				}
-				
+
 				$account = $this->accountRepository->one($id);
 				$newsletterValues = [];
-				
+
 				if (!Validators::isEmail($account->login)) {
 					continue;
 				}
-				
+
 				if ($newsletter === 1) {
 					$newsletterValues = [
 						'email' => $account->login,
 						'customerAccount' => $account->getPK(),
 					];
-					
+
 					if (isset($newsletterGroups)) {
 						$newsletterValues = [
 							'groups' => $newsletterGroups,
@@ -1676,7 +1677,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				} elseif ($newsletter === 0) {
 					$this->newsletterUserRepository->many()->where('this.fk_customerAccount', $account->getPK())->delete();
 				}
-				
+
 				if (isset($existingNewsletters[$account->getPK()]) && isset($newsletterGroups)) {
 					$newsletterValues = [
 						'email' => $existingNewsletters[$account->getPK()]->email,
@@ -1684,14 +1685,14 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 						'groups' => $newsletterGroups,
 					];
 				}
-				
+
 				$this->newsletterUserRepository->syncOne($newsletterValues);
 			}
-			
+
 			$this->getPresenter()->flashMessage('Uloženo', 'success');
 			$this->redirect('default');
 		};
-		
+
 		return $form;
 	}
 

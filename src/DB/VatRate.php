@@ -15,7 +15,7 @@ class VatRate extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $name;
-	
+
 	/**
 	 * Výše
 	 * @column
@@ -27,14 +27,14 @@ class VatRate extends \StORM\Entity
 	 * @column
 	 */
 	public int $priority = 10;
-	
+
 	/**
 	 * Země
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public Country $country;
-	
+
 	public function getVatMultiplier(bool $vat): float
 	{
 		return !$vat ? 100 / (100 + $this->rate) : (100 + $this->rate) / 100;

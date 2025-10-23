@@ -97,11 +97,11 @@ abstract class OrderPresenter extends \Eshop\Front\FrontendPresenter
 	public function renderOrder(string $orderId): void
 	{
 		$order = $this->orderRepository->one($orderId);
-		
+
 		if (!$order) {
 			throw new Nette\Application\BadRequestException("Order $orderId not exists");
 		}
-		
+
 		$purchase = $order->purchase;
 
 		$this->template->breadcrumb = [];

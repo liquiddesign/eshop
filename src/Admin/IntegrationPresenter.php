@@ -38,29 +38,29 @@ class IntegrationPresenter extends BackendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public SettingRepository $settingsRepo;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public ContactItemRepository $contactItemRepo;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public Zasilkovna $zasilkovnaProvider;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public MailerLite $mailerLite;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public CategoryRepository $categoryRepository;
 
 	#[\Nette\DI\Attributes\Inject]
 	public Container $container;
-	
+
 	public function beforeRender(): void
 	{
 		parent::beforeRender();
-		
+
 		$this->template->tabs = [
 			'@default' => 'Měření a nástroje',
 			'@zasilkovna' => 'Zásilkovna',
@@ -68,7 +68,7 @@ class IntegrationPresenter extends BackendPresenter
 			'@heureka' => 'Heureka',
 			'@zbozi' => 'Zboží',
 		];
-		
+
 		if (isset($this::CONFIGURATION['supportBox']) && $this::CONFIGURATION['supportBox']) {
 			$this->template->tabs['@supportBox'] = 'SupportBox';
 		}
@@ -76,11 +76,11 @@ class IntegrationPresenter extends BackendPresenter
 		if (isset($this::CONFIGURATION['balikobot']) && $this::CONFIGURATION['balikobot']) {
 			$this->template->tabs['@balikobot'] = 'Balíkobot';
 		}
-		
+
 		if (!isset($this::CONFIGURATION['targito']) || !$this::CONFIGURATION['targito']) {
 			return;
 		}
-		
+
 		$this->template->tabs['@targito'] = 'Targito';
 	}
 
@@ -91,7 +91,7 @@ class IntegrationPresenter extends BackendPresenter
 
 		$this->setFormDefaults($form);
 	}
-	
+
 	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Integrace';
@@ -101,7 +101,7 @@ class IntegrationPresenter extends BackendPresenter
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
-	
+
 	public function createComponentForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
@@ -120,21 +120,21 @@ class IntegrationPresenter extends BackendPresenter
 
 			$shopContainer->addText('integrationGTM', Html::fromHtml('GTM (Google Tag Manager)'))->setNullable();
 		}
-		
+
 		$form->addSubmit('submit', 'Uložit');
-		
+
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValuesWithAjax();
-			
+
 			$this->saveSettings($values);
-			
+
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$form->processRedirect('default');
 		};
-		
+
 		return $form;
 	}
-	
+
 	public function actionHeureka(): void
 	{
 		/** @var \Admin\Controls\AdminForm $form */
@@ -150,28 +150,28 @@ class IntegrationPresenter extends BackendPresenter
 
 		$this->setFormDefaults($form);
 	}
-	
+
 	public function actionZasilkovna(): void
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('zasilkovnaForm');
-		
+
 		$this->setFormDefaults($form);
 	}
-	
+
 	public function actionSupportbox(): void
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('supportboxForm');
-		
+
 		$this->setFormDefaults($form);
 	}
-	
+
 	public function actionTargito(): void
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('targitoForm');
-		
+
 		$this->setFormDefaults($form);
 	}
 
@@ -182,7 +182,7 @@ class IntegrationPresenter extends BackendPresenter
 
 		$this->setFormDefaults($form);
 	}
-	
+
 	public function createComponentTargitoForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
@@ -203,21 +203,21 @@ class IntegrationPresenter extends BackendPresenter
 			$shopContainer->addText('targitoDataId', Html::fromHtml('data-id'))->setNullable();
 			$shopContainer->addText('targitoDataOrigin', Html::fromHtml('data-origin'))->setNullable();
 		}
-		
+
 		$form->addSubmit('submit', 'Uložit');
-		
+
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValuesWithAjax();
 
 			$this->saveSettings($values);
-			
+
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$form->processRedirect('targito');
 		};
-		
+
 		return $form;
 	}
-	
+
 	public function createComponentZasilkovnaForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
@@ -238,29 +238,29 @@ class IntegrationPresenter extends BackendPresenter
 			$shopContainer->addText('zasilkovnaApiKey', Html::fromHtml('Klíč API'))->setNullable();
 			$shopContainer->addText('zasilkovnaApiPassword', Html::fromHtml('Heslo API'))->setNullable();
 		}
-		
+
 		$form->addSubmit('submit', 'Uložit');
-		
+
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValuesWithAjax();
 
 			$this->saveSettings($values);
-			
+
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$form->processRedirect('zasilkovna');
 		};
-		
+
 		return $form;
 	}
-	
+
 	public function actionMailerLite(): void
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('mailerLiteForm');
-		
+
 		$this->setFormDefaults($form);
 	}
-	
+
 	public function createComponentMailerLiteForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
@@ -281,19 +281,19 @@ class IntegrationPresenter extends BackendPresenter
 		}
 
 		$form->addSubmit('submit', 'Uložit');
-		
+
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValuesWithAjax();
 
 			$this->saveSettings($values);
-			
+
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$form->processRedirect('mailerLite');
 		};
-		
+
 		return $form;
 	}
-	
+
 	public function createComponentSupportboxForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
@@ -312,18 +312,18 @@ class IntegrationPresenter extends BackendPresenter
 
 			$shopContainer->addText('supportBoxApiKey', Html::fromHtml('Klíč API'))->setNullable();
 		}
-		
+
 		$form->addSubmit('submit', 'Uložit');
-		
+
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValuesWithAjax();
 
 			$this->saveSettings($values);
-			
+
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$form->processRedirect('supportBox');
 		};
-		
+
 		return $form;
 	}
 
@@ -361,7 +361,7 @@ class IntegrationPresenter extends BackendPresenter
 
 		return $form;
 	}
-	
+
 	public function createComponentHeurekaForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
@@ -380,18 +380,18 @@ class IntegrationPresenter extends BackendPresenter
 
 			$shopContainer->addText($this::HEUREKA_API_KEY, Html::fromHtml('API klíč'))->setNullable();
 		}
-		
+
 		$form->addSubmit('submit', 'Uložit');
-		
+
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValuesWithAjax();
 
 			$this->saveSettings($values);
-			
+
 			$this->flashMessage('Nastavení uloženo', 'success');
 			$form->processRedirect('heureka');
 		};
-		
+
 		return $form;
 	}
 
@@ -491,7 +491,7 @@ class IntegrationPresenter extends BackendPresenter
 
 		return $form;
 	}
-	
+
 	public function renderSupportbox(): void
 	{
 		$this->template->headerLabel = 'Integrace';
@@ -502,7 +502,7 @@ class IntegrationPresenter extends BackendPresenter
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('supportboxForm')];
 	}
-	
+
 	public function renderHeureka(): void
 	{
 		$this->template->headerLabel = 'Integrace';
@@ -524,7 +524,7 @@ class IntegrationPresenter extends BackendPresenter
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('zboziForm')];
 	}
-	
+
 	public function renderTargito(): void
 	{
 		$this->template->headerLabel = 'Integrace';
@@ -535,7 +535,7 @@ class IntegrationPresenter extends BackendPresenter
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('targitoForm')];
 	}
-	
+
 	public function renderZasilkovna(): void
 	{
 		$active = ($setting = $this->settingsRepo->many()->where('name', 'zasilkovnaApiKey')->first()) !== null &&
@@ -544,13 +544,13 @@ class IntegrationPresenter extends BackendPresenter
 			($setting = $this->settingsRepo->many()->where('name', 'zasilkovnaApiPassword')->first()) !== null &&
 			$setting->getValue('value') !== null &&
 			$setting->getValue('value') !== '';
-		
+
 		$this->template->headerLabel = 'Integrace';
 		$this->template->headerTree = [
 			['Integrace'],
 			['Zásilkovna'],
 		];
-		
+
 		if ($active) {
 			$this->template->displayButtons = [
 				'<a href="' . $this->link('syncZasilkovnaPoints!') .
@@ -559,7 +559,7 @@ class IntegrationPresenter extends BackendPresenter
 				$this->createButtonWithClass('syncZasilkovnaOrders!', '<i class="fa fa-sync"></i>  Synchronizovat objednávky', 'btn btn-sm btn-outline-primary'),
 			];
 		}
-		
+
 		$this->template->displayControls = [$this->getComponent('zasilkovnaForm')];
 	}
 
@@ -573,7 +573,7 @@ class IntegrationPresenter extends BackendPresenter
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('balikobotForm')];
 	}
-	
+
 	public function handleSyncZasilkovnaPoints(): void
 	{
 		try {
@@ -582,10 +582,10 @@ class IntegrationPresenter extends BackendPresenter
 		} catch (\Exception $e) {
 			$this->flashMessage('Chyba! Zkontrolujte API klíč.', 'error');
 		}
-		
+
 		$this->redirect('this');
 	}
-	
+
 	public function handleSyncZasilkovnaOrders(): void
 	{
 		try {
@@ -595,16 +595,16 @@ class IntegrationPresenter extends BackendPresenter
 				->where('purchase.zasilkovnaId IS NOT NULL')
 				->where('zasilkovnaCompleted', false)
 				->toArray();
-			
+
 			$this->zasilkovnaProvider->syncOrders($orders);
 			$this->flashMessage('Provedeno', 'success');
 		} catch (\Exception $e) {
 			$this->flashMessage('Chyba! Zkontrolujte API klíč.', 'error');
 		}
-		
+
 		$this->redirect('this');
 	}
-	
+
 	public function renderMailerLite(): void
 	{
 		$this->template->headerLabel = 'Integrace';
@@ -612,18 +612,18 @@ class IntegrationPresenter extends BackendPresenter
 			['Integrace'],
 			['MailerLite'],
 		];
-		
+
 		$active = ($setting = $this->settingsRepo->many()->where('name', 'mailerLiteApiKey')->first()) !== null &&
 			$setting->getValue('value') !== null &&
 			$setting->getValue('value') !== '';
-		
+
 		if ($active) {
 			$this->template->displayButtons = [$this->createButtonWithClass('syncMailerLite!', '<i class="fa fa-sync"></i>  Synchronizovat s MailerLite', 'btn btn-sm btn-outline-primary')];
 		}
-		
+
 		$this->template->displayControls = [$this->getComponent('mailerLiteForm')];
 	}
-	
+
 	public function handleSyncMailerLite(): void
 	{
 		try {
@@ -632,7 +632,7 @@ class IntegrationPresenter extends BackendPresenter
 		} catch (\Exception $e) {
 			$this->flashMessage('Chyba! Zkontrolujte API klíč.', 'error');
 		}
-		
+
 		$this->redirect('this');
 	}
 

@@ -25,7 +25,7 @@ class InternalRibbonRepository extends \StORM\Repository implements IGeneralRepo
 
 		return $collection->toArrayOf('name');
 	}
-	
+
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		unset($includeHidden);

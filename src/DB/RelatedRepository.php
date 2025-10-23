@@ -207,7 +207,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 				throw $e;
 			}
 
-			$imported ++;
+			$imported++;
 		}
 
 		return [

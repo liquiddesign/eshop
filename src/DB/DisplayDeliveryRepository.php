@@ -15,14 +15,14 @@ use StORM\SchemaManager;
 class DisplayDeliveryRepository extends \StORM\Repository implements IGeneralRepository
 {
 	private ProductRepository $productRepository;
-	
+
 	public function __construct(DIConnection $connection, SchemaManager $schemaManager, ProductRepository $productRepository)
 	{
 		parent::__construct($connection, $schemaManager);
-		
+
 		$this->productRepository = $productRepository;
 	}
-	
+
 	/**
 	 * @return array<string>
 	 */
@@ -30,17 +30,17 @@ class DisplayDeliveryRepository extends \StORM\Repository implements IGeneralRep
 	{
 		return $this->getCollection($includeHidden)->toArrayOf('label');
 	}
-	
+
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		unset($includeHidden);
-		
+
 		$mutationSuffix = $this->getConnection()->getMutationSuffix();
 		$collection = $this->many();
-		
+
 		return $collection->orderBy(['this.priority', "this.label$mutationSuffix",]);
 	}
-	
+
 	/**
 	 * @param array<string, mixed> $filters
 	 * @return array<string, string>

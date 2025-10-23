@@ -16,7 +16,7 @@ use StORM\SchemaManager;
 class RibbonRepository extends \StORM\Repository implements IGeneralRepository
 {
 	private Collection $imageRibbons;
-	
+
 	private Collection $textRibbons;
 
 	public function __construct(DIConnection $connection, SchemaManager $schemaManager, private readonly ShopsConfig $shopsConfig)
@@ -62,7 +62,7 @@ class RibbonRepository extends \StORM\Repository implements IGeneralRepository
 			systemic: false,
 		));
 	}
-	
+
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();

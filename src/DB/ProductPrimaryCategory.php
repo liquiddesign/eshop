@@ -24,7 +24,7 @@ class ProductPrimaryCategory extends Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public CategoryType $categoryType;
-	
+
 	/**
 	 * Produkt
 	 * @relation

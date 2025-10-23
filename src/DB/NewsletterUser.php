@@ -36,7 +36,7 @@ class NewsletterUser extends ShopEntity
 	 * @var \StORM\RelationCollection<\Eshop\DB\NewsletterUserGroup>
 	 */
 	public RelationCollection $groups;
-	
+
 	/**
 	 * Uživatel
 	 * @relation
