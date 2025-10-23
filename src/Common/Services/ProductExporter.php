@@ -453,8 +453,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 					}
 
 					$row[] = $recyclingFee;
-				} elseif (
-					Strings::startsWith($columnKey, 'hidden#') ||
+				} elseif (Strings::startsWith($columnKey, 'hidden#') ||
 					Strings::startsWith($columnKey, 'hiddenInMenu#') ||
 					Strings::startsWith($columnKey, 'unavailable#') ||
 					Strings::startsWith($columnKey, 'recommended#') ||
