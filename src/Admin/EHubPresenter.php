@@ -23,7 +23,7 @@ class EHubPresenter extends \Eshop\BackendPresenter
 {
 	#[\Nette\DI\Attributes\Inject]
 	public EHubTransactionRepository $EHubTransactionRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
@@ -32,7 +32,7 @@ class EHubPresenter extends \Eshop\BackendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
-	
+
 	public function createComponentGridTransactions(): AdminGrid
 	{
 //		$btnSecondary = 'btn btn-sm btn-outline-primary';
@@ -92,13 +92,13 @@ class EHubPresenter extends \Eshop\BackendPresenter
 		$grid->addColumn('Nový zákazník', function (EHubTransaction $EHubTransaction): string {
 			return $EHubTransaction->newCustomer === true ? '<i class="fa fa-check text-success"></i>' : ($EHubTransaction->newCustomer === false ? '<i class="fa fa-times text-danger"></i>' : '');
 		}, '%s', 'newCustomer', ['class' => 'fit']);
-		
+
 		$grid->addColumnLinkDetail('detailTransaction');
 		$grid->addColumnActionDelete();
 
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 		$grid->addBulkAction('changeStatus', 'changeStatus', 'Změnit stav hromadně');
-		
+
 		$grid->addFilterTextInput('search', ['transactionId'], null, 'ID');
 		$grid->addFilterSelectInput('status', 'status = :q', 'Status', '- Status -', null, EHubTransaction::STATUSES);
 
@@ -110,17 +110,17 @@ class EHubPresenter extends \Eshop\BackendPresenter
 			$source->where('this.createdTs <= :created_to', ['created_to' => $value]);
 		}, '', 'created_to', null, ['defaultHour' => '23', 'defaultMinute' => '59'])->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
 		$grid->addFilterButtons(['transactions']);
-		
+
 		return $grid;
 	}
-	
+
 	public function createComponentFormTransaction(): Form
 	{
 		/** @var \Eshop\DB\EHubTransaction|null $EHubTransaction */
 		$EHubTransaction = $this->getParameter('EHubTransaction');
 
 		$form = $this->formFactory->create();
-		
+
 		$form->addText('transactionId', 'ID')->setDisabled();
 
 		if ($EHubTransaction) {
@@ -131,9 +131,9 @@ class EHubPresenter extends \Eshop\BackendPresenter
 		}
 
 		$form->addSelect('status', 'Stav', EHubTransaction::STATUSES_TO_UPDATE)->setRequired()->checkDefaultValue(false);
-	
+
 		$form->addSubmits(!$EHubTransaction);
-		
+
 		$form->onSuccess[] = function (AdminForm $form) use ($EHubTransaction): void {
 			$values = $form->getValues('array');
 
@@ -152,12 +152,12 @@ class EHubPresenter extends \Eshop\BackendPresenter
 			}
 
 			$EHubTransaction = $this->EHubTransactionRepository->syncOne($values);
-			
+
 			$this->flashMessage('Uloženo', 'success');
-			
+
 			$form->processRedirect('detailTransaction', 'transactions', [$EHubTransaction]);
 		};
-		
+
 		return $form;
 	}
 
@@ -202,7 +202,7 @@ class EHubPresenter extends \Eshop\BackendPresenter
 			$form->addSelect('status', 'Stav', EHubTransaction::STATUSES_TO_UPDATE)->setRequired();
 		});
 	}
-	
+
 	public function renderTransactions(): void
 	{
 		$this->template->headerLabel = 'Transakce';
@@ -215,7 +215,7 @@ class EHubPresenter extends \Eshop\BackendPresenter
 		];
 		$this->template->displayControls = [$this->getComponent('gridTransactions')];
 	}
-	
+
 	public function renderNewTransaction(): void
 	{
 		$this->template->headerLabel = 'Nová transakce';
@@ -237,7 +237,7 @@ class EHubPresenter extends \Eshop\BackendPresenter
 
 		$form->setDefaults($values);
 	}
-	
+
 	public function renderDetailTransaction(EHubTransaction $EHubTransaction): void
 	{
 		unset($EHubTransaction);

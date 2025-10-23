@@ -24,7 +24,7 @@ class CustomerGroupRepository extends Repository implements IGeneralRepository, 
 	 * Method CustomerGroupRepository::getUnregisteredGroup returns group by setting. If no setting available, try to find group by this constant.
 	 */
 	public const UNREGISTERED_PK = 'unregistred';
-	
+
 	protected CustomerGroup|null|false $unregisteredGroup = false;
 
 	protected CustomerGroup|null|false $defaultRegistrationGroup = false;

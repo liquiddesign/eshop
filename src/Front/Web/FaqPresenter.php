@@ -17,43 +17,43 @@ abstract class FaqPresenter extends \Eshop\Front\FrontendPresenter
 {
 	#[\Nette\DI\Attributes\Inject]
 	public Pages $pages;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public TemplateRepository $templateRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public FaqRepository $faqRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public FaqItemTagRepository $faqItemTagRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public PageRepository $pageRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public MenuItemRepository $menuItemRepository;
-	
+
 	protected ?FaqItemTag $tag = null;
-	
+
 	protected ?Page $page = null;
-	
+
 	public function actionDefault(?string $tag = null): void
 	{
 		/** @var \Web\DB\Page|null $page */
 		$page = $this->pages->getPage();
-		
+
 		$this->page = $page;
 		$this->tag = $tag ? $this->faqItemTagRepository->one($tag) : null;
 	}
-	
+
 	public function renderDefault(): void
 	{
 		$this->breadcrumbDefault();
-		
+
 		$this->template->faqs = $this->faqRepository->getFaqsWithItems(false, $this->tag);
 		$this->template->activeTag = $this->tag ?: null;
 		$this->template->tags = $this->faqItemTagRepository->getActiveTags();
-		
+
 		if ($this->template->activeTag) {
 			/** @var \Web\DB\Page|null $rootPage */
 			$rootPage = $this->pageRepository->getPageByTypeAndParams('faq', '');
@@ -62,34 +62,34 @@ abstract class FaqPresenter extends \Eshop\Front\FrontendPresenter
 			$this->template->content = $this->page ? $this->page->content : null;
 		}
 	}
-	
+
 	public function breadcrumbDefault(): void
 	{
 		/** @var \Web\DB\Page|null $page */
 		$page = $this->tag ? $this->pageRepository->getPageByTypeAndParams('faq', '') : $this->page;
-		
+
 		if (!$page) {
 			return;
 		}
-		
+
 		$menuItem = $this->menuItemRepository->one(['fk_page' => $page->getPK()]);
 		$parents = $this->menuItemRepository->getBreadcrumbStructure($menuItem);
-		
+
 		/** @var \Web\Controls\Breadcrumb $breadcrumb */
 		$breadcrumb = $this['breadcrumb'];
-		
+
 		foreach ($parents as $item) {
 			if ($item->name) {
 				$breadcrumb->addItem($item->name, $item->getUrl());
 			}
 		}
-		
+
 		$breadcrumb->addItem($page->name ?? '', $this->tag ? $this->link('//this', ['tag' => null,]) : null);
-		
+
 		if (!$this->tag) {
 			return;
 		}
-		
+
 		$breadcrumb->addItem((string) $this->tag->name, null);
 	}
 }

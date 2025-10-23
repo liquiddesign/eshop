@@ -49,7 +49,7 @@ class AddressesForm extends Form
 			->setHtmlAttribute('autocomplete', 'postal-code')
 			->addRule(self::PATTERN, $translator->translate('AddressesForm.zipBadFormat', 'Neplatný formát! Povolené jsou pouze čísla a maximálně 1 mezera.'), '^\d+ ?\d+$');
 		$billAddressBox->addText('state', 'AddressesForm.bill_state')->setHtmlAttribute('autocomplete', 'address-level1');
-		
+
 		$otherAddress = $this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool) $this->shopperUser->getCheckoutManager()->getPurchase()->deliveryAddress);
 		$isCompany = $this->addCheckbox('isCompany', 'AddressesForm.isCompany')->setDefaultValue($customer?->isCompany());
 		$createAccount = $this->addCheckbox('createAccount', 'AddressesForm.createAccount');
@@ -82,46 +82,46 @@ class AddressesForm extends Form
 			->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired()
 			->addRule(self::PATTERN, $translator->translate('AddressesForm.zipBadFormat', 'Neplatný formát! Povolené jsou pouze čísla a maximálně 1 mezera.'), '^\d+ ?\d+$');
 		$deliveryAddressBox->addText('state', 'AddressesForm.delivery_state')->setHtmlAttribute('autocomplete', 'address-level1');
-		
+
 		// company
 		$this->addText('ic', 'AddressesForm.ic')->addConditionOn($isCompany, $this::EQUAL, true)->setRequired();
 		$this->addText('dic', 'AddressesForm.dic');
-		
+
 		$this->addText('bankAccount', 'AddressesForm.bankAccount');
 		$this->addText('bankAccountCode', 'AddressesForm.bankAccountCode');
 		$this->addText('bankSpecificSymbol', 'AddressesForm.bankSpecificSymbol');
 
 		$this->addHidden('parentCustomer', $customer && $selectedCustomer && $customer->getPK() !== $selectedCustomer->getPK() ? $customer->getPK() : null)->setNullable();
-		
+
 		if ($customer && !$this->shopperUser->getCheckoutManager()->getPurchase()->email) {
 			$customerArray = $customer->toArray(['billAddress', 'deliveryAddress']);
 			$customerArray['fullname'] = $customer->getName();
 
 			$this->setDefaults($customerArray);
-			
+
 			if ($customer->billAddress) {
 				$billAddressBox->setDefaults($customer->billAddress->jsonSerialize());
 			}
-			
+
 			if ($customer->deliveryAddress) {
 				$deliveryAddressBox->setDefaults($customer->deliveryAddress->jsonSerialize());
 			}
 		}
-		
+
 		$purchase = $this->shopperUser->getCheckoutManager()->getPurchase();
-		
+
 		if ($purchase->email) {
 			$this->setDefaults($purchase);
-			
+
 			if ($purchase->billAddress) {
 				$billAddressBox->setDefaults($purchase->billAddress->jsonSerialize());
 			}
-			
+
 			if ($purchase->deliveryAddress) {
 				$deliveryAddressBox->setDefaults($purchase->deliveryAddress->jsonSerialize());
 			}
 		}
-	
+
 		$this->addSubmit('submit');
 		$this->onSuccess[] = [$this, 'success'];
 		$this->onValidate[] = [$this, 'validateForm'];
@@ -159,12 +159,12 @@ class AddressesForm extends Form
 
 		return;
 	}
-	
+
 	public function success(AddressesForm $form): void
 	{
 		/** @var array<mixed> $values */
 		$values = $form->getValues('array');
-		
+
 		$values['password'] = $values['createAccount'] && $values['password'] ? $this->passwords->hash($values['password']) : null;
 		$values['billAddress']['zipcode'] = Strings::replace($values['billAddress']['zipcode'], '#\s+#');
 		$values['deliveryAddress']['zipcode'] = Strings::replace($values['deliveryAddress']['zipcode'], '#\s+#');

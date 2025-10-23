@@ -177,7 +177,8 @@ class SupplierProductRepository extends \StORM\Repository
 
 		foreach ($productContentRepository->many()
 					 ->select(['productPK' => 'this.fk_product', 'shopPK' => 'this.fk_shop', 'content' => "this.content$mutationSuffix"])
-					 ->fetchArray(\stdClass::class) as $productContent) {
+					 ->fetchArray(\stdClass::class) as $productContent
+		) {
 			$existingProductContents[$productContent->productPK][$productContent->shopPK] = $productContent;
 		}
 
@@ -495,7 +496,8 @@ class SupplierProductRepository extends \StORM\Repository
 
             // phpcs:ignore
             if ( $product->supplierContentLock === 0 ||
-				($product->supplierLock >= $supplier->importPriority && $product->supplierContentMode === 'priority')) {
+				($product->supplierLock >= $supplier->importPriority && $product->supplierContentMode === 'priority')
+			) {
 				$productContentRepository->syncOne([
 					'product' => $product->uuid,
 					'shop' => $item['shop'],
@@ -691,7 +693,8 @@ class SupplierProductRepository extends \StORM\Repository
 			'uuid' => 'this.uuid',
 			'realDisplayAmount' => 'displayAmount.fk_displayAmount',
 			'product' => 'this.fk_product',
-		])->fetchArray(\stdClass::class) as $supplierProduct) {
+			])->fetchArray(\stdClass::class) as $supplierProduct
+		) {
 			$productsMapXSupplierProductsXDisplayAmount[$supplierProduct->product][$supplierProduct->uuid] = $supplierProduct->realDisplayAmount;
 		}
 	}

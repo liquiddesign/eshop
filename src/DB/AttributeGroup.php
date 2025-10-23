@@ -17,7 +17,7 @@ class AttributeGroup extends SystemicEntity
 	 * @column{"mutations":true}
 	 */
 	public ?string $name;
-	
+
 	/**
 	 * @column{"mutations":true, "type":"longtext"}
 	 */

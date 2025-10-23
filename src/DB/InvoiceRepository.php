@@ -50,7 +50,7 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 			->select(['ordersCodes' => 'GROUP_CONCAT(orders.code)'])
 			->orderBy(['this.exposed', 'this.code',]);
 	}
-	
+
 	/**
 	 * @param \Eshop\DB\Order $order
 	 * @param array<mixed> $values
@@ -59,7 +59,7 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 	public function createFromOrder(Order $order, array $values = []): Invoice
 	{
 		$this->getConnection()->getLink()->beginTransaction();
-		
+
 		$addressValues = $order->purchase->billAddress->toArray([], true, false, false);
 		unset($addressValues['id']);
 
@@ -178,11 +178,11 @@ class InvoiceRepository extends Repository implements IGeneralRepository
 				'customerDiscountLevel' => $order->purchase->customerDiscountLevel,
 			]);
 		}
-		
+
 		$this->getConnection()->getLink()->commit();
 
 		$this->orderLogItemRepository->createLog($order, OrderLogItem::INVOICE_CREATED, $invoice->code);
-		
+
 		return $invoice;
 	}
 

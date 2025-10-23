@@ -53,7 +53,7 @@ class OrderList extends Datalist
 			$suffix = $orderRepository->getConnection()->getMutationSuffix();
 
 			$or = "this.code = :code OR items.productName$suffix LIKE :string";
-			
+
 			if ($shopperUser->getMerchant()) {
 				$or .= ' OR purchase.accountFullname LIKE :string OR account.fullname LIKE :string';
 				$or .= ' OR purchase.fullname LIKE :string';

@@ -19,29 +19,29 @@ class FilePresenter extends BackendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public AdminFormFactory $formFactory;
-	
+
 	private string $productFilesPath;
-	
+
 	public function startup(): void
 	{
 		parent::startup();
 
 		$this->productFilesPath = \dirname(__DIR__, 3) . \DIRECTORY_SEPARATOR . 'userfiles' . \DIRECTORY_SEPARATOR . Product::FILE_DIR;
 	}
-	
+
 	public function createComponentNewForm(): Form
 	{
 		$form = $this->formFactory->create();
-		
+
 		$form->addText('fileName', 'Název souboru');
 		$form->addLocaleText('label', 'Popisek');
 		$form->addInteger('priority', 'Priorita');
 		$form->addCheckbox('hidden', 'Skryto');
 		$form->addSubmit('submit', 'Uložit');
-		
+
 		return $form;
 	}
-	
+
 	public function renderDetail(File $file, Product $product): void
 	{
 		unset($file);
@@ -54,16 +54,16 @@ class FilePresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton(':Eshop:Admin:Product:productFiles', $product)];
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
-	
+
 	public function actionDetail(File $file, Product $product): void
 	{
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('newForm');
-		
+
 		$values = $file->toArray();
 		$values['hidden'] = (int) $values['hidden'];
 		$form->setDefaults($values);
-		
+
 		$form->onSuccess[] = function (Form $form) use ($file, $product): void {
 			$values = $form->getValues('array');
 

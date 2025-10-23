@@ -63,7 +63,8 @@ class CartRepository extends \StORM\Repository
 		/** @var \Eshop\DB\CartItem $cartItem */
 		foreach ($cartItems->join(['loyaltyProgramProduct' => 'eshop_loyaltyprogramproduct'], 'this.fk_product = loyaltyProgramProduct.fk_product')
 					 ->where('loyaltyProgramProduct.fk_loyaltyProgram', $loyaltyProgram)
-					 ->select(['pointsGain' => 'loyaltyProgramProduct.points']) as $cartItem) {
+					 ->select(['pointsGain' => 'loyaltyProgramProduct.points']) as $cartItem
+		) {
 			$pointsGain += $cartItem->amount * $cartItem->getValue('pointsGain');
 		}
 

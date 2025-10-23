@@ -105,7 +105,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$visibilityLists = $visibilityLists ?: $this->shopperUser->getVisibilityLists();
 
 		$cacheIndex = \serialize($filters) . \serialize(\array_keys($priceLists)) . \serialize(\array_keys($visibilityLists)) . $path;
-		
+
 		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($productsProvider, $filters, $priceLists, $visibilityLists, $productRepository) {
 			$dependencies = [
 				Cache::Tags => ['categories', 'products', 'pricelists', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
@@ -537,11 +537,11 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		return $random;
 	}
-	
+
 	public function exportTreeCsv(Writer $writer, array $items): void
 	{
 		$writer->setDelimiter(';');
-		
+
 		$columns = [
 			'Code',
 			'Subcategory 1',
@@ -550,23 +550,23 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			'Subcategory 4',
 			'Subcategory 5',
 		];
-		
+
 		$writer->insertOne($columns);
-		
+
 		$defaultMutationSuffix = '_cs';
-		
+
 		/** @var \Eshop\DB\Category $category */
 		foreach ($items as $category) {
 			$tree = \array_reverse(\explode(';', $category->getFamilyTree()->select(['tree' => 'GROUP_CONCAT(name' . $defaultMutationSuffix . ' SEPARATOR ";")'])->first()->getValue('tree')));
-			
+
 			$row = [];
-			
+
 			$row[0] = $category->code;
-			
+
 			foreach (\array_keys($columns) as $i) {
 				$row[$i + 1] = $tree[$i] ?? null;
 			}
-			
+
 			$writer->insertOne($row);
 		}
 	}
@@ -804,8 +804,9 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 			do {
 				$newPath = $ancestorPath . Random::generate(4);
 			} while (\count(\array_filter($branch['children'], function ($element) use ($newPath) {
-				return $element['category']['path'] === $newPath;
-			})) !== 0);
+					return $element['category']['path'] === $newPath;
+			})) !== 0
+			);
 
 			$updates[$branch['category']['uuid']] = $newPath;
 			$tree[$branch['category']['uuid']]['category']['path'] = $newPath;

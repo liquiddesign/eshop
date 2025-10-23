@@ -39,16 +39,16 @@ abstract class ProductPresenter extends FrontendPresenter
 
 	#[Inject]
 	public IProductsFactory $productsFactory;
-	
+
 	#[Inject]
 	public ProductRepository $productsRepository;
-	
+
 	#[Inject]
 	public ProducerRepository $producerRepository;
-	
+
 	#[Inject]
 	public CategoryRepository $categoryRepository;
-	
+
 	#[Inject]
 	public FileRepository $fileRepository;
 
@@ -69,13 +69,13 @@ abstract class ProductPresenter extends FrontendPresenter
 
 	#[Persistent]
 	public string|null $display = null;
-	
+
 	protected ?Category $category = null;
-	
+
 	protected ?Producer $producer = null;
-	
+
 	protected ?Product $product = null;
-	
+
 	protected ?string $query = null;
 
 	public function createComponentProducts(): ProductList
@@ -99,7 +99,7 @@ abstract class ProductPresenter extends FrontendPresenter
 
 		return $products;
 	}
-	
+
 	public function actionList(
 		?string $category = null,
 		?string $producer = null,
@@ -113,7 +113,7 @@ abstract class ProductPresenter extends FrontendPresenter
 		if ($this->shopperUser->getCatalogPermission() === 'none') {
 			$this->error('You dont have permission to view catalog!', 403);
 		}
-		
+
 		/** @var \Eshop\Controls\ProductList $products */
 		$products = $this->getComponent('products');
 		$filters = [
@@ -122,7 +122,7 @@ abstract class ProductPresenter extends FrontendPresenter
 			'producer' => $producer,
 			'ribbon' => $ribbon,
 		];
-		
+
 		if ($category) {
 			try {
 				$categoryCollection = $this->categoryRepository->many()->where('this.uuid', $category)->where('this.hidden', false);
@@ -146,7 +146,7 @@ abstract class ProductPresenter extends FrontendPresenter
 		if ($producer) {
 			$this->producer = $this->producerRepository->one($producer, true);
 		}
-		
+
 		if ($query) {
 			$this->query = $query;
 			$filters['query'] = $query;
@@ -175,10 +175,10 @@ abstract class ProductPresenter extends FrontendPresenter
 		if ($attributes) {
 			$filters['attributes'] = $attributes;
 		}
-		
+
 		$products->setFilters($filters);
 	}
-	
+
 	public function renderList(?string $category = null, ?string $producer = null, ?string $ribbon = null): void
 	{
 		unset($category);
@@ -188,14 +188,14 @@ abstract class ProductPresenter extends FrontendPresenter
 		/** @var \Eshop\Controls\ProductList $products */
 		$products = $this->getComponent('products');
 		$categories = $this->categoryRepository->getCategories();
-		
+
 		$this->template->category = $this->category;
 		$this->template->display = $this->getDisplay($this->category);
 		$this->template->perex = null;
 		$this->template->content = null;
 		$this->template->categories = [];
 		$this->template->breadcrumb = [];
-		
+
 		if ($this->category) {
 			$this->template->categories = $categories
 				->where('path LIKE :path', ['path' => $this->category->path . '%'])
@@ -206,16 +206,16 @@ abstract class ProductPresenter extends FrontendPresenter
 			$this->template->content = $this->category->content;
 			$this->template->imageDir = Category::IMAGE_DIR;
 			$this->template->imageFileName = $this->category->imageFileName;
-			
+
 			/** @var \Web\Controls\Breadcrumb $breadcrumb */
 			$breadcrumb = $this['breadcrumb'];
-			
+
 			/** @var \Eshop\DB\Category $branch */
 			foreach ($this->category->getFamilyTree() as $branchId => $branch) {
 				$breadcrumb->addItem((string) $branch->name, $branchId !== $this->category->getPK() ? $this->link('list', ['category' => $branchId]) : null);
 			}
 		}
-		
+
 		if ($this->producer) {
 			$this->template->head = $this->producer->name;
 			$this->template->perex = $this->producer->perex;
@@ -223,7 +223,7 @@ abstract class ProductPresenter extends FrontendPresenter
 			$this->template->imageDir = Producer::IMAGE_DIR;
 			$this->template->imageFileName = $this->producer->imageFileName;
 		}
-		
+
 		if ($this->query) {
 			$this->template->head = $this->translator->translate('.searchQuery', 'Vyhledávací dotaz') . ': "' . $this->query . '"';
 		}
@@ -234,7 +234,7 @@ abstract class ProductPresenter extends FrontendPresenter
 
 		$this->template->paginator = $products->getPaginator();
 	}
-	
+
 	public function actionDetail(string $product): void
 	{
 		if ($this->shopperUser->getCatalogPermission() === 'none') {
@@ -253,28 +253,28 @@ abstract class ProductPresenter extends FrontendPresenter
 		}
 
 		$this->category = $this->product->getPrimaryCategory();
-		
+
 		$form = new BuyForm($this->product, $this->shopperUser);
 		$this->addComponent($form, 'buyForm');
 		$form->onSuccess[] = function ($form, $values): void {
 			$form->getPresenter()->redirect('this');
 		};
-		
+
 		$products->setFilters(['related' => ['category' => $this->product->getPrimaryCategory(), 'uuid' => $this->product->getPK()]]);
 		$products->setDefaultOnPage(4);
 	}
-	
+
 	public function handleAddToCart(string $product, int $amount): void
 	{
 		if (!$this->shopperUser->getBuyPermission()) {
 			throw new BadRequestException();
 		}
-		
+
 		$this->shopperUser->getCheckoutManager()->addItemToCart($this->productRepository->getProduct($product), null, $amount);
-		
+
 		$this->redirect('this');
 	}
-	
+
 	public function renderDetail(string $product): void
 	{
 		/** @var \Web\Controls\Breadcrumb $breadcrumb */
@@ -289,7 +289,7 @@ abstract class ProductPresenter extends FrontendPresenter
 		}
 
 		$breadcrumb->addItem((string) $this->product->name);
-		
+
 		$this->template->product = $this->product;
 		$this->template->category = $this->category;
 		$this->template->isInCompare = $this->compareManager->isProductInList($product);
@@ -302,7 +302,7 @@ abstract class ProductPresenter extends FrontendPresenter
 
 		$this->template->loyaltyProgramPointsGain = $this->product->getLoyaltyProgramPointsGain($loyaltyProgram);
 	}
-	
+
 	public function handleWatchIt(string $product): void
 	{
 		if ($customer = $this->shopperUser->getCustomer()) {
@@ -315,10 +315,10 @@ abstract class ProductPresenter extends FrontendPresenter
 
 			Arrays::invoke($this->onProductWatched, $watcher);
 		}
-		
+
 		$this->redirect('this');
 	}
-	
+
 	public function handleUnWatchIt(string $product): void
 	{
 		if ($customer = $this->shopperUser->getCustomer()) {
@@ -332,22 +332,22 @@ abstract class ProductPresenter extends FrontendPresenter
 
 		$this->redirect('this');
 	}
-	
+
 	public function handleDownloadFile(string $fileId): void
 	{
 		/** @var \Eshop\DB\File $file */
 		$file = $this->fileRepository->one($fileId);
-		
+
 		$filePath = $this->userDir . \DIRECTORY_SEPARATOR . Product::FILE_DIR . \DIRECTORY_SEPARATOR . $file->fileName;
-		
+
 		if (!\is_file($filePath)) {
 			$this->flashMessage($this->translator->translate('Product.cantDownload', 'Soubor se nepodařilo stáhnout'), 'danger');
-			
+
 			$this->redirect('this');
 		}
-		
+
 		$response = new FileResponse($filePath, $file->originalFileName);
-		
+
 		$this->sendResponse($response);
 	}
 

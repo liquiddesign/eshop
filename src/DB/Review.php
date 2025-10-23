@@ -35,7 +35,7 @@ class Review extends \StORM\Entity
 	 * @column
 	 */
 	public int $remindersSentCount = 0;
-	
+
 	/**
 	 * @column
 	 */
@@ -56,13 +56,13 @@ class Review extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public Product $product;
-	
+
 	/**
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Customer $customer;
-	
+
 	/**
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}

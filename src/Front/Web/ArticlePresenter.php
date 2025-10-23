@@ -13,17 +13,17 @@ abstract class ArticlePresenter extends \Eshop\Front\FrontendPresenter
 {
 	#[\Nette\DI\Attributes\Inject]
 	public NewsRepository $newsRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public TagRepository $newsTagRepository;
-	
+
 	public function actionDefault(?string $tag = null, ?string $page = null): void
 	{
 		unset($page);
 
 		try {
 			$collection = $this->newsRepository->getCollection();
-			
+
 			if ($tag) {
 				$collection->where('tags.uuid', $tag);
 			}
@@ -36,7 +36,7 @@ abstract class ArticlePresenter extends \Eshop\Front\FrontendPresenter
 			throw new \Nette\Application\BadRequestException();
 		}
 	}
-	
+
 	public function renderDefault(?string $tag = null): void
 	{
 		try {
@@ -50,11 +50,11 @@ abstract class ArticlePresenter extends \Eshop\Front\FrontendPresenter
 			$datalist = $this['news'];
 
 			$breadcrumb->addItem($this->translator->translate('news.news', 'Články'), $this->link(':Web:Article:default'));
-			
+
 			if ($tag) {
 				$breadcrumb->addItem($tag->name);
 			}
-			
+
 			$this->template->news = $datalist->getItemsOnPage();
 			$this->template->newsTags = $this->newsTagRepository->getCollection();
 			$this->template->paginator = $datalist->getPaginator();
@@ -65,12 +65,12 @@ abstract class ArticlePresenter extends \Eshop\Front\FrontendPresenter
 			throw new \Nette\Application\BadRequestException();
 		}
 	}
-	
+
 	public function actionDetail(string $article): void
 	{
 		unset($article);
 	}
-	
+
 	public function renderDetail(string $article): void
 	{
 		try {
@@ -82,7 +82,7 @@ abstract class ArticlePresenter extends \Eshop\Front\FrontendPresenter
 
 			$breadcrumb->addItem($this->translator->translate('news.news', 'Novinky'), $this->link(':Web:Article:default'));
 			$breadcrumb->addItem($article->name);
-			
+
 			$this->template->article = $article;
 		} catch (NotFoundException $x) {
 			throw new \Nette\Application\BadRequestException();

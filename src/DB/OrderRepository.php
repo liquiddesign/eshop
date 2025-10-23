@@ -1429,7 +1429,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		/** @var \Eshop\DB\CartItem $cartItem */
 		foreach ($order->purchase->getItems()->join(['loyaltyProgramProduct' => 'eshop_loyaltyprogramproduct'], 'this.fk_product = loyaltyProgramProduct.fk_product')
 					 ->where('loyaltyProgramProduct.fk_loyaltyProgram', $loyaltyProgram)
-					 ->select(['pointsGain' => 'loyaltyProgramProduct.points']) as $cartItem) {
+					 ->select(['pointsGain' => 'loyaltyProgramProduct.points']) as $cartItem
+		) {
 			$pointsGain += $cartItem->amount * $cartItem->getValue('pointsGain');
 		}
 
@@ -1484,7 +1485,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 				$item->product->update(['buyCount' => $item->product->buyCount + $item->amount]);
 			}
-			
+
 			// loyalty program is computed in scripts
 		}
 
@@ -1621,19 +1622,19 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 		return [$percentageUsage, $countUsage];
 	}
-	
+
 	public function changePayment(string $payment, bool $paid, bool $email = false, ?Administrator $admin = null, ?Carbon $paidTs = null, ?string $externalId = null): void
 	{
 		$paymentRepository = $this->connection->findRepository(Payment::class);
 		$orderLogItemRepository = $this->connection->findRepository(OrderLogItem::class);
 		/** @var \Messages\DB\TemplateRepository $templateRepository */
 		$templateRepository = $this->connection->findRepository(Template::class);
-		
+
 		/** @var \Eshop\DB\Payment $payment */
 		$payment = $paymentRepository->one($payment, true);
-		
+
 		$paidTs = $paidTs ?: Carbon::now();
-		
+
 		$values = [
 			'externalId' => $externalId,
 			'paidTs' => $paid ? $paidTs->toDateTimeString() : null,
@@ -1642,14 +1643,14 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		];
 
 		$payment->update($values);
-		
+
 		if ($paid) {
 			$orderLogItemRepository->createLog($payment->order, OrderLogItem::PAYED, $payment->getTypeName(), $admin);
-			
+
 			if ($email) {
 				try {
 					$templateRepository->sendMessage('order.payed', ['orderCode' => $payment->order->code], $payment->order->purchase->email, shops: $payment->order->shop);
-					
+
 					$orderLogItemRepository->createLog($payment->order, OrderLogItem::EMAIL_SENT, OrderLogItem::PAYED, $admin);
 				} catch (\Throwable $e) {
 				}

@@ -16,27 +16,27 @@ class PaymentTypePrice extends \StORM\Entity
 	 * @column
 	 */
 	public float $price;
-	
+
 	/**
 	 * Cena s DPH
 	 * @column
 	 */
 	public float $priceVat;
-	
+
 	/**
 	 * Země DPH
 	 * @relation
 	 * @constraint
 	 */
 	public Country $country;
-	
+
 	/**
 	 * Měna
 	 * @relation
 	 * @constraint
 	 */
 	public Currency $currency;
-	
+
 	/**
 	 * Platba
 	 * @relation

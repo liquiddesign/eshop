@@ -20,49 +20,49 @@ class DiscountCoupon extends \StORM\Entity
 	 * @column
 	 */
 	public string $code;
-	
+
 	/**
 	 * Popisek
 	 * @column
 	 */
 	public ?string $label;
-	
+
 	/**
 	 * Sleva v měně
 	 * @column
 	 */
 	public ?float $discountValue;
-	
+
 	/**
 	 * Sleva v měně s DPH
 	 * @column
 	 */
 	public ?float $discountValueVat;
-	
+
 	/**
 	 * Sleva (%)
 	 * @column
 	 */
 	public ?float $discountPct;
-	
+
 	/**
 	 * Poslední využití
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $usedTs;
-	
+
 	/**
 	 * Vytvořen
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
 	public ?string $createdTs;
-	
+
 	/**
 	 * Kolikrát je možné využít
 	 * @column
 	 */
 	public ?int $usageLimit;
-	
+
 	/**
 	 * Kolikrát je již využito
 	 * @column
@@ -98,21 +98,21 @@ class DiscountCoupon extends \StORM\Entity
 	 * @column
 	 */
 	public bool $targitoExport = false;
-	
+
 	/**
 	 * Exkluzivně pro zákazníka
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public ?Customer $exclusiveCustomer;
-	
+
 	/**
 	 * Měna
 	 * @relation
 	 * @constraint
 	 */
 	public Currency $currency;
-	
+
 	/**
 	 * Akce
 	 * @relation
@@ -135,7 +135,8 @@ class DiscountCoupon extends \StORM\Entity
 		}
 
 		if (($this->discount->validFrom && Carbon::parse($this->discount->validFrom)->greaterThan(Carbon::now())) ||
-			($this->discount->validTo && Carbon::parse($this->discount->validTo)->lessThan(Carbon::now()))) {
+			($this->discount->validTo && Carbon::parse($this->discount->validTo)->lessThan(Carbon::now()))
+		) {
 			throw new InvalidCouponException(code: InvalidCouponException::NOT_ACTIVE);
 		}
 

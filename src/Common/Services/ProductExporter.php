@@ -175,7 +175,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 
 		$form->onSuccess[] = function (AdminForm $form) use ($ids, $productGrid, $items, $attributes, $getSupplierCodeCallback): void {
 			$values = $form->getValues('array');
-			
+
 			$products = $this->productRepository->many()->where('this.uuid', $values['bulkType'] === 'selected' ?
 				\array_values($ids) :
 				$productGrid->getFilteredSource()->setOrderBy([])->toArrayOf('uuid', toArrayValues: true));
@@ -457,7 +457,8 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 					Strings::startsWith($columnKey, 'hiddenInMenu#') ||
 					Strings::startsWith($columnKey, 'unavailable#') ||
 					Strings::startsWith($columnKey, 'recommended#') ||
-					Strings::startsWith($columnKey, 'priority#')) {
+					Strings::startsWith($columnKey, 'priority#')
+				) {
 					[$property, $visibilityList] = \explode('#', $columnKey);
 					$visibilityListItem = $productsByVisibilityLists[$product->getPK()][$visibilityList] ?? null;
 

@@ -11,7 +11,7 @@ abstract class Error4xxPresenter extends \Eshop\Front\FrontendPresenter
 	public function startup(): void
 	{
 		$this->invalidLinkMode = Nette\Application\UI\Presenter::INVALID_LINK_SILENT;
-		
+
 		parent::startup();
 
 		if ($this->getRequest()->isMethod(Nette\Application\Request::FORWARD)) {

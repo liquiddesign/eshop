@@ -209,6 +209,7 @@ class DPD
 					foreach ($result->NewShipmentResult->NewShipmentResultVO as $parcel) {
 						$dpdCodes .= $parcel->ParcelVO->PARCELNO . ',';
 					}
+
 					/** @codingStandardsIgnoreEnd */
 
 					$order->update(['dpdCode' => $dpdCodes, 'dpdError' => false,]);
@@ -495,26 +496,26 @@ class DPD
 
 		return $result;
 	}
-	
+
 	public function deletePackages(array $list): void
 	{
 		$client = $this->getClient();
-		
+
 		$result = $client->DeleteParcelByParcelno([
 			'login' => $this->login,
 			'password' => $this->password,
 			'parcelno' => $list,
 		]);
-		
+
 		Debugger::barDump($result);
-		
+
 		return;
 	}
-	
+
 	public function deletePickups(array $list): void
 	{
 		$client = $this->getClient();
-		
+
 		$result = $client->DeletePickup([
 			'login' => $this->login,
 			'password' => $this->password,

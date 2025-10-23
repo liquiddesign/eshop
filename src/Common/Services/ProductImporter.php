@@ -413,7 +413,8 @@ class ProductImporter
 
 			foreach ($record as $key => $value) {
 				if (!\str_starts_with((string) $key, 'perex_') && !\str_starts_with((string) $key, 'content_') &&
-					!\str_starts_with((string) $key, 'Popisek_') && !\str_starts_with((string) $key, 'Obsah_')) {
+					!\str_starts_with((string) $key, 'Popisek_') && !\str_starts_with((string) $key, 'Obsah_')
+				) {
 					continue;
 				}
 
@@ -515,16 +516,16 @@ class ProductImporter
 					unset($valuesToUpdate[$product->uuid]['primaryCategories']);
 				}
 			}
-			
+
 			if ($relatedToSync['content']) {
 				$productContent = $this->productContentRepository->many()->where('fk_product', $relatedToSync['content']['product']);
-				
+
 				if ($relatedToSync['content']['shop']) {
 					$productContent->where('fk_shop', $relatedToSync['content']['shop']);
 				}
-				
+
 				$productContent = $productContent->first();
-				
+
 				if ($productContent) {
 					$productContent->update($relatedToSync['content']);
 				} else {
@@ -675,7 +676,7 @@ class ProductImporter
 		$connection = $this->productRepository->getConnection();
 
 		$mutations = $connection->getAvailableMutations();
-		
+
 		$importColumns = [
 			'code' => 'Kód',
 			'ean' => 'EAN',

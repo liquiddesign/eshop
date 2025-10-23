@@ -17,7 +17,7 @@ class SupplierAttributeCategoryAssign extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public SupplierAttribute $supplierAttribute;
-	
+
 	/**
 	 * Dodavatelská kategorie
 	 * @relation

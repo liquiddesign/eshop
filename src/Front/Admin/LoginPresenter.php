@@ -11,26 +11,26 @@ use Admin\Controls\LoginForm;
 abstract class LoginPresenter extends \Eshop\Front\FrontendPresenter
 {
 	public Administrator $admin;
-	
+
 	/**
 	 * @inject
 	 */
 	public ILoginFormFactory $loginFormFactory;
-	
+
 	/**
 	 * @persistent
 	 */
 	public string $backlink = '';
-	
+
 	public function actionDefault(): void
 	{
 		if ($this->admin->isLoggedIn() && $this->admin->isAllowed($this->admin->getDefaultLink())) {
 			$this->redirect($this->admin->getDefaultLink());
 		}
-		
+
 		return;
 	}
-	
+
 	public function createComponentLoginForm(): LoginForm
 	{
 		$form = $this->loginFormFactory->create();
@@ -52,7 +52,7 @@ abstract class LoginPresenter extends \Eshop\Front\FrontendPresenter
 		$form->onLoginFail[] = function (): void {
 			$this->flashMessage('Špatný login nebo heslo', 'error');
 		};
-		
+
 		return $form;
 	}
 }

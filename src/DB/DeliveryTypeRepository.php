@@ -49,16 +49,16 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 
 		return $this->shopsConfig->shopEntityCollectionToArrayOfFullName($this->shopsConfig->selectFullNameInShopEntityCollection($collection, "this.name$suffix", 'this.code'));
 	}
-	
+
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$collection = $this->many();
-		
+
 		if (!$includeHidden) {
 			$collection->where('hidden', false);
 		}
-		
+
 		return $collection->orderBy(['priority DESC', "name$suffix"]);
 	}
 
@@ -125,13 +125,13 @@ class DeliveryTypeRepository extends \StORM\Repository implements IGeneralReposi
 				'priceBefore' => 'NULL',
 				'priceBeforeVat' => 'NULL']);
 		}
-		
+
 		if ($allowedDeliveries) {
 			$collection->where('this.uuid', $allowedDeliveries);
 		} elseif ($customerGroup) {
 			$collection->where('fk_exclusive IS NULL OR fk_exclusive = :customerGroup', ['customerGroup' => $customerGroup]);
 		}
-		
+
 		return $collection;
 	}
 }

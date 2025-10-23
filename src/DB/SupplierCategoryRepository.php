@@ -17,7 +17,8 @@ class SupplierCategoryRepository extends \StORM\Repository
 				->join(['assign' => 'eshop_supplierattributecategoryassign'], 'assign.fk_supplierAttribute=this.uuid')
 				->where('assign.fk_supplierCategory', $supplierCategory)
 				->where('this.fk_attribute IS NOT NULL')
-				->where('this.active', true) as $supplierAttribute) {
+				->where('this.active', true) as $supplierAttribute
+			) {
 				$supplierAttribute->update(['active' => false]);
 
 				$this->connection->syncRow('eshop_attribute_nxn_eshop_category', [
@@ -35,15 +36,15 @@ class SupplierCategoryRepository extends \StORM\Repository
 	public function getArrayForSelect(?bool $mapped = null): array
 	{
 		$collection = $this->many();
-		
+
 		if ($mapped === true) {
 			$collection->where('fk_category IS NOT NULL');
 		}
-		
+
 		if ($mapped === false) {
 			$collection->where('fk_category IS NULL');
 		}
-		
+
 		return $collection->orderBy(['categoryNameL1', 'categoryNameL2', 'categoryNameL3', 'categoryNameL4'])->toArrayOf('%s', [function ($category) {
 			return $category->supplier->name . ' - ' . $category->getNameTree();
 		}]);

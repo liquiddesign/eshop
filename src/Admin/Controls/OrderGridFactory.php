@@ -58,7 +58,7 @@ class OrderGridFactory
 
 	/** @var array<mixed> */
 	private array $configuration;
-	
+
 	public function __construct(
 		AdminGridFactory $adminGridFactory,
 		protected readonly OrderRepository $orderRepository,
@@ -132,7 +132,7 @@ class OrderGridFactory
 
 			if ($order->autoship) {
 				$link = $grid->getPresenter()->link(':Eshop:Admin:Autoship:default', ['grid-id' => 2]);
-				
+
 				return \sprintf(
 					"<a id='%s' href='%s'>%s$noteIcon</a> %s<br><a href='%s'><small title='Autoship #" . $order->autoship->id . "'>%s <i class='fas fa-history fa-sm'></i></small></a>",
 					$order->getPK(),
@@ -262,7 +262,8 @@ class OrderGridFactory
 
 		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
 			if (!isset($orderStatesEvents[$state]) || !Arrays::contains($orderStatesEvents[$state], $targetState) ||
-				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())) {
+				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())
+			) {
 				continue;
 			}
 
@@ -385,12 +386,12 @@ class OrderGridFactory
 				}
 			}, '', 'customerGroup', null, $customerGroups + [])->setPrompt('- Skupina zákazníků -');
 		}
-		
+
 		$deliveryTypes = $this->deliveryTypeRepository->getArrayForSelect();
 		$grid->addFilterDataSelect(function (Collection $source, $value): void {
 			$source->where('purchase.fk_deliveryType', $value);
 		}, '', 'deliveryType', null, $deliveryTypes)->setPrompt('- Způsob dopravy -');
-		
+
 		$paymentTypes = $this->paymentTypeRepository->getArrayForSelect();
 		$grid->addFilterDataSelect(function (Collection $source, $value): void {
 			$source->where('purchase.fk_paymentType', $value);
@@ -484,7 +485,8 @@ class OrderGridFactory
 
 		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
 			if (!isset($orderStatesEvents[$state]) || !Arrays::contains($orderStatesEvents[$state], $targetState) ||
-				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())) {
+				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())
+			) {
 				continue;
 			}
 

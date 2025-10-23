@@ -15,7 +15,7 @@ class CouponForm extends \Nette\Application\UI\Form
 	 * @var array<callable(\Eshop\DB\DiscountCoupon): void>
 	 */
 	public array $onSet = [];
-	
+
 	/**
 	 * @var array<callable(): void>
 	 */
@@ -67,18 +67,18 @@ class CouponForm extends \Nette\Application\UI\Form
 		};
 
 		$this->addSubmit('submit')->onClick[] = [$this, 'setCoupon'];
-		
+
 		if (!$discountCoupon) {
 			return;
 		}
 
 		$this->addSubmit('remove')->setValidationScope([])->onClick[] = [$this, 'removeCoupon'];
 	}
-	
+
 	public function setCoupon(Nette\Forms\Controls\SubmitButton $submit): void
 	{
 		unset($submit);
-		
+
 		if (!$coupon = $this->activeCoupon) {
 			return;
 		}
@@ -89,7 +89,7 @@ class CouponForm extends \Nette\Application\UI\Form
 
 		Nette\Utils\Arrays::invoke($this->onSet, $coupon);
 	}
-	
+
 	public function removeCoupon(Nette\Forms\Controls\SubmitButton $submit): void
 	{
 		unset($submit);

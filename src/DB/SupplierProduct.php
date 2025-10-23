@@ -19,19 +19,19 @@ class SupplierProduct extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $productCode;
-	
+
 	/**
 	 * Podkód produktu k napárování
 	 * @column
 	 */
 	public string $productSubCode = '';
-	
+
 	/**
 	 * EAN
 	 * @column
 	 */
 	public ?string $ean;
-	
+
 	/**
 	 * Kód produktu
 	 * @column
@@ -43,79 +43,79 @@ class SupplierProduct extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $mpn;
-	
+
 	/**
 	 * Název
 	 * @column
 	 */
 	public string $name;
-	
+
 	/**
 	 * Perex
 	 * @column{"type":"longtext"}
 	 */
 	public ?string $perex;
-	
+
 	/**
 	 * Popis
 	 * @column{"type":"longtext"}
 	 */
 	public ?string $content;
-	
+
 	/**
 	 * Jednotka
 	 * @column
 	 */
 	public ?string $unit;
-	
+
 	/**
 	 * DPH
 	 * @column
 	 */
 	public ?float $vatRate;
-	
+
 	/**
 	 * Cena A bez DPH
 	 * @column
 	 */
 	public ?float $price;
-	
+
 	/**
 	 * Cena B s DPH
 	 * @column
 	 */
 	public ?float $priceVat;
-	
+
 	/**
 	 * Nákupní cena
 	 * @column
 	 */
 	public ?float $purchasePrice;
-	
+
 	/**
 	 * Nákupní cena s DPH
 	 * @column
 	 */
 	public ?float $purchasePriceVat;
-	
+
 	/**
 	 * Množství
 	 * @column
 	 */
 	public ?int $amount;
-	
+
 	/**
 	 * Datum nejblišího naskladnění
 	 * @column
 	 */
 	public ?string $storageDate;
-	
+
 	/**
 	 * Předdefinované množství ke koupi
 	 * @column
 	 */
 	public int $defaultBuyCount = 1;
-	
+
 	/**
 	 * Minimální prodejní množství
 	 * @column
@@ -127,25 +127,25 @@ class SupplierProduct extends \StORM\Entity
 	 * @column
 	 */
 	public int $buyStep = 1;
-	
+
 	/**
 	 * Počet v balení
 	 * @column
 	 */
 	public ?int $inPackage;
-	
+
 	/**
 	 * Počet v kartónu
 	 * @column
 	 */
 	public ?int $inCarton;
-	
+
 	/**
 	 * Počet v paletě
 	 * @column
 	 */
 	public ?int $inPalett;
-	
+
 	/**
 	 * Váha
 	 * @column
@@ -169,25 +169,25 @@ class SupplierProduct extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $depth;
-	
+
 	/**
 	 * Obrázek
 	 * @column
 	 */
 	public ?string $fileName;
-	
+
 	/**
 	 * Zkopírovat / spárovat s produkty
 	 * @column
 	 */
 	public bool $active = true;
-	
+
 	/**
 	 * Je ve feedu smazaný
 	 * @column
 	 */
 	public bool $deleted = false;
-	
+
 	/**
 	 * Nedostupné
 	 * @column
@@ -205,48 +205,48 @@ class SupplierProduct extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $copyrightFee;
-	
+
 	/**
 	 * Výrobce
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?SupplierProducer $producer;
-	
+
 	/**
 	 * Kategorie
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?SupplierCategory $category;
-	
+
 	/**
 	 * Dostupnost
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?SupplierDisplayAmount $displayAmount;
-	
+
 	/**
 	 * Dodavatel
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public Supplier $supplier;
-	
+
 	/**
 	 * Produkt
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Product $product;
-	
+
 	/**
 	 * Aktualizován
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP","extra":"on update CURRENT_TIMESTAMP"}
 	 */
 	public string $updateTs;
-	
+
 	/**
 	 * Vytvořen
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
