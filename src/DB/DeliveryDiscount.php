@@ -29,10 +29,16 @@ class DeliveryDiscount extends \StORM\Entity
 	public ?float $discountPct;
 
 	/**
-	 * Od jaké ceny košíku je sleva
+	 * Od jaké ceny košíku je sleva (bez DPH)
 	 * @column
 	 */
 	public float $discountPriceFrom = 0.0;
+
+	/**
+	 * Od jaké ceny košíku je sleva (s DPH)
+	 * @column
+	 */
+	public float $discountPriceFromVat = 0.0;
 
 	/**
 	 * Od jaké váhy objednávky platí

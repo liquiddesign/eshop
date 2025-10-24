@@ -356,16 +356,23 @@ class DiscountPresenter extends BackendPresenter
 		$grid->addColumnInputFloat('Sleva v měně', 'discountValue', '', '', 'discountValue');
 		$grid->addColumnInputFloat('Sleva s DPH', 'discountValueVat', '', '', 'discountValueVat');
 		$grid->addColumnInputFloat('Sleva v %', 'discountPct', '', '', 'discountPct');
-		$grid->addColumnInputFloat('Od ceny košíku', 'discountPriceFrom', '', '', 'discountPriceFrom');
+		$grid->addColumnInputFloat('Od ceny košíku (bez DPH)', 'discountPriceFrom', '', '', 'discountPriceFrom');
+		$grid->addColumnInputFloat('Od ceny košíku (s DPH)', 'discountPriceFromVat', '', '', 'discountPriceFromVat');
 		$grid->addColumnInputFloat('Od váhy košíku', 'weightFrom', '', '', 'weightFrom');
 		$grid->addColumnInputFloat('Do váhy košíku', 'weightTo', '', '', 'weightTo');
 
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll(['discountValue', 'discountPct', 'discountPriceFrom'], [], null, false, null, function ($id, &$data): void {
+		$grid->addButtonSaveAll(['discountValue', 'discountPct', 'discountPriceFrom', 'discountPriceFromVat'], [], null, false, null, function ($id, &$data): void {
 			if (!isset($data['discountPriceFrom'])) {
 				$data['discountPriceFrom'] = 0;
 			}
+
+			if (!isset($data['discountPriceFromVat'])) {
+				$data['discountPriceFromVat'] = 0;
+			}
+
+			return;
 		}, false);
 		$grid->addButtonDeleteSelected();
 
@@ -387,7 +394,8 @@ class DiscountPresenter extends BackendPresenter
 		/** @var \Eshop\DB\Discount|null $discount */
 		$discount = $this->getParameter('discount');
 
-		$form->addText('discountPriceFrom', 'Od jaké ceny košíku je sleva')->addCondition($form::FILLED)->addRule($form::FLOAT);
+		$form->addText('discountPriceFrom', 'Od jaké ceny košíku je sleva (bez DPH)')->addCondition($form::FILLED)->addRule($form::FLOAT);
+		$form->addText('discountPriceFromVat', 'Od jaké ceny košíku je sleva (s DPH)')->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->addText('discountPct', 'Sleva (%)')->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->addGroup('Absolutní sleva');
 		$form->addSelect('currency', 'Měna', $this->currencyRepo->getArrayForSelect());
