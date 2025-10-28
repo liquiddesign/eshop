@@ -176,12 +176,28 @@ class DiscountPresenter extends BackendPresenter
 			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Štítky -']);
 		}
 
-		if ($items = $this->priceListRepository->getArrayForSelect()) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
-				$source->join(['nxn' => 'eshop_discount_nxn_eshop_pricelist'], 'nxn.fk_discount=this.uuid');
-				$source->where('nxn.fk_pricelist', $value);
-			}, '', 'pricelists', null, $items, ['placeholder' => '- Ceníky -']);
-		}
+		$grid->addFilterText(function (ICollection $source, string $value): void {
+			$codes = \array_filter(\array_map('trim', \explode(';', $value)));
+
+			if ($codes === []) {
+				return;
+			}
+
+			$pricelistIds = $this->priceListRepository->many()
+				->where('this.code', \array_values($codes))
+				->toArrayOf('uuid', toArrayValues: true);
+
+			if ($pricelistIds === []) {
+				$source->where('1=0');
+
+				return;
+			}
+
+			$source->join(['pricelists_nxn_discount' => 'eshop_discount_nxn_eshop_pricelist'], 'pricelists_nxn_discount.fk_discount=this.uuid');
+			$source->where('pricelists_nxn_discount.fk_pricelist', $pricelistIds);
+		}, null, 'pricelists', 'Kódy ceníků (oddělené středníkem)')
+			->setHtmlAttribute('placeholder', 'Kódy ceníků (např. KOD1;KOD2;KOD3)')
+			->setHtmlAttribute('class', 'form-control form-control-sm');
 
 		$grid->addFilterButtons();
 

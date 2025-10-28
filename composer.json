@@ -104,6 +104,5 @@
             "php-http/discovery": true,
             "pestphp/pest-plugin": true
         }
-    },
-    "version": "2.1.468"
+    }
 }
