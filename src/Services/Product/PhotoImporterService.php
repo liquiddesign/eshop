@@ -25,7 +25,7 @@ class PhotoImporterService implements AutoWireService
 		$updatedPhotos = 0;
 		$mutations = $this->photoRepository->getConnection()->getAvailableMutations();
 
-		$reader = Reader::createFromPath($filePath, 'r');
+		$reader = Reader::from($filePath, 'r');
 		$reader->setDelimiter($delimiter);
 		$reader->setHeaderOffset(0);
 

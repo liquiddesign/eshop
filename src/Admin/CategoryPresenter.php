@@ -263,7 +263,7 @@ class CategoryPresenter extends BackendPresenter
 				}
 			};
 
-			$this->categoryRepository->csvExportTargito(Writer::createFromPath($tempFilename, 'w+'), $collection);
+			$this->categoryRepository->csvExportTargito(Writer::from($tempFilename, 'w+'), $collection);
 
 			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'categories.csv', 'text/csv'));
 		}, $this->link('this', ['selected' => $this->getParameter('selected')]), $ids);
@@ -918,7 +918,7 @@ Očekává se formát kategorií dle formátu Heuréky. Tedy "Subcategory 1" atd
 			$tempFilename = \tempnam($this->tempDir, 'csv');
 
 			$this->categoryRepository->exportTreeCsv(
-				Writer::createFromPath($tempFilename),
+				Writer::from($tempFilename),
 				$items,
 			);
 

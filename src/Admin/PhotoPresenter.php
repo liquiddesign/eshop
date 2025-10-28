@@ -531,7 +531,7 @@ Můžete nahrát více obrázků pro jeden produkt. Např.: "ABC_obrazek_1.jpg",
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('photoGrid'), function (array $values, Collection $collection): void {
 			$tempFilename = \tempnam($this->tempDir, 'csv');
 
-			$this->photoExporterService->exportCsv($collection, Writer::createFromPath($tempFilename), $this::EXPORT_COLUMNS);
+			$this->photoExporterService->exportCsv($collection, Writer::from($tempFilename), $this::EXPORT_COLUMNS);
 
 			$this->sendResponse(new FileResponse($tempFilename, 'photos.csv', 'text/csv'));
 		}, $this->getBulkFormActionLink(), $this->photoRepository->many(), $this->getBulkFormIds());

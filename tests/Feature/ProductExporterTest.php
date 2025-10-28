@@ -11,14 +11,14 @@ test('basic', function () use ($container, $productExporter, $productRepository)
 
 	$tempFilename = \tempnam($container->getParameter('tempDir'), 'csv');
 
-	$writer = \League\Csv\Writer::createFromPath($tempFilename);
+	$writer = \League\Csv\Writer::from($tempFilename);
 
 	$productsCollection = clone $products;
 	$productsArray = $productsCollection->setIndex('code')->toArray();
 
 	$productExporter->exportCsv($products, $writer, ['code' => 'Kód', 'name_cs' => 'Název'], header: ['Kód', 'Název']);
 
-	$reader = \League\Csv\Reader::createFromPath($tempFilename);
+	$reader = \League\Csv\Reader::from($tempFilename);
 	$reader->setDelimiter(';');
 	$reader->setHeaderOffset(0);
 
