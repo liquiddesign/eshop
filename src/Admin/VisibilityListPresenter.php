@@ -314,7 +314,7 @@ class VisibilityListPresenter extends BackendPresenter
 				}
 			};
 
-			$this->productRepository->csvExportVisibilityListItem(Writer::createFromPath($tempFilename, 'w+'), $objects);
+			$this->productRepository->csvExportVisibilityListItem(Writer::from($tempFilename, 'w+'), $objects);
 
 			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'items.csv', 'text/csv'));
 		};

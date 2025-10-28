@@ -251,7 +251,7 @@ abstract class ExportPresenter extends Presenter
 				throw new \Exception('Missing Heureka category type setting!');
 			}
 
-			$this->categoryRepository->csvExportTargito(Writer::createFromPath($tempFilename, 'w+'), $this->categoryRepository->many()->where('this.fk_type', $categoryTypeSetting));
+			$this->categoryRepository->csvExportTargito(Writer::from($tempFilename, 'w+'), $this->categoryRepository->many()->where('this.fk_type', $categoryTypeSetting));
 
 			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'categories.csv', 'text/csv'));
 		} catch (\Exception $e) {

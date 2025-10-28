@@ -720,7 +720,7 @@ class OrderGridFactory
 				Debugger::log($e, ILogger::WARNING);
 			}
 		};
-		$this->orderRepository->csvExportZasilkovna($grid->getSelectedIds(), Writer::createFromPath($tempFilename, 'w+'));
+		$this->orderRepository->csvExportZasilkovna($grid->getSelectedIds(), Writer::from($tempFilename, 'w+'));
 		$response = new FileResponse($tempFilename, 'zasilkovna.csv', 'text/csv');
 		$presenter->sendResponse($response);
 	}

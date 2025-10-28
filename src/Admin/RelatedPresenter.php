@@ -547,7 +547,7 @@ class RelatedPresenter extends BackendPresenter
 				}
 			};
 
-			$this->relatedRepository->exportCsv(Writer::createFromPath($tempFilename, 'w+'), $relations);
+			$this->relatedRepository->exportCsv(Writer::from($tempFilename, 'w+'), $relations);
 
 			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'relations.csv', 'text/csv'));
 		};

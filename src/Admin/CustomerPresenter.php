@@ -558,7 +558,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 		$tempFilename = \tempnam($this->tempDir, 'csv');
 		$collection = $grid->getFilteredSource();
-		$this->customerRepository->csvExport($collection, Writer::createFromPath($tempFilename, 'w+'));
+		$this->customerRepository->csvExport($collection, Writer::from($tempFilename, 'w+'));
 
 		$response = new FileResponse($tempFilename, 'customers.csv', 'text/csv');
 		$this->sendResponse($response);
@@ -574,7 +574,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 		$origin = $this::CONFIGURATIONS['targitoOrigin'] ?? null;
 
-		$this->customerRepository->csvExportTargito($grid->getFilteredSource(), Writer::createFromPath($tempFilename, 'w+'), $origin);
+		$this->customerRepository->csvExportTargito($grid->getFilteredSource(), Writer::from($tempFilename, 'w+'), $origin);
 
 		$response = new FileResponse($tempFilename, 'customers.csv', 'text/csv');
 		$this->sendResponse($response);
@@ -589,7 +589,7 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 
 		$collection = $grid->getSelectedIds() ? $grid->getSource()->where('this.' . $grid->getSourceIdName(), $grid->getSelectedIds()) : $grid->getFilteredSource();
 
-		$this->customerRepository->csvExportAccounts($collection, Writer::createFromPath($tempFilename, 'w+'));
+		$this->customerRepository->csvExportAccounts($collection, Writer::from($tempFilename, 'w+'));
 
 		$response = new FileResponse($tempFilename, 'accounts.csv', 'text/csv');
 		$this->sendResponse($response);
@@ -1774,7 +1774,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$connection->getLink()->beginTransaction();
 
 			try {
-				$reader = Reader::createFromPath($tempFileName);
+				$reader = Reader::from($tempFileName);
 
 				$reader->setDelimiter($values['delimiter']);
 				$reader->setHeaderOffset(0);
