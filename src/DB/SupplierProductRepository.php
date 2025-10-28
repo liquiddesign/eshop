@@ -175,7 +175,8 @@ class SupplierProductRepository extends \StORM\Repository
 		/** @var array<array<\stdClass>> $existingProductContents By product -> shop -> mutations */
 		$existingProductContents = [];
 
-		foreach ($productContentRepository->many()
+		foreach (
+			$productContentRepository->many()
 					 ->select(['productPK' => 'this.fk_product', 'shopPK' => 'this.fk_shop', 'content' => "this.content$mutationSuffix"])
 					 ->fetchArray(\stdClass::class) as $productContent
 		) {
@@ -272,7 +273,8 @@ class SupplierProductRepository extends \StORM\Repository
 
 			$importImage = true;
 
-			if (!$importImages ||
+			if (
+				!$importImages ||
 				!$supplier->importImages ||
 				!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) ||
 				!isset($productsMap[$uuid])
@@ -689,7 +691,8 @@ class SupplierProductRepository extends \StORM\Repository
 
 	private function loadProductsMapXSupplierProductsXDisplayAmount(array &$productsMapXSupplierProductsXDisplayAmount): void
 	{
-		foreach ($this->many()->setSelect([
+		foreach (
+			$this->many()->setSelect([
 			'uuid' => 'this.uuid',
 			'realDisplayAmount' => 'displayAmount.fk_displayAmount',
 			'product' => 'this.fk_product',

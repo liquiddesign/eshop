@@ -291,7 +291,8 @@ class ProductImporter
 
 			// Continue based on settings and data
 
-			if (($searchCode && $searchEan && !$code && !$ean) ||
+			if (
+				($searchCode && $searchEan && !$code && !$ean) ||
 				($searchCode && !$searchEan && !$code) ||
 				($searchEan && !$searchCode && !$ean) ||
 				(!$product && !$addNew) ||
@@ -412,7 +413,8 @@ class ProductImporter
 			Arrays::invoke($onImport, $importedProductsPKs);
 
 			foreach ($record as $key => $value) {
-				if (!\str_starts_with((string) $key, 'perex_') && !\str_starts_with((string) $key, 'content_') &&
+				if (
+					!\str_starts_with((string) $key, 'perex_') && !\str_starts_with((string) $key, 'content_') &&
 					!\str_starts_with((string) $key, 'Popisek_') && !\str_starts_with((string) $key, 'Obsah_')
 				) {
 					continue;
@@ -831,7 +833,8 @@ class ProductImporter
 
 			// Continue based on settings and data
 
-			if (($searchCode && $searchEan && !$code && !$ean) ||
+			if (
+				($searchCode && $searchEan && !$code && !$ean) ||
 				($searchCode && !$searchEan && !$code) ||
 				($searchEan && !$searchCode && !$ean) ||
 				!$product
