@@ -411,7 +411,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		$updatedCount = 0;
 
 		foreach (\array_chunk($productsToUpdate, 1000, true) as $chunk) {
-			$this->getLink()->beginTransaction();
+			$this->getConnection()->beginTransaction();
 
 			foreach ($chunk as $product => $row) {
 				try {
@@ -421,7 +421,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				}
 			}
 
-			$this->getLink()->commit();
+			$this->getConnection()->commit();
 		}
 
 		Debugger::log('diffUpdateMainTable -- updated: ' . $updatedCount, $this->logName);
@@ -674,7 +674,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 			}
 
 			foreach (\array_chunk($pricesToUpdate, 10000, true) as $chunk) {
-				$this->getLink()->beginTransaction();
+				$this->getConnection()->beginTransaction();
 
 				foreach ($chunk as $product => $row) {
 					$this->getConnection()->rows([$currentIndexTableName])
@@ -682,7 +682,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 						->update($row);
 				}
 
-				$this->getLink()->commit();
+				$this->getConnection()->commit();
 			}
 
 			if ($pricesToCreate) {
