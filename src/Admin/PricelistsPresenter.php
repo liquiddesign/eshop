@@ -795,7 +795,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			try {
 				$this->priceListRepository->csvImport(
 					$pricelist,
-					Reader::createFromString($file->getContents()),
+					Reader::fromString($file->getContents()),
 					$quantity,
 					$values['delimiter'],
 				);
