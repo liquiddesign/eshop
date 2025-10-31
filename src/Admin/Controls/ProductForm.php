@@ -227,6 +227,8 @@ Ostatní: Přebírání ze zvoleného zdroje
 			$supplierDisplayAmountLockInput = $form->addCheckbox('supplierDisplayAmountLock', 'Nepřebírat žádnou skladovost');
 
 			$supplierDisplayAmountLockInput->addConditionOn($supplierDisplayAmountMergedLockInput, $form::EQUAL, true)->toggle($supplierDisplayAmountLockInput->getHtmlId() . '-toogle');
+
+			$form->addCheckbox('importSupplierImages', 'Importovat fotky od dodavatelů');
 		}
 
 		$form->addText('storageDate', 'Nejbližší datum naskladnění')->setNullable(true)->setHtmlType('date');

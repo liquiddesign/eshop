@@ -327,6 +327,12 @@ class Product extends \StORM\Entity
 	public bool $supplierDisplayAmountMergedLock = false;
 
 	/**
+	 * Importovat fotky od dodavatelů
+	 * @column
+	 */
+	public bool $importSupplierImages = true;
+
+	/**
 	 * Režim přebírání obsahu, platí pouze pokud supplierContentLock === false
 	 * @column{"type":"enum","length":"'none','priority','supplier'"}
 	 */
