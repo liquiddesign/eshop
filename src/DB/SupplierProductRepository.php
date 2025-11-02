@@ -143,6 +143,7 @@ class SupplierProductRepository extends \StORM\Repository
 				'contentLock' => 'supplierContentLock',
 				'importImages' => 'importSupplierImages',
 				'sourcePK' => 'fk_supplierSource',
+				'imageFileName' => 'imageFileName',
 			], [], true)
 			->setBufferedQuery(false)
 			->fetchArray(\stdClass::class);
@@ -436,7 +437,7 @@ class SupplierProductRepository extends \StORM\Repository
 			}
 
 			// Nastavit primární obrázek (imageFileName), pokud ještě není vyplněný
-			if (!$product->imageFileName) {
+			if (!isset($productsMap[$uuid]->imageFileName) || !$productsMap[$uuid]->imageFileName) {
 				$firstPhoto = Arrays::first($supplierProductPhotos);
 
 				if ($firstPhoto instanceof \Eshop\DB\SupplierProductPhoto) {
