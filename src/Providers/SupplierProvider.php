@@ -208,22 +208,19 @@ abstract class SupplierProvider
 			return;
 		}
 
-		if (
-			(!isset($data[SupplierProduct::class]['ean']) || $data[SupplierProduct::class]['ean'] === false) || (\is_string($data[SupplierProduct::class]['ean']) &&
+		if ((!isset($data[SupplierProduct::class]['ean']) || $data[SupplierProduct::class]['ean'] === false) || (\is_string($data[SupplierProduct::class]['ean']) &&
 				Strings::trim($data[SupplierProduct::class]['ean']) === '')
 		) {
 			$data[SupplierProduct::class]['ean'] = null;
 		}
 
-		if (
-			(!isset($data[SupplierProduct::class]['code']) || $data[SupplierProduct::class]['code'] === false) || (\is_string($data[SupplierProduct::class]['code']) &&
+		if ((!isset($data[SupplierProduct::class]['code']) || $data[SupplierProduct::class]['code'] === false) || (\is_string($data[SupplierProduct::class]['code']) &&
 				Strings::trim($data[SupplierProduct::class]['code']) === '')
 		) {
 			$data[SupplierProduct::class]['code'] = null;
 		}
 
-		if (
-			($data[SupplierProduct::class]['code'] && isset($this->codes[$data[SupplierProduct::class]['code']])) ||
+		if (($data[SupplierProduct::class]['code'] && isset($this->codes[$data[SupplierProduct::class]['code']])) ||
 			($data[SupplierProduct::class]['ean'] && isset($this->eans[$data[SupplierProduct::class]['ean']]))
 		) {
 			$this->skippedCount++;

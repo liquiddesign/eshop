@@ -67,6 +67,11 @@ class SupplierProductRepository extends \StORM\Repository
 		$sourceImageDirectory = $this->container->parameters['wwwDir'] . $sep . 'userfiles' . $sep . 'supplier_images';
 		$galleryImageDirectory = $this->container->parameters['wwwDir'] . $sep . 'userfiles' . $sep . 'product_gallery_images';
 
+		// Vytvořit základní složky pro všechny 3 varianty obrázků
+		FileSystem::createDir($galleryImageDirectory . $sep . 'origin');
+		FileSystem::createDir($galleryImageDirectory . $sep . 'detail');
+		FileSystem::createDir($galleryImageDirectory . $sep . 'thumb');
+
 		$vatLevels = $this->getConnection()->findRepository(VatRate::class)->many()->where('fk_country', $country)->setBufferedQuery(false)->setIndex('rate')->toArrayOf('uuid');
 		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
 		$productRepository = $this->getConnection()->findRepository(Product::class);
@@ -181,8 +186,7 @@ class SupplierProductRepository extends \StORM\Repository
 		/** @var array<array<\stdClass>> $existingProductContents By product -> shop -> mutations */
 		$existingProductContents = [];
 
-		foreach (
-			$productContentRepository->many()
+		foreach ($productContentRepository->many()
 					 ->select(['productPK' => 'this.fk_product', 'shopPK' => 'this.fk_shop', 'content' => "this.content$mutationSuffix"])
 					 ->fetchArray(\stdClass::class) as $productContent
 		) {
@@ -277,8 +281,7 @@ class SupplierProductRepository extends \StORM\Repository
 
 			$importImage = true;
 
-			if (
-				!$importImages ||
+			if (!$importImages ||
 				!$supplier->importImages ||
 				!isset($productsMap[$uuid])
 			) {
@@ -737,8 +740,7 @@ class SupplierProductRepository extends \StORM\Repository
 
 	private function loadProductsMapXSupplierProductsXDisplayAmount(array &$productsMapXSupplierProductsXDisplayAmount): void
 	{
-		foreach (
-			$this->many()->setSelect([
+		foreach ($this->many()->setSelect([
 			'uuid' => 'this.uuid',
 			'realDisplayAmount' => 'displayAmount.fk_displayAmount',
 			'product' => 'this.fk_product',
