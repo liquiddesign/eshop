@@ -448,19 +448,92 @@ class SupplierProductRepository extends \StORM\Repository
 				}
 			}
 
+			// Najít existující Photo od dodavatele (starý systém - 1 SupplierProduct = 1 Photo)
+			$existingPhotos = $photoRepository->many()
+				->where('fk_product', $product->getPK())
+				->where('fk_supplier', $supplierId)
+				->orderBy(['priority' => 'ASC', 'uuid' => 'ASC'])
+				->toArray();
+
+			$firstExistingPhoto = Arrays::first($existingPhotos);
+			$first = true;
+
 			// Pro každou dodavatelskou fotku vytvořit Photo entitu
 			foreach ($supplierProductPhotos as $supplierPhoto) {
 				if (!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName)) {
 					continue;
 				}
 
-				// Vytvořit Photo entitu (použít UUID z SupplierProductPhoto)
+				// PRVNÍ fotka: Propojit s existující starým Photo (zachovat SEO a fileName)
+				if ($firstExistingPhoto && $first) {
+					$firstExistingPhoto->update([
+						'supplierProductPhoto' => $supplierPhoto->getPK(),
+						'priority' => $supplierPhoto->priority,
+					]);
+
+					// Zkontrolovat existenci souborů v galerii a nakopírovat chybějící
+					$sourceOrigin = $sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName;
+					$targetOrigin = $galleryImageDirectory . $sep . 'origin' . $sep . $firstExistingPhoto->fileName;
+
+					// Origin - prostě zkopírovat
+					if (\is_file($sourceOrigin) && !\is_file($targetOrigin)) {
+						FileSystem::copy($sourceOrigin, $targetOrigin);
+					}
+
+					// Detail (600px) - zkopírovat nebo vytvořit z origin
+					$targetDetail = $galleryImageDirectory . $sep . 'detail' . $sep . $firstExistingPhoto->fileName;
+
+					if (!\is_file($targetDetail)) {
+						$sourceDetail = $sourceImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName;
+
+						if (\is_file($sourceDetail)) {
+							FileSystem::copy($sourceDetail, $targetDetail);
+						} elseif (\is_file($sourceOrigin)) {
+							try {
+								// phpcs:ignore
+								$image = @Image::fromFile($sourceOrigin);
+								$image->resize(600, null);
+								$image->save($targetDetail, 100);
+							} catch (\Throwable $e) {
+								Debugger::log($e, ILogger::WARNING);
+							}
+						}
+					}
+
+					// Thumb (300px) - zkopírovat nebo vytvořit z origin
+					$targetThumb = $galleryImageDirectory . $sep . 'thumb' . $sep . $firstExistingPhoto->fileName;
+
+					if (!\is_file($targetThumb)) {
+						$sourceThumb = $sourceImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName;
+
+						if (\is_file($sourceThumb)) {
+							FileSystem::copy($sourceThumb, $targetThumb);
+						} elseif (\is_file($sourceOrigin)) {
+							try {
+								// phpcs:ignore
+								$image = @Image::fromFile($sourceOrigin);
+								$image->resize(300, null);
+								$image->save($targetThumb, 100);
+							} catch (\Throwable $e) {
+								Debugger::log($e, ILogger::WARNING);
+							}
+						}
+					}
+
+					$first = false;
+
+					// NEPŘIDÁVAT nové Photo pro první obrázek
+					continue;
+				}
+
+				// DALŠÍ fotky nebo NOVÝ produkt: Vytvořit nové Photo entity
 				$photoRepository->syncOne([
 					'uuid' => $supplierPhoto->getPK(),
 					'product' => $product->getPK(),
 					'supplier' => $supplierId,
 					'fileName' => $supplierPhoto->fileName,
 					'priority' => $supplierPhoto->priority,
+					'supplierProductPhoto' => $supplierPhoto->getPK(),
 				]);
 
 				// Zkontrolovat, jestli kopírovat soubory

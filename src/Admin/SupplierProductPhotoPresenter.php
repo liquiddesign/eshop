@@ -26,10 +26,13 @@ class SupplierProductPhotoPresenter extends \Eshop\BackendPresenter
 			$this->supplierProductPhotoRepository->many()
 				->join(['supplierProduct' => 'eshop_supplierproduct'], 'this.fk_supplierProduct = supplierProduct.uuid')
 				->join(['supplier' => 'eshop_supplier'], 'supplierProduct.fk_supplier = supplier.uuid')
+				->join(['photo' => 'eshop_photo'], 'this.uuid = photo.fk_supplierProductPhoto', [], 'LEFT')
 				->select(['supplierProductCode' => 'supplierProduct.code'])
 				->select(['supplierProductName' => 'supplierProduct.name'])
 				->select(['supplierName' => 'supplier.name'])
-				->select(['supplierCode' => 'supplier.code']),
+				->select(['supplierCode' => 'supplier.code'])
+				->select(['photoFileName' => 'photo.fileName'])
+				->select(['photoUuid' => 'photo.uuid']),
 			20,
 			'createdTs',
 			'DESC',
@@ -60,6 +63,13 @@ class SupplierProductPhotoPresenter extends \Eshop\BackendPresenter
 		// Priorita
 		$grid->addColumnText('Priorita', 'priority', '%s', 'priority');
 
+		// Propojení s galerií
+		$grid->addColumn('V galerii', function (SupplierProductPhoto $photo): string {
+			$photoFileName = $photo->getValue('photoFileName');
+
+			return $photoFileName !== null ? '✓ ' . $photoFileName : '-';
+		}, '%s', 'photo.fileName');
+
 		// Datum vytvoření
 		$grid->addColumnText('Vytvořeno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
@@ -73,6 +83,17 @@ class SupplierProductPhotoPresenter extends \Eshop\BackendPresenter
 		$grid->addFilterDataSelect(function (\StORM\Collection $source, $value): void {
 			$source->where('supplier.uuid', $value);
 		}, '', 'supplier', null, $suppliers)->setPrompt('- Dodavatel -');
+
+		$grid->addFilterDataSelect(function (\StORM\Collection $source, $value): void {
+			if ($value === 'yes') {
+				$source->where('photo.uuid IS NOT NULL');
+			} elseif ($value === 'no') {
+				$source->where('photo.uuid IS NULL');
+			}
+		}, '', 'inGallery', null, [
+			'yes' => 'Ano',
+			'no' => 'Ne',
+		])->setPrompt('- V galerii -');
 
 		$grid->addFilterButtons();
 
