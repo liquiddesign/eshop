@@ -215,7 +215,7 @@ class PricelistsPresenter extends BackendPresenter
 			}, '', 'supplier', null, $suppliers)->setPrompt('- Zdroj -');
 		}
 
-		if ($ribbons = $this->internalRibbonRepository->getArrayForSelect(type: [InternalRibbon::TYPE_PRICE_LIST, InternalRibbon::TYPE_CUSTOMER])) {
+		if ($ribbons = $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_PRICE_LIST)) {
 			$ribbons += ['0' => 'X - bez štítků'];
 			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
 				$source->filter(['internalRibbon' => \Eshop\Common\Helpers::replaceArrayValue($value, '0', null)]);
@@ -747,7 +747,7 @@ Pokud je povoleno, aplikuje zmíněnou procentuální slevu na ceny v tomto cen�
 				->addCondition($form::FILLED)->addRule($form::MAX_LENGTH, 'Maximálně 100 znaků!', 100);
 		}
 
-		$form->addMultiSelect2('internalRibbons', 'Interní štítky', $this->internalRibbonRepository->getArrayForSelect(type: [InternalRibbon::TYPE_PRICE_LIST, InternalRibbon::TYPE_CUSTOMER]));
+		$form->addMultiSelect2('internalRibbons', 'Interní štítky', $this->internalRibbonRepository->getArrayForSelect(type: InternalRibbon::TYPE_PRICE_LIST));
 		$form->addText('lastUpdateTs', 'Poslední aktualizace')->setDisabled()->setNullable();
 
 		$form->addSubmits(!$this->getParameter('pricelist'));
