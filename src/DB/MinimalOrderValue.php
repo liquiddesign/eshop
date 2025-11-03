@@ -15,14 +15,14 @@ class MinimalOrderValue extends \StORM\Entity
 	 * @column
 	 */
 	public float $price;
-	
+
 	/**
 	 * Měna
 	 * @relation
 	 * @constraint
 	 */
 	public Currency $currency;
-	
+
 	/**
 	 * Skupina uživatel
 	 * @relation

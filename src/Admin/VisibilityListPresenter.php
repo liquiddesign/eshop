@@ -314,7 +314,7 @@ class VisibilityListPresenter extends BackendPresenter
 				}
 			};
 
-			$this->productRepository->csvExportVisibilityListItem(Writer::createFromPath($tempFilename, 'w+'), $objects);
+			$this->productRepository->csvExportVisibilityListItem(Writer::from($tempFilename, 'w+'), $objects);
 
 			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'items.csv', 'text/csv'));
 		};
@@ -484,7 +484,7 @@ priority - Priorita<br>
 
 			try {
 				$result = $this->productRepository->csvImportVisibilityListItem(
-					Reader::createFromString($file->getContents()),
+					Reader::fromString($file->getContents()),
 					$values['delimiter'],
 				);
 

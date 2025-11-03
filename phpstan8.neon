@@ -21,6 +21,8 @@ parameters:
 		- src/Admin/Controls/Customer
 		- src/Admin/MerchantPresenter.php
 		- src/Services/ProductsCache
+		- src/DB/SupplierProductPhoto.php
+		- src/DB/SupplierProductPhotoRepository.php
 	excludePaths:
 		- src/assets/*
 		- src/templates/*

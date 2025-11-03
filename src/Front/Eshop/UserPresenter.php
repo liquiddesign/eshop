@@ -24,28 +24,28 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public \Forms\Bridges\FormsSecurity\ILostPasswordFormFactory $lostPasswordFormFactory;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public \Forms\Bridges\FormsSecurity\ILoginFormFactory $loginFormFactory;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public TemplateRepository $templateRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public CustomerRepository $customerRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public AccountRepository $accountRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public Nette\Mail\Mailer $mailer;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public IRegisterFormFactory $registrationFormFactory;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public AddressRepository $addressRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public CustomerGroupRepository $customerGroupRepo;
 
@@ -57,7 +57,7 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public Nette\Security\Passwords $passwords;
-	
+
 	public function createComponentLostPasswordForm(): \Forms\Bridges\FormsSecurity\LostPasswordForm
 	{
 		$form = $this->lostPasswordFormFactory->create();
@@ -68,26 +68,26 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 				['link' => $form->getPresenter()->link('//:Eshop:User:setNewPassword', [$form->token])], $values['email']);
 
 			$this->mailer->send($mail);
-			
+
 			$form->getPresenter()->flashMessage($this->translator->translate('lostPwdForm.emailSend', 'Na e-mailovou adresu jsme Vám poslali odkaz pro obnovu hesla'));
-			
+
 			$form->getPresenter()->redirect('login');
 		};
-		
+
 		return $form;
 	}
-	
+
 	public function actionLogin(): void
 	{
 		if ($this->getUser()->isLoggedIn()) {
 			$this->redirect(':Web:Index:default');
 		}
 	}
-	
+
 	public function createComponentLoginForm(): \Forms\Bridges\FormsSecurity\LoginForm
 	{
 		$form = $this->loginFormFactory->create([Customer::class, Merchant::class]);
-		
+
 		$form->onLogin[] = function (\Forms\Bridges\FormsSecurity\LoginForm $form, Nette\Security\IIdentity $user): void {
 			if (($user instanceof Customer || $user instanceof Merchant) && $user->getAccount() && $mutation = $this->shopperUser->getPreferredMutationByAccount($user->getAccount())) {
 				$this->lang = $mutation;
@@ -96,26 +96,26 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 			if ($user instanceof Customer) {
 				$form->getPresenter()->redirect(':Eshop:Order:orders');
 			}
-			
+
 			if (!($user instanceof Merchant)) {
 				return;
 			}
 
 			$form->getPresenter()->redirect(':Eshop:Profile:customers');
 		};
-		
+
 		$form->onLoginFail[] = function (\Forms\Bridges\FormsSecurity\LoginForm $form, int $errorCode): void {
 			$form->getPresenter()->flashMessage($this->translator->translate('loginForm.incorrect', 'Nesprávné přihlašovací údaje'), 'danger');
 			$form->getPresenter()->redirect('this');
 		};
-		
+
 		return $form;
 	}
-	
+
 	public function createComponentRegisterForm(): RegistrationForm
 	{
 		$form = $this->registrationFormFactory->create();
-		
+
 		$form->onError[] = function (RegistrationForm $form): void {
 			foreach ($form->getErrors() as $error) {
 				if ($error === 'registerForm.account.alreadyExists') {
@@ -224,77 +224,77 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 			$this->flashMessage($this->translator->translate('registerForm.completeAuth', 'Děkujeme za registraci. Po potvrzení e-mailové adresy se můžete přihlásit.'), 'success');
 			$form->getPresenter()->redirect(':Eshop:User:login');
 		};
-		
+
 		return $form;
 	}
-	
+
 	public function sendEmailAuthorization(RegistrationForm $form, string $email, string $password, bool $emailAuthorization, string $token): void
 	{
 		unset($form, $password);
-		
+
 		$params = [
 			'email' => $email,
 			'link' => $token ? $this->link('//confirmUserEmail!', $token) : '#',
 		];
-		
+
 		if (!Nette\Utils\Validators::isEmail($email)) {
 			return;
 		}
-		
+
 		$registerConfirmation = $this->templateRepository->createMessage('register.confirmation', $params, $email);
 		$registerSuccess = $this->templateRepository->createMessage('register.success', $params, $email);
-		
+
 		$mail = $emailAuthorization ? $registerConfirmation : $registerSuccess;
 		$this->mailer->send($mail);
 	}
-	
+
 	public function sendAdminInfo(Nette\Forms\Form $form, string $email, string $password, string|null $mutation = null): void
 	{
 		unset($form, $password);
-		
+
 		$params = [
 			'email' => $email,
 		];
-		
+
 		$mail = $this->templateRepository->createMessage('register.adminInfo', $params, $this::ADMIN_EMAIL, null, null, $mutation);
 		$this->mailer->send($mail);
 	}
-	
+
 	public function handleConfirmUserEmail(string $token): void
 	{
 		/** @var \Security\DB\Account|null $account */
 		$account = $this->accountRepository->one(['confirmationToken' => $token]);
-		
+
 		if (!$account) {
 			return;
 		}
-		
+
 		$account->update([
 			'confirmationToken' => '',
 			'authorized' => true,
 		]);
-		
+
 		$this->flashMessage($this->translator->translate('user.emailConfirmed2', 'E-mailová adresa byla potvrzena. Nyní se můžete přihlásit.'));
 		$this->redirect(':Eshop:User:login');
 	}
-	
+
 	public function handleGenerateNewPassword(string $token, string $email): void
 	{
 		/** @var \Security\DB\Account|null $account */
 		$account = $this->accountRepository->one(['confirmationToken' => $token]);
-		
+
 		if (!$account || !$account->authorized) {
 			return;
 		}
-		
+
 		$account->update(['confirmationToken' => '']);
-		
+
 		$newPassword = Nette\Utils\Random::generate();
 		$account->update(['password' => $this->passwords->hash($newPassword)]);
-		
+
 		$email = $this->templateRepository->createMessage('lostPassword.changed', ['email' => $email, 'password' => $newPassword], $email);
 		$this->mailer->send($email);
-		
+
 		$this->flashMessage($this->translator->translate('lostPasswordForm.passwordChanged', 'Heslo bylo změněno.'));
 		$this->redirect(':Eshop:User:login');
 	}
@@ -325,29 +325,29 @@ abstract class UserPresenter extends \Eshop\Front\FrontendPresenter
 		$this->flashMessage($this->translator->translate('user.emailConfirmed1', 'E-mailová adresa byla potvrzena. Nyní se můžete přihlásit.'), 'success');
 		$this->redirect(':Eshop:User:login');
 	}
-	
+
 	public function actionSetNewPassword(string $token): void
 	{
 		/** @var \Security\DB\Account|null $account */
 		$account = $this->accountRepository->one(['confirmationToken' => $token]);
-		
+
 		if (!$account || !$account->authorized) {
 			$this->flashMessage($this->translator->translate('user.recoveryInvalid', 'Odkaz pro obnovu hesla je neplatný.'), 'danger');
 			$this->redirect(':Eshop:User:login');
 		}
-		
+
 		$form = new Nette\Application\UI\Form($this, 'setNewPasswordForm');
 		$form->addPassword('password', $this->translator->translate('user.newPassword', 'Nové heslo'))->setRequired();
 		$form->addPassword('passwordRepeat', $this->translator->translate('user.newPasswordCheck', 'Nové heslo (pro kontrolu)'))
 			->addRule($form::EQUAL, $this->translator->translate('user.passwordsDoesntMatch', 'Hesla se neshodují'), $form['password']);
 		$form->addSubmit('submit');
-		
+
 		$form->onSuccess[] = function (Nette\Forms\Form $form) use ($account): void {
 			$values = $form->getValues('array');
 			$account->update(['confirmationToken' => '']);
 
 			$account->update(['password' => $this->passwords->hash($values['password'])]);
-			
+
 			$this->flashMessage($this->translator->translate('user.recoverySuccess', 'Heslo bylo úspěšně změněno.'), 'success');
 			$this->redirect(':Eshop:User:login');
 		};

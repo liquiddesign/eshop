@@ -22,13 +22,13 @@ class Cart extends ShopEntity
 	 * @column
 	 */
 	public string $id;
-	
+
 	/**
 	 * Hash nepřipojeného košíku
 	 * @column
 	 */
 	public ?string $cartToken = null;
-	
+
 	/**
 	 * Aktivní košík
 	 * @column
@@ -40,46 +40,46 @@ class Cart extends ShopEntity
 	 * @column{"type":"enum","length":"'waiting','no','yes'"}
 	 */
 	public string $approved = 'waiting';
-	
+
 	/**
 	 * Vytvořen
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
 	public string $createdTs;
-	
+
 	/**
 	 * Expiruje
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $expirationTs = null;
-	
+
 	/**
 	 * Uzavřený
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $closedTs = null;
-	
+
 	/**
 	 * Měna
 	 * @relation
 	 * @constraint
 	 */
 	public Currency $currency;
-	
+
 	/**
 	 * Požadovaný typ dopravy
 	 * @relation
 	 * @constraint
 	 */
 	public ?DeliveryType $delivery;
-	
+
 	/**
 	 * Nákup
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
 	public ?Purchase $purchase;
-	
+
 	/**
 	 * Zákazník
 	 * @relation
@@ -92,7 +92,7 @@ class Cart extends ShopEntity
 	 * @column
 	 */
 	public bool $lostMark = false;
-	
+
 	/**
 	 * Položky košíku
 	 * @relation

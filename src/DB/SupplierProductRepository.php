@@ -38,6 +38,7 @@ class SupplierProductRepository extends \StORM\Repository
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly SettingRepository $settingRepository,
 		protected readonly ShopperUser $shopperUser,
+		protected readonly SupplierProductPhotoRepository $supplierProductPhotoRepository,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -138,7 +139,12 @@ class SupplierProductRepository extends \StORM\Repository
 		$allCategories = $categoryRepository->many()->select(['typePK' => 'this.fk_type'])->fetchArray(\stdClass::class);
 
 		$productsMap = $productRepository->many()
-			->setSelect(['contentLock' => 'supplierContentLock', 'sourcePK' => 'fk_supplierSource'], [], true)
+			->setSelect([
+				'contentLock' => 'supplierContentLock',
+				'importImages' => 'importSupplierImages',
+				'sourcePK' => 'fk_supplierSource',
+				'imageFileName' => 'imageFileName',
+			], [], true)
 			->setBufferedQuery(false)
 			->fetchArray(\stdClass::class);
 
@@ -175,9 +181,11 @@ class SupplierProductRepository extends \StORM\Repository
 		/** @var array<array<\stdClass>> $existingProductContents By product -> shop -> mutations */
 		$existingProductContents = [];
 
-		foreach ($productContentRepository->many()
+		foreach (
+			$productContentRepository->many()
 					 ->select(['productPK' => 'this.fk_product', 'shopPK' => 'this.fk_shop', 'content' => "this.content$mutationSuffix"])
-					 ->fetchArray(\stdClass::class) as $productContent) {
+					 ->fetchArray(\stdClass::class) as $productContent
+		) {
 			$existingProductContents[$productContent->productPK][$productContent->shopPK] = $productContent;
 		}
 
@@ -238,8 +246,6 @@ class SupplierProductRepository extends \StORM\Repository
 				$uuid = $draft->getValue('product');
 			}
 
-			$primary = isset($productsMap[$uuid]) && $productsMap[$uuid]->sourcePK === $supplierId;
-
 			$values = [
 				'uuid' => $uuid,
 				'ean' => $draft->ean ?: null,
@@ -271,18 +277,17 @@ class SupplierProductRepository extends \StORM\Repository
 
 			$importImage = true;
 
-			if (!$importImages ||
+			if (
+				!$importImages ||
 				!$supplier->importImages ||
-				!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) ||
 				!isset($productsMap[$uuid])
 			) {
 				$importImage = false;
 			}
 
-			if ($primary && $importImage) {
-				$values['imageFileName'] = $draft->fileName;
-			} else {
-				unset($currentUpdates['imageFileName']);
+			// NOVÁ KONTROLA: pokud je importSupplierImages = false, NEIMPORTOVAT
+			if ($importImage && $productsMap[$uuid]->importImages === false) {
+				$importImage = false;
 			}
 
 			/** @var \Eshop\DB\Product $product */
@@ -420,49 +425,93 @@ class SupplierProductRepository extends \StORM\Repository
 				continue;
 			}
 
-			$photoRepository->syncOne([
-				'uuid' => $draft->getPK(),
-				'product' => $product->getPK(),
-				'supplier' => $supplierId,
-				'fileName' => $draft->fileName,
-			]);
+			// Načíst všechny SupplierProductPhoto pro tento dodavatelský produkt
+			/** @var array<\Eshop\DB\SupplierProductPhoto> $supplierProductPhotos */
+			$supplierProductPhotos = $this->supplierProductPhotoRepository->many()
+				->where('fk_supplierProduct', $draft->getPK())
+				->orderBy(['priority' => 'ASC'])
+				->toArray();
 
-            // phpcs:ignore
-            $mtime = @\filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
-
-            // phpcs:ignore
-            $copyImage = !(!$overwrite || !$draft->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName));
-
-			if (!$copyImage) {
+			if (!$supplierProductPhotos) {
 				continue;
 			}
 
-			try {
-				FileSystem::copy($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
-				\touch($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $mtime);
+			// Nastavit primární obrázek (imageFileName), pokud ještě není vyplněný
+			if (!isset($productsMap[$uuid]->imageFileName) || !$productsMap[$uuid]->imageFileName) {
+				$firstPhoto = Arrays::first($supplierProductPhotos);
 
-				if (\is_file($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName)) {
-					FileSystem::copy($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
-				} else {
-                    // phpcs:ignore
-                    $image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
-					$image->resize(600, null);
-					$image->save($galleryImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
+				if ($firstPhoto instanceof \Eshop\DB\SupplierProductPhoto) {
+					$product->update(['imageFileName' => $firstPhoto->fileName]);
+				}
+			}
+
+			// Pro každou dodavatelskou fotku vytvořit Photo entitu
+			foreach ($supplierProductPhotos as $supplierPhoto) {
+				/** @var \Eshop\DB\SupplierProductPhoto $supplierPhoto */
+
+				if (!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName)) {
+					continue;
 				}
 
-				if (\is_file($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName)) {
-					FileSystem::copy($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
-				} else {
-                    // phpcs:ignore
-                    $image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
-					$image->resize(300, null);
-					$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
+				// Vytvořit Photo entitu (použít UUID z SupplierProductPhoto)
+				$photoRepository->syncOne([
+					'uuid' => $supplierPhoto->getPK(),
+					'product' => $product->getPK(),
+					'supplier' => $supplierId,
+					'fileName' => $supplierPhoto->fileName,
+					'priority' => $supplierPhoto->priority,
+				]);
+
+				// Zkontrolovat, jestli kopírovat soubory
+				// phpcs:ignore
+				$mtime = @\filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
+
+				// phpcs:ignore
+				$copyImage = !(!$overwrite || !$supplierPhoto->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName));
+
+				if (!$copyImage) {
+					continue;
 				}
-			} catch (\Throwable $e) {
-				if ($e instanceof InvalidArgumentException && \str_starts_with($e->getMessage(), 'Unsupported file extension')) {
-					Debugger::log($e, ILogger::INFO);
-				} else {
-					Debugger::log($e, ILogger::WARNING);
+
+				try {
+					// Kopírovat origin
+					FileSystem::copy(
+						$sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName,
+						$galleryImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName
+					);
+					\touch($galleryImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName, $mtime);
+
+					// Vytvořit/zkopírovat detail (600px)
+					if (\is_file($sourceImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName)) {
+						FileSystem::copy(
+							$sourceImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName,
+							$galleryImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName
+						);
+					} else {
+						// phpcs:ignore
+						$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
+						$image->resize(600, null);
+						$image->save($galleryImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName, 100);
+					}
+
+					// Vytvořit/zkopírovat thumb (300px)
+					if (\is_file($sourceImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName)) {
+						FileSystem::copy(
+							$sourceImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName,
+							$galleryImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName
+						);
+					} else {
+						// phpcs:ignore
+						$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
+						$image->resize(300, null);
+						$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName, 100);
+					}
+				} catch (\Throwable $e) {
+					if ($e instanceof InvalidArgumentException && \str_starts_with($e->getMessage(), 'Unsupported file extension')) {
+						Debugger::log($e, ILogger::INFO);
+					} else {
+						Debugger::log($e, ILogger::WARNING);
+					}
 				}
 			}
 		}
@@ -495,7 +544,8 @@ class SupplierProductRepository extends \StORM\Repository
 
             // phpcs:ignore
             if ( $product->supplierContentLock === 0 ||
-				($product->supplierLock >= $supplier->importPriority && $product->supplierContentMode === 'priority')) {
+				($product->supplierLock >= $supplier->importPriority && $product->supplierContentMode === 'priority')
+			) {
 				$productContentRepository->syncOne([
 					'product' => $product->uuid,
 					'shop' => $item['shop'],
@@ -687,11 +737,13 @@ class SupplierProductRepository extends \StORM\Repository
 
 	private function loadProductsMapXSupplierProductsXDisplayAmount(array &$productsMapXSupplierProductsXDisplayAmount): void
 	{
-		foreach ($this->many()->setSelect([
+		foreach (
+			$this->many()->setSelect([
 			'uuid' => 'this.uuid',
 			'realDisplayAmount' => 'displayAmount.fk_displayAmount',
 			'product' => 'this.fk_product',
-		])->fetchArray(\stdClass::class) as $supplierProduct) {
+			])->fetchArray(\stdClass::class) as $supplierProduct
+		) {
 			$productsMapXSupplierProductsXDisplayAmount[$supplierProduct->product][$supplierProduct->uuid] = $supplierProduct->realDisplayAmount;
 		}
 	}

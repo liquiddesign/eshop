@@ -23,13 +23,13 @@ class Purchase extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $fullname;
-	
+
 	/**
 	 * Externí kód
 	 * @column
 	 */
 	public ?string $externalCode;
-	
+
 	/**
 	 * Externí ID
 	 * @column
@@ -47,49 +47,49 @@ class Purchase extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $accountEmail = null;
-	
+
 	/**
 	 * Telefon
 	 * @column
 	 */
 	public ?string $phone;
-	
+
 	/**
 	 * Email
 	 * @column
 	 */
 	public ?string $email = null;
-	
+
 	/**
 	 * Emaily s kopií
 	 * @column
 	 */
 	public ?string $ccEmails;
-	
+
 	/**
 	 * IČO
 	 * @column
 	 */
 	public ?string $ic;
-	
+
 	/**
 	 * DIČ
 	 * @column
 	 */
 	public ?string $dic;
-	
+
 	/**
 	 * Vytvořit účet?
 	 * @column
 	 */
 	public bool $createAccount = false;
-	
+
 	/**
 	 * Heslo k nově vytvořenému účtu
 	 * @column
 	 */
 	public ?string $password;
-	
+
 	/**
 	 * Posílat newslettery?
 	 * @column
@@ -107,7 +107,7 @@ class Purchase extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $internalOrderCode;
-	
+
 	/**
 	 * Požadované datum expedice
 	 * @column{"type":"date"}
@@ -119,13 +119,13 @@ class Purchase extends \StORM\Entity
 	 * @column{"type":"date"}
 	 */
 	public ?string $desiredDeliveryDate;
-	
+
 	/**
 	 * Poznámka
 	 * @column{"type":"text"}
 	 */
 	public ?string $note;
-	
+
 	/**
 	 * Sleva na nákup
 	 * @column
@@ -137,7 +137,7 @@ class Purchase extends \StORM\Entity
 	 * @column{"type":"text"}
 	 */
 	public ?string $deliveryNote;
-	
+
 	/**
 	 * Počet balíků - má vliv na cenu
 	 * @column
@@ -174,42 +174,42 @@ class Purchase extends \StORM\Entity
 	 * @column{"type":"text"}
 	 */
 	public ?string $zasilkovnaId;
-	
+
 	/**
 	 * Fakturační adresa
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Address $billAddress;
-	
+
 	/**
 	 * Doručovací adresa
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Address $deliveryAddress;
-	
+
 	/**
 	 * Košíky
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\Cart>
 	 */
 	public RelationCollection $carts;
-	
+
 	/**
 	 * Vybraná doprava
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?DeliveryType $deliveryType;
-	
+
 	/**
 	 * Vybraná platba
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?PaymentType $paymentType;
-	
+
 	/**
 	 * Zákazník
 	 * @relation
@@ -230,14 +230,14 @@ class Purchase extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Account $account;
-	
+
 	/**
 	 * Obchodník
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?Merchant $merchant;
-	
+
 	/**
 	 * Aplikovaný kupón
 	 * @relation
@@ -257,7 +257,7 @@ class Purchase extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $customerDiscountLevel;
-	
+
 	/**
 	 * Vytvořen
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
@@ -298,26 +298,26 @@ class Purchase extends \StORM\Entity
 	 * @var array<string>
 	 */
 	private ?array $cartIds;
-	
+
 	public function getFirstName(): ?string
 	{
 		$array = \explode(' ', $this->fullname, 2);
-		
+
 		return isset($array[0]) ? Strings::trim($array[0]) : null;
 	}
-	
+
 	public function getLastName(): ?string
 	{
 		$array = \explode(' ', $this->fullname, 2);
-		
+
 		return isset($array[1]) ? Strings::trim($array[1]) : null;
 	}
-	
+
 	public function isCompany(): bool
 	{
 		return (bool) $this->ic;
 	}
-	
+
 	public function updateCustomer(Customer $customer): void
 	{
 		$customer->update([
@@ -331,7 +331,7 @@ class Purchase extends \StORM\Entity
 			'bankSpecificSymbol' => $this->bankSpecificSymbol ?: null,
 			'billAddress' => $this->billAddress ? $this->billAddress->toArray([], true, false, false) : null,
 		]);
-		
+
 		if (!$this->deliveryAddress) {
 			return;
 		}
@@ -365,7 +365,7 @@ class Purchase extends \StORM\Entity
 			->join(['eshop_cart'], 'eshop_cartitem.fk_cart = eshop_cart.uuid')
 			->where('eshop_cart.fk_purchase', $this->getPK());
 	}
-	
+
 	/**
 	 * @return \StORM\Collection<\Eshop\DB\CartItem>
 	 */
@@ -373,20 +373,20 @@ class Purchase extends \StORM\Entity
 	{
 		return $this->getItems()->where('this.fk_upsell IS NULL');
 	}
-	
+
 	public function getSumPriceVat(): float
 	{
 		/** @var \Eshop\DB\CartItemRepository $cartItemRepository */
 		$cartItemRepository = $this->getConnection()->findRepository(CartItem::class);
-		
+
 		return $cartItemRepository->getSumProperty($this->getCartIds(), 'priceVat');
 	}
-	
+
 	public function getSumPrice(): float
 	{
 		/** @var \Eshop\DB\CartItemRepository $cartItemRepository */
 		$cartItemRepository = $this->getConnection()->findRepository(CartItem::class);
-		
+
 		return $cartItemRepository->getSumProperty($this->getCartIds(), 'price');
 	}
 
@@ -405,12 +405,12 @@ class Purchase extends \StORM\Entity
 
 		return $cartItemRepository->getSumProperty($this->getCartIds(), 'priceBefore');
 	}
-	
+
 	public function getSumWeight(): float
 	{
 		/** @var \Eshop\DB\CartItemRepository $cartItemRepository */
 		$cartItemRepository = $this->getConnection()->findRepository(CartItem::class);
-		
+
 		return $cartItemRepository->getSumProperty($this->getCartIds(), 'productWeight');
 	}
 
@@ -424,7 +424,7 @@ class Purchase extends \StORM\Entity
 
 		return $cartItemRepository->getSumProperty($this->getCartIds(), 'productDimension');
 	}
-	
+
 	public function getDeliveryTypeExternalId(Supplier $supplier, Shop|null $shop = null): ?string
 	{
 		if (!$this->getValue('deliveryType')) {

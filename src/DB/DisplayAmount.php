@@ -23,25 +23,25 @@ class DisplayAmount extends ShopSystemicEntity
 	 * @column{"mutations":true}
 	 */
 	public ?string $internalLabel;
-	
+
 	/**
 	 * Množství od
 	 * @column
 	 */
 	public ?int $amountFrom;
-	
+
 	/**
 	 * Množství do
 	 * @column
 	 */
 	public ?int $amountTo;
-	
+
 	/**
 	 * Vyprodáno
 	 * @column
 	 */
 	public bool $isSold = false;
-	
+
 	/**
 	 * Priorita
 	 * @column

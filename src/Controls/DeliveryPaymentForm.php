@@ -32,9 +32,9 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$deliveriesList = $this->addRadioList('deliveries', 'deliveryPaymentForm.payments', \collect($deliveryTypes)->pluck('name', 'uuid')->toArray())
 			->setHtmlAttribute('onChange=updatePoints(this)');
 		$paymentsList = $this->addRadioList('payments', 'deliveryPaymentForm.payments', $this->shopperUser->getCheckoutManager()->getPaymentTypes()->toArrayOf('name'));
-		
+
 		$pickupPoint = $this->addSelect('pickupPoint');
-		
+
 		$allPoints = [];
 		$typesWithPoints = [];
 
@@ -44,41 +44,41 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 				->join(['delivery' => 'eshop_deliverytype'], 'delivery.fk_pickupPointType = type.uuid')
 				->where('delivery.uuid', $deliveryType->getPK())
 				->toArrayOf('name');
-			
+
 			if (\count($pickupPoints) > 0) {
 				$typesWithPoints[] = $deliveryType->getPK();
 			}
-			
+
 			$allPoints += $pickupPoints;
-			
+
 			$pickupPoint->setHtmlAttribute('data-' . $deliveryType->getPK(), Nette\Utils\Json::encode($pickupPoints));
 		}
-		
+
 		/** @var \Nette\Forms\Control $deliveries */
 		$deliveries = $this['deliveries'];
-		
+
 		$pickupPoint->setItems($allPoints)->setPrompt('Vyberte výdejní místo')->addConditionOn($deliveries, $this::IsIn, $typesWithPoints)->addRule($this::Required);
-		
+
 		$zasilkovnaIdInput = $this->addHidden('zasilkovnaId')->setNullable();
 		$pickupPointIdInput = $this->addHidden('pickupPointId')->setNullable();
 		$pickupPointNameInput = $this->addHidden('pickupPointName')->setNullable();
 
 		$deliveriesList->setRequired();
 		$paymentsList->setRequired();
-		
+
 		$this->addCombinationRules($deliveriesList, $paymentsList, $this->shopperUser->getCheckoutManager()->getDeliveryTypes($vat));
-		
+
 		// @TODO: overload toggle (https://pla.nette.org/cs/forms-toggle#toc-jak-pridat-animaci)
-		
+
 		$this->addSubmit('submit');
 		$this->onValidate[] = [$this, 'validateForm'];
 		$this->onSuccess[] = [$this, 'success'];
-		
+
 		try {
 			$deliveriesList->setDefaultValue($this->getSelectedDeliveryType());
 		} catch (InvalidArgumentException $e) {
 		}
-		
+
 		try {
 			$paymentsList->setDefaultValue($this->getSelectedPaymentType());
 		} catch (InvalidArgumentException $e) {
@@ -104,7 +104,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		$zasilkovnaIdInput->setDefaultValue($purchase->zasilkovnaId);
 		$pickupPointNameInput->setDefaultValue($purchase->pickupPointName);
 	}
-	
+
 	public function success(DeliveryPaymentForm $form): void
 	{
 		$values = $form->getValues('array');
@@ -125,7 +125,7 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 			'pickupPointId' => $deliveryType->code !== 'zasilkovna' ? $values['pickupPointId'] : null,
 			'pickupPointName' => $deliveryType->code === 'zasilkovna' || isset($values['pickupPointId']) ? $values['pickupPointName'] : null,
 		];
-		
+
 		if (isset($values['pickupPoint']) && !isset($values['pickupPointId'])) {
 			/** @var \Eshop\DB\PickupPoint $pickupPoint */
 			$pickupPoint = $this->pickupPointRepository->one($values['pickupPoint']);
@@ -136,28 +136,28 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		} else {
 			$this->shopperUser->getCheckoutManager()->getPurchase()->update(['pickupPoint' => null]);
 		}
-		
+
 		$this->shopperUser->getCheckoutManager()->syncPurchase($newValues);
 	}
-	
+
 	public function validateForm(DeliveryPaymentForm $form): void
 	{
 		if (!$form->isValid()) {
 			return;
 		}
-		
+
 		$values = $form->getValues('array');
-		
+
 		/** @var \Eshop\DB\DeliveryType|null $deliveryType */
 		$deliveryType = $this->deliveryTypeRepository->one($values['deliveries']);
-		
+
 		if (!$deliveryType || $deliveryType->code !== 'zasilkovna' || $values['zasilkovnaId']) {
 			return;
 		}
-		
+
 		/** @var \Nette\Forms\Controls\RadioList $deliveries */
 		$deliveries = $form['deliveries'];
-		
+
 		$deliveries->addError($this->translator->translate('deliveryPaymentForm.missingZasil', 'Pro dopravu Zásilkovna je nutné zvolit výdejní místo.'));
 	}
 
@@ -174,14 +174,14 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 		 */
 		foreach ($deliveryTypes as $deliveryId => $deliveryType) {
 			$deliveriesCondition = $deliveriesList->addCondition($this::EQUAL, $deliveryId);
-			
+
 			/** @var \Nette\Forms\Control $deliveries */
 			$deliveries = $this['deliveries'];
-			
+
 			$paymentsCondition = $paymentsList->addConditionOn($deliveries, $this::EQUAL, $deliveryId);
-			
+
 			$allowedPaymentTypes = \array_keys($deliveryType->allowedPaymentTypes->toArray());
-			
+
 			foreach ($allowedPaymentTypes as $paymentId) {
 				if ($this->onTogglePaymentId) {
 					Nette\Utils\Arrays::invoke($this->onTogglePaymentId, $paymentId, $deliveryType, $deliveriesCondition);
@@ -189,11 +189,11 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 					$deliveriesCondition->toggle($paymentId);
 				}
 			}
-			
+
 			if (!$allowedPaymentTypes) {
 				continue;
 			}
-			
+
 			$paymentsCondition->addRule(
 				$this::IsIn,
 				$this->translator->translate('deliveryPaymentForm.badCombo', 'Nesprávná kombinace dopravy a platby. Vyberte prosím jinou platbu.'),
@@ -201,12 +201,12 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 			);
 		}
 	}
-	
+
 	private function getSelectedDeliveryType(): ?DeliveryType
 	{
 		return $this->shopperUser->getCheckoutManager()->getSelectedDeliveryType();
 	}
-	
+
 	private function getSelectedPaymentType(): ?PaymentType
 	{
 		return $this->shopperUser->getCheckoutManager()->getSelectedPaymentType();

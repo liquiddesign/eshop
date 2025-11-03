@@ -74,7 +74,7 @@ class ProductImporter
 		$selectedShop = $this->shopsConfig->getSelectedShop();
 		$mutations = $this->productRepository->getConnection()->getAvailableMutations();
 
-		$reader = Reader::createFromPath($filePath);
+		$reader = Reader::from($filePath);
 
 		$reader->setDelimiter($delimiter);
 		$reader->setHeaderOffset(0);
@@ -291,7 +291,8 @@ class ProductImporter
 
 			// Continue based on settings and data
 
-			if (($searchCode && $searchEan && !$code && !$ean) ||
+			if (
+				($searchCode && $searchEan && !$code && !$ean) ||
 				($searchCode && !$searchEan && !$code) ||
 				($searchEan && !$searchCode && !$ean) ||
 				(!$product && !$addNew) ||
@@ -412,8 +413,10 @@ class ProductImporter
 			Arrays::invoke($onImport, $importedProductsPKs);
 
 			foreach ($record as $key => $value) {
-				if (!\str_starts_with((string) $key, 'perex_') && !\str_starts_with((string) $key, 'content_') &&
-					!\str_starts_with((string) $key, 'Popisek_') && !\str_starts_with((string) $key, 'Obsah_')) {
+				if (
+					!\str_starts_with((string) $key, 'perex_') && !\str_starts_with((string) $key, 'content_') &&
+					!\str_starts_with((string) $key, 'Popisek_') && !\str_starts_with((string) $key, 'Obsah_')
+				) {
 					continue;
 				}
 
@@ -515,16 +518,16 @@ class ProductImporter
 					unset($valuesToUpdate[$product->uuid]['primaryCategories']);
 				}
 			}
-			
+
 			if ($relatedToSync['content']) {
 				$productContent = $this->productContentRepository->many()->where('fk_product', $relatedToSync['content']['product']);
-				
+
 				if ($relatedToSync['content']['shop']) {
 					$productContent->where('fk_shop', $relatedToSync['content']['shop']);
 				}
-				
+
 				$productContent = $productContent->first();
-				
+
 				if ($productContent) {
 					$productContent->update($relatedToSync['content']);
 				} else {
@@ -667,7 +670,7 @@ class ProductImporter
 	{
 		Debugger::timer();
 
-		$reader = Reader::createFromPath($filePath);
+		$reader = Reader::from($filePath);
 
 		$reader->setDelimiter($delimiter);
 		$reader->setHeaderOffset(0);
@@ -675,7 +678,7 @@ class ProductImporter
 		$connection = $this->productRepository->getConnection();
 
 		$mutations = $connection->getAvailableMutations();
-		
+
 		$importColumns = [
 			'code' => 'Kód',
 			'ean' => 'EAN',
@@ -830,7 +833,8 @@ class ProductImporter
 
 			// Continue based on settings and data
 
-			if (($searchCode && $searchEan && !$code && !$ean) ||
+			if (
+				($searchCode && $searchEan && !$code && !$ean) ||
 				($searchCode && !$searchEan && !$code) ||
 				($searchEan && !$searchCode && !$ean) ||
 				!$product

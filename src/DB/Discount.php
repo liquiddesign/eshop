@@ -26,39 +26,39 @@ class Discount extends ShopEntity
 	 * @column{"mutations":true}
 	 */
 	public ?string $internalName;
-	
+
 	/**
 	 * Platná od
 	 * @column{"type":"datetime"}
 	 */
 	public ?string $validFrom;
-	
+
 	/**
 	 * Platná do
 	 * @column{"type":"datetime"}
 	 */
 	public ?string $validTo;
-	
+
 	/**
 	 * Doporučeno
 	 * @column
 	 */
 	public bool $recommended = false;
-	
+
 	/**
 	 * Akční ceníky
 	 * @relationNxN{"sourceViaKey":"fk_discount","targetViaKey":"fk_pricelist","via":"eshop_discount_nxn_eshop_pricelist"}
 	 * @var \StORM\RelationCollection<\Eshop\DB\Pricelist>
 	 */
 	public RelationCollection $pricelists;
-	
+
 	/**
 	 * Slevy na dopravu
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\DeliveryDiscount>
 	 */
 	public RelationCollection $deliveryDiscounts;
-	
+
 	/**
 	 * Kůpony
 	 * @relation

@@ -207,7 +207,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 				throw $e;
 			}
 
-			$imported ++;
+			$imported++;
 		}
 
 		return [
@@ -233,7 +233,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			$content = \iconv('windows-1250', 'utf-8', $content);
 		}
 
-		$reader = Reader::createFromString($content);
+		$reader = Reader::fromString($content);
 		unset($content);
 
 		$reader->setDelimiter(';');

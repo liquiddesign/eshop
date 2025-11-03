@@ -236,7 +236,7 @@ class PPL
 						$cityRoutingResponse->RouteCode,
 						$cityRoutingResponse->DepoCode,
 						$cityRoutingResponse->Highlighted
-					/** @codingStandardsIgnoreEnd */
+						/** @codingStandardsIgnoreEnd */
 					);
 
 					if ($isCod) {
@@ -426,7 +426,7 @@ class PPL
 						$cityRoutingResponse->RouteCode,
 						$cityRoutingResponse->DepoCode,
 						$cityRoutingResponse->Highlighted,
-					/** @codingStandardsIgnoreEnd */
+						/** @codingStandardsIgnoreEnd */
 					);
 
 					$isCod = $pplCodType && $order->purchase->paymentType && Arrays::contains($pplCodType, $order->purchase->paymentType->getPK());

@@ -33,14 +33,16 @@ class DeliveryDiscountRepository extends \StORM\Repository
 		return $collection->first();
 	}
 
-	public function getActiveDeliveryDiscount(Currency $currency, float $sumPrice, ?float $cartWeight = null): ?DeliveryDiscount
+	public function getActiveDeliveryDiscount(Currency $currency, float $sumPrice, ?float $cartWeight = null, bool $vat = false): ?DeliveryDiscount
 	{
+		$priceField = $vat ? 'discountPriceFromVat' : 'discountPriceFrom';
+
 		$collection = $this->many()
 			->where('fk_currency', $currency)
-			->where('discountPriceFrom <= :sumPrice', ['sumPrice' => $sumPrice])
+			->where("$priceField <= :sumPrice", ['sumPrice' => $sumPrice])
 			->where('discount.validFrom IS NULL OR discount.validFrom <= now()')
 			->where('discount.validTo IS NULL OR discount.validTo >= now()')
-			->orderBy(['discountPriceFrom' => 'DESC']);
+			->orderBy([$priceField => 'DESC']);
 
 		if ($cartWeight) {
 			$collection->where('(this.weightFrom IS NULL OR this.weightFrom <= :weight) AND (this.weightTo IS NULL OR this.weightTo >= :weight)', ['weight' => $cartWeight]);
@@ -53,14 +55,16 @@ class DeliveryDiscountRepository extends \StORM\Repository
 		return $collection->first();
 	}
 
-	public function getNextDeliveryDiscount(Currency $currency, float $sumPrice, ?float $cartWeight = null): ?DeliveryDiscount
+	public function getNextDeliveryDiscount(Currency $currency, float $sumPrice, ?float $cartWeight = null, bool $vat = false): ?DeliveryDiscount
 	{
+		$priceField = $vat ? 'discountPriceFromVat' : 'discountPriceFrom';
+
 		$collection = $this->many()
 			->where('fk_currency', $currency)
-			->where('discountPriceFrom > :sumPrice', ['sumPrice' => $sumPrice])
+			->where("$priceField > :sumPrice", ['sumPrice' => $sumPrice])
 			->where('discount.validFrom IS NULL OR discount.validFrom <= now()')
 			->where('discount.validTo IS NULL OR discount.validTo >= now()')
-			->orderBy(['discountPriceFrom']);
+			->orderBy([$priceField]);
 
 		if ($cartWeight) {
 			$collection->where('(this.weightFrom IS NULL OR this.weightFrom <= :weight) AND (this.weightTo IS NULL OR this.weightTo >= :weight)', ['weight' => $cartWeight]);

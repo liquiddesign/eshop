@@ -30,13 +30,13 @@ class InternalRibbon extends ShopEntity
 	 * @column
 	 */
 	public string $name;
-	
+
 	/**
 	 * Barva textu
 	 * @column
 	 */
 	public ?string $color;
-	
+
 	/**
 	 * Pozadí
 	 * @column

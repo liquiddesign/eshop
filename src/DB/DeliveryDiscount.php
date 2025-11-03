@@ -15,24 +15,30 @@ class DeliveryDiscount extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $discountValue;
-	
+
 	/**
 	 * Sleva na dopravu v měně s DPH
 	 * @column
 	 */
 	public ?float $discountValueVat;
-	
+
 	/**
 	 * Sleva na dopravu
 	 * @column
 	 */
 	public ?float $discountPct;
-	
+
 	/**
-	 * Od jaké ceny košíku je sleva
+	 * Od jaké ceny košíku je sleva (bez DPH)
 	 * @column
 	 */
 	public float $discountPriceFrom = 0.0;
+
+	/**
+	 * Od jaké ceny košíku je sleva (s DPH)
+	 * @column
+	 */
+	public float $discountPriceFromVat = 0.0;
 
 	/**
 	 * Od jaké váhy objednávky platí
@@ -63,14 +69,14 @@ class DeliveryDiscount extends \StORM\Entity
 	 * @column{"type":"enum","length":"'or','and'"}
 	 */
 	public string $conditionsType;
-	
+
 	/**
 	 * Měna
 	 * @relation
 	 * @constraint
 	 */
 	public Currency $currency;
-	
+
 	/**
 	 * Akce
 	 * @relation

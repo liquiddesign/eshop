@@ -165,7 +165,7 @@ class Invoice extends \StORM\Entity
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
 	public ?PaymentType $paymentType;
-	
+
 	/**
 	 * Objednávky
 	 * @relationNxN{"sourceViaKey":"fk_invoice","targetViaKey":"fk_order","via":"eshop_invoice_nxn_eshop_order"}
@@ -179,13 +179,13 @@ class Invoice extends \StORM\Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\InvoiceItem>
 	 */
 	public RelationCollection $items;
-	
+
 	public function getDaysFromDue(): float|null
 	{
 		if (!$this->dueDate) {
 			return null;
 		}
-		
+
 		return Carbon::now()->diffInDays(Carbon::parse($this->dueDate));
 	}
 

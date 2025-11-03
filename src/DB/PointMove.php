@@ -14,12 +14,12 @@ class PointMove extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $reason;
-	
+
 	/**
 	 * @column
 	 */
 	public int $points;
-	
+
 	/**
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}

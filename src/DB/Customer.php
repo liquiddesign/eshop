@@ -34,93 +34,93 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @column
 	 */
 	public ?string $fullname;
-	
+
 	/**
 	 * Externí kód
 	 * @column
 	 */
 	public ?string $externalCode;
-	
+
 	/**
 	 * Externí ID
 	 * @column
 	 */
 	public ?string $externalId;
-	
+
 	/**
 	 * Telefon
 	 * @column
 	 */
 	public ?string $phone;
-	
+
 	/**
 	 * Email
 	 * @column
 	 */
 	public ?string $email;
-	
+
 	/**
 	 * Emaily s kopií
 	 * @column
 	 */
 	public ?string $ccEmails;
-	
+
 	/**
 	 * Název společnosti
 	 * @column
 	 */
 	public ?string $company;
-	
+
 	/**
 	 * IČO
 	 * @column{"nullable":true}
 	 */
 	public ?string $ic;
-	
+
 	/**
 	 * DIČ
 	 * @column
 	 */
 	public ?string $dic;
-	
+
 	/**
 	 * Země
 	 * @column
 	 */
 	public ?string $countryCode;
-	
+
 	/**
 	 * Faktruační adresa
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public ?Address $billAddress;
-	
+
 	/**
 	 * Dodací adresa
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public ?Address $deliveryAddress;
-	
+
 	/**
 	 * Účet
 	 * @column
 	 */
 	public ?string $bankAccount;
-	
+
 	/**
 	 * Kód banky
 	 * @column
 	 */
 	public ?string $bankAccountCode;
-	
+
 	/**
 	 * Specifický symbol
 	 * @column
 	 */
 	public ?string $bankSpecificSymbol;
-	
+
 	/**
 	 * Slevová hladina
 	 * @column
@@ -132,26 +132,26 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @column
 	 */
 	public float|null $surchargeLevelPct = null;
-	
+
 	/**
 	 * Max. slevova u produktů
 	 * @column
 	 */
 	public int $maxDiscountProductPct = 100;
-	
+
 	/**
 	 * Zokrouhlení od procent
 	 * @column
 	 */
 	public ?int $productRoundingPct = null;
-	
+
 	/**
 	 * Aktivní košík
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?Cart $activeCart;
-	
+
 	/**
 	 * Matka
 	 * @relation
@@ -172,35 +172,35 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @var \StORM\RelationCollection<\Eshop\DB\CatalogPermission>
 	 */
 	public RelationCollection $catalogPermissions;
-	
+
 	/**
 	 * Vedoucí
 	 * @relation
 	 * @constraint
 	 */
 	public ?Customer $leadCustomer;
-	
+
 	/**
 	 * Preferovaná platba
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?PaymentType $preferredPaymentType;
-	
+
 	/**
 	 * Povolené exkluzivní platby
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\PaymentType>
 	 */
 	public RelationCollection $exclusivePaymentTypes;
-	
+
 	/**
 	 * Povolené exkluzivní dopravy
 	 * @relationNxN
 	 * @var \StORM\RelationCollection<\Eshop\DB\DeliveryType>
 	 */
 	public RelationCollection $exclusiveDeliveryTypes;
-	
+
 	/**
 	 * Ceníky
 	 * @relationNxN
@@ -228,7 +228,7 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @var \StORM\RelationCollection<\Eshop\DB\Merchant>
 	 */
 	public RelationCollection $merchants;
-	
+
 	/**
 	 * Skupina uživatelů
 	 * @relation
@@ -242,27 +242,27 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?CustomerRole $customerRole;
-	
+
 	/**
 	 * Preferovaná doprava
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?DeliveryType $preferredDeliveryType;
-	
+
 	/**
 	 * Preferovaná měna
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?Currency $preferredCurrency;
-	
+
 	/**
 	 * Preferovaná mutace
 	 * @column
 	 */
 	public ?string $preferredMutation;
-	
+
 	/**
 	 * Body
 	 * @column
@@ -274,19 +274,19 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @column{"type":"enum","length":"'fullWithApproval','full'"}
 	 */
 	public string $orderPermission = 'full';
-	
+
 	/**
 	 * Oprávnění: filiálka
 	 * @column{"type":"enum","length":"'slave','master','admin'"}
 	 */
 	public ?string $branchPermission = null;
-	
+
 	/**
 	 * Oprávnění: použít API
 	 * @column
 	 */
 	public bool $allowAPI = false;
-	
+
 	/**
 	 * Oprávnění: použít exporty
 	 * @column
@@ -304,7 +304,7 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @column
 	 */
 	public ?string $ediBranch = null;
-	
+
 	/**
 	 * Volné vstupní pole 1
 	 * @column
@@ -317,14 +317,14 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?LoyaltyProgram $loyaltyProgram = null;
-	
+
 	/**
 	 * Hladina věrnostního programu
 	 * @relation
 	 * @constraint{"onUpdate":"RESTRICT","onDelete":"RESTRICT"}
 	 */
 	public ?LoyaltyProgramDiscountLevel $loyaltyProgramDiscountLevel = null;
-	
+
 	/**
 	 * Vytvořen
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
@@ -417,7 +417,7 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	 * @column
 	 */
 	public bool $allowUsageOfBranchPriceList = false;
-	
+
 	/**
 	 * @relationNxN{"via":"eshop_catalogpermission"}
 	 * @var \StORM\RelationCollection<\Security\DB\Account>
@@ -440,26 +440,26 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	public ?Account $account = null;
 
 	protected CatalogPermission|null|false $catalogPermission = false;
-	
+
 	public function getDeliveryAddressLine(): ?string
 	{
 		$deliveryAddress = $this->deliveryAddress;
-		
+
 		return $deliveryAddress ? $deliveryAddress->street . ', ' . $deliveryAddress->zipcode . ' ' . $deliveryAddress->city : '';
 	}
-	
+
 	public function getBillingAddressLine(): ?string
 	{
 		$billingAddress = $this->billAddress;
-		
+
 		return $billingAddress ? $billingAddress->street . ', ' . $billingAddress->zipcode . ' ' . $billingAddress->city : '';
 	}
-	
+
 	public function getId(): string
 	{
 		return $this->getPK();
 	}
-	
+
 	/**
 	 * @return array<string>
 	 */
@@ -467,17 +467,17 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	{
 		return [];
 	}
-	
+
 	public function getAccount(): ?Account
 	{
 		return $this->account;
 	}
-	
+
 	public function setAccount(Account $account): void
 	{
 		$this->account = $account;
 	}
-	
+
 	public function getCatalogPermission(): ?CatalogPermission
 	{
 		if ($this->catalogPermission !== false) {
@@ -496,12 +496,12 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	{
 		return $this->surchargeLevelPct;
 	}
-	
+
 	public function isCompany(): bool
 	{
 		return (bool) $this->company;
 	}
-	
+
 	public function getName(): string
 	{
 		return (string) ($this->company ?: $this->fullname);
@@ -527,31 +527,31 @@ class Customer extends ShopEntity implements IIdentity, IUser
 
 		return $points ? \floatval($points->getValue('totalPoints')) : 0;
 	}
-	
+
 	public function getAvailableCredit(Currency $currency): ?float
 	{
 		/** @var \Eshop\DB\RewardMoveRepository $repository */
 		$repository = $this->getConnection()->findRepository(RewardMove::class);
-		
+
 		return $repository->many()
 			->where('applied = 0 OR ((validFrom >= NOW() OR validFrom IS NULL) AND (validTo <= NOW() OR validTo IS NULL))')
 			->where('fk_currency', $currency->getPK())
 			->where('fk_customer', $this->getPK())
 			->sum('price');
 	}
-	
+
 	public function getAvailableCreditVat(Currency $currency): ?float
 	{
 		/** @var \Eshop\DB\RewardMoveRepository $repository */
 		$repository = $this->getConnection()->findRepository(RewardMove::class);
-		
+
 		return $repository->many()
 			->where('applied = 0 OR ((validFrom >= NOW() OR validFrom IS NULL) AND (validTo <= NOW() OR validTo IS NULL))')
 			->where('fk_currency', $currency->getPK())
 			->where('fk_customer', $this->getPK())
 			->sum('priceVat');
 	}
-	
+
 	/**
 	 * Returns aggregated product, productAmount, price, priceVat
 	 */
@@ -559,7 +559,7 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	{
 		/** @var \Eshop\DB\RewardMoveRepository $repository */
 		$repository = $this->getConnection()->findRepository(RewardMove::class);
-		
+
 		return $repository->many()
 			->select(['product' => 'fk_product', 'amount' => 'SUM(productAmount)', 'price' => 'SUM(price * productAmount)', 'priceVat' => 'SUM(priceVat * productAmount)'])
 			->where('applied = 0 OR ((validFrom >= NOW() OR validFrom IS NULL) AND (validTo <= NOW() OR validTo IS NULL))')

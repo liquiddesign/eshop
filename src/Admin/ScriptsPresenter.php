@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Eshop\Admin;
@@ -39,20 +40,20 @@ class ScriptsPresenter extends \Admin\BackendPresenter
 	{
 		$this->template->setFile(__DIR__ . '/templates/Scripts.default.latte');
 
-		$this->template->scripts = [
-			(object) [
-				'name' => 'Vymazat vybrané tagy cache',
-				'link' => 'clearCache!',
-				'info' => '
-				Není pravidelně spouštěný<br>
-				Maže pouze vybrané tagy cache související s produkty. Po vymazání může být první průchod eshopem pomalý!',
-			],
-			(object) [
-				'name' => 'Odeslat aktivní hlídací psy',
-				'link' => 'checkWatchers!',
-				'info' => 'Odešle e-maily zákazníkům o případných změnách v dostupnosit jejich hlídaných produktů.',
-			],
-		];
+//		$this->template->scripts = [
+//			(object) [
+//				'name' => 'Vymazat vybrané tagy cache',
+//				'link' => 'clearCache!',
+//				'info' => '
+//				Není pravidelně spouštěný<br>
+//				Maže pouze vybrané tagy cache související s produkty. Po vymazání může být první průchod eshopem pomalý!',
+//			],
+//			(object) [
+//				'name' => 'Odeslat aktivní hlídací psy',
+//				'link' => 'checkWatchers!',
+//				'info' => 'Odešle e-maily zákazníkům o případných změnách v dostupnosit jejich hlídaných produktů.',
+//			],
+//		];
 	}
 
 	public function handleCheckWatchers(): void
@@ -86,11 +87,13 @@ class ScriptsPresenter extends \Admin\BackendPresenter
 		$i = 0;
 
 		/** @var \Eshop\DB\Product $product */
-		foreach ($this->productRepository->many()
+		foreach (
+			$this->productRepository->many()
 					 ->where('this.imageFileName IS NULL')
 					 ->join(['gallery' => 'eshop_photo'], 'this.uuid = gallery.fk_product')
 					 ->select(['galleryFilename' => 'gallery.filename'])
-					 ->where('gallery.uuid IS NOT NULL') as $product) {
+					 ->where('gallery.uuid IS NOT NULL') as $product
+		) {
 			$product->update([
 				'imageFileName' => $product->getValue('galleryFilename'),
 			]);

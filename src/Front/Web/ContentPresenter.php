@@ -30,7 +30,7 @@ abstract class ContentPresenter extends \Eshop\Front\FrontendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public MenuItemRepository $menuItemRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public Nette\Mail\Mailer $mailer;
 

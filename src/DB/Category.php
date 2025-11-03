@@ -37,7 +37,7 @@ class Category extends SystemicEntity
 	 * @column{"mutations":true}
 	 */
 	public ?string $alternativeName;
-	
+
 	/**
 	 * Celý název
 	 * @column{"mutations":true}
@@ -91,7 +91,7 @@ class Category extends SystemicEntity
 	 * @column
 	 */
 	public ?string $exportGoogleCategory;
-	
+
 	/**
 	 * Exportní ID kategorie Google
 	 * @column

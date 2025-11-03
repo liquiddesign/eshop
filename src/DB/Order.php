@@ -37,37 +37,37 @@ class Order extends ShopEntity
 	 * @column
 	 */
 	public string $code;
-	
+
 	/**
 	 * Externí kód
 	 * @column
 	 */
 	public ?string $externalCode;
-	
+
 	/**
 	 * Externí ID
 	 * @column
 	 */
 	public ?string $externalId;
-	
+
 	/**
 	 * Vytvořen
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
 	public string $createdTs;
-	
+
 	/**
 	 * Obdržena
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $receivedTs;
-	
+
 	/**
 	 * Uzavřena
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $completedTs;
-	
+
 	/**
 	 * Zrušeno
 	 * @column{"type":"timestamp"}
@@ -90,7 +90,7 @@ class Order extends ShopEntity
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $pausedTs;
-	
+
 	/**
 	 * Odesláno do systému zásilkovny
 	 * @column
@@ -166,7 +166,7 @@ class Order extends ShopEntity
 	 * @column
 	 */
 	public bool $newCustomer = false;
-	
+
 	/**
 	 * @column
 	 */
@@ -176,7 +176,7 @@ class Order extends ShopEntity
 	 * @column
 	 */
 	public bool $zboziConversionSent = false;
-	
+
 	/**
 	 * Započítán loyalty program
 	 * @column{"type":"timestamp"}
@@ -198,27 +198,27 @@ class Order extends ShopEntity
 	 * @column
 	 */
 	public ?float $totalPriceVatComputed;
-	
+
 	/**
 	 * Nákup
 	 * @relation
 	 * @constraint{"onUpdate":"RESTRICT","onDelete":"RESTRICT"}
 	 */
 	public Purchase $purchase;
-	
+
 	/**
 	 * Vytvořeno autoshipem
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 */
 	public ?Autoship $autoship;
-	
+
 	/**
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\Package>
 	 */
 	public RelationCollection $packages;
-	
+
 	/**
 	 * Platby
 	 * @relation
@@ -239,7 +239,7 @@ class Order extends ShopEntity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Delivery>
 	 */
 	public RelationCollection $deliveries;
-	
+
 	/**
 	 * @relation
 	 * @var \StORM\RelationCollection<\Eshop\DB\Comgate>
@@ -251,7 +251,7 @@ class Order extends ShopEntity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Offer>
 	 */
 	public RelationCollection $offers;
-	
+
 	/**
 	 * Faktury
 	 * @relationNxN{"sourceViaKey":"fk_order","targetViaKey":"fk_invoice","via":"eshop_invoice_nxn_eshop_order"}
@@ -270,12 +270,12 @@ class Order extends ShopEntity
 	 * @var \StORM\RelationCollection<\Eshop\DB\InternalRibbon>
 	 */
 	public RelationCollection $internalRibbons;
-	
+
 	public function getDeliveryPriceSum(): float
 	{
 		return $this->deliveries->sum('price');
 	}
-	
+
 	public function getDeliveryPriceVatSum(): float
 	{
 		return $this->deliveries->sum('priceVat');
@@ -342,50 +342,50 @@ class Order extends ShopEntity
 
 		return $beforePrice > 0 ? 100 - ($price / $beforePrice * 100) : 0.0;
 	}
-	
+
 	public function getPaymentPriceSum(): float
 	{
 		return $this->payments->sum('price');
 	}
-	
+
 	public function getPaymentPriceVatSum(): float
 	{
 		return $this->payments->sum('priceVat');
 	}
-	
+
 	public function getPurchaseDiscount(): int
 	{
 		return $this->purchase->discountPct;
 	}
-	
+
 	public function setPurchaseDiscount(int $value): void
 	{
 		$this->purchase->discountPct = $value;
 	}
-	
+
 	public function getPurchaseDiscountPrice(): float
 	{
 		if (!$this->getPurchaseDiscount()) {
 			return 0.0;
 		}
-		
+
 		return \round($this->purchase->getSumPrice() * $this->getPurchaseDiscount() / 100, 2);
 	}
-	
+
 	public function getPurchaseDiscountPriceVat(): float
 	{
 		if (!$this->getPurchaseDiscount()) {
 			return 0.0;
 		}
-		
+
 		return \round($this->purchase->getSumPriceVat() * $this->getPurchaseDiscount() / 100, 2);
 	}
-	
+
 	public function getTotalPrice(): float
 	{
 		return $this->purchase->getSumPrice() + $this->getDeliveryPriceSum() + $this->getPaymentPriceSum() - $this->getDiscountPriceFix() - $this->getPurchaseDiscountPrice();
 	}
-	
+
 	public function getTotalPriceVat(): float
 	{
 		return $this->purchase->getSumPriceVat() + $this->getDeliveryPriceVatSum() + $this->getPaymentPriceVatSum() - $this->getDiscountPriceFixVat() - $this->getPurchaseDiscountPriceVat();
@@ -406,20 +406,20 @@ class Order extends ShopEntity
 
 			return \floatval($coupon->discountValue);
 		}
-		
+
 		return 0.0;
 	}
-	
+
 	public function getDiscountPriceVat(): float
 	{
 		if ($coupon = $this->purchase->coupon) {
 			if ($coupon->discountPct) {
 				return \floatval($this->purchase->getSumPriceBeforeVat() * $coupon->discountPct / 100);
 			}
-			
+
 			return \floatval($coupon->discountValueVat);
 		}
-		
+
 		return 0.0;
 	}
 
@@ -452,44 +452,44 @@ class Order extends ShopEntity
 
 		return 0.0;
 	}
-	
+
 	public function isCompany(): bool
 	{
 		return (bool) $this->getValue('ic');
 	}
-	
+
 	public function getState(): string
 	{
 		/** @var \Eshop\DB\OrderRepository $repository */
 		$repository = $this->getRepository();
-		
+
 		return $repository->getState($this);
 	}
-	
+
 	public function getId(int $length): string
 	{
 		return Strings::padLeft((string) $this->id, $length, '0');
 	}
-	
+
 	public function getYear(): int
 	{
 		$created = \Carbon\Carbon::parse($this->createdTs);
-		
+
 		return (int) $created->format('Y');
 	}
-	
+
 	public function getIdByYear(int $length): string
 	{
 		$maxIdLastYear = $this->getRepository()->many()
 			->where('YEAR(createdTs) < :year', ['year' => $this->getYear()])
 			->orderBy(['id' => 'DESC'])
 			->firstValue('id');
-		
+
 		$id = $maxIdLastYear ? $this->id - (int) $maxIdLastYear : $this->id;
-		
+
 		return Strings::padLeft((string) $id, $length, '0');
 	}
-	
+
 	/**
 	 * @return array<\Eshop\DB\CartItem>
 	 */
@@ -497,7 +497,7 @@ class Order extends ShopEntity
 	{
 		$grouped = [];
 		$groupedAmounts = [];
-		
+
 		foreach ($this->purchase->getItems() as $item) {
 			if (isset($grouped[$item->getFullCode()])) {
 				$groupedAmounts[$item->getFullCode()] += $grouped[$item->getFullCode()]->amount;
@@ -510,26 +510,26 @@ class Order extends ShopEntity
 		foreach ($grouped as $item) {
 			$grouped[$item->getFullCode()]->amount = $groupedAmounts[$item->getFullCode()];
 		}
-		
+
 		return $grouped;
 	}
-	
+
 	public function getPayment(): ?Payment
 	{
 		/** @var \StORM\Collection<\Eshop\DB\Payment> $payments */
 		$payments = clone $this->payments;
-		
+
 		return $payments->orderBy(['createdTs' => 'DESC'])->first();
 	}
-	
+
 	public function getLastDelivery(): ?Delivery
 	{
 		/** @var \StORM\Collection<\Eshop\DB\Delivery> $deliveries */
 		$deliveries = clone $this->deliveries;
-		
+
 		return $deliveries->orderBy(['createdTs' => 'DESC'])->first();
 	}
-	
+
 	public function getDiscountCoupon(): ?DiscountCoupon
 	{
 		return $this->purchase->coupon;

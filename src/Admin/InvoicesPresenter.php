@@ -31,7 +31,7 @@ class InvoicesPresenter extends BackendPresenter
 {
 	#[\Nette\DI\Attributes\Inject]
 	public InvoiceRepository $invoiceRepository;
-	
+
 	#[\Nette\DI\Attributes\Inject]
 	public OrderRepository $orderRepository;
 
@@ -49,7 +49,7 @@ class InvoicesPresenter extends BackendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public ShopperUser $shopperUser;
-	
+
 	public function createComponentGrid(): AdminGrid
 	{
 		$btnSecondary = 'btn btn-sm btn-outline-primary';
@@ -90,7 +90,7 @@ class InvoicesPresenter extends BackendPresenter
 		$grid->addColumn('Tisk', function (Invoice $invoice, AdminGrid $datagrid) {
 			return '<i class="fas fa-' . ($invoice->printed ? 'check' : 'times') . '"></i>';
 		}, '%s', 'this.dpdCode', ['class' => 'fit']);
-		
+
 		$grid->addColumnLinkDetail('detail');
 		$grid->addColumnActionDelete();
 
@@ -106,13 +106,13 @@ class InvoicesPresenter extends BackendPresenter
 		$grid->getForm()->addSubmit('notifyMultiple', Html::fromHtml('<i class="fa fa-bell"></i>&nbsp;Notifikovat'))
 			->setHtmlAttribute('class', $btnSecondary)
 			->onClick[] = [$this, 'notifyMultiple'];
-		
+
 		$grid->addFilterTextInput('search', ['this.code'], null, 'Kód');
 
 		$grid->addFilterDate(function (ICollection $source, $value): void {
 			$source->where('DATE(this.exposed) >= DATE(:date_from)', ['date_from' => $value]);
 		}, '', 'date_from')->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
-		
+
 		$grid->addFilterDate(function (ICollection $source, $value): void {
 			$source->where('DATE(this.exposed) <= DATE(:date_to)', ['date_to' => $value]);
 		}, '', 'date_to')->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
@@ -124,10 +124,10 @@ class InvoicesPresenter extends BackendPresenter
 			->setHtmlAttribute('placeholder', 'Celková cena s DPH >=');
 
 		$grid->addFilterButtons();
-		
+
 		return $grid;
 	}
-	
+
 	public function createComponentForm(): Form
 	{
 		/** @var \Eshop\DB\Invoice|null $invoice */
@@ -204,7 +204,7 @@ class InvoicesPresenter extends BackendPresenter
 			$input = $form['order'];
 			$input->addError('Toto pole je povinné!');
 		};
-		
+
 		$form->onSuccess[] = function (AdminForm $form) use ($invoice): void {
 			$values = $form->getValuesWithAjax();
 
@@ -215,15 +215,15 @@ class InvoicesPresenter extends BackendPresenter
 			$invoice = $invoice || !isset($order) ? $this->invoiceRepository->syncOne($values) :
 				$this->invoiceRepository->createFromOrder($order, $values);
 
-			
+
 			$this->flashMessage('Uloženo', 'success');
-			
+
 			$form->processRedirect('detail', 'default', [$invoice]);
 		};
-		
+
 		return $form;
 	}
-	
+
 	public function renderDefault(): void
 	{
 		Debugger::$showBar = false;
@@ -235,7 +235,7 @@ class InvoicesPresenter extends BackendPresenter
 		$this->template->displayButtons = [$this->createNewItemButton('new')];
 		$this->template->displayControls = [$this->getComponent('grid')];
 	}
-	
+
 	public function renderNew(): void
 	{
 		$this->template->headerLabel = 'Nová faktura';
@@ -251,7 +251,7 @@ class InvoicesPresenter extends BackendPresenter
 		$this->template->displayControls = [$form];
 		$this->template->activeTab = 'default';
 	}
-	
+
 	public function renderDetail(Invoice $invoice): void
 	{
 		$this->template->headerLabel = 'Detail';
@@ -302,7 +302,7 @@ class InvoicesPresenter extends BackendPresenter
 
 		$this->redirect('this');
 	}
-	
+
 	public function actionDetail(Invoice $invoice): void
 	{
 		/** @var \Forms\Form $form */

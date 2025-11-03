@@ -15,13 +15,13 @@ class DeliveryTypePrice extends \StORM\Entity
 	 * @column
 	 */
 	public float $price;
-	
+
 	/**
 	 * Cena s DPH
 	 * @column
 	 */
 	public float $priceVat;
-	
+
 	/**
 	 * Dostupné do váhy kg (včetně)
 	 * @column
@@ -33,21 +33,21 @@ class DeliveryTypePrice extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $dimensionTo;
-	
+
 	/**
 	 * Měna
 	 * @relation
 	 * @constraint
 	 */
 	public Currency $currency;
-	
+
 	/**
 	 * Země DPH
 	 * @relation
 	 * @constraint
 	 */
 	public Country $country;
-	
+
 	/**
 	 * Doprava
 	 * @relation

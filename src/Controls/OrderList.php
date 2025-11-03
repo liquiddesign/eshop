@@ -53,7 +53,7 @@ class OrderList extends Datalist
 			$suffix = $orderRepository->getConnection()->getMutationSuffix();
 
 			$or = "this.code = :code OR items.productName$suffix LIKE :string";
-			
+
 			if ($shopperUser->getMerchant()) {
 				$or .= ' OR purchase.accountFullname LIKE :string OR account.fullname LIKE :string';
 				$or .= ' OR purchase.fullname LIKE :string';
@@ -198,7 +198,7 @@ class OrderList extends Datalist
 			}
 		};
 
-		$writer = Writer::createFromPath($tempFilename, 'w+');
+		$writer = Writer::from($tempFilename, 'w+');
 		$showVat = $this->shopperUser->getShowVat();
 
 		$writer->setDelimiter(';');
@@ -282,7 +282,7 @@ class OrderList extends Datalist
 			}
 		};
 
-		$this->orderRepository->csvExportOrders($orders, Writer::createFromPath($tempFilename, 'w+'));
+		$this->orderRepository->csvExportOrders($orders, Writer::from($tempFilename, 'w+'));
 
 		$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'orders.csv', 'text/csv'));
 	}
@@ -330,7 +330,7 @@ class OrderList extends Datalist
 				}
 			};
 
-			$this->orderRepository->csvExportOrders($orders, Writer::createFromPath($tempFilename, 'w+'));
+			$this->orderRepository->csvExportOrders($orders, Writer::from($tempFilename, 'w+'));
 
 			$zip->addFile($tempFilename, $accountsInfo[$key] . '.csv');
 		}
@@ -373,7 +373,7 @@ class OrderList extends Datalist
 					Debugger::log($e, ILogger::WARNING);
 				}
 			};
-			$this->orderRepository->csvExport($order, Writer::createFromPath($tempFilename, 'w+'));
+			$this->orderRepository->csvExport($order, Writer::from($tempFilename, 'w+'));
 
 			$zip->addFile($tempFilename, $order->code . '_' . $order->purchase->accountFullname . '.csv');
 		}

@@ -1412,7 +1412,7 @@ class OrderPresenter extends BackendPresenter
 
 			$this->orderRepository->csvPPCExport(
 				$selectedItems,
-				Writer::createFromPath($tempFilename),
+				Writer::from($tempFilename),
 				$headerColumns,
 				$values['delimiter'],
 				$values['header'] ? \array_values($headerColumns) : null,
@@ -1734,8 +1734,10 @@ class OrderPresenter extends BackendPresenter
 		];
 
 		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
-			if (!isset($this::ORDER_STATES_EVENTS[$state]) || !Arrays::contains($this::ORDER_STATES_EVENTS[$state], $targetState) ||
-				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())) {
+			if (
+				!isset($this::ORDER_STATES_EVENTS[$state]) || !Arrays::contains($this::ORDER_STATES_EVENTS[$state], $targetState) ||
+				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())
+			) {
 				continue;
 			}
 
@@ -2103,7 +2105,7 @@ class OrderPresenter extends BackendPresenter
 				Debugger::log($e, ILogger::WARNING);
 			}
 		};
-		$this->orderRepository->csvExport($object, Writer::createFromPath($tempFilename, 'w+'));
+		$this->orderRepository->csvExport($object, Writer::from($tempFilename, 'w+'));
 		$response = new FileResponse($tempFilename, "objednavka-$object->code.csv", 'text/csv');
 		$presenter->sendResponse($response);
 	}
@@ -2258,7 +2260,7 @@ class OrderPresenter extends BackendPresenter
 				}
 			};
 
-			$this->orderRepository->csvExportTargito(Writer::createFromPath($tempFilename, 'w+'), $collection);
+			$this->orderRepository->csvExportTargito(Writer::from($tempFilename, 'w+'), $collection);
 
 			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'transactions.csv', 'text/csv'));
 		};
@@ -2322,7 +2324,7 @@ class OrderPresenter extends BackendPresenter
 				}
 			};
 
-			$this->orderRepository->csvExportZasilkovna(\array_keys($collection->toArray()), Writer::createFromPath($tempFilename, 'w+'));
+			$this->orderRepository->csvExportZasilkovna(\array_keys($collection->toArray()), Writer::from($tempFilename, 'w+'));
 
 			$this->sendResponse(new FileResponse($tempFilename, 'zasilkovna.csv', 'text/csv'));
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds(), function (AdminForm $form): void {
@@ -2358,7 +2360,7 @@ class OrderPresenter extends BackendPresenter
 						}
 					};
 
-					$this->orderRepository->csvExport($order, Writer::createFromPath($tempFilename, 'w+'));
+					$this->orderRepository->csvExport($order, Writer::from($tempFilename, 'w+'));
 
 					$zip->addFile($tempFilename, "objednavka-$order->code.csv");
 				}
@@ -2587,11 +2589,11 @@ class OrderPresenter extends BackendPresenter
 	public function handleResetTransport(string $uuid): void
 	{
 		$order = $this->orderRepository->one(['uuid' => $uuid], true);
-		
+
 		if ($this->dpd && $order->dpdCode) {
 			$this->dpd->deletePackages([$order->dpdCode]);
 		}
-		
+
 		$order->update([
 			'pplCode' => null,
 			'dpdCode' => null,
@@ -2600,10 +2602,10 @@ class OrderPresenter extends BackendPresenter
 			'pplPrinted' => false,
 			'dpdPrinted' => false,
 		]);
-		
-		
+
+
 		$this->flashMessage('Poslaní k dopravci bylo resetováno', 'success');
-		
+
 		$this->redirect('this');
 	}
 

@@ -122,7 +122,7 @@ abstract class ExportPresenter extends Presenter
 
 	#[Inject]
 	public PhotoRepository $photoRepository;
-	
+
 	#[Inject]
 	public PageRepository $pageRepository;
 
@@ -150,7 +150,7 @@ abstract class ExportPresenter extends Presenter
 
 	#[Inject]
 	public LatteFactory $latteFactory;
-	
+
 	#[Inject]
 	public CustomerGroupRepository $customerGroupRepository;
 
@@ -219,12 +219,12 @@ abstract class ExportPresenter extends Presenter
 		try {
 			$pricelists = $this->getPricelistFromSetting('targitoExportPricelist', false);
 			//$flavourRelationTypeSetting = $this->settingRepo->getValueByName('flavourRelationType');
-			
+
 			$products = $pricelists !== null && \count($pricelists) ? $this->productRepo->getProducts($pricelists) : $this->productRepo->getProductsAsCustomer(null);
 			$this->productRepo->filterHidden(false, $products);
-			
+
 			$this->template->products = $products;
-			
+
 			$this->export('targito');
 		} catch (\Exception $e) {
 			$this->template->error = $e->getMessage();
@@ -251,7 +251,7 @@ abstract class ExportPresenter extends Presenter
 				throw new \Exception('Missing Heureka category type setting!');
 			}
 
-			$this->categoryRepository->csvExportTargito(Writer::createFromPath($tempFilename, 'w+'), $this->categoryRepository->many()->where('this.fk_type', $categoryTypeSetting));
+			$this->categoryRepository->csvExportTargito(Writer::from($tempFilename, 'w+'), $this->categoryRepository->many()->where('this.fk_type', $categoryTypeSetting));
 
 			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'categories.csv', 'text/csv'));
 		} catch (\Exception $e) {
@@ -794,16 +794,77 @@ abstract class ExportPresenter extends Presenter
 					->fetchArray(\stdClass::class),
 			];
 
-			/** @var array<\Eshop\DB\Attribute> $allAttributes */
-			$allAttributes = $this->attributeRepository->many()->toArray();
-			/** @var array<\Eshop\DB\AttributeValue> $allAttributeValues */
-			$allAttributeValues = $this->attributeValueRepository->many()->toArray();
-			/** @var array<\Eshop\DB\Producer> $allProducers */
-			$allProducers = $this->producerRepository->many()->toArray();
+			// Optimized: Load only entities for exported products (Phase 1)
+			$productIds = \array_keys($products);
+
 			/** @var array<\Eshop\DB\AttributeAssign> $allAttributeAssigns */
-			$allAttributeAssigns = $this->attributeAssignRepository->many()->toArray();
+			$allAttributeAssigns = $this->attributeAssignRepository->many()
+				->where('this.fk_product', $productIds)
+				->toArray();
+
+			// Extract only used value IDs
+			$attributeValueIds = [];
+
+			foreach ($allAttributeAssigns as $assign) {
+				$attributeValueIds[] = $assign->getValue('value');
+			}
+
+			$attributeValueIds = \array_values(\array_unique($attributeValueIds));
+
+			/** @var array<\Eshop\DB\AttributeValue> $allAttributeValues */
+			$allAttributeValues = $attributeValueIds !== [] ?
+				$this->attributeValueRepository->many()
+					->where('this.uuid', $attributeValueIds)
+					->toArray() : [];
+
+			// Extract only used attribute IDs
+			$attributeIds = [];
+
+			foreach ($allAttributeValues as $value) {
+				$attributeIds[] = $value->getValue('attribute');
+			}
+
+			$attributeIds = \array_values(\array_unique($attributeIds));
+
+			/** @var array<\Eshop\DB\Attribute> $allAttributes */
+			$allAttributes = $attributeIds !== [] ?
+				$this->attributeRepository->many()
+					->where('this.uuid', $attributeIds)
+					->toArray() : [];
+
+			// Extract only used producer IDs
+			$producerIds = [];
+
+			foreach ($products as $p) {
+				if ($p->fk_producer) {
+					$producerIds[] = $p->fk_producer;
+				}
+			}
+
+			$producerIds = \array_values(\array_unique($producerIds));
+
+			/** @var array<\Eshop\DB\Producer> $allProducers */
+			$allProducers = $producerIds !== [] ?
+				$this->producerRepository->many()
+					->where('this.uuid', $producerIds)
+					->toArray() : [];
+
+			// Extract only used displayAmount IDs
+			$displayAmountIds = [];
+
+			foreach ($products as $p) {
+				if ($p->fk_displayAmount) {
+					$displayAmountIds[] = $p->fk_displayAmount;
+				}
+			}
+
+			$displayAmountIds = \array_values(\array_unique($displayAmountIds));
+
 			/** @var array<\Eshop\DB\DisplayAmount> $allDisplayAmounts */
-			$allDisplayAmounts = $this->displayAmountRepository->many()->toArray();
+			$allDisplayAmounts = $displayAmountIds !== [] ?
+				$this->displayAmountRepository->many()
+					->where('this.uuid', $displayAmountIds)
+					->toArray() : [];
 
 			$attributeAssignsByProducts = [];
 

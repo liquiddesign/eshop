@@ -128,7 +128,7 @@ class DiscountPresenter extends BackendPresenter
 				return [\round($totalCountUsage / $ordersCount * 100, 4), $totalCountUsage, \count($orders)];
 			});
 		}, '%s %% | %sx z %s');*/
-		
+
 		$grid->addColumn('Kupóny', function (Discount $object, $datagrid) {
 			try {
 				/** @var \stdClass $test */
@@ -176,12 +176,28 @@ class DiscountPresenter extends BackendPresenter
 			}, '', 'ribbons', null, $ribbons, ['placeholder' => '- Štítky -']);
 		}
 
-		if ($items = $this->priceListRepository->getArrayForSelect()) {
-			$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
-				$source->join(['nxn' => 'eshop_discount_nxn_eshop_pricelist'], 'nxn.fk_discount=this.uuid');
-				$source->where('nxn.fk_pricelist', $value);
-			}, '', 'pricelists', null, $items, ['placeholder' => '- Ceníky -']);
-		}
+		$grid->addFilterText(function (ICollection $source, string $value): void {
+			$codes = \array_filter(\array_map('trim', \explode(';', $value)));
+
+			if ($codes === []) {
+				return;
+			}
+
+			$pricelistIds = $this->priceListRepository->many()
+				->where('this.code', \array_values($codes))
+				->toArrayOf('uuid', toArrayValues: true);
+
+			if ($pricelistIds === []) {
+				$source->where('1=0');
+
+				return;
+			}
+
+			$source->join(['pricelists_nxn_discount' => 'eshop_discount_nxn_eshop_pricelist'], 'pricelists_nxn_discount.fk_discount=this.uuid');
+			$source->where('pricelists_nxn_discount.fk_pricelist', $pricelistIds);
+		}, null, 'pricelists', 'Kódy ceníků (oddělené středníkem)')
+			->setHtmlAttribute('placeholder', 'Kódy ceníků (např. KOD1;KOD2;KOD3)')
+			->setHtmlAttribute('class', 'form-control form-control-sm');
 
 		$grid->addFilterButtons();
 
@@ -317,7 +333,7 @@ class DiscountPresenter extends BackendPresenter
 //		$ordersCount = \count($orders);
 //
 //		$cache = new Cache($this->storage);
-		
+
 //		$grid->addColumn('Využití', function (DiscountCoupon $object, $datagrid) use ($orders, $cache, $ordersCount): array {
 //			return $cache->load('discount_coupon_usage_' . $object->getPK(), function (&$dependencies) use ($object, $orders, $ordersCount): array {
 //				$dependencies[Cache::EXPIRE] = '1 hour';
@@ -327,9 +343,9 @@ class DiscountPresenter extends BackendPresenter
 //				return [$usages[0][$object->getPK()], $usages[1][$object->getPK()], $ordersCount];
 //			});
 //		}, '%s %% | %sx z %s', null, ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		
+
 		$grid->addColumnText('Uplatnění', ['usagesCount', 'usageLimit'], '%s / %s', 'usagesCount', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
-		
+
 		$grid->addColumnLinkDetail('couponsDetail');
 
 		$deleteCondition = function (DiscountCoupon $discountCoupon): bool {
@@ -356,16 +372,23 @@ class DiscountPresenter extends BackendPresenter
 		$grid->addColumnInputFloat('Sleva v měně', 'discountValue', '', '', 'discountValue');
 		$grid->addColumnInputFloat('Sleva s DPH', 'discountValueVat', '', '', 'discountValueVat');
 		$grid->addColumnInputFloat('Sleva v %', 'discountPct', '', '', 'discountPct');
-		$grid->addColumnInputFloat('Od ceny košíku', 'discountPriceFrom', '', '', 'discountPriceFrom');
+		$grid->addColumnInputFloat('Od ceny košíku (bez DPH)', 'discountPriceFrom', '', '', 'discountPriceFrom');
+		$grid->addColumnInputFloat('Od ceny košíku (s DPH)', 'discountPriceFromVat', '', '', 'discountPriceFromVat');
 		$grid->addColumnInputFloat('Od váhy košíku', 'weightFrom', '', '', 'weightFrom');
 		$grid->addColumnInputFloat('Do váhy košíku', 'weightTo', '', '', 'weightTo');
 
 		$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll(['discountValue', 'discountPct', 'discountPriceFrom'], [], null, false, null, function ($id, &$data): void {
+		$grid->addButtonSaveAll(['discountValue', 'discountPct', 'discountPriceFrom', 'discountPriceFromVat'], [], null, false, null, function ($id, &$data): void {
 			if (!isset($data['discountPriceFrom'])) {
 				$data['discountPriceFrom'] = 0;
 			}
+
+			if (!isset($data['discountPriceFromVat'])) {
+				$data['discountPriceFromVat'] = 0;
+			}
+
+			return;
 		}, false);
 		$grid->addButtonDeleteSelected();
 
@@ -387,7 +410,8 @@ class DiscountPresenter extends BackendPresenter
 		/** @var \Eshop\DB\Discount|null $discount */
 		$discount = $this->getParameter('discount');
 
-		$form->addText('discountPriceFrom', 'Od jaké ceny košíku je sleva')->addCondition($form::FILLED)->addRule($form::FLOAT);
+		$form->addText('discountPriceFrom', 'Od jaké ceny košíku je sleva (bez DPH)')->addCondition($form::FILLED)->addRule($form::FLOAT);
+		$form->addText('discountPriceFromVat', 'Od jaké ceny košíku je sleva (s DPH)')->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->addText('discountPct', 'Sleva (%)')->addCondition($form::FILLED)->addRule($form::FLOAT);
 		$form->addGroup('Absolutní sleva');
 		$form->addSelect('currency', 'Měna', $this->currencyRepo->getArrayForSelect());

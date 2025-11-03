@@ -132,7 +132,7 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 		$this->template->boughtCategories = $this->orderRepository->getOrdersCategoriesGroupedByAmountPercentage($orders, $currency);
 		$this->template->topProducts = $this->orderRepository->getOrdersTopProductsByAmount($orders, $currency);
 	}
-	
+
 	public function renderStatsMerchant(): void
 	{
 		/** @var \Web\Controls\Breadcrumb $breadcrumb */
@@ -141,7 +141,7 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 		$breadcrumb->addItem($this->translator->translate('.myAccount', 'Můj účet'));
 		$breadcrumb->addItem($this->translator->translate('.stats', 'Statistiky'));
 	}
-	
+
 	public function renderEdit(): void
 	{
 		/** @var \Web\Controls\Breadcrumb $breadcrumb */
@@ -150,7 +150,7 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 		$breadcrumb->addItem($this->translator->translate('.myAccount', 'Můj účet'));
 		$breadcrumb->addItem($this->translator->translate('.contactInfo', 'Kontaktní údaje a adresy'));
 	}
-	
+
 	public function renderCustomers(): void
 	{
 		/** @var \Web\Controls\Breadcrumb $breadcrumb */
@@ -159,7 +159,7 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 		$breadcrumb->addItem($this->translator->translate('.myAccount', 'Můj účet'));
 		$breadcrumb->addItem($this->translator->translate('.myCustomers', 'Moji zákazníci'));
 	}
-	
+
 	public function renderWatchers(): void
 	{
 		/** @var \Web\Controls\Breadcrumb $breadcrumb */
@@ -168,7 +168,7 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 		$breadcrumb->addItem($this->translator->translate('.myAccount', 'Můj účet'));
 		$breadcrumb->addItem($this->translator->translate('.watchedProducts', 'Hlídané produkty'));
 	}
-	
+
 	public function renderChangePassword(): void
 	{
 		/** @var \Web\Controls\Breadcrumb $breadcrumb */
@@ -234,7 +234,7 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 			$watcherList->template->setFile(\dirname(__DIR__, 6) . '/app/Eshop/Controls/watcherList.latte');
 //			$watcherList->template->products = $this->productRepository->getProducts()->join(['watcher' => 'eshop_watcher'], 'this.uuid = watcher.fk_product');
 		};
-		
+
 		return $watcherList;
 	}
 
@@ -265,7 +265,7 @@ abstract class ProfilePresenter extends \Eshop\Front\FrontendPresenter
 
 		$customer->update(['confirmationToken' => '']);
 		$customer->accounts->update(['authorized' => true]);
-		
+
 		$this->flashMessage($this->translator->translate('profileForm.emailConfirmed', 'Email byl potvrzen.'));
 		$this->redirect(':Eshop:User:login');
 	}

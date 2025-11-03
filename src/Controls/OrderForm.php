@@ -56,7 +56,7 @@ class OrderForm extends \Nette\Application\UI\Form
 		$this->onSuccess[] = [$this, 'success'];
 		$this->onValidate[] = [$this, 'validateOrder'];
 	}
-	
+
 	public function validateOrder(): void
 	{
 		if (!$this->shopperUser->getCheckoutManager()->checkOrder()) {

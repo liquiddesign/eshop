@@ -41,7 +41,7 @@ class LoyaltyProgramRepository extends \StORM\Repository implements IGeneralRepo
 			->orderBy(['this.discountLevel' => 'ASC'])
 			->where('this.fk_loyaltyProgram', $loyaltyProgram->getPK());
 	}
-	
+
 	public function getCollection(bool $includeHidden = false): Collection
 	{
 		$suffix = $this->getConnection()->getMutationSuffix();
@@ -55,7 +55,7 @@ class LoyaltyProgramRepository extends \StORM\Repository implements IGeneralRepo
 			TRUE)
 			)');
 		}
-		
+
 		return $collection->orderBy(["name$suffix"]);
 	}
 }

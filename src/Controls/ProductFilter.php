@@ -35,7 +35,7 @@ class ProductFilter extends Control
 		'availability' => 'Dostupnost',
 		'delivery' => 'Doručení',
 	];
-	
+
 	/**
 	 * @var array<callable>&callable(): void ; Occurs after product filter form success
 	 */
@@ -51,17 +51,17 @@ class ProductFilter extends Control
 	public $onGetPriceMax = null;
 
 	protected Cache $cache;
-	
+
 	/**
 	 * @var array<\Eshop\DB\Attribute>
 	 */
 	protected array $attributes;
-	
+
 	/**
 	 * @var array<string>
 	 */
 	protected array $attributeValues = [];
-	
+
 	/**
 	 * @var array<array<string>>
 	 */
@@ -93,14 +93,14 @@ class ProductFilter extends Control
 	) {
 		$this->cache = new Cache($storage);
 	}
-	
+
 	public function render(): void
 	{
 		/** @var array<array<array<string>>> $filters */
 		$filters = $this->getProductList()->getFilters();
 
 		$this->template->systemicCounts = $this->getSystemicCounts();
-		
+
 		$this->template->attributes = $this->getAttributes();
 		$this->template->attributesDefaults = $filters['attributes'] ?? [];
 		$this->template->attributesValuesCounts = $this->getAttributesValuesCounts();
@@ -111,11 +111,11 @@ class ProductFilter extends Control
 		$template = $this->template;
 		$template->render($template->getFile() ?: __DIR__ . '/productFilter.latte');
 	}
-	
+
 	public function createComponentForm(): Form
 	{
 		$filterForm = $this->formFactory->create();
-		
+
 		$filterForm->setMethod('get');
 
 		$filterForm->onRender[] = function ($filterForm): void {
@@ -150,9 +150,9 @@ class ProductFilter extends Control
 			->setNullable()
 			->setHtmlAttribute('placeholder', $priceTo)
 			->addCondition($filterForm::Filled)->addRule($filterForm::Integer);
-		
+
 		$attributesContainer = $filterForm->addContainer('attributes');
-		
+
 		$defaults = $productList->getFilters()['attributes'] ?? [];
 
 		$attributeValuesByAttribute = [];
@@ -275,24 +275,24 @@ class ProductFilter extends Control
 			if (!$attributeValues) {
 				continue;
 			}
-			
+
 			$checkboxList = $attributesContainer->addCheckboxList((string) $attribute->getPK(), $attribute->name ?? $attribute->code, $attributeValues);
 
 			if (!isset($defaults[$attribute->getPK()])) {
 				continue;
 			}
-			
+
 			$checkboxList->setDefaultValue($defaults[$attribute->getPK()]);
 		}
-		
+
 		$submit = $filterForm->addSubmit('submit', $this->translator->translate('filter.showProducts', 'Zobrazit produkty'));
 		$submit->setHtmlAttribute('name', '');
 
 		$filterForm->setDefaults($this->getPresenter()->getParameters());
-		
+
 		return $filterForm;
 	}
-	
+
 	/**
 	 * @param string|null $rootIndex
 	 * @param string|null $valueIndex
@@ -306,17 +306,17 @@ class ProductFilter extends Control
 					return [$parameter => $this->presenter->getParameter($parameter)];
 				}
 			}
-			
+
 			return [];
 		}
-		
+
 		/** @var array<array<array<string>>> $filters */
 		$filters = $this->getProductList()->getFilters();
-		
+
 		if ($valueIndex) {
 			unset($filters['attributes'][$rootIndex][$valueIndex]);
 			$key = \array_search($valueIndex, $filters['attributes'][$rootIndex]);
-			
+
 			if ($key !== false) {
 				unset($filters['attributes'][$rootIndex][$key]);
 			}
@@ -327,11 +327,11 @@ class ProductFilter extends Control
 
 			$filters['attributes'] = \array_values($filters['attributes']);
 		}
-		
+
 		if (isset($filters['category'])) {
 			$filters['category'] = $this->presenter->getParameter('category');
 		}
-		
+
 		return $filters;
 	}
 
@@ -377,20 +377,20 @@ class ProductFilter extends Control
 
 		return $this->attributesValuesCounts;
 	}
-	
+
 	protected function getProductList(): ProductList
 	{
 		/** @var \Eshop\Controls\ProductList $parent */
 		$parent = $this->getParent();
-		
+
 		return $parent;
 	}
-	
+
 	protected function getCategoryPath(): ?string
 	{
 		return $this->getProductList()->getFilters()['category'] ?? null;
 	}
-	
+
 	/**
 	 * @return array<\Eshop\DB\Attribute>
 	 */
@@ -408,7 +408,7 @@ class ProductFilter extends Control
 
 		return $this->attributes = $attributes;
 	}
-	
+
 	protected function getRangeValues(Attribute $attribute): Collection
 	{
 		return $this->attributeValueRangeRepository->getCollection()
@@ -417,7 +417,7 @@ class ProductFilter extends Control
 			->select(['concatValues' => 'GROUP_CONCAT(attributeValue.uuid)'])
 			->setGroupBy(['this.uuid']);
 	}
-	
+
 	/**
 	 * @param string $uuid
 	 * @return array<string, string>
@@ -425,11 +425,11 @@ class ProductFilter extends Control
 	protected function getSystemicAttributeValues(string $uuid): array
 	{
 		if ($uuid === 'availability') {
-			return $this->displayAmountRepository->getArrayForSelect(false);
+			return $this->displayAmountRepository->getCollection()->toArrayOf('label');
 		}
 
 		if ($uuid === 'delivery') {
-			return $this->displayDeliveryRepository->getArrayForSelect(false);
+			return $this->displayDeliveryRepository->getCollection()->toArrayOf('label');
 		}
 
 		if ($uuid === 'producer') {

@@ -19,13 +19,13 @@ class Country extends ShopSystemicEntity
 	 * @column
 	 */
 	public ?string $code;
-	
+
 	/**
 	 * Název
 	 * @column
 	 */
 	public ?string $name;
-	
+
 	/**
 	 * Formát kódu objednávky
 	 * @column
@@ -37,13 +37,13 @@ class Country extends ShopSystemicEntity
 	 * @column
 	 */
 	public int $orderCodeStartNumber = 1;
-	
+
 	/**
 	 * Úroveň DPH pro dopravy
 	 * @column{"type":"enum","length":"'standard','reduced-high','reduced-low','zero'"}
 	 */
 	public string $deliveryVatRate = 'standard';
-	
+
 	/**
 	 * Úroveň DPH pro platby
 	 * @column{"type":"enum","length":"'standard','reduced-high','reduced-low','zero'"}
@@ -54,7 +54,7 @@ class Country extends ShopSystemicEntity
 	 * @column
 	 */
 	public string|null $phonePrefix;
-	
+
 	/**
 	 * Výše DPH
 	 * @relation

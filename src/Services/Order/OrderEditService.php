@@ -90,7 +90,7 @@ readonly class OrderEditService implements AutoWireService
 				throw new \Exception('No cart available');
 			}
 		}
-		
+
 		if (\is_string($package)) {
 			$package = $this->packageRepository->one($package, true);
 		}

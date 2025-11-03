@@ -50,7 +50,7 @@ class CustomerGroup extends ShopSystemicEntity
 	 * @column
 	 */
 	public int $defaultDiscountLevelPct = 0;
-	
+
 	/**
 	 * Max. slevova u produktů
 	 * @column

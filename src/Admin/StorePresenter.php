@@ -38,7 +38,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 		$grid->addColumn('Zdroj', function (Store $object, $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Supplier:detail') && $object->supplier ?
 				$datagrid->getPresenter()->link(':Eshop:Admin:Supplier:detail', [$object->supplier]) : '#';
-			
+
 			return $object->supplier ? "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->supplier->name . '</a>' : '';
 		}, '%s');
 
@@ -64,7 +64,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 	public function createComponentNewForm(): Form
 	{
 		$form = $this->formFactory->create();
-		
+
 		$form->addText('code', 'Kód')->setRequired();
 		$form->addLocaleText('name', 'Název');
 		$form->addDataSelect('supplier', 'Zdroj', $this->supplierRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
@@ -115,7 +115,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
-	
+
 	public function actionDetail(Store $store): void
 	{
 		/** @var \Forms\Form $form */
@@ -128,16 +128,16 @@ class StorePresenter extends \Eshop\BackendPresenter
 	{
 		$grid = $this->gridFactory->create($this->amountRepo->many()->where('fk_store', $this->getParameter('store')->getPK()), 20, 'price', 'ASC', true);
 		$grid->addColumnSelector();
-		
+
 		$grid->addColumnText('Kód', 'product.code', '%s');
-		
+
 		$grid->addColumn('Produkt', function (Amount $amount, AdminGrid $datagrid) {
 			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ?
 				$datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$amount->product]) : '#';
-			
+
 			return '<a href="' . $link . '">&nbsp;' . $amount->product->name . '</a>';
 		}, '%s');
-		
+
 		$grid->addColumnInputInteger('Naskladněno', 'inStock', '', '', 'inStock', [], true);
 		$grid->addColumnInputInteger('Rezervováno', 'reserved', '', '', 'reserved', []);
 		$grid->addColumnInputInteger('Objednáno', 'ordered', '', '', 'ordered', []);
@@ -171,13 +171,13 @@ class StorePresenter extends \Eshop\BackendPresenter
 		if ($this->getParameter('amount')) {
 			$this->getPresenter()->template->select2AjaxDefaults[$product->getHtmlId()] = [$this->getParameter('amount')->getValue('product') => $this->getParameter('amount')->product->name];
 		}
-		
+
 		$form->addInteger('inStock', 'Naskladněno');
 		$form->addIntegerNullable('reserved', 'Rezervováno');
 		$form->addIntegerNullable('ordered', 'Objednáno');
-		
+
 		$form->addHidden('store', (string) $this->getParameter('store'));
-		
+
 		$form->addSubmits();
 
 		$form->onValidate[] = function (AdminForm $form): void {
@@ -198,7 +198,7 @@ class StorePresenter extends \Eshop\BackendPresenter
 
 			$values['product'] = isset($data['product']) ? $this->productRepository->one($data['product']) : null;
 			$values['store'] = $this->getParameter('store');
-			
+
 			$this->amountRepo->syncOne($values);
 
 			$this->flashMessage('Uloženo', 'success');

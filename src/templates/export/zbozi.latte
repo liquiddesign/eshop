@@ -40,6 +40,8 @@
             {var $attributes = $product->getPreviewAttributes()}
             {foreach $attributes as $attributeValues}
                 {foreach $attributeValues as $attributeValue}
+                    {continueIf !isset($attributeValue['fk_parameter']) || !isset($attributeValue['uuid']) || $attributeValue['fk_parameter'] === '' || $attributeValue['uuid'] === ''}
+                    {continueIf !isset($allAttributes[$attributeValue['fk_parameter']]) || !isset($allAttributeValues[$attributeValue['uuid']])}
                     <PARAM>
                         <PARAM_NAME>{$allAttributes[$attributeValue['fk_parameter']]}</PARAM_NAME>
                         <VAL>{$allAttributeValues[$attributeValue['uuid']]}</VAL>

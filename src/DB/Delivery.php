@@ -15,19 +15,19 @@ class Delivery extends \StORM\Entity
 	 * @column
 	 */
 	public ?string $typeCode;
-	
+
 	/**
 	 * Jméno typu dopravy
 	 * @column{"mutations":true}
 	 */
 	public ?string $typeName;
-	
+
 	/**
 	 * Cena
 	 * @column
 	 */
 	public float $price;
-	
+
 	/**
 	 * Cena s DPH
 	 * @column
@@ -45,45 +45,45 @@ class Delivery extends \StORM\Entity
 	 * @column
 	 */
 	public ?float $priceVatBefore;
-	
+
 	/**
 	 * Externí id
 	 * @column
 	 */
 	public ?string $externalId;
-	
+
 	/**
 	 * Vytvořen
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
 	public string $createdTs;
-	
+
 	/**
 	 * Expedováno
 	 * @column{"type":"timestamp"}
 	 */
 	public ?string $shippedTs;
-	
+
 	/**
 	 * Datum expedice
 	 * @column{"type":"date"}
 	 */
 	public ?string $shippingDate;
-	
+
 	/**
 	 * Typ dopravy
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
 	 * @relation
 	 */
 	public ?DeliveryType $type;
-	
+
 	/**
 	 * Objednávka
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
 	public Order $order;
-	
+
 	/**
 	 * Měna
 	 * @relation
@@ -144,14 +144,14 @@ class Delivery extends \StORM\Entity
 	 * @column
 	 */
 	public bool $zasilkovnaFinished = false;
-	
+
 	/**
 	 * Dodavatel / Dropship
 	 * @relation
 	 * @constraint
 	 */
 	public ?Supplier $supplier;
-	
+
 	public function getTypeName(): ?string
 	{
 		return $this->type ? $this->type->name : $this->typeName;

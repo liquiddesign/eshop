@@ -43,7 +43,7 @@ class PhotoPresenter extends \Eshop\BackendPresenter
 
 	#[Inject]
 	public PhotoRepository $photoRepository;
-	
+
 	#[Inject]
 	public ProductRepository $productRepository;
 
@@ -164,11 +164,11 @@ class PhotoPresenter extends \Eshop\BackendPresenter
 
 		return $grid;
 	}
-	
+
 	public function createComponentNewForm(): Form
 	{
 		$form = $this->formFactory->create(true);
-		
+
 		$form->addText('fileName', 'Název soboru')->setDisabled();
 		$form->addLocaleText('label', 'Popisek');
 		$form->addInteger('priority', 'Priorita')->setRequired()->setDefaultValue(10);
@@ -187,7 +187,7 @@ class PhotoPresenter extends \Eshop\BackendPresenter
 			$this->flashMessage('Uloženo', 'success');
 			$this->redirect('this');
 		};
-		
+
 		return $form;
 	}
 
@@ -237,7 +237,7 @@ class PhotoPresenter extends \Eshop\BackendPresenter
 
 		return;
 	}
-	
+
 	public function renderDetail(Photo $photo, ?Product $product = null): void
 	{
 		unset($photo);
@@ -250,7 +250,7 @@ class PhotoPresenter extends \Eshop\BackendPresenter
 		$this->template->displayButtons = [$product ? $this->createBackButton(':Eshop:Admin:Product:productPhotos', $product) : $this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('newForm')];
 	}
-	
+
 	public function actionDetail(Photo $photo): void
 	{
 		/** @var \Forms\Form $form */
@@ -531,7 +531,7 @@ Můžete nahrát více obrázků pro jeden produkt. Např.: "ABC_obrazek_1.jpg",
 		return $this->formFactory->createBulkActionForm($this->getBulkFormGrid('photoGrid'), function (array $values, Collection $collection): void {
 			$tempFilename = \tempnam($this->tempDir, 'csv');
 
-			$this->photoExporterService->exportCsv($collection, Writer::createFromPath($tempFilename), $this::EXPORT_COLUMNS);
+			$this->photoExporterService->exportCsv($collection, Writer::from($tempFilename), $this::EXPORT_COLUMNS);
 
 			$this->sendResponse(new FileResponse($tempFilename, 'photos.csv', 'text/csv'));
 		}, $this->getBulkFormActionLink(), $this->photoRepository->many(), $this->getBulkFormIds());

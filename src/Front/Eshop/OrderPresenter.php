@@ -73,7 +73,7 @@ abstract class OrderPresenter extends \Eshop\Front\FrontendPresenter
 			\Nette\Utils\FileSystem::delete($tempFilename);
 		};
 
-		$this->orderRepository->csvExport($object, Writer::createFromPath($tempFilename, 'w+'));
+		$this->orderRepository->csvExport($object, Writer::from($tempFilename, 'w+'));
 
 		$this->sendResponse(new FileResponse($tempFilename, "objednavka-$object->code.csv", 'text/csv'));
 	}
@@ -97,11 +97,11 @@ abstract class OrderPresenter extends \Eshop\Front\FrontendPresenter
 	public function renderOrder(string $orderId): void
 	{
 		$order = $this->orderRepository->one($orderId);
-		
+
 		if (!$order) {
 			throw new Nette\Application\BadRequestException("Order $orderId not exists");
 		}
-		
+
 		$purchase = $order->purchase;
 
 		$this->template->breadcrumb = [];
