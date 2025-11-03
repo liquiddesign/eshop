@@ -450,8 +450,6 @@ class SupplierProductRepository extends \StORM\Repository
 
 			// Pro každou dodavatelskou fotku vytvořit Photo entitu
 			foreach ($supplierProductPhotos as $supplierPhoto) {
-				/** @var \Eshop\DB\SupplierProductPhoto $supplierPhoto */
-
 				if (!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName)) {
 					continue;
 				}
