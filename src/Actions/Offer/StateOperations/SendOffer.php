@@ -27,7 +27,7 @@ class SendOffer extends BaseAction
 	/**
 	 * @throws \Eshop\Actions\Offer\StateOperations\UnauthorizedStateChangeException
 	 */
-	public function execute(Offer $offer): void
+	public function execute(Offer $offer, bool $sendEmail = true): void
 	{
 		$this->canSendOffer($offer);
 
@@ -39,11 +39,13 @@ class SendOffer extends BaseAction
 				'canceledTs' => null,
 			]);
 
-			$this->templateRepository->sendMessage(
-				'offers.create',
-				$this->offerService->getEmailVariables($offer),
-				$offer->order->purchase->accountEmail
-			);
+			if ($sendEmail) {
+				$this->templateRepository->sendMessage(
+					'offers.create',
+					$this->offerService->getEmailVariables($offer),
+					$offer->order->purchase->accountEmail
+				);
+			}
 
 			$this->storm->getLink()->commit();
 		} catch (\Exception $exception) {
