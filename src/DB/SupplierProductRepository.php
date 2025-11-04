@@ -493,7 +493,9 @@ class SupplierProductRepository extends \StORM\Repository
 								// phpcs:ignore
 								$image = @Image::fromFile($sourceOrigin);
 								$image->resize(600, null);
-								$image->save($targetDetail, 100);
+								// Normalize filename to avoid unsupported extensions (.jfif -> .jpg)
+								$normalizedTargetDetail = $galleryImageDirectory . $sep . 'detail' . $sep . $this->normalizeImageFileName($firstExistingPhoto->fileName);
+								$image->save($normalizedTargetDetail, 100);
 							} catch (\Throwable $e) {
 								Debugger::log($e, ILogger::WARNING);
 							}
@@ -513,7 +515,9 @@ class SupplierProductRepository extends \StORM\Repository
 								// phpcs:ignore
 								$image = @Image::fromFile($sourceOrigin);
 								$image->resize(300, null);
-								$image->save($targetThumb, 100);
+								// Normalize filename to avoid unsupported extensions (.jfif -> .jpg)
+								$normalizedTargetThumb = $galleryImageDirectory . $sep . 'thumb' . $sep . $this->normalizeImageFileName($firstExistingPhoto->fileName);
+								$image->save($normalizedTargetThumb, 100);
 							} catch (\Throwable $e) {
 								Debugger::log($e, ILogger::WARNING);
 							}
@@ -565,7 +569,9 @@ class SupplierProductRepository extends \StORM\Repository
 						// phpcs:ignore
 						$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
 						$image->resize(600, null);
-						$image->save($galleryImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName, 100);
+						// Normalize filename to avoid unsupported extensions (.jfif -> .jpg)
+						$normalizedFileName = $this->normalizeImageFileName($supplierPhoto->fileName);
+						$image->save($galleryImageDirectory . $sep . 'detail' . $sep . $normalizedFileName, 100);
 					}
 
 					// Vytvořit/zkopírovat thumb (300px)
@@ -578,7 +584,9 @@ class SupplierProductRepository extends \StORM\Repository
 						// phpcs:ignore
 						$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
 						$image->resize(300, null);
-						$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName, 100);
+						// Normalize filename to avoid unsupported extensions (.jfif -> .jpg)
+						$normalizedFileName = $this->normalizeImageFileName($supplierPhoto->fileName);
+						$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $normalizedFileName, 100);
 					}
 				} catch (\Throwable $e) {
 					if ($e instanceof InvalidArgumentException && \str_starts_with($e->getMessage(), 'Unsupported file extension')) {
@@ -935,5 +943,19 @@ class SupplierProductRepository extends \StORM\Repository
 				$notStockProducts[] = $productPK;
 			}
 		}
+	}
+
+	/**
+	 * Normalize image file name - convert unsupported extensions to supported ones
+	 * JFIF is actually JPEG, but Nette doesn't support .jfif extension
+	 */
+	private function normalizeImageFileName(string $fileName): string
+	{
+		// Convert .jfif to .jpg (JFIF is JPEG File Interchange Format)
+		if (\str_ends_with(Strings::lower($fileName), '.jfif')) {
+			return Strings::substring($fileName, 0, -5) . '.jpg';
+		}
+
+		return $fileName;
 	}
 }
