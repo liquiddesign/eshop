@@ -57,6 +57,13 @@ class Photo extends \StORM\Entity
 	public ?Supplier $supplier;
 
 	/**
+	 * Původní dodavatelská fotka
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?SupplierProductPhoto $supplierProductPhoto;
+
+	/**
 	 * Use in googleFeed
 	 * @column
 	 */

@@ -139,6 +139,9 @@
                         {$renderer->renderPair($form['supplierContent'])|noescape}
                         {$renderer->renderPair($form['supplierDisplayAmountMergedLock'])|noescape}
                         {$renderer->renderPair($form['supplierDisplayAmountLock'])|noescape}
+                        {ifset $form['importSupplierImages']}
+                            {$renderer->renderPair($form['importSupplierImages'])|noescape}
+                        {/ifset}
                     {/if}
                 </table>
             </fieldset>

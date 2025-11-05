@@ -484,7 +484,7 @@ priority - Priorita<br>
 
 			try {
 				$result = $this->productRepository->csvImportVisibilityListItem(
-					Reader::createFromString($file->getContents()),
+					Reader::fromString($file->getContents()),
 					$values['delimiter'],
 				);
 

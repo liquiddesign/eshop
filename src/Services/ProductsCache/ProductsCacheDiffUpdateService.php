@@ -49,8 +49,7 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 		$this->logName = 'ProductsCacheDiffUpdateService-warmUpCacheTableDiff--' . Carbon::now()->format('Y-m-d-H-i-s');
 
 		try {
-			$link = $this->getLink();
-			$link->exec('SET SESSION group_concat_max_len=4294967295');
+			$this->getConnection()->exec('SET SESSION group_concat_max_len=4294967295');
 
 			$productsCacheTableName = $this::PRODUCTS_TABLE_NAME;
 			$categoriesTableName = $this::CATEGORIES_TABLE_NAME;
@@ -115,8 +114,7 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 		$this->logName = 'ProductsCacheDiffUpdateService-updatePricesTableDiff--' . Carbon::now()->format('Y-m-d-H-i-s');
 
 		try {
-			$link = $this->getLink();
-			$link->exec('SET SESSION group_concat_max_len=4294967295');
+			$this->getConnection()->exec('SET SESSION group_concat_max_len=4294967295');
 
 			$visibilityPricesCacheTableName = $this::PRICES_TABLE_NAME;
 
@@ -144,9 +142,7 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 	 */
 	protected function diffUpdateCategories(string $categoriesTableName, string $productsCacheTableName, array $productsByCategories, array $allCategories): void
 	{
-		$link = $this->getLink();
-
-		$link->exec("
+		$this->getConnection()->exec("
 CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
   product BIGINT UNSIGNED NOT NULL,
   category INT UNSIGNED NOT NULL,
@@ -157,32 +153,28 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
   INDEX (category)
 );");
 
-		$query = $link->query("
+		$query = $this->getConnection()->query("
     SELECT COLUMN_NAME
     FROM INFORMATION_SCHEMA.COLUMNS 
     WHERE TABLE_SCHEMA = DATABASE() 
-      AND TABLE_NAME = '$categoriesTableName' 
+      AND TABLE_NAME = '$categoriesTableName'
       AND COLUMN_NAME IN ('showInCategory', 'showDescendantProducts', 'showProductsInAncestors')
 ");
-
-		if ($query === false) {
-			throw new \Exception('Statement creation failed.');
-		}
 
 		$columns = $query->fetchAll(\PDO::FETCH_ASSOC);
 
 		$columns = \array_combine(\array_column($columns, 'COLUMN_NAME'), \array_column($columns, 'COLUMN_NAME'));
 
 		if (isset($columns['showInCategory'])) {
-			$link->exec("ALTER TABLE `$categoriesTableName` DROP COLUMN `showInCategory`;");
+			$this->getConnection()->exec("ALTER TABLE `$categoriesTableName` DROP COLUMN `showInCategory`;");
 		}
 
 		if (!isset($columns['showDescendantProducts'])) {
-			$link->exec("ALTER TABLE `$categoriesTableName` ADD COLUMN `showDescendantProducts` BOOL NOT NULL;");
+			$this->getConnection()->exec("ALTER TABLE `$categoriesTableName` ADD COLUMN `showDescendantProducts` BOOL NOT NULL;");
 		}
 
 		if (!isset($columns['showProductsInAncestors'])) {
-			$link->exec("ALTER TABLE `$categoriesTableName` ADD COLUMN `showProductsInAncestors` BOOL NOT NULL;");
+			$this->getConnection()->exec("ALTER TABLE `$categoriesTableName` ADD COLUMN `showProductsInAncestors` BOOL NOT NULL;");
 		}
 
 		$categoriesInCache = $this->getConnection()->rows([$categoriesTableName])
@@ -260,12 +252,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		array $productAttributeValues,
 		array $productCategories,
 	): array {
-		$statement = $this->getLink()->query("SHOW COLUMNS FROM `$productsCacheTableName` LIKE 'primaryCategory_%'");
-
-		if ($statement === false) {
-			throw new \Exception('Statement creation failed.');
-		}
-
+		$statement = $this->getConnection()->query("SHOW COLUMNS FROM `$productsCacheTableName` LIKE 'primaryCategory_%'");
 		$currentColumns = $statement->fetchAll(\PDO::FETCH_COLUMN);
 
 		foreach ($allCategoryTypes as $categoryType) {
@@ -411,7 +398,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		$updatedCount = 0;
 
 		foreach (\array_chunk($productsToUpdate, 1000, true) as $chunk) {
-			$this->getLink()->beginTransaction();
+			$this->getConnection()->beginTransaction();
 
 			foreach ($chunk as $product => $row) {
 				try {
@@ -421,7 +408,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				}
 			}
 
-			$this->getLink()->commit();
+			$this->getConnection()->commit();
 		}
 
 		Debugger::log('diffUpdateMainTable -- updated: ' . $updatedCount, $this->logName);
@@ -674,7 +661,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 			}
 
 			foreach (\array_chunk($pricesToUpdate, 10000, true) as $chunk) {
-				$this->getLink()->beginTransaction();
+				$this->getConnection()->beginTransaction();
 
 				foreach ($chunk as $product => $row) {
 					$this->getConnection()->rows([$currentIndexTableName])
@@ -682,7 +669,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 						->update($row);
 				}
 
-				$this->getLink()->commit();
+				$this->getConnection()->commit();
 			}
 
 			if ($pricesToCreate) {
@@ -715,9 +702,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 	 */
 	protected function diffUpdateRelations(string $relationsCacheTableName, string $productsCacheTableName, array $productsInProductsCacheTable): void
 	{
-		$link = $this->getLink();
-
-		$link->exec("
+		$this->getConnection()->exec("
 CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
     uuid VARCHAR(32) PRIMARY KEY,
     master BIGINT UNSIGNED NOT NULL,
@@ -738,7 +723,7 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
 );");
 
 		// if idx_related_code has no type column, refresh it
-		$indexQuery = $link->query("
+		$indexQuery = $this->getConnection()->query("
 			SELECT COLUMN_NAME 
 			FROM INFORMATION_SCHEMA.STATISTICS 
 			WHERE TABLE_SCHEMA = DATABASE() 
@@ -753,8 +738,8 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
 			// Check if 'type' is in the index columns
 			if ($indexColumns && !Arrays::contains($indexColumns, 'type')) {
 				// Drop the old index and create a new one with 'type' column
-				$link->exec("ALTER TABLE `$relationsCacheTableName` DROP INDEX idx_related_code");
-				$link->exec("ALTER TABLE `$relationsCacheTableName` ADD UNIQUE INDEX idx_related_code (master, slave, amount, discountPct, masterPct, type)");
+				$this->getConnection()->exec("ALTER TABLE `$relationsCacheTableName` DROP INDEX idx_related_code");
+				$this->getConnection()->exec("ALTER TABLE `$relationsCacheTableName` ADD UNIQUE INDEX idx_related_code (master, slave, amount, discountPct, masterPct, type)");
 			}
 		}
 
@@ -791,7 +776,7 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
 			$rowsToInsert[$relation->getPK()] = $row;
 		}
 
-		$link->beginTransaction();
+		$this->getConnection()->beginTransaction();
 
 		$this->getConnection()->rows([$relationsCacheTableName])->delete();
 
@@ -799,14 +784,12 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
 			$this->getConnection()->createRows($relationsCacheTableName, \array_values($rowsToInsert), chunkSize: 1000);
 		}
 
-		$link->commit();
+		$this->getConnection()->commit();
 	}
 
 	protected function createVisibilityPriceTable(string $pricesCacheTableName): void
 	{
-		$link = $this->getLink();
-
-		$link->exec("
+		$this->getConnection()->exec("
 CREATE TABLE IF NOT EXISTS `$pricesCacheTableName` (
   product BIGINT UNSIGNED NOT NULL PRIMARY KEY,
   price DOUBLE NOT NULL,
@@ -828,32 +811,21 @@ CREATE TABLE IF NOT EXISTS `$pricesCacheTableName` (
 	 */
 	protected function createProductsTable(string $productsCacheTableName, array $allCategoryTypes): void
 	{
-		$link = $this->getLink();
-
 		// pokud tabulka existuje, proved alter na změnu indexu code
-		$statement = $link->query("SHOW TABLES LIKE '$productsCacheTableName'");
-
-		if ($statement === false) {
-			throw new \Exception('Statement creation failed.');
-		}
-
+		$statement = $this->getConnection()->query("SHOW TABLES LIKE '$productsCacheTableName'");
 		$exists = $statement->fetch(\PDO::FETCH_NUM);
 
 		if ($exists) {
 			// pokud tabulka existuje, proved alter na změnu indexu code
 			// provést jen pokud exituje index
-			$statement = $link->query("SHOW INDEX FROM `$productsCacheTableName` WHERE Key_name = 'idx_unique_code'");
-
-			if ($statement === false) {
-				throw new \Exception('Statement creation failed.');
-			}
+			$statement = $this->getConnection()->query("SHOW INDEX FROM `$productsCacheTableName` WHERE Key_name = 'idx_unique_code'");
 
 			$exists = $statement->fetch(\PDO::FETCH_NUM);
 
 			if ($exists) {
 				// pokud existuje, tak ho smazat a přidat nový
-				$link->exec("ALTER TABLE `$productsCacheTableName` DROP INDEX idx_unique_code");
-				$link->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_code (code)");
+				$this->getConnection()->exec("ALTER TABLE `$productsCacheTableName` DROP INDEX idx_unique_code");
+				$this->getConnection()->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_code (code)");
 			}
 		}
 
@@ -894,10 +866,10 @@ CREATE TABLE IF NOT EXISTS `$productsCacheTableName` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;';
 
 		// Provedení celého dotazu najednou
-		$link->exec($query);
+		$this->getConnection()->exec($query);
 
 		// Check if columns exist before adding them
-		$query = $link->query("
+		$query = $this->getConnection()->query("
 			SELECT COLUMN_NAME
 			FROM INFORMATION_SCHEMA.COLUMNS 
 			WHERE TABLE_SCHEMA = DATABASE() 
@@ -905,27 +877,23 @@ CREATE TABLE IF NOT EXISTS `$productsCacheTableName` (
 			AND COLUMN_NAME IN ('ribbons', 'internalRibbons', 'published', 'buyCount')
 		");
 
-		if ($query === false) {
-			throw new \Exception('Statement creation failed.');
-		}
-
 		$columns = $query->fetchAll(\PDO::FETCH_ASSOC);
 		$columns = \array_combine(\array_column($columns, 'COLUMN_NAME'), \array_column($columns, 'COLUMN_NAME'));
 
 		if (!isset($columns['ribbons'])) {
-			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `ribbons` TEXT");
+			$this->getConnection()->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `ribbons` TEXT");
 		}
 
 		if (!isset($columns['internalRibbons'])) {
-			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `internalRibbons` TEXT");
+			$this->getConnection()->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `internalRibbons` TEXT");
 		}
 
 		if (!isset($columns['published'])) {
-			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `published` DATE");
+			$this->getConnection()->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `published` DATE");
 		}
 
 		if (!isset($columns['buyCount'])) {
-			$link->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `buyCount` INT");
+			$this->getConnection()->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `buyCount` INT");
 		}
 
 		return;

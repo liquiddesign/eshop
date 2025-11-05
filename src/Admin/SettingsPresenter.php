@@ -535,6 +535,9 @@ Pokud je tato možnost aktivní, tak se <b>ignorují</b> nastavení dostupnosti 
 				->setNullable()
 				->addRule($form::FLOAT)
 				->setHtmlAttribute('data-info', $setting['info'] ?? null);
+		} elseif ($setting['type'] === 'richtext') {
+			$form->addRichEdit($setting['key'], $setting['label'])
+				->setHtmlAttribute('data-info', $setting['info'] ?? null);
 		}
 
 		if (!isset($setting['onSave'])) {

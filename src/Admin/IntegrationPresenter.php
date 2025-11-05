@@ -29,11 +29,13 @@ class IntegrationPresenter extends BackendPresenter
 	public const BALIKOBOT_CC_ADDRESS = 'balikobotCcAddress';
 	public const COLLECTION_ORDER_PROFILE_INFO_SETTING = 'collectionOrderProfileInfoSetting';
 	public const COLLECTION_ORDER_ORDER_COMPLETE_INFO_SETTING = 'collectionOrderOrderCompleteInfoSetting';
+	public const LEADHUB_API_KEY = 'leadhubApiKey';
 
 	protected const CONFIGURATION = [
 		'supportBox' => false,
 		'targito' => false,
 		'balikobot' => false,
+		'leadhub' => false,
 	];
 
 	#[\Nette\DI\Attributes\Inject]
@@ -75,6 +77,10 @@ class IntegrationPresenter extends BackendPresenter
 
 		if (isset($this::CONFIGURATION['balikobot']) && $this::CONFIGURATION['balikobot']) {
 			$this->template->tabs['@balikobot'] = 'Balíkobot';
+		}
+
+		if (isset($this::CONFIGURATION['leadhub']) && $this::CONFIGURATION['leadhub']) {
+			$this->template->tabs['@leadhub'] = 'Leadhub';
 		}
 
 		if (!isset($this::CONFIGURATION['targito']) || !$this::CONFIGURATION['targito']) {
@@ -179,6 +185,14 @@ class IntegrationPresenter extends BackendPresenter
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('balikobotForm');
+
+		$this->setFormDefaults($form);
+	}
+
+	public function actionLeadhub(): void
+	{
+		/** @var \Admin\Controls\AdminForm $form */
+		$form = $this->getComponent('leadhubForm');
 
 		$this->setFormDefaults($form);
 	}
@@ -395,6 +409,39 @@ class IntegrationPresenter extends BackendPresenter
 		return $form;
 	}
 
+	public function createComponentLeadhubForm(): AdminForm
+	{
+		$form = $this->formFactory->create();
+
+		$shopsContainer = $form->addContainer('shops');
+		$shops = $this->shopsConfig->getAvailableShops();
+
+		foreach ($shops as $shop) {
+			$shopContainer = $shopsContainer->addContainer($shop->getPK());
+
+			$shopContainer->addText($this::LEADHUB_API_KEY, Html::fromHtml($shop->getIconImageFormAdmin() . ' API klíč'))->setNullable();
+		}
+
+		if (!$shops) {
+			$shopContainer = $shopsContainer->addContainer('default');
+
+			$shopContainer->addText($this::LEADHUB_API_KEY, Html::fromHtml('API klíč'))->setNullable();
+		}
+
+		$form->addSubmit('submit', 'Uložit');
+
+		$form->onSuccess[] = function (AdminForm $form): void {
+			$values = $form->getValuesWithAjax();
+
+			$this->saveSettings($values);
+
+			$this->flashMessage('Nastavení uloženo', 'success');
+			$form->processRedirect('leadhub');
+		};
+
+		return $form;
+	}
+
 	public function createComponentBalikobotForm(): AdminForm
 	{
 		$form = $this->formFactory->create();
@@ -572,6 +619,17 @@ class IntegrationPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [];
 		$this->template->displayControls = [$this->getComponent('balikobotForm')];
+	}
+
+	public function renderLeadhub(): void
+	{
+		$this->template->headerLabel = 'Integrace';
+		$this->template->headerTree = [
+			['Integrace'],
+			['Leadhub'],
+		];
+		$this->template->displayButtons = [];
+		$this->template->displayControls = [$this->getComponent('leadhubForm')];
 	}
 
 	public function handleSyncZasilkovnaPoints(): void
