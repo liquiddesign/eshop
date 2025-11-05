@@ -69,6 +69,17 @@ class OrderList extends Datalist
 		$form = $this->getFilterForm();
 
 		$form->addText('search');
+		$form->addText('dateFrom')->setHtmlType('date');
+		$form->addText('dateTo')->setHtmlType('date');
+		$form->addSelect('state')
+			->setItems([
+				'open' => $this->translator->translate('orderState.new', 'Vytvořená'),
+				'received' => $this->translator->translate('orderState.received', 'Příjatá'),
+				'finished' => $this->translator->translate('orderState.finished', 'Odeslaná'),
+				'canceled' => $this->translator->translate('orderState.canceled', 'Stornovaná'),
+			])->setPrompt('Status objednávky');
+		$form->addText('code');
+		$form->addText('invoice');
 		$form->addSubmit('submit');
 	}
 
