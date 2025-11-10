@@ -53,12 +53,12 @@ class OrderList extends Datalist
 
 		$this->addFilterExpression('dateFrom', function (ICollection $collection, $dateFrom): void {
 			$dateFrom = Carbon::parse($dateFrom);
-			$collection->where('createdTs >= :dateFrom', ['dateFrom' => $dateFrom->toDateString()]);
+			$collection->where('this.createdTs >= :dateFrom', ['dateFrom' => $dateFrom->toDateString()]);
 		}, '');
 
 		$this->addFilterExpression('dateTo', function (ICollection $collection, $dateTo): void {
 			$dateTo = Carbon::parse($dateTo);
-			$collection->where('createdTs <= :dateTo', ['dateTo' => $dateTo->toDateString()]);
+			$collection->where('this.createdTs <= :dateTo', ['dateTo' => $dateTo->toDateString()]);
 		}, '');
 
 		$this->addFilterExpression('state', function (ICollection $collection, $state): void {
@@ -74,7 +74,7 @@ class OrderList extends Datalist
 		}, '');
 
 		$this->addFilterExpression('code', function (ICollection $collection, $code): void {
-			$collection->where('code LIKE :code', ['code' => "%$code%"]);
+			$collection->where('this.code LIKE :code', ['code' => "%$code%"]);
 		}, '');
 
 		$this->addFilterExpression('invoice', function (ICollection $collection, $invoice): void {
