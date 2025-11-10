@@ -94,7 +94,7 @@ class OrderList extends Datalist
 				'received' => $this->translator->translate('orderState.received', 'Příjatá'),
 				'finished' => $this->translator->translate('orderState.finished', 'Odeslaná'),
 				'canceled' => $this->translator->translate('orderState.canceled', 'Stornovaná'),
-			])->setPrompt('Status objednávky');
+			])->setPrompt('- Není vybráno -');
 		$form->addText('code');
 		$form->addText('invoice');
 		$form->addSubmit('submit');
