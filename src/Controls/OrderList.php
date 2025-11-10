@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Carbon\Carbon;
 use Eshop\Admin\Controls\OrderGridFactory;
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\OrderRepository;
@@ -49,17 +50,32 @@ class OrderList extends Datalist
 		$this->setDefaultOnPage(10);
 		$this->setDefaultOrder('createdTs', 'DESC');
 
-		$this->addFilterExpression('search', function (ICollection $collection, $value) use ($orderRepository, $shopperUser): void {
-			$suffix = $orderRepository->getConnection()->getMutationSuffix();
 
-			$or = "this.code = :code OR items.productName$suffix LIKE :string";
+		$this->addFilterExpression('dateFrom', function (ICollection $collection, $dateFrom): void {
+			$dateFrom = Carbon::parse($dateFrom);
+			$collection->where('createdTs >= :dateFrom', ['dateFrom' => $dateFrom->toDateString()])
+				->join(['carts' => 'eshop_cart'], 'purchase.uuid=carts.fk_purchase')
+				->join(['items' => 'eshop_cartitem'], 'carts.uuid=items.fk_cart')
+				->join(['account' => 'security_account'], 'account.uuid=purchase.fk_account');
+		}, '');
 
-			if ($shopperUser->getMerchant()) {
-				$or .= ' OR purchase.accountFullname LIKE :string OR account.fullname LIKE :string';
-				$or .= ' OR purchase.fullname LIKE :string';
-			}
+		$this->addFilterExpression('dateTo', function (ICollection $collection, $dateTo): void {
+			$dateTo = Carbon::parse($dateTo);
+			$collection->where('createdTs <= :dateTo', ['dateTo' => $dateTo->toDateString()])
+				->join(['carts' => 'eshop_cart'], 'purchase.uuid=carts.fk_purchase')
+				->join(['items' => 'eshop_cartitem'], 'carts.uuid=items.fk_cart')
+				->join(['account' => 'security_account'], 'account.uuid=purchase.fk_account');
+		}, '');
 
-			$collection->where($or, ['code' => $value, 'string' => '%' . $value . '%'])
+		$this->addFilterExpression('state', function (ICollection $collection, $state) use ($orderRepository): void {
+			$collection = $orderRepository->getCollectionByState($state);
+			$collection->join(['carts' => 'eshop_cart'], 'purchase.uuid=carts.fk_purchase')
+				->join(['items' => 'eshop_cartitem'], 'carts.uuid=items.fk_cart')
+				->join(['account' => 'security_account'], 'account.uuid=purchase.fk_account');
+		}, '');
+
+		$this->addFilterExpression('code', function (ICollection $collection, $code): void {
+			$collection->where('code LIKE :code', ['code' => "%$code%"])
 				->join(['carts' => 'eshop_cart'], 'purchase.uuid=carts.fk_purchase')
 				->join(['items' => 'eshop_cartitem'], 'carts.uuid=items.fk_cart')
 				->join(['account' => 'security_account'], 'account.uuid=purchase.fk_account');
@@ -68,7 +84,6 @@ class OrderList extends Datalist
 		/** @var \Forms\Form $form */
 		$form = $this->getFilterForm();
 
-		$form->addText('search');
 		$form->addText('dateFrom')->setHtmlType('date');
 		$form->addText('dateTo')->setHtmlType('date');
 		$form->addSelect('state')
