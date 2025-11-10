@@ -53,32 +53,34 @@ class OrderList extends Datalist
 
 		$this->addFilterExpression('dateFrom', function (ICollection $collection, $dateFrom): void {
 			$dateFrom = Carbon::parse($dateFrom);
-			$collection->where('createdTs >= :dateFrom', ['dateFrom' => $dateFrom->toDateString()])
-				->join(['carts' => 'eshop_cart'], 'purchase.uuid=carts.fk_purchase')
-				->join(['items' => 'eshop_cartitem'], 'carts.uuid=items.fk_cart')
-				->join(['account' => 'security_account'], 'account.uuid=purchase.fk_account');
+			$collection->where('createdTs >= :dateFrom', ['dateFrom' => $dateFrom->toDateString()]);
 		}, '');
 
 		$this->addFilterExpression('dateTo', function (ICollection $collection, $dateTo): void {
 			$dateTo = Carbon::parse($dateTo);
-			$collection->where('createdTs <= :dateTo', ['dateTo' => $dateTo->toDateString()])
-				->join(['carts' => 'eshop_cart'], 'purchase.uuid=carts.fk_purchase')
-				->join(['items' => 'eshop_cartitem'], 'carts.uuid=items.fk_cart')
-				->join(['account' => 'security_account'], 'account.uuid=purchase.fk_account');
+			$collection->where('createdTs <= :dateTo', ['dateTo' => $dateTo->toDateString()]);
 		}, '');
 
-		$this->addFilterExpression('state', function (ICollection $collection, $state) use ($orderRepository): void {
-			$collection = $orderRepository->getCollectionByState($state);
-			$collection->join(['carts' => 'eshop_cart'], 'purchase.uuid=carts.fk_purchase')
-				->join(['items' => 'eshop_cartitem'], 'carts.uuid=items.fk_cart')
-				->join(['account' => 'security_account'], 'account.uuid=purchase.fk_account');
+		$this->addFilterExpression('state', function (ICollection $collection, $state): void {
+			if ($state === \Eshop\DB\Order::STATE_OPEN) {
+				$collection->where('this.receivedTs IS NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL');
+			} elseif ($state === \Eshop\DB\Order::STATE_RECEIVED) {
+				$collection->where('this.receivedTs IS NOT NULL AND this.completedTs IS NULL AND this.canceledTs IS NULL');
+			} elseif ($state === \Eshop\DB\Order::STATE_COMPLETED) {
+				$collection->where('this.receivedTs IS NOT NULL AND this.completedTs IS NOT NULL AND this.canceledTs IS NULL');
+			} elseif ($state === \Eshop\DB\Order::STATE_CANCELED) {
+				$collection->where('this.canceledTs IS NOT NULL');
+			}
 		}, '');
 
 		$this->addFilterExpression('code', function (ICollection $collection, $code): void {
-			$collection->where('code LIKE :code', ['code' => "%$code%"])
-				->join(['carts' => 'eshop_cart'], 'purchase.uuid=carts.fk_purchase')
-				->join(['items' => 'eshop_cartitem'], 'carts.uuid=items.fk_cart')
-				->join(['account' => 'security_account'], 'account.uuid=purchase.fk_account');
+			$collection->where('code LIKE :code', ['code' => "%$code%"]);
+		}, '');
+
+		$this->addFilterExpression('invoice', function (ICollection $collection, $invoice): void {
+			$collection->where('invoices.code LIKE :invoice', ['invoice' => "%$invoice%"])
+				->join(['invoice_nxn' => 'eshop_invoice_nxn_eshop_order'], 'this.uuid=invoice_nxn.fk_order')
+				->join(['invoices' => 'eshop_invoice'], 'invoice_nxn.fk_invoice=invoices.uuid');
 		}, '');
 
 		/** @var \Forms\Form $form */
