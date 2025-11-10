@@ -2,6 +2,7 @@
 
 namespace Eshop\DB;
 
+use Carbon\Carbon;
 use StORM\Entity;
 
 /**
@@ -57,4 +58,20 @@ class Offer extends Entity
 	 * @relation
 	 */
 	public Order $order;
+
+	public function isExpired(Carbon $now): bool
+	{
+		$validFrom = $this->validFromTs ? Carbon::parse($this->validFromTs) : null;
+		$validUntil = $this->validUntilTs ? Carbon::parse($this->validUntilTs) : null;
+
+		if ($validFrom && $now->lt($validFrom)) {
+			return true;
+		}
+
+		if ($validUntil && $now->gte($validUntil)) {
+			return true;
+		}
+
+		return false;
+	}
 }
