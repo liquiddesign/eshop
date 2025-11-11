@@ -54,6 +54,12 @@ class Offer extends Entity
 	public string|null $validUntilTs = null;
 
 	/**
+	 * Poznámka obchodníka pro zákazníka
+	 * @column{"type":"longtext"}
+	 */
+	public string|null $note = null;
+
+	/**
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
@@ -68,10 +74,6 @@ class Offer extends Entity
 			return true;
 		}
 
-		if ($validUntil && $now->gte($validUntil)) {
-			return true;
-		}
-
-		return false;
+		return $validUntil && $now->gte($validUntil);
 	}
 }
