@@ -25,9 +25,12 @@ class DisplayAmountPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->displayAmountRepository->many(), 20, 'priority', 'ASC', true);
 
 		$grid->addColumnSelector();
-
+		
+		
 		$grid->addColumnText('Popisek', 'label', '%s', 'label');
+		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumnText('Interní popisek', 'internalLabel', '%s', 'internalLabel');
+		
 		//      $grid->addColumnText('Množství od', 'amountFrom', '%s', 'amountFrom', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		//      $grid->addColumnText('Množství do', 'amountTo', '%s', 'amountTo', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
@@ -53,6 +56,7 @@ class DisplayAmountPresenter extends BackendPresenter
 		$form = $this->formFactory->create(true, useShops: true);
 
 		$form->addLocaleText('label', 'Popisek');
+		$form->addText('code', 'Kód');
 		$form->addLocaleText('internalLabel', 'Interní popisek');
 		//      $form->addIntegerNullable('amountFrom', 'Množství od');
 		//      $form->addIntegerNullable('amountTo', 'Množství do');
