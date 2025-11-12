@@ -14,6 +14,7 @@ class OfferLogItem extends Entity
 	// State transitions
 	public const CREATED = 'created';
 	public const SENT = 'sent';
+	public const UNSENT = 'unsent';
 	public const APPROVED = 'approved';
 	public const COMPLETED = 'completed';
 	public const CANCELED = 'canceled';
