@@ -22,6 +22,12 @@ class PackageItem extends \StORM\Entity implements IPackageItem
 	public int $amount = 0;
 
 	/**
+	 * Priorita řazení
+	 * @column
+	 */
+	public int $priority = 10;
+
+	/**
 	 * Expedováno kusů
 	 * @column
 	 */

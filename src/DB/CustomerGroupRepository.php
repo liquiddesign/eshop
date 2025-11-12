@@ -25,9 +25,15 @@ class CustomerGroupRepository extends Repository implements IGeneralRepository, 
 	 */
 	public const UNREGISTERED_PK = 'unregistred';
 
-	protected CustomerGroup|null|false $unregisteredGroup = false;
+	/**
+	 * @var array<string, \Eshop\DB\CustomerGroup|null>
+	 */
+	protected array $unregisteredGroup = [];
 
-	protected CustomerGroup|null|false $defaultRegistrationGroup = false;
+	/**
+	 * @var array<string, \Eshop\DB\CustomerGroup|null>
+	 */
+	protected array $defaultRegistrationGroup = [];
 
 	public function __construct(DIConnection $connection, SchemaManager $schemaManager, protected readonly ShopsConfig $shopsConfig, protected readonly SettingRepository $settingRepository)
 	{
@@ -36,8 +42,10 @@ class CustomerGroupRepository extends Repository implements IGeneralRepository, 
 
 	public function getUnregisteredGroup(Shop|null $shop = null): CustomerGroup
 	{
-		if ($this->unregisteredGroup !== false) {
-			return $this->unregisteredGroup;
+		$shopKey = $shop?->getPK() ?? '';
+
+		if (isset($this->unregisteredGroup[$shopKey])) {
+			return $this->unregisteredGroup[$shopKey];
 		}
 
 		$defaultGroupSetting = $this->settingRepository->getValueByNameWithShop(SettingsPresenter::DEFAULT_UNREGISTERED_GROUP, $shop?->getPK());
@@ -46,20 +54,22 @@ class CustomerGroupRepository extends Repository implements IGeneralRepository, 
 			$defaultGroupSetting = $this::UNREGISTERED_PK;
 		}
 
-		return $this->unregisteredGroup = $this->one($defaultGroupSetting, true);
+		return $this->unregisteredGroup[$shopKey] = $this->one($defaultGroupSetting, true);
 	}
 
 	public function getDefaultRegistrationGroup(?Shop $shop = null): ?CustomerGroup
 	{
-		if ($this->defaultRegistrationGroup !== false) {
-			return $this->defaultRegistrationGroup;
+		$shopKey = $shop?->getPK() ?? '';
+
+		if (isset($this->defaultRegistrationGroup[$shopKey])) {
+			return $this->defaultRegistrationGroup[$shopKey];
 		}
 
 		$groupQuery = $this->many()->where('defaultAfterRegistration', true);
 
 		$this->shopsConfig->filterShopsInShopEntityCollection($groupQuery, $shop, true);
 
-		return $this->defaultRegistrationGroup = $groupQuery->first();
+		return $this->defaultRegistrationGroup[$shopKey] = $groupQuery->first();
 	}
 
 	/**
