@@ -7,6 +7,8 @@ namespace Eshop\Actions\Offer\StateOperations;
 use Carbon\Carbon;
 use Eshop\Actions\Offer\Code\GenerateOfferCode;
 use Eshop\DB\Offer;
+use Eshop\DB\OfferLogItem;
+use Eshop\DB\OfferLogItemRepository;
 use Eshop\DB\OfferRepository;
 use Eshop\DB\Order;
 use StORM\Connection;
@@ -19,6 +21,7 @@ class CreateOffer extends \Base\BaseAction
 		private readonly GenerateOfferCode $generateOfferCode,
 		private readonly Connection $connection,
 		private readonly OfferRepository $offerRepository,
+		private readonly OfferLogItemRepository $offerLogItemRepository,
 	) {
 	}
 
@@ -41,6 +44,13 @@ class CreateOffer extends \Base\BaseAction
 					'validFromTs' => Carbon::now()->toDateString(),
 					'validUntilTs' => Carbon::now()->addDays(14)->toDateString(),
 				]);
+
+				$this->offerLogItemRepository->createLog(
+					$offer,
+					OfferLogItem::CREATED,
+					null,
+					$order->purchase->merchant
+				);
 
 				if ($inTransaction) {
 					$this->connection->commit();

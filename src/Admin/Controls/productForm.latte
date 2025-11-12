@@ -269,8 +269,22 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                 </table>
             </fieldset>
 
-            <fieldset n:if="$pricelists">
+            <fieldset>
                 <legend>Ceníky</legend>
+                <table class="mt-1 mb-1" style="width: auto;">
+                    <tr class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col">{label minimalRecommendedPrice/}</th>
+
+                        <td class="align-middle">{input minimalRecommendedPrice class=>'form-control form-control-sm '}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError minimalRecommendedPrice}</span>
+                        </td>
+                        <td colspan="3"></td>
+
+                    </tr>
+
+
+                </table>
+                <div n:if="$pricelists">
                 <span class="text-sm ml-2">
                     {ifset $configuration[Eshop\Admin\Configs\ProductFormConfig::class][Eshop\Admin\Configs\ProductFormAutoPriceConfig::class]}
                         {do $autoPriceConfig = $configuration[Eshop\Admin\Configs\ProductFormConfig::class][Eshop\Admin\Configs\ProductFormAutoPriceConfig::class]}
@@ -322,6 +336,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                         </tr>
                     {/foreach}
                 </table>
+                </div>
             </fieldset>
 
             <fieldset>

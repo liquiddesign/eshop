@@ -803,9 +803,10 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 			do {
 				$newPath = $ancestorPath . Random::generate(4);
-			} while (\count(\array_filter($branch['children'], function ($element) use ($newPath) {
+			} while (
+				\count(\array_filter($branch['children'], function ($element) use ($newPath) {
 					return $element['category']['path'] === $newPath;
-			})) !== 0
+				})) !== 0
 			);
 
 			$updates[$branch['category']['uuid']] = $newPath;

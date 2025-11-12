@@ -31,7 +31,8 @@ class OfferRepository extends Repository
 				->where('this.approvedTs IS NULL')
 				->where('this.sentTs IS NULL')
 				->where('this.canceledTs IS NULL')
-				->where('this.completedTs IS NULL'),
+				->where('this.completedTs IS NULL')
+				->where('this.managerApprovalRequestedTs IS NULL'),
 			OfferState::Sent => $this->many()
 				->where('this.approvedTs IS NULL')
 				->where('this.sentTs IS NOT NULL')
@@ -40,6 +41,16 @@ class OfferRepository extends Repository
 			OfferState::Approved => $this->many()
 				->where('this.approvedTs IS NOT NULL')
 				->where('this.sentTs IS NOT NULL')
+				->where('this.canceledTs IS NULL')
+				->where('this.completedTs IS NULL'),
+			OfferState::AwaitingManagerApproval => $this->many()
+				->where('this.managerApprovalRequestedTs IS NOT NULL')
+				->where('this.managerApprovedTs IS NULL')
+				->where('this.canceledTs IS NULL')
+				->where('this.completedTs IS NULL'),
+			OfferState::ManagerApproved => $this->many()
+				->where('this.managerApprovedTs IS NOT NULL')
+				->where('this.sentTs IS NULL')
 				->where('this.canceledTs IS NULL')
 				->where('this.completedTs IS NULL'),
 			OfferState::Completed => $this->many()

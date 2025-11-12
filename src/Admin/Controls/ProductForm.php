@@ -127,6 +127,12 @@ class ProductForm extends Control
 		$form->addText('subCode', 'Kód podskladu');
 		$form->addText('ean', 'Hlavní EAN (unikátní)')->setNullable();
 
+		$minimalRecommendedPrice = $form->addText('minimalRecommendedPrice', 'Minimální doporučená cena pro schválení managerem')
+			->setNullable()
+			->setHtmlType('number')
+			->setHtmlAttribute('step', 'any');
+		$minimalRecommendedPrice->addRule(Form::Float);
+
 		if (isset($this->configuration['secondaryEan']) && $this->configuration['secondaryEan']) {
 			$form->addText('secondaryEan', 'Sekundární EAN')->setNullable();
 		}
@@ -861,7 +867,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				/** @var null|string $autoPriceConfig */
 				$autoPriceConfig = $this->configuration[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
-				if (((!$autoPriceConfig
+				if (
+					((!$autoPriceConfig
 					|| $autoPriceConfig === ProductFormAutoPriceConfig::NONE
 					|| $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT)
 						&& $prices['price'] === null)
