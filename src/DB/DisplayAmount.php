@@ -13,6 +13,12 @@ use Base\Entity\ShopSystemicEntity;
 class DisplayAmount extends ShopSystemicEntity
 {
 	/**
+	 * Kód
+	 * @column
+	 */
+	public ?string $code;
+	
+	/**
 	 * Popisek
 	 * @column{"mutations":true}
 	 */
