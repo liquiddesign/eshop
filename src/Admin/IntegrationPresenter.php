@@ -30,6 +30,8 @@ class IntegrationPresenter extends BackendPresenter
 	public const COLLECTION_ORDER_PROFILE_INFO_SETTING = 'collectionOrderProfileInfoSetting';
 	public const COLLECTION_ORDER_ORDER_COMPLETE_INFO_SETTING = 'collectionOrderOrderCompleteInfoSetting';
 	public const LEADHUB_API_KEY = 'leadhubApiKey';
+	public const LEADHUB_ORDER_PERIOD_MIN_DAYS = 'leadhubOrderPeriodMinDays';
+	public const LEADHUB_ORDER_PERIOD_ADD_DAYS = 'leadhubOrderPeriodAddDays';
 
 	protected const CONFIGURATION = [
 		'supportBox' => false,
@@ -420,12 +422,48 @@ class IntegrationPresenter extends BackendPresenter
 			$shopContainer = $shopsContainer->addContainer($shop->getPK());
 
 			$shopContainer->addText($this::LEADHUB_API_KEY, Html::fromHtml($shop->getIconImageFormAdmin() . ' API klíč'))->setNullable();
+
+			$shopContainer->addInteger(
+				$this::LEADHUB_ORDER_PERIOD_MIN_DAYS,
+				Html::fromHtml($shop->getIconImageFormAdmin() . ' Minimální časový práh (dny)')
+			)
+				->setNullable()
+				->setHtmlAttribute('min', 0)
+				->setHtmlAttribute('placeholder', '14')
+				->setOption('description', 'Pokud je order period datum blíže než X dní, prodlouží se o Y dní');
+
+			$shopContainer->addInteger(
+				$this::LEADHUB_ORDER_PERIOD_ADD_DAYS,
+				Html::fromHtml($shop->getIconImageFormAdmin() . ' Prodloužení o (dny)')
+			)
+				->setNullable()
+				->setHtmlAttribute('min', 0)
+				->setHtmlAttribute('placeholder', '14')
+				->setOption('description', 'O kolik dní prodloužit order period datum');
 		}
 
 		if (!$shops) {
 			$shopContainer = $shopsContainer->addContainer('default');
 
 			$shopContainer->addText($this::LEADHUB_API_KEY, Html::fromHtml('API klíč'))->setNullable();
+
+			$shopContainer->addInteger(
+				$this::LEADHUB_ORDER_PERIOD_MIN_DAYS,
+				Html::fromHtml('Minimální časový práh (dny)')
+			)
+				->setNullable()
+				->setHtmlAttribute('min', 0)
+				->setHtmlAttribute('placeholder', '14')
+				->setOption('description', 'Pokud je order period datum blíže než X dní, prodlouží se o Y dní');
+
+			$shopContainer->addInteger(
+				$this::LEADHUB_ORDER_PERIOD_ADD_DAYS,
+				Html::fromHtml('Prodloužení o (dny)')
+			)
+				->setNullable()
+				->setHtmlAttribute('min', 0)
+				->setHtmlAttribute('placeholder', '14')
+				->setOption('description', 'O kolik dní prodloužit order period datum');
 		}
 
 		$form->addSubmit('submit', 'Uložit');
@@ -707,7 +745,7 @@ class IntegrationPresenter extends BackendPresenter
 	}
 
 	/**
-	 * @param array{shops: array<string|int, array<string, string>>} $values
+	 * @param array{shops: array<string|int, array<string, string|int|null>>} $values
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	private function saveSettings(array $values): void
@@ -716,7 +754,7 @@ class IntegrationPresenter extends BackendPresenter
 			foreach ($shopValues as $key => $value) {
 				$this->settingsRepo->syncOne([
 					'name' => $key,
-					'value' => $value,
+					'value' => $value !== null ? (string) $value : null,
 					'shop' => $shop === 'default' ? null : $shop,
 				], ignore: false);
 			}
