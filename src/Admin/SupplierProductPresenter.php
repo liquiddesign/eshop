@@ -489,17 +489,18 @@ class SupplierProductPresenter extends BackendPresenter
 		};
 
 		$form->onSuccess[] = function (AdminForm $form): void {
+			/** @var \Eshop\DB\SupplierProduct $supplierProduct */
 			$supplierProduct = $this->getParameter('supplierProduct');
 			$product = $this->productRepository->one($form->getHttpData(Form::DATA_TEXT, 'productFullCode'));
 
 			$update = [
-				'productCode' => $product->code,
+//				'productCode' => $product->code,
 				'product' => $product,
 			];
 
-			if ($product->ean) {
-				$update['ean'] = $product->ean;
-			}
+//			if ($product->ean) {
+//				$update['ean'] = $product->ean;
+//			}
 
 			try {
 				$supplierProduct->update($update);
@@ -547,13 +548,13 @@ class SupplierProductPresenter extends BackendPresenter
 			$product = $this->productRepository->one($values['product']);
 
 			$update = [
-				'productCode' => $product->code,
+//				'productCode' => $product->code,
 				'product' => $product,
 			];
 
-			if ($product->ean) {
-				$update['ean'] = $product->ean;
-			}
+//			if ($product->ean) {
+//				$update['ean'] = $product->ean;
+//			}
 
 			try {
 				$supplierProduct->update($update);
