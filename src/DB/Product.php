@@ -256,6 +256,12 @@ class Product extends \StORM\Entity
 	public int $discountLevelPct = 0;
 
 	/**
+	 * Minimální doporučená cena (pro schválení nabídky managerem)
+	 * @column
+	 */
+	public float|null $minimalRecommendedPrice = null;
+
+	/**
 	 * Priorita
 	 * @column
 	 */
