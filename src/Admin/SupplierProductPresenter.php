@@ -504,6 +504,8 @@ class SupplierProductPresenter extends BackendPresenter
 			try {
 				$supplierProduct->update($update);
 			} catch (\PDOException $e) {
+				Debugger::barDump($e);
+
 				$this->flashMessage('Nelze napárovat! Pravděpodobně existuje párování cílového produktu na jiný produkt tohoto dodavatele!', 'error');
 				$this->redirect('this');
 			}
