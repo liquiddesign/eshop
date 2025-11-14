@@ -13,6 +13,7 @@ use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedType;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\FormValidators;
+use Eshop\Helpers\SqlHelper;
 use Forms\Form;
 use League\Csv\Writer;
 use Nette\Application\Application;
@@ -125,23 +126,36 @@ class RelatedPresenter extends BackendPresenter
 
 		$mutationSuffix = $this->relatedTypeRepository->getConnection()->getMutationSuffix();
 
-		$grid->addFilterTextInput('master', ['master.code', 'master.ean', "master.name$mutationSuffix"], null, $this->relatedType->getMasterInternalName() .
-			': EAN, kód, název', '');
-		$grid->addFilterTextInput('slave', ['slave.code', 'slave.ean', "slave.name$mutationSuffix"], null, $this->relatedType->getSlaveInternalName() .
-			': EAN, kód, název', '');
-		$grid->addFilterText(function (ICollection $source, $value): void {
-			$parsed = \explode(',', Strings::trim($value));
-			$expression = new Expression();
-
-			$i = 0;
-
-			foreach ($parsed as $value) {
-				$value = Strings::trim($value);
-
-				$expression->add('OR', "this.shops LIKE :shop__$i", ["shop__$i" => "%$value%"]);
+		$masterInput = $grid->addFilterText(function (ICollection $source, $value) use ($mutationSuffix): void {
+			if (Strings::length($value) === 0) {
+				return;
 			}
 
-			$source->where('this.shops LIKE :shops', ['shops' => Strings::trim($value)]);
+			$escapedValue = SqlHelper::escapeLikeWildcards($value);
+			$source->where(
+				"master.code LIKE :master ESCAPE '\\\\' OR master.ean LIKE :master ESCAPE '\\\\' OR master.name$mutationSuffix LIKE :master ESCAPE '\\\\'",
+				['master' => '%' . $escapedValue . '%']
+			);
+		}, '', 'master');
+		$masterInput->setHtmlAttribute('placeholder', $this->relatedType->getMasterInternalName() . ': EAN, kód, název');
+		$masterInput->setHtmlAttribute('class', 'form-control form-control-sm');
+
+		$slaveInput = $grid->addFilterText(function (ICollection $source, $value) use ($mutationSuffix): void {
+			if (Strings::length($value) === 0) {
+				return;
+			}
+
+			$escapedValue = SqlHelper::escapeLikeWildcards($value);
+			$source->where(
+				"slave.code LIKE :slave ESCAPE '\\\\' OR slave.ean LIKE :slave ESCAPE '\\\\' OR slave.name$mutationSuffix LIKE :slave ESCAPE '\\\\'",
+				['slave' => '%' . $escapedValue . '%']
+			);
+		}, '', 'slave');
+		$slaveInput->setHtmlAttribute('placeholder', $this->relatedType->getSlaveInternalName() . ': EAN, kód, název');
+		$slaveInput->setHtmlAttribute('class', 'form-control form-control-sm');
+		$grid->addFilterText(function (ICollection $source, $value): void {
+			$escapedValue = SqlHelper::escapeLikeWildcards(Strings::trim($value));
+			$source->where('this.shops LIKE :shops ESCAPE \'\\\'', ['shops' => "%$escapedValue%"]);
 		}, '', 'shops')->setHtmlAttribute('placeholder', 'Obchody')->setHtmlAttribute('class', 'form-control form-control-sm');
 
 		$grid->addFilterButtons();
@@ -339,7 +353,19 @@ class RelatedPresenter extends BackendPresenter
 			return false;
 		});
 
-		$grid->addFilterTextInput('search', ['name_cs', 'code'], 'Kód, název', 'Kód, název');
+		$searchInput = $grid->addFilterText(function (ICollection $source, $value): void {
+			if (Strings::length($value) === 0) {
+				return;
+			}
+
+			$escapedValue = SqlHelper::escapeLikeWildcards($value);
+			$source->where(
+				"name_cs LIKE :search ESCAPE '\\\\' OR code LIKE :search ESCAPE '\\\\'",
+				['search' => '%' . $escapedValue . '%']
+			);
+		}, '', 'search');
+		$searchInput->setHtmlAttribute('placeholder', 'Kód, název');
+		$searchInput->setHtmlAttribute('class', 'form-control form-control-sm');
 		$grid->addFilterButtons();
 
 		return $grid;

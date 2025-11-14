@@ -32,6 +32,7 @@ use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
+use Eshop\Helpers\SqlHelper;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
@@ -198,7 +199,19 @@ class PricelistsPresenter extends BackendPresenter
 			return false;
 		}, 'this.uuid');
 
-		$grid->addFilterTextInput('search', ['name', 'code'], null, 'Kód, název');
+		$searchInput = $grid->addFilterText(function (\StORM\ICollection $source, $value): void {
+			if (\Nette\Utils\Strings::length($value) === 0) {
+				return;
+			}
+
+			$escapedValue = SqlHelper::escapeLikeWildcards($value);
+			$source->where(
+				"name LIKE :search ESCAPE '\\\\' OR code LIKE :search ESCAPE '\\\\'",
+				['search' => '%' . $escapedValue . '%']
+			);
+		}, '', 'search');
+		$searchInput->setHtmlAttribute('placeholder', 'Kód, název');
+		$searchInput->setHtmlAttribute('class', 'form-control form-control-sm');
 		$grid->addFilterSelectInput(
 			'search2',
 			'fk_currency = :s',
@@ -377,7 +390,19 @@ class PricelistsPresenter extends BackendPresenter
 
 		$grid->addFilterButtons();
 
-		$grid->addFilterTextInput('code', ['products.code', 'products.ean', 'products.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
+		$codeInput = $grid->addFilterText(function (\StORM\ICollection $source, $value): void {
+			if (\Nette\Utils\Strings::length($value) === 0) {
+				return;
+			}
+
+			$escapedValue = SqlHelper::escapeLikeWildcards($value);
+			$source->where(
+				"products.code LIKE :code ESCAPE '\\\\' OR products.ean LIKE :code ESCAPE '\\\\' OR products.name_cs LIKE :code ESCAPE '\\\\'",
+				['code' => $escapedValue . '%']
+			);
+		}, '', 'code');
+		$codeInput->setHtmlAttribute('placeholder', 'Název, EAN, kód');
+		$codeInput->setHtmlAttribute('class', 'form-control form-control-sm');
 
 		$grid->addFilterInteger(function (ICollection $source, $value): void {
 			if ($value) {
@@ -605,7 +630,19 @@ class PricelistsPresenter extends BackendPresenter
 
 		$grid->addFilterButtons(['priceListItems', $this->getParameter('pricelist')]);
 
-		$grid->addFilterTextInput('code', ['products.code', 'products.ean', 'products.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
+		$codeInput = $grid->addFilterText(function (\StORM\ICollection $source, $value): void {
+			if (\Nette\Utils\Strings::length($value) === 0) {
+				return;
+			}
+
+			$escapedValue = SqlHelper::escapeLikeWildcards($value);
+			$source->where(
+				"products.code LIKE :code ESCAPE '\\\\' OR products.ean LIKE :code ESCAPE '\\\\' OR products.name_cs LIKE :code ESCAPE '\\\\'",
+				['code' => $escapedValue . '%']
+			);
+		}, '', 'code');
+		$codeInput->setHtmlAttribute('placeholder', 'Název, EAN, kód');
+		$codeInput->setHtmlAttribute('class', 'form-control form-control-sm');
 
 		$grid->addFilterInteger(function (ICollection $source, $value): void {
 			$source->where('this.price >= :price', ['price' => $value]);
@@ -700,7 +737,19 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addButtonSaveAll($this->shopperUser->getShowVat() ? ['priceVat', 'validFrom'] : ['validFrom'], $processTypes, null, false, null, null, false);
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 
-		$grid->addFilterTextInput('search', ['product.code', 'product.name_cs'], null, 'Kód, název');
+		$searchInput = $grid->addFilterText(function (\StORM\ICollection $source, $value): void {
+			if (\Nette\Utils\Strings::length($value) === 0) {
+				return;
+			}
+
+			$escapedValue = SqlHelper::escapeLikeWildcards($value);
+			$source->where(
+				"product.code LIKE :search ESCAPE '\\\\' OR product.name_cs LIKE :search ESCAPE '\\\\'",
+				['search' => '%' . $escapedValue . '%']
+			);
+		}, '', 'search');
+		$searchInput->setHtmlAttribute('placeholder', 'Kód, název');
+		$searchInput->setHtmlAttribute('class', 'form-control form-control-sm');
 		$grid->addFilterButtons(['quantityPrices', $this->getParameter('pricelist')]);
 
 		$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\DB\PickupPointRepository;
+use Eshop\Helpers\SqlHelper;
 use GuzzleHttp\Client;
 use Nette;
 use Nette\Utils\Strings;
@@ -58,7 +59,8 @@ class PickupPointList extends \Grid\Datalist
 
 		$this->addFilterExpression('name', function (Collection $source, $value): void {
 			$suffix = $source->getConnection()->getMutationSuffix();
-			$source->where("name$suffix LIKE :n", ['n' => "%$value%"]);
+			$escapedValue = SqlHelper::escapeLikeWildcards($value);
+			$source->where("name$suffix LIKE :n ESCAPE '\\\\'", ['n' => "%$escapedValue%"]);
 		}, '');
 
 		$this->addOrderExpression('distance', function (ICollection $source, $dir): void {

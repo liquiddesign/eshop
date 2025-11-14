@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
+use Eshop\Helpers\SqlHelper;
 use Eshop\ShopperUser;
 use Grid\Datalist;
 use Nette\Application\UI\Form;
@@ -25,7 +26,11 @@ class CustomerList extends Datalist
 		$this->setDefaultOrder('fullname');
 
 		$this->addFilterExpression('name', function (ICollection $collection, $value): void {
-			$collection->where('company LIKE :query OR fullname LIKE :query OR email LIKE :query', ['query' => '%' . $value . '%']);
+			$escapedValue = SqlHelper::escapeLikeWildcards($value);
+			$collection->where(
+				'company LIKE :query ESCAPE \'\\\' OR fullname LIKE :query ESCAPE \'\\\' OR email LIKE :query ESCAPE \'\\\'',
+				['query' => '%' . $escapedValue . '%']
+			);
 		}, '');
 
 		/** @var \Forms\Form $form */

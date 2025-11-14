@@ -6,6 +6,7 @@ namespace Eshop\Controls;
 
 use Carbon\Carbon;
 use Eshop\DB\WatcherRepository;
+use Eshop\Helpers\SqlHelper;
 use Eshop\ShopperUser;
 use Grid\Datalist;
 use Messages\DB\TemplateRepository;
@@ -36,7 +37,8 @@ class WatcherList extends Datalist
 		$langSuffix = $connection->getMutationSuffix();
 
 		$this->addFilterExpression('productName', function (ICollection $collection, $value) use ($langSuffix): void {
-			$collection->where("products.name$langSuffix LIKE :query", ['query' => '%' . $value . '%']);
+			$escapedValue = SqlHelper::escapeLikeWildcards($value);
+			$collection->where("products.name$langSuffix LIKE :query ESCAPE '\\\\'", ['query' => '%' . $escapedValue . '%']);
 		}, '');
 
 		/** @var \Forms\Form $filterForm */

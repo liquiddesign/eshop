@@ -5,6 +5,7 @@ namespace Eshop\Controls;
 use Eshop\Common\CartListEditMode;
 use Eshop\DB\CartItemRepository;
 use Eshop\DB\CartRepository;
+use Eshop\Helpers\SqlHelper;
 use Eshop\ShopperUser;
 use Nette\Utils\Arrays;
 use StORM\Collection;
@@ -34,8 +35,12 @@ class CartList extends \Grid\Datalist
 		$this->setDefaultOnPage(20);
 
 		$this->addFilterExpression('customer', function (ICollection $collection, $value): void {
+			$escapedValue = SqlHelper::escapeLikeWildcards($value);
 			$collection->join(['customerTable' => 'eshop_customer'], 'this.fk_customer = customerTable.uuid');
-			$collection->where('customerTable.fullname LIKE :query OR customerTable.email LIKE :query', ['query' => '%' . $value . '%']);
+			$collection->where(
+				'customerTable.fullname LIKE :query ESCAPE \'\\\' OR customerTable.email LIKE :query ESCAPE \'\\\'',
+				['query' => '%' . $escapedValue . '%']
+			);
 		}, '');
 
 		/** @var \Forms\Form $form */

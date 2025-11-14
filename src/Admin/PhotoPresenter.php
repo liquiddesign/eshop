@@ -11,6 +11,7 @@ use Eshop\DB\Photo;
 use Eshop\DB\PhotoRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\Helpers\SqlHelper;
 use Eshop\Services\Product\PhotoExporterService;
 use Eshop\Services\Product\PhotoImporterService;
 use Forms\Form;
@@ -98,7 +99,19 @@ class PhotoPresenter extends \Eshop\BackendPresenter
 
 		$grid->addBulkAction('export', 'export', 'Exportovat (CSV)');
 
-		$grid->addFilterTextInput('search', ['product.code', 'fileName'], null, 'Kód produktu, název');
+		$searchInput = $grid->addFilterText(function (\StORM\ICollection $source, $value): void {
+			if (\Nette\Utils\Strings::length($value) === 0) {
+				return;
+			}
+
+			$escapedValue = SqlHelper::escapeLikeWildcards($value);
+			$source->where(
+				"product.code LIKE :search ESCAPE '\\\\' OR fileName LIKE :search ESCAPE '\\\\'",
+				['search' => '%' . $escapedValue . '%']
+			);
+		}, '', 'search');
+		$searchInput->setHtmlAttribute('placeholder', 'Kód produktu, název');
+		$searchInput->setHtmlAttribute('class', 'form-control form-control-sm');
 
 		if ($shops = $this->shopsConfig->getAvailableShops()) {
 			$categoryTypes = [];

@@ -19,6 +19,7 @@ use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\SupplierRepository;
+use Eshop\Helpers\SqlHelper;
 use Eshop\Services\SettingsService;
 use Forms\Form;
 use Grid\Datagrid;
@@ -263,6 +264,7 @@ class AttributePresenter extends BackendPresenter
 				return;
 			}
 
+			$escapedValue = SqlHelper::escapeLikeWildcards($value);
 			$source->having('GROUP_CONCAT(DISTINCT
 				CONCAT(
 					sc.categoryNameL1,
@@ -271,7 +273,7 @@ class AttributePresenter extends BackendPresenter
 					IF(sc.categoryNameL3 IS NULL, "" ," - "),
 					COALESCE(sc.categoryNameL3, "")
 				) SEPARATOR ", "
-			) LIKE :supplierCategories', ['supplierCategories' => "%$value%"]);
+			) LIKE :supplierCategories ESCAPE \'\\\'', ['supplierCategories' => "%$escapedValue%"]);
 		}, '', 'supplierCategories')
 			->setHtmlAttribute('placeholder', 'Dodavatelské kategorie')
 			->setHtmlAttribute('class', 'form-control form-control-sm');

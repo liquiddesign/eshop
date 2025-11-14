@@ -7,6 +7,7 @@ namespace Eshop\Controls;
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
+use Eshop\Helpers\SqlHelper;
 use Eshop\ShopperUser;
 use Grid\Datalist;
 use Nette\Application\UI\Form;
@@ -42,7 +43,11 @@ class AccountList extends Datalist
 		$this->setDefaultOrder('tsRegistered', 'DESC');
 
 		$this->addFilterExpression('login', function (ICollection $collection, $value): void {
-			$collection->where('login LIKE :query OR this.fullname LIKE :query', ['query' => '%' . $value . '%']);
+			$escapedValue = SqlHelper::escapeLikeWildcards($value);
+			$collection->where(
+				'login LIKE :query ESCAPE \'\\\' OR this.fullname LIKE :query ESCAPE \'\\\'',
+				['query' => '%' . $escapedValue . '%']
+			);
 		}, '');
 
 		$this->addFilterExpression('customer', function (ICollection $collection, $customer): void {
