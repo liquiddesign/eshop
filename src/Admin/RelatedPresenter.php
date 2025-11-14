@@ -24,7 +24,6 @@ use Nette\Utils\FileSystem;
 use Nette\Utils\Html;
 use Nette\Utils\Strings;
 use StORM\DIConnection;
-use StORM\Expression;
 use StORM\ICollection;
 use Tracy\Debugger;
 use Tracy\ILogger;

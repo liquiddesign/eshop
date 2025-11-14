@@ -9,7 +9,6 @@ use Base\ShopsConfig;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Common\Helpers;
 use Eshop\DB\CategoryRepository;
-use Eshop\Helpers\SqlHelper;
 use Eshop\DB\DisplayAmountRepository;
 use Eshop\DB\InternalRibbon;
 use Eshop\DB\InternalRibbonRepository;
@@ -20,12 +19,12 @@ use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
+use Eshop\Helpers\SqlHelper;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\Collection;
 use StORM\Expression;
 use StORM\ICollection;
-use Tracy\Debugger;
 use Web\DB\SettingRepository;
 
 class ProductGridFiltersFactory
