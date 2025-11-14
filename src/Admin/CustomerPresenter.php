@@ -1857,6 +1857,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$bulkEdits[] = 'exclusivePaymentTypes';
 			$bulkEdits[] = 'parentCustomer';
 			$bulkEdits[] = 'internalRibbons';
+			$bulkEdits[] = 'orderPermission';
 
 			if (isset($this::CONFIGURATIONS['discountLevel']) && $this::CONFIGURATIONS['discountLevel']) {
 				$bulkEdits[] = 'discountLevelPct';
