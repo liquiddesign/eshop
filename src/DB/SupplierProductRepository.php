@@ -495,7 +495,9 @@ class SupplierProductRepository extends \StORM\Repository
 								// phpcs:ignore
 								$image = @Image::fromFile($sourceOrigin);
 								$image->resize(600, null);
-								$image->save($targetDetail, 100);
+								// Normalize .jfif extension to .jpg for Nette Image compatibility
+								$targetDetailNormalized = \preg_replace('/\.jfif$/i', '.jpg', $targetDetail);
+								$image->save($targetDetailNormalized, 100);
 							} catch (\Throwable $e) {
 								Debugger::log($e, ILogger::WARNING);
 							}
@@ -515,7 +517,9 @@ class SupplierProductRepository extends \StORM\Repository
 								// phpcs:ignore
 								$image = @Image::fromFile($sourceOrigin);
 								$image->resize(300, null);
-								$image->save($targetThumb, 100);
+								// Normalize .jfif extension to .jpg for Nette Image compatibility
+								$targetThumbNormalized = \preg_replace('/\.jfif$/i', '.jpg', $targetThumb);
+								$image->save($targetThumbNormalized, 100);
 							} catch (\Throwable $e) {
 								Debugger::log($e, ILogger::WARNING);
 							}
@@ -567,7 +571,9 @@ class SupplierProductRepository extends \StORM\Repository
 						// phpcs:ignore
 						$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
 						$image->resize(600, null);
-						$image->save($galleryImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName, 100);
+						// Normalize .jfif extension to .jpg for Nette Image compatibility
+						$detailFileName = \preg_replace('/\.jfif$/i', '.jpg', $supplierPhoto->fileName);
+						$image->save($galleryImageDirectory . $sep . 'detail' . $sep . $detailFileName, 100);
 					}
 
 					// Vytvořit/zkopírovat thumb (300px)
@@ -580,7 +586,9 @@ class SupplierProductRepository extends \StORM\Repository
 						// phpcs:ignore
 						$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
 						$image->resize(300, null);
-						$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName, 100);
+						// Normalize .jfif extension to .jpg for Nette Image compatibility
+						$thumbFileName = \preg_replace('/\.jfif$/i', '.jpg', $supplierPhoto->fileName);
+						$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $thumbFileName, 100);
 					}
 				} catch (\Throwable $e) {
 					if ($e instanceof InvalidArgumentException && \str_starts_with($e->getMessage(), 'Unsupported file extension')) {
