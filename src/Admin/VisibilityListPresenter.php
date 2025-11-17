@@ -155,7 +155,7 @@ class VisibilityListPresenter extends BackendPresenter
 		$grid->addButtonDeleteSelected(sourceIdName: 'this.uuid');
 
 		$mutationSuffix = $this->visibilityListItemRepository->getConnection()->getMutationSuffix();
-		$grid->addFilterTextInput('product', ["product.name$mutationSuffix", 'product.code', 'product.ean'], null, 'Produkt - Jméno, kód, ean');
+		$grid->addFilterTextInput('product', ["product.name$mutationSuffix", 'product.code', 'product.ean'], null, 'Produkt - Jméno, kód, ean', likeFormat: '%s');
 
 		if ($categories = $this->visibilityListRepository->getArrayForSelect()) {
 			$grid->addFilterDataSelect(function (Collection $source, $value): void {
