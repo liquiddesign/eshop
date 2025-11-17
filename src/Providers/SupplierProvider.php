@@ -125,6 +125,8 @@ abstract class SupplierProvider
 	{
 		$fileName = $imageUrl ? $this->getFileName($id, $imageUrl) : null;
 		$origin = null;
+		// Normalize .jfif extension to .jpg for Nette Image compatibility
+		$normalizedFileName = $fileName ? \preg_replace('/\.jfif$/i', '.jpg', $fileName) : null;
 
 		if ($fileName) {
 			$origin = $this->imageDirectory . \DIRECTORY_SEPARATOR . 'origin' . \DIRECTORY_SEPARATOR . $fileName;
@@ -157,11 +159,11 @@ abstract class SupplierProvider
 
 				$image = Image::fromFile($origin);
 				$image->resize(600, null);
-				$image->save($this->imageDirectory . \DIRECTORY_SEPARATOR . 'detail' . \DIRECTORY_SEPARATOR . $fileName);
+				$image->save($this->imageDirectory . \DIRECTORY_SEPARATOR . 'detail' . \DIRECTORY_SEPARATOR . $normalizedFileName);
 
 				$image = Image::fromFile($origin);
 				$image->resize(300, null);
-				$image->save($this->imageDirectory . \DIRECTORY_SEPARATOR . 'thumb' . \DIRECTORY_SEPARATOR . $fileName);
+				$image->save($this->imageDirectory . \DIRECTORY_SEPARATOR . 'thumb' . \DIRECTORY_SEPARATOR . $normalizedFileName);
 
 				$this->imageDownloadCount++;
 			} catch (\Exception $x) {
@@ -172,13 +174,13 @@ abstract class SupplierProvider
 				}
 
 				try {
-					FileSystem::delete($this->imageDirectory . \DIRECTORY_SEPARATOR . 'detail' . \DIRECTORY_SEPARATOR . $fileName);
+					FileSystem::delete($this->imageDirectory . \DIRECTORY_SEPARATOR . 'detail' . \DIRECTORY_SEPARATOR . $normalizedFileName);
 				} catch (\Throwable $e) {
 					Debugger::log($e, ILogger::WARNING);
 				}
 
 				try {
-					FileSystem::delete($this->imageDirectory . \DIRECTORY_SEPARATOR . 'thumb' . \DIRECTORY_SEPARATOR . $fileName);
+					FileSystem::delete($this->imageDirectory . \DIRECTORY_SEPARATOR . 'thumb' . \DIRECTORY_SEPARATOR . $normalizedFileName);
 				} catch (\Throwable $e) {
 					Debugger::log($e, ILogger::WARNING);
 				}
@@ -190,7 +192,7 @@ abstract class SupplierProvider
 			}
 		}
 
-		return $origin && \is_file($origin) ? $fileName : null;
+		return $origin && \is_file($origin) ? $normalizedFileName : null;
 	}
 
 	public function importDataItem(array $item): void
@@ -208,19 +210,22 @@ abstract class SupplierProvider
 			return;
 		}
 
-		if ((!isset($data[SupplierProduct::class]['ean']) || $data[SupplierProduct::class]['ean'] === false) || (\is_string($data[SupplierProduct::class]['ean']) &&
+		if (
+			(!isset($data[SupplierProduct::class]['ean']) || $data[SupplierProduct::class]['ean'] === false) || (\is_string($data[SupplierProduct::class]['ean']) &&
 				Strings::trim($data[SupplierProduct::class]['ean']) === '')
 		) {
 			$data[SupplierProduct::class]['ean'] = null;
 		}
 
-		if ((!isset($data[SupplierProduct::class]['code']) || $data[SupplierProduct::class]['code'] === false) || (\is_string($data[SupplierProduct::class]['code']) &&
+		if (
+			(!isset($data[SupplierProduct::class]['code']) || $data[SupplierProduct::class]['code'] === false) || (\is_string($data[SupplierProduct::class]['code']) &&
 				Strings::trim($data[SupplierProduct::class]['code']) === '')
 		) {
 			$data[SupplierProduct::class]['code'] = null;
 		}
 
-		if (($data[SupplierProduct::class]['code'] && isset($this->codes[$data[SupplierProduct::class]['code']])) ||
+		if (
+			($data[SupplierProduct::class]['code'] && isset($this->codes[$data[SupplierProduct::class]['code']])) ||
 			($data[SupplierProduct::class]['ean'] && isset($this->eans[$data[SupplierProduct::class]['ean']]))
 		) {
 			$this->skippedCount++;
