@@ -24,9 +24,13 @@ class SupplierProductPhotoPresenter extends \Eshop\BackendPresenter
 	{
 		$grid = $this->gridFactory->create(
 			$this->supplierProductPhotoRepository->many()
-				->join(['supplierProduct' => 'eshop_supplierproduct'], 'this.fk_supplierProduct = supplierProduct.uuid')
-				->join(['supplier' => 'eshop_supplier'], 'supplierProduct.fk_supplier = supplier.uuid')
+				// INNER JOIN na supplierProduct - každá fotka musí mít produkt
+				->join(['supplierProduct' => 'eshop_supplierproduct'], 'this.fk_supplierProduct = supplierProduct.uuid', [], 'INNER')
+				// INNER JOIN na supplier - každý produkt musí mít dodavatele
+				->join(['supplier' => 'eshop_supplier'], 'supplierProduct.fk_supplier = supplier.uuid', [], 'INNER')
+				// LEFT JOIN na product - ne všechny dodavatelské produkty jsou spárované s našimi produkty
 				->join(['product' => 'eshop_product'], 'supplierProduct.fk_product = product.uuid', [], 'LEFT')
+				// LEFT JOIN na photo - ne všechny fotky jsou v galerii
 				->join(['photo' => 'eshop_photo'], 'this.uuid = photo.fk_supplierProductPhoto', [], 'LEFT')
 				->select(['supplierProductCode' => 'supplierProduct.code'])
 				->select(['supplierProductName' => 'supplierProduct.name'])
@@ -81,7 +85,7 @@ class SupplierProductPhotoPresenter extends \Eshop\BackendPresenter
 		$grid->addColumnText('Vytvořeno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
 		// Filtry
-		$grid->addFilterTextInput('search', ['product.code', 'supplierProduct.code', 'supplierProduct.name'], null, 'Náš kód, kód dodavatele, název');
+		$grid->addFilterTextInput('search', ['product.code', 'supplierProduct.code', 'supplierProduct.name'], null, 'Náš kód, kód dodavatele, název', null, '%s');
 
 		$suppliers = $this->supplierRepository->many()
 			->orderBy(['name' => 'ASC'])
