@@ -85,7 +85,9 @@ class SupplierProductPhotoPresenter extends \Eshop\BackendPresenter
 		$grid->addColumnText('Vytvořeno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
 		// Filtry
-		$grid->addFilterTextInput('search', ['product.code', 'supplierProduct.code', 'supplierProduct.name'], null, 'Náš kód, kód dodavatele, název', null, '%s');
+		$grid->addFilterTextInput('productCode', ['product.code'], null, 'Náš kód', null, '%s');
+		$grid->addFilterTextInput('supplierProductCode', ['supplierProduct.code'], null, 'Kód dodavatele', null, '%s');
+		$grid->addFilterTextInput('supplierProductName', ['supplierProduct.name'], null, 'Název', null, '%s');
 
 		$suppliers = $this->supplierRepository->many()
 			->orderBy(['name' => 'ASC'])
