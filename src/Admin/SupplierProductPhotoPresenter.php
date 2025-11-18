@@ -26,11 +26,13 @@ class SupplierProductPhotoPresenter extends \Eshop\BackendPresenter
 			$this->supplierProductPhotoRepository->many()
 				->join(['supplierProduct' => 'eshop_supplierproduct'], 'this.fk_supplierProduct = supplierProduct.uuid')
 				->join(['supplier' => 'eshop_supplier'], 'supplierProduct.fk_supplier = supplier.uuid')
+				->join(['product' => 'eshop_product'], 'supplierProduct.fk_product = product.uuid', [], 'LEFT')
 				->join(['photo' => 'eshop_photo'], 'this.uuid = photo.fk_supplierProductPhoto', [], 'LEFT')
 				->select(['supplierProductCode' => 'supplierProduct.code'])
 				->select(['supplierProductName' => 'supplierProduct.name'])
 				->select(['supplierName' => 'supplier.name'])
 				->select(['supplierCode' => 'supplier.code'])
+				->select(['productCode' => 'product.code'])
 				->select(['photoFileName' => 'photo.fileName'])
 				->select(['photoUuid' => 'photo.uuid']),
 			20,
@@ -42,8 +44,13 @@ class SupplierProductPhotoPresenter extends \Eshop\BackendPresenter
 		// Thumbnail obrázku (origin - thumb a detail neexistují)
 		$grid->addColumnImage('fileName', self::SUPPLIER_IMAGES_DIR, 'origin', 'Obrázek');
 
+		// Náš kód produktu
+		$grid->addColumn('Náš kód', function (SupplierProductPhoto $photo): string {
+			return $photo->getValue('productCode') ?? '-';
+		}, '%s', 'product.code');
+
 		// Kód dodavatelského produktu
-		$grid->addColumn('Kód produktu', function (SupplierProductPhoto $photo): string {
+		$grid->addColumn('Kód dodavatele', function (SupplierProductPhoto $photo): string {
 			return $photo->getValue('supplierProductCode') ?? '-';
 		}, '%s', 'supplierProduct.code');
 
@@ -74,7 +81,7 @@ class SupplierProductPhotoPresenter extends \Eshop\BackendPresenter
 		$grid->addColumnText('Vytvořeno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
 		// Filtry
-		$grid->addFilterTextInput('search', ['supplierProduct.code', 'supplierProduct.name'], null, 'Kód produktu, název');
+		$grid->addFilterTextInput('search', ['product.code', 'supplierProduct.code', 'supplierProduct.name'], null, 'Náš kód, kód dodavatele, název');
 
 		$suppliers = $this->supplierRepository->many()
 			->orderBy(['name' => 'ASC'])
