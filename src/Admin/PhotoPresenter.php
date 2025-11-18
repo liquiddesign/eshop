@@ -99,19 +99,7 @@ class PhotoPresenter extends \Eshop\BackendPresenter
 
 		$grid->addBulkAction('export', 'export', 'Exportovat (CSV)');
 
-		$searchInput = $grid->addFilterText(function (\StORM\ICollection $source, $value): void {
-			if (\Nette\Utils\Strings::length($value) === 0) {
-				return;
-			}
-
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$source->where(
-				"product.code LIKE :search ESCAPE '\\\\' OR fileName LIKE :search ESCAPE '\\\\'",
-				['search' => '%' . $escapedValue . '%']
-			);
-		}, '', 'search');
-		$searchInput->setHtmlAttribute('placeholder', 'Kód produktu, název');
-		$searchInput->setHtmlAttribute('class', 'form-control form-control-sm');
+		$grid->addFilterTextInput('search', ['product.code', 'fileName'], null, 'Kód produktu, název', likeFormat: '%s');
 
 		if ($shops = $this->shopsConfig->getAvailableShops()) {
 			$categoryTypes = [];

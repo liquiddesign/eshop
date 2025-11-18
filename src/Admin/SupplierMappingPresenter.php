@@ -179,11 +179,10 @@ class SupplierMappingPresenter extends BackendPresenter
 				}
 
 				for ($i = 1; $i !== 7; $i++) {
-					$orExpression .= " OR categoryNameL$i LIKE :value ESCAPE '\\\\'";
+					$orExpression .= " OR categoryNameL$i LIKE :value";
 				}
 
-				$escapedValue = SqlHelper::escapeLikeWildcards($value);
-				$source->where($expression->getSql() . $orExpression, $expression->getVars() + ['value' => "%$escapedValue%"]);
+				$source->where($expression->getSql() . $orExpression, $expression->getVars() + ['value' => "$value"]);
 			}, '', 'category')->setHtmlAttribute('placeholder', 'Název')->setHtmlAttribute('class', 'form-control form-control-sm');
 
 			$grid->addFilterText(function (ICollection $source, $value): void {
@@ -191,11 +190,10 @@ class SupplierMappingPresenter extends BackendPresenter
 					return;
 				}
 
-				$escapedValue = SqlHelper::escapeLikeWildcards($value);
 				$source->where(
 					'EXISTS(SELECT * FROM eshop_category as ec INNER JOIN eshop_suppliercategory_nxn_eshop_category AS nxn ON
-					nxn.fk_category=ec.uuid AND nxn.fk_supplierCategory = this.uuid AND (ec.name_cs LIKE :category_name ESCAPE \'\\\' or ec.code LIKE :category_code ESCAPE \'\\\'))',
-					['category_name' => "%$escapedValue%", 'category_code' => "$escapedValue%",],
+					nxn.fk_category=ec.uuid AND nxn.fk_supplierCategory = this.uuid AND (ec.name_cs LIKE :category_name or ec.code LIKE :category_code))',
+					['category_name' => "$value", 'category_code' => "$value",],
 				);
 			}, '', 'categories')
 				->setHtmlAttribute('placeholder', 'Napárovaná kategorie (název, kód)')
@@ -212,16 +210,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			});
 
 			$property = 'producer';
-			$searchInput = $grid->addFilterText(function (ICollection $source, $value): void {
-				if (Strings::length($value) === 0) {
-					return;
-				}
-
-				$escapedValue = SqlHelper::escapeLikeWildcards($value);
-				$source->where("name LIKE :search ESCAPE '\\\\'", ['search' => '%' . $escapedValue . '%']);
-			}, '', 'search');
-			$searchInput->setHtmlAttribute('placeholder', 'Název');
-			$searchInput->setHtmlAttribute('class', 'form-control form-control-sm');
+			$grid->addFilterTextInput('search', ['name'], null, 'Název', likeFormat: '%s');
 		}
 
 		if ($this->tab === 'attribute') {
@@ -238,16 +227,7 @@ class SupplierMappingPresenter extends BackendPresenter
 
 			$property = 'attribute';
 			$grid->addColumnInputCheckbox('Aktivní', 'active', '', 'active');
-			$searchInput = $grid->addFilterText(function (ICollection $source, $value): void {
-				if (Strings::length($value) === 0) {
-					return;
-				}
-
-				$escapedValue = SqlHelper::escapeLikeWildcards($value);
-				$source->where("name LIKE :search ESCAPE '\\\\'", ['search' => '%' . $escapedValue . '%']);
-			}, '', 'search');
-			$searchInput->setHtmlAttribute('placeholder', 'Název');
-			$searchInput->setHtmlAttribute('class', 'form-control form-control-sm');
+			$grid->addFilterTextInput('search', ['name'], null, 'Název', likeFormat: '%s');
 
 			$grid->addFilterText(function (ICollection $source, $value): void {
 				if (!$value) {
@@ -263,7 +243,7 @@ class SupplierMappingPresenter extends BackendPresenter
 						IF(sc.categoryNameL3 IS NULL, "" ," - "),
 						COALESCE(sc.categoryNameL3, "")
 					) SEPARATOR ", "
-				) LIKE :supplierCategories ESCAPE \'\\\'', ['supplierCategories' => "%$escapedValue%"]);
+				) LIKE :supplierCategories', ['supplierCategories' => "$value"]);
 			}, '', 'supplierCategories')
 				->setHtmlAttribute('placeholder', 'Dodavatelské kategorie')
 				->setHtmlAttribute('class', 'form-control form-control-sm');
@@ -293,16 +273,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			});
 
 			$property = 'attributeValue';
-			$searchInput = $grid->addFilterText(function (ICollection $source, $value): void {
-				if (Strings::length($value) === 0) {
-					return;
-				}
-
-				$escapedValue = SqlHelper::escapeLikeWildcards($value);
-				$source->where("label LIKE :search ESCAPE '\\\\'", ['search' => '%' . $escapedValue . '%']);
-			}, '', 'search');
-			$searchInput->setHtmlAttribute('placeholder', 'Název');
-			$searchInput->setHtmlAttribute('class', 'form-control form-control-sm');
+			$grid->addFilterTextInput('search', ['label'], null, 'Název', likeFormat: '%s');
 		}
 
 		if ($this->tab === 'amount') {
@@ -315,16 +286,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			});
 
 			$property = 'displayAmount';
-			$searchInput = $grid->addFilterText(function (ICollection $source, $value): void {
-				if (Strings::length($value) === 0) {
-					return;
-				}
-
-				$escapedValue = SqlHelper::escapeLikeWildcards($value);
-				$source->where("name LIKE :search ESCAPE '\\\\'", ['search' => '%' . $escapedValue . '%']);
-			}, '', 'search');
-			$searchInput->setHtmlAttribute('placeholder', 'Název');
-			$searchInput->setHtmlAttribute('class', 'form-control form-control-sm');
+			$grid->addFilterTextInput('search', ['name'], null, 'Název', likeFormat: '%s');
 		}
 
 		$grid->addColumn('', function ($object, $datagrid) {
@@ -356,16 +318,7 @@ class SupplierMappingPresenter extends BackendPresenter
 		}
 
 		if ($this->tab === 'attributeValue' && $this->supplierAttributeRepository->many()->toArrayOf('name')) {
-			$supplierAttributeCodeInput = $grid->addFilterText(function (ICollection $source, $value): void {
-				if (Strings::length($value) === 0) {
-					return;
-				}
-
-				$escapedValue = SqlHelper::escapeLikeWildcards($value);
-				$source->where("supplierAttribute.code LIKE :supplierAttributeCode ESCAPE '\\\\'", ['supplierAttributeCode' => $escapedValue]);
-			}, '', 'supplierAttributeCode');
-			$supplierAttributeCodeInput->setHtmlAttribute('placeholder', 'Kód atributu');
-			$supplierAttributeCodeInput->setHtmlAttribute('class', 'form-control form-control-sm');
+			$grid->addFilterTextInput('supplierAttributeCode', ['supplierAttribute.code'], null, 'Kód atributu', null, '%s');
 		}
 
 		$grid->addFilterPolyfillDatetime(function (ICollection $source, $value): void {

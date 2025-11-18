@@ -73,77 +73,12 @@ class ProductGridFiltersFactory
 			$nameColumns[] = 'this.name' . $mutationSuffix;
 		}
 
-		$input = $grid->addFilterText(function (ICollection $source, $value) use ($columns): void {
-			if (Strings::length($value) === 0) {
-				return;
-			}
+		$grid->addFilterTextInput('full', $columns, null, 'Název, EAN, kód, P/N', '', likeFormat: '%s');
+		$grid->addFilterTextInput('code', ['this.code', 'this.externalCode', 'this.supplierCode',], null, 'Kód', '', likeFormat: '%s');
+		$grid->addFilterTextInput('ean', ['this.ean', 'this.secondaryEan',], null, 'EAN', '', likeFormat: '%s');
+		$grid->addFilterTextInput('mpn', ['this.mpn'], null, 'P/N', '', likeFormat: '%s');
+		$grid->addFilterTextInput('name', $nameColumns, null, 'Název', '', likeFormat: '%s');
 
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$query = '';
-
-			foreach ($columns as $column) {
-				$query .= " $column LIKE :full ESCAPE '\\\\' OR";
-			}
-
-			$query = Strings::substring($query, 0, -2);
-			$source->where($query, ['full' => '%' . $escapedValue . '%']);
-		}, '', 'full');
-		$input->setHtmlAttribute('placeholder', 'Název, EAN, kód, P/N');
-		$input->setHtmlAttribute('class', 'form-control form-control-sm');
-		$codeInput = $grid->addFilterText(function (ICollection $source, $value): void {
-			if (Strings::length($value) === 0) {
-				return;
-			}
-
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-
-			$source->where(
-				"this.code LIKE :code ESCAPE '\\\\' OR this.externalCode LIKE :code ESCAPE '\\\\' OR this.supplierCode LIKE :code ESCAPE '\\\\'",
-				['code' => '%' . $escapedValue . '%']
-			);
-		}, '', 'code');
-		$codeInput->setHtmlAttribute('placeholder', 'Kód');
-		$codeInput->setHtmlAttribute('class', 'form-control form-control-sm');
-		$eanInput = $grid->addFilterText(function (ICollection $source, $value): void {
-			if (Strings::length($value) === 0) {
-				return;
-			}
-
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$source->where(
-				"this.ean LIKE :ean ESCAPE '\\\\' OR this.secondaryEan LIKE :ean ESCAPE '\\\\'",
-				['ean' => '%' . $escapedValue . '%']
-			);
-		}, '', 'ean');
-		$eanInput->setHtmlAttribute('placeholder', 'EAN');
-		$eanInput->setHtmlAttribute('class', 'form-control form-control-sm');
-		$mpnInput = $grid->addFilterText(function (ICollection $source, $value): void {
-			if (Strings::length($value) === 0) {
-				return;
-			}
-
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$source->where("this.mpn LIKE :mpn ESCAPE '\\\\'", ['mpn' => '%' . $escapedValue . '%']);
-		}, '', 'mpn');
-		$mpnInput->setHtmlAttribute('placeholder', 'P/N');
-		$mpnInput->setHtmlAttribute('class', 'form-control form-control-sm');
-		$nameInput = $grid->addFilterText(function (ICollection $source, $value) use ($nameColumns): void {
-			if (Strings::length($value) === 0) {
-				return;
-			}
-
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$query = '';
-
-			foreach ($nameColumns as $column) {
-				$query .= " $column LIKE :name ESCAPE '\\\\' OR";
-			}
-
-			$query = Strings::substring($query, 0, -2);
-			$source->where($query, ['name' => '%' . $escapedValue . '%']);
-		}, '', 'name');
-		$nameInput->setHtmlAttribute('placeholder', 'Název');
-		$nameInput->setHtmlAttribute('class', 'form-control form-control-sm');
 
 		if ($shops = $this->shopsConfig->getAvailableShops()) {
 			$categoryTypes = [];

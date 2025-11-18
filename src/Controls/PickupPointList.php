@@ -59,8 +59,7 @@ class PickupPointList extends \Grid\Datalist
 
 		$this->addFilterExpression('name', function (Collection $source, $value): void {
 			$suffix = $source->getConnection()->getMutationSuffix();
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$source->where("name$suffix LIKE :n ESCAPE '\\\\'", ['n' => "%$escapedValue%"]);
+			$source->where("name$suffix LIKE :n", ['n' => "$value"]);
 		}, '');
 
 		$this->addOrderExpression('distance', function (ICollection $source, $dir): void {

@@ -910,8 +910,7 @@ class OrderGridFactory
 		$collator->asort($operationMessagesToFilter);
 
 		$grid->addFilterDataSelect(function (Collection $source, $value): void {
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$source->where('log.message LIKE :fod ESCAPE \'\\\'', ['fod' => "%$escapedValue%"]);
+			$source->where('log.message LIKE :fod', ['fod' => "$value"]);
 		}, '', 'filter_operations_detail', null, $operationMessagesToFilter)->setPrompt('- Detail operace -');
 	}
 }

@@ -37,8 +37,7 @@ class WatcherList extends Datalist
 		$langSuffix = $connection->getMutationSuffix();
 
 		$this->addFilterExpression('productName', function (ICollection $collection, $value) use ($langSuffix): void {
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$collection->where("products.name$langSuffix LIKE :query ESCAPE '\\\\'", ['query' => '%' . $escapedValue . '%']);
+			$collection->where("products.name$langSuffix LIKE :query", ['query' => $value]);
 		}, '');
 
 		/** @var \Forms\Form $filterForm */
