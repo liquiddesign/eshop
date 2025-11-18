@@ -43,11 +43,7 @@ class AccountList extends Datalist
 		$this->setDefaultOrder('tsRegistered', 'DESC');
 
 		$this->addFilterExpression('login', function (ICollection $collection, $value): void {
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$collection->where(
-				'login LIKE :query ESCAPE \'\\\' OR this.fullname LIKE :query ESCAPE \'\\\'',
-				['query' => '%' . $escapedValue . '%']
-			);
+			$collection->where('login LIKE :query OR this.fullname LIKE :query', ['query' => $value]);
 		}, '');
 
 		$this->addFilterExpression('customer', function (ICollection $collection, $customer): void {

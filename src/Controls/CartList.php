@@ -35,12 +35,8 @@ class CartList extends \Grid\Datalist
 		$this->setDefaultOnPage(20);
 
 		$this->addFilterExpression('customer', function (ICollection $collection, $value): void {
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
 			$collection->join(['customerTable' => 'eshop_customer'], 'this.fk_customer = customerTable.uuid');
-			$collection->where(
-				'customerTable.fullname LIKE :query ESCAPE \'\\\' OR customerTable.email LIKE :query ESCAPE \'\\\'',
-				['query' => '%' . $escapedValue . '%']
-			);
+			$collection->where('customerTable.fullname LIKE :query OR customerTable.email LIKE :query', ['query' => $value]);
 		}, '');
 
 		/** @var \Forms\Form $form */

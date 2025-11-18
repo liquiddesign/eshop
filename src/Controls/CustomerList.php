@@ -26,11 +26,7 @@ class CustomerList extends Datalist
 		$this->setDefaultOrder('fullname');
 
 		$this->addFilterExpression('name', function (ICollection $collection, $value): void {
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$collection->where(
-				'company LIKE :query ESCAPE \'\\\' OR fullname LIKE :query ESCAPE \'\\\' OR email LIKE :query ESCAPE \'\\\'',
-				['query' => '%' . $escapedValue . '%']
-			);
+			$collection->where('company LIKE :query OR fullname LIKE :query OR email LIKE :query', ['query' => $value]);
 		}, '');
 
 		/** @var \Forms\Form $form */

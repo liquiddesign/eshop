@@ -203,24 +203,12 @@ class CategoryPresenter extends BackendPresenter
 			$grid->getPresenter()->redirect('exportCategoryTree', [$grid->getSelectedIds()]);
 		};
 
-		$filterColumns = $this::CONFIGURATION['filterColumns'] ?? $this::FILTER_COLUMNS;
-		$searchInput = $grid->addFilterText(function (\StORM\ICollection $source, $value) use ($filterColumns): void {
-			if (Strings::length($value) === 0) {
-				return;
-			}
-
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$query = '';
-
-			foreach ($filterColumns as $column) {
-				$query .= " $column LIKE :search ESCAPE '\\\\' OR";
-			}
-
-			$query = Strings::substring($query, 0, -2);
-			$source->where($query, ['search' => '%' . $escapedValue . '%']);
-		}, '', 'search');
-		$searchInput->setHtmlAttribute('placeholder', \implode(', ', \array_keys($filterColumns)));
-		$searchInput->setHtmlAttribute('class', 'form-control form-control-sm');
+		$grid->addFilterTextInput(
+			'search',
+			$this::CONFIGURATION['filterColumns'] ?? $this::FILTER_COLUMNS,
+			null,
+			\implode(', ', \array_keys($this::CONFIGURATION['filterColumns'] ?? $this::FILTER_COLUMNS)),
+		);
 		$grid->addFilterButtons(['default', ['categoryGrid-order' => 'path-ASC']]);
 
 		$grid->onDelete[] = function (Category $object): void {
@@ -508,16 +496,7 @@ class CategoryPresenter extends BackendPresenter
 
 		$grid->addButtonBulkEdit('categoryTypeForm', ['hidden', 'priority'], 'categoryTypeGrid');
 
-		$searchInput = $grid->addFilterText(function (\StORM\ICollection $source, $value): void {
-			if (Strings::length($value) === 0) {
-				return;
-			}
-
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$source->where("name LIKE :search ESCAPE '\\\\'", ['search' => '%' . $escapedValue . '%']);
-		}, '', 'search');
-		$searchInput->setHtmlAttribute('placeholder', 'Název');
-		$searchInput->setHtmlAttribute('class', 'form-control form-control-sm');
+		$grid->addFilterTextInput('search', ['name'], null, 'Název', likeFormat: '%s');
 		$grid->addFilterButtons();
 
 		$grid->onDelete[] = function (CategoryType $object): void {
@@ -683,20 +662,7 @@ class CategoryPresenter extends BackendPresenter
 		});
 
 		$grid->addButtonBulkEdit('dynamicCategoryDetail', ['isOffline'], 'dynamicCategoriesGrid');
-
-		$searchInput = $grid->addFilterText(function (\StORM\ICollection $source, $value): void {
-			if (Strings::length($value) === 0) {
-				return;
-			}
-
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$source->where(
-				"title_cs LIKE :search ESCAPE '\\\\' OR url LIKE :search ESCAPE '\\\\'",
-				['search' => '%' . $escapedValue . '%']
-			);
-		}, '', 'search');
-		$searchInput->setHtmlAttribute('placeholder', 'Název, URL');
-		$searchInput->setHtmlAttribute('class', 'form-control form-control-sm');
+		$grid->addFilterTextInput('search', ['title_cs', 'url'], null, 'Název, URL', likeFormat: '%s');
 
 		$grid->addFilterButtons();
 

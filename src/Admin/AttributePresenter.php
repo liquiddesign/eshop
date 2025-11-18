@@ -264,7 +264,6 @@ class AttributePresenter extends BackendPresenter
 				return;
 			}
 
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
 			$source->having('GROUP_CONCAT(DISTINCT
 				CONCAT(
 					sc.categoryNameL1,
@@ -273,7 +272,7 @@ class AttributePresenter extends BackendPresenter
 					IF(sc.categoryNameL3 IS NULL, "" ," - "),
 					COALESCE(sc.categoryNameL3, "")
 				) SEPARATOR ", "
-			) LIKE :supplierCategories ESCAPE \'\\\'', ['supplierCategories' => "%$escapedValue%"]);
+			) LIKE :supplierCategories', ['supplierCategories' => "$value"]);
 		}, '', 'supplierCategories')
 			->setHtmlAttribute('placeholder', 'Dodavatelské kategorie')
 			->setHtmlAttribute('class', 'form-control form-control-sm');

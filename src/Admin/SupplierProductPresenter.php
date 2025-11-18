@@ -154,37 +154,14 @@ class SupplierProductPresenter extends BackendPresenter
 
 		$grid->addButtonSaveAll();
 
-		$searchInput = $grid->addFilterText(function (ICollection $source, $value): void {
-			if (Strings::length($value) === 0) {
-				return;
-			}
-
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$source->where(
-				"this.ean LIKE :search ESCAPE '\\\\' OR this.code LIKE :search ESCAPE '\\\\' OR this.mpn LIKE :search ESCAPE '\\\\'",
-				['search' => '%' . $escapedValue . '%']
-			);
-		}, '', 'search');
-		$searchInput->setHtmlAttribute('placeholder', 'EAN, kód, P/N');
-		$searchInput->setHtmlAttribute('class', 'form-control form-control-sm');
-
-		$qInput = $grid->addFilterText(function (ICollection $source, $value): void {
-			if (Strings::length($value) === 0) {
-				return;
-			}
-
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
-			$source->where("this.name LIKE :q ESCAPE '\\\\'", ['q' => '%' . $escapedValue . '%']);
-		}, '', 'q');
-		$qInput->setHtmlAttribute('placeholder', 'Název produktu');
-		$qInput->setHtmlAttribute('class', 'form-control form-control-sm');
+		$grid->addFilterTextInput('search', ['this.ean', 'this.code', 'this.mpn'], null, 'EAN, kód, P/N', likeFormat: '%s');
+		$grid->addFilterTextInput('q', ['this.name'], null, 'Název produktu', likeFormat: '%s');
 
 		$grid->addFilterText(function (ICollection $source, $value): void {
 			$expression = new Expression();
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
 
 			for ($i = 1; $i !== 5; $i++) {
-				$expression->add('OR', "category.categoryNameL$i LIKE %s ESCAPE '\\\\'", ['%' . $escapedValue . '%']);
+				$expression->add('OR', "category.categoryNameL$i LIKE %s", [$value]);
 			}
 
 			$source->where('(' . $expression->getSql() . ')', $expression->getVars());
@@ -196,8 +173,7 @@ class SupplierProductPresenter extends BackendPresenter
 
 			for ($i = 1; $i !== 5; $i++) {
 				if (isset($parsed[$i - 1])) {
-					$escapedPart = SqlHelper::escapeLikeWildcards(Strings::trim($parsed[$i - 1]));
-					$expression->add('AND', "category.categoryNameL$i LIKE %s ESCAPE '\\\\'", [$escapedPart . '%']);
+					$expression->add('AND', "category.categoryNameL$i LIKE %s", [Strings::trim($parsed[$i - 1])]);
 				}
 			}
 
@@ -219,9 +195,8 @@ class SupplierProductPresenter extends BackendPresenter
 				return;
 			}
 
-			$escapedValue = SqlHelper::escapeLikeWildcards($value);
 			$source->join(['pairedAtProduct' => 'eshop_product'], 'this.fk_product = pairedAtProduct.uuid');
-			$source->where('pairedAtProduct.code LIKE :pairedAt ESCAPE \'\\\'', ['pairedAt' => '%' . $escapedValue . '%']);
+			$source->where('pairedAtProduct.code LIKE :pairedAt', ['pairedAt' => $value]);
 		},
 			'',
 			'pairedAt')
