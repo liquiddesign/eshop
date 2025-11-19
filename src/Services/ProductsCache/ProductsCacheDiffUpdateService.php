@@ -50,6 +50,9 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 
 		try {
 			$this->getConnection()->exec('SET SESSION group_concat_max_len=4294967295');
+			$this->getConnection()->exec('SET SESSION wait_timeout=28800');
+			$this->getConnection()->exec('SET SESSION interactive_timeout=28800');
+			$this->getConnection()->exec('SET SESSION max_allowed_packet=1073741824');
 
 			$productsCacheTableName = $this::PRODUCTS_TABLE_NAME;
 			$categoriesTableName = $this::CATEGORIES_TABLE_NAME;
@@ -115,6 +118,9 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 
 		try {
 			$this->getConnection()->exec('SET SESSION group_concat_max_len=4294967295');
+			$this->getConnection()->exec('SET SESSION wait_timeout=28800');
+			$this->getConnection()->exec('SET SESSION interactive_timeout=28800');
+			$this->getConnection()->exec('SET SESSION max_allowed_packet=1073741824');
 
 			$visibilityPricesCacheTableName = $this::PRICES_TABLE_NAME;
 
@@ -262,13 +268,13 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				continue;
 			}
 
-			$this->getLink()->exec("ALTER TABLE $productsCacheTableName ADD primaryCategory_{$categoryType->id} INT UNSIGNED ALGORITHM=INSTANT;");
-			$this->getLink()->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_primaryCategory_{$categoryType->id} (primaryCategory_{$categoryType->id}) ALGORITHM=INPLACE;");
+			$this->getConnection()->exec("ALTER TABLE $productsCacheTableName ADD primaryCategory_{$categoryType->id} INT UNSIGNED ALGORITHM=INSTANT;");
+			$this->getConnection()->exec("ALTER TABLE `$productsCacheTableName` ADD INDEX idx_primaryCategory_{$categoryType->id} (primaryCategory_{$categoryType->id}) ALGORITHM=INPLACE;");
 		}
 
 		foreach ($currentColumns as $currentColumn) {
-			$this->getLink()->exec("ALTER TABLE `$productsCacheTableName` DROP INDEX `idx_$currentColumn` ALGORITHM=INSTANT;");
-			$this->getLink()->exec("ALTER TABLE `$productsCacheTableName` DROP COLUMN `$currentColumn` ALGORITHM=INPLACE;");
+			$this->getConnection()->exec("ALTER TABLE `$productsCacheTableName` DROP INDEX `idx_$currentColumn` ALGORITHM=INSTANT;");
+			$this->getConnection()->exec("ALTER TABLE `$productsCacheTableName` DROP COLUMN `$currentColumn` ALGORITHM=INPLACE;");
 		}
 
 		$mutationSuffix = $this->getMutationSuffix();
@@ -687,7 +693,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 
 		if ($existingPricesCacheTables && (!$customers && !$customerGroups && !$merchants)) {
 			foreach ($existingPricesCacheTables as $tableName) {
-				$this->getLink()->exec("DROP TABLE IF EXISTS `$tableName`;");
+				$this->getConnection()->exec("DROP TABLE IF EXISTS `$tableName`;");
 			}
 		}
 
