@@ -39,7 +39,11 @@ class UnsendOffer extends BaseAction
 		$state = $this->getOfferState->execute($offer);
 
 		// Can only unsend from Sent state
-		if ($state === OfferState::Sent) {
+		if ($state === OfferState::AwaitingManagerApproval ||
+			$state === OfferState::ManagerApproved ||
+			$state === OfferState::Sent ||
+			$state === OfferState::Approved
+		) {
 			return;
 		}
 
