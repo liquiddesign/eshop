@@ -11,7 +11,6 @@ use Eshop\DB\Photo;
 use Eshop\DB\PhotoRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
-use Eshop\Helpers\SqlHelper;
 use Eshop\Services\Product\PhotoExporterService;
 use Eshop\Services\Product\PhotoImporterService;
 use Forms\Form;

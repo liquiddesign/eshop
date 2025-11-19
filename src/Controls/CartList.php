@@ -5,7 +5,6 @@ namespace Eshop\Controls;
 use Eshop\Common\CartListEditMode;
 use Eshop\DB\CartItemRepository;
 use Eshop\DB\CartRepository;
-use Eshop\Helpers\SqlHelper;
 use Eshop\ShopperUser;
 use Nette\Utils\Arrays;
 use StORM\Collection;

@@ -12,7 +12,6 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\SupplierProduct;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
-use Eshop\Helpers\SqlHelper;
 use Eshop\Integration\Integrations;
 use Eshop\Providers\IProducerSyncSupplier;
 use Forms\Form;

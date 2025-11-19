@@ -19,7 +19,6 @@ use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\SupplierRepository;
-use Eshop\Helpers\SqlHelper;
 use Eshop\Services\SettingsService;
 use Forms\Form;
 use Grid\Datagrid;

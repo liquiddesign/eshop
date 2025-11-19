@@ -6,7 +6,6 @@ namespace Eshop\Controls;
 
 use Carbon\Carbon;
 use Eshop\DB\WatcherRepository;
-use Eshop\Helpers\SqlHelper;
 use Eshop\ShopperUser;
 use Grid\Datalist;
 use Messages\DB\TemplateRepository;

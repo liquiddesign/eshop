@@ -18,7 +18,6 @@ use Eshop\DB\OrderLogItem;
 use Eshop\DB\OrderLogItemRepository;
 use Eshop\DB\OrderRepository;
 use Eshop\DB\PaymentTypeRepository;
-use Eshop\Helpers\SqlHelper;
 use Eshop\Integration\Integrations;
 use Eshop\Integration\Zbozi;
 use Eshop\Services\DPD;

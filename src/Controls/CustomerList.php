@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\Helpers\SqlHelper;
 use Eshop\ShopperUser;
 use Grid\Datalist;
 use Nette\Application\UI\Form;

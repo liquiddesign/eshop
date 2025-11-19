@@ -234,7 +234,6 @@ class SupplierMappingPresenter extends BackendPresenter
 					return;
 				}
 
-				$escapedValue = SqlHelper::escapeLikeWildcards($value);
 				$source->having('GROUP_CONCAT(
 					CONCAT(
 						sc.categoryNameL1,

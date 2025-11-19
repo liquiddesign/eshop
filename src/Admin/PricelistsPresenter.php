@@ -32,7 +32,6 @@ use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
-use Eshop\Helpers\SqlHelper;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;

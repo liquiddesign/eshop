@@ -13,7 +13,6 @@ use Eshop\DB\CategoryRepository;
 use Eshop\DB\CategoryType;
 use Eshop\DB\CategoryTypeRepository;
 use Eshop\DB\ProducerRepository;
-use Eshop\Helpers\SqlHelper;
 use Eshop\ShopperUser;
 use Forms\Form;
 use League\Csv\Writer;

@@ -7,7 +7,6 @@ namespace Eshop\Controls;
 use Eshop\DB\CatalogPermissionRepository;
 use Eshop\DB\CustomerRepository;
 use Eshop\DB\Merchant;
-use Eshop\Helpers\SqlHelper;
 use Eshop\ShopperUser;
 use Grid\Datalist;
 use Nette\Application\UI\Form;

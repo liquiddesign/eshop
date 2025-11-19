@@ -19,7 +19,6 @@ use Eshop\DB\RibbonRepository;
 use Eshop\DB\SupplierCategoryRepository;
 use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
-use Eshop\Helpers\SqlHelper;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\Collection;
@@ -78,7 +77,6 @@ class ProductGridFiltersFactory
 		$grid->addFilterTextInput('ean', ['this.ean', 'this.secondaryEan',], null, 'EAN', '', likeFormat: '%s');
 		$grid->addFilterTextInput('mpn', ['this.mpn'], null, 'P/N', '', likeFormat: '%s');
 		$grid->addFilterTextInput('name', $nameColumns, null, 'Název', '', likeFormat: '%s');
-
 
 		if ($shops = $this->shopsConfig->getAvailableShops()) {
 			$categoryTypes = [];

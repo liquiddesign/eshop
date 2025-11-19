@@ -13,7 +13,6 @@ use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedType;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\FormValidators;
-use Eshop\Helpers\SqlHelper;
 use Forms\Form;
 use League\Csv\Writer;
 use Nette\Application\Application;

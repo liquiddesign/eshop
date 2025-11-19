@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\DB\PickupPointRepository;
-use Eshop\Helpers\SqlHelper;
 use GuzzleHttp\Client;
 use Nette;
 use Nette\Utils\Strings;
