@@ -87,14 +87,7 @@ abstract class CheckoutPresenter extends \Eshop\Front\FrontendPresenter
 
 			$emailVariables = $this->orderRepository->getEmailVariables($order);
 
-			$this->templateRepository->sendMessage(
-				'order.created',
-				$emailVariables,
-				$order->purchase->email,
-				$order->purchase->ccEmails,
-				$order->purchase->merchant?->email,
-				shops: $order->shop
-			);
+			$this->templateRepository->sendMessage('order.created', $emailVariables, $order->purchase->email, $order->purchase->ccEmails, shops: $order->shop);
 
 			if ($order->purchase->customer) {
 				$merchants = $this->merchantRepository->getMerchantsByCustomer($order->purchase->customer);
