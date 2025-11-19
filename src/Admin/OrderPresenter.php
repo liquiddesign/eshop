@@ -2713,7 +2713,7 @@ class OrderPresenter extends BackendPresenter
 					$emailVariables,
 					$order->purchase->email,
 					null,
-					null,
+					$order->purchase->merchant?->email,
 					$order->purchase->getCustomerPrefferedMutation(),
 					shops: $order->shop,
 				);
