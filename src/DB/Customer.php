@@ -15,7 +15,6 @@ use StORM\RelationCollection;
 /**
  * Zákazník
  * @table
- * @index{"name":"customer_unique_emailshop","unique":true,"columns":["email", "fk_shop"]}
  * @method array getData()
  * @method \StORM\RelationCollection<\Eshop\DB\VisibilityList> getVisibilityLists()
  * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getPricelists()
