@@ -1398,11 +1398,17 @@ class CheckoutManager
 			$showPrice = $this->shopperUser->getMainPriceType();
 
 			try {
-				$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase(false, $cartId)->getValue('deliveryType')]->getValue('price');
+				$deliveryType = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase(false, $cartId)->getValue('deliveryType')] ?? null;
+
+				if (!$deliveryType) {
+					return 0.0;
+				}
+
+				$price = $deliveryType->getValue('price');
 
 				return isset($price) ? (float) $price * $deliveryPackagesNo : 0.0;
-			} catch (NotFoundException $e) {
-				$this->getPurchase()->update(['deliveryType' => null]);
+			} catch (\Exception $e) {
+				$this->getPurchase()?->update(['deliveryType' => null]);
 
 				return 0.0;
 			}
@@ -1418,11 +1424,17 @@ class CheckoutManager
 			$showPrice = $this->shopperUser->getMainPriceType();
 
 			try {
-				$price = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase(false, $cartId)->getValue('deliveryType')]->getValue('priceVat');
+				$deliveryType = $this->getDeliveryTypes($showPrice === 'withVat')[$this->getPurchase(false, $cartId)->getValue('deliveryType')] ?? null;
+
+				if (!$deliveryType) {
+					return 0.0;
+				}
+
+				$price = $deliveryType->getValue('priceVat');
 
 				return isset($price) ? (float) $price * $deliveryPackagesNo : 0.0;
-			} catch (NotFoundException $e) {
-				$this->getPurchase()->update(['deliveryType' => null]);
+			} catch (\Exception $e) {
+				$this->getPurchase()?->update(['deliveryType' => null]);
 
 				return 0.0;
 			}
