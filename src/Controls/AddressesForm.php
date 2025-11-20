@@ -25,6 +25,7 @@ class AddressesForm extends Form
 	) {
 		parent::__construct();
 
+		unset($translator);
 		$customer = $shopperUser->getCustomer();
 		$selectedCustomer = $this->shopperUser->getSessionSelectedCustomer();
 
