@@ -13,6 +13,7 @@ use Eshop\DB\Offer;
 use Eshop\DB\OfferState;
 use Eshop\Integration\FreeloNotificationService;
 use Messages\DB\TemplateRepository;
+use Nette\Application\LinkGenerator;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
@@ -23,6 +24,7 @@ class RequestManagerApproval extends BaseAction
 		private readonly MerchantRepository $merchantRepository,
 		private readonly TemplateRepository $templateRepository,
 		private readonly FreeloNotificationService $freeloNotificationService,
+		private readonly LinkGenerator $linkGenerator,
 	) {
 	}
 
@@ -115,8 +117,7 @@ class RequestManagerApproval extends BaseAction
 			'managerName' => $manager->fullname,
 			'merchantName' => $merchant->fullname ?? 'Neznámý obchodník',
 			'customerName' => $customer->company ?? $customer->fullname ?? 'Neznámý zákazník',
-			// TODO: Add proper link to offer in admin
-			'offerLink' => '',
+			'offerLink' => $this->linkGenerator->link('Eshop:AssistantInterface:offer', ['code' => $offer->code]),
 			'createdDate' => Carbon::parse($offer->createdTs)->format('d.m.Y H:i'),
 		];
 	}
