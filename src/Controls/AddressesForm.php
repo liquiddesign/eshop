@@ -38,16 +38,15 @@ class AddressesForm extends Form
 		$this->addText('ccEmails', 'AddressesForm.ccEmails')->setHtmlAttribute('autocomplete', 'off');
 		$this->addText('fullname', 'AddressesForm.fullname')->setRequired()->setMaxLength(32)->setHtmlAttribute('autocomplete', 'name');
 		$this->addText('phone', 'AddressesForm.phone')
-			->setHtmlAttribute('autocomplete', 'tel')
-			->addRule(self::PATTERN, $translator->translate('AddressesForm.phonePattern', 'Pouze čísla a znak "+" na začátku!'), '^\+?[0-9]+$');
+			->setHtmlAttribute('autocomplete', 'tel');
 
 		// address bill
 		$billAddressBox = $this->addContainer('billAddress');
 		$billAddressBox->addText('street', 'AddressesForm.bill_street')->setRequired()->setHtmlAttribute('autocomplete', 'street-address');
 		$billAddressBox->addText('city', 'AddressesForm.bill_city')->setRequired()->setHtmlAttribute('autocomplete', 'address-level2');
 		$billAddressBox->addText('zipcode', 'AddressesForm.bill_zipcode')->setRequired()
-			->setHtmlAttribute('autocomplete', 'postal-code')
-			->addRule(self::PATTERN, $translator->translate('AddressesForm.zipBadFormat', 'Neplatný formát! Povolené jsou pouze čísla a maximálně 1 mezera.'), '^\d+ ?\d+$');
+			->setHtmlAttribute('autocomplete', 'postal-code');
+//			->addRule(self::PATTERN, $translator->translate('AddressesForm.zipBadFormat', 'Neplatný formát! Povolené jsou pouze čísla a maximálně 1 mezera.'), '^\d+ ?\d+$');
 		$billAddressBox->addText('state', 'AddressesForm.bill_state')->setHtmlAttribute('autocomplete', 'address-level1');
 
 		$otherAddress = $this->addCheckbox('otherAddress', 'AddressesForm.otherAddress')->setDefaultValue((bool) $this->shopperUser->getCheckoutManager()->getPurchase()->deliveryAddress);
@@ -79,8 +78,8 @@ class AddressesForm extends Form
 			->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
 		$deliveryAddressBox->addText('zipcode', 'AddressesForm.delivery_zipcode')
 			->setHtmlAttribute('autocomplete', 'postal-code')
-			->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired()
-			->addRule(self::PATTERN, $translator->translate('AddressesForm.zipBadFormat', 'Neplatný formát! Povolené jsou pouze čísla a maximálně 1 mezera.'), '^\d+ ?\d+$');
+			->addConditionOn($otherAddress, $this::EQUAL, true)->setRequired();
+//			->addRule(self::PATTERN, $translator->translate('AddressesForm.zipBadFormat', 'Neplatný formát! Povolené jsou pouze čísla a maximálně 1 mezera.'), '^\d+ ?\d+$');
 		$deliveryAddressBox->addText('state', 'AddressesForm.delivery_state')->setHtmlAttribute('autocomplete', 'address-level1');
 
 		// company
