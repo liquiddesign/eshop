@@ -1993,10 +1993,28 @@ class CheckoutManager
 				/** @var \Eshop\DB\CartItem $cartItem */
 				[$cartItem, $amount] = $cartItemToParse;
 
+				// If the amount in package is different from cart item amount, create a duplicate cart item
+				// This ensures each PackageItem has its own CartItem with matching amount
+				if ($amount !== $cartItem->amount) {
+					// Create a duplicate cart item with the amount matching the package
+					$duplicateCartItemData = $cartItem->toArray();
+					unset($duplicateCartItemData['uuid']); // Remove UUID so a new one is generated
+					$duplicateCartItemData['amount'] = $amount; // Set amount to match package
+
+					/** @var \Eshop\DB\CartItem $duplicatedCartItem */
+					$duplicatedCartItem = $this->cartItemRepository->createOne($duplicateCartItemData);
+
+					// Use the duplicated cart item for the package
+					$cartItemForPackage = $duplicatedCartItem;
+				} else {
+					// Use the original cart item if amounts match
+					$cartItemForPackage = $cartItem;
+				}
+
 				/* Create package item for top-level cart items */
 				$packageItem = $this->packageItemRepository->createOne([
 					'package' => $package->getPK(),
-					'cartItem' => $cartItem,
+					'cartItem' => $cartItemForPackage,
 					'amount' => $amount,
 				]);
 
@@ -2004,10 +2022,37 @@ class CheckoutManager
 				$upsells = $purchase->getItems()->where('this.fk_upsell', $cartItem->getPK())->toArray();
 
 				foreach ($upsells as $upsell) {
+					// Calculate proportional amount for upsell based on the split
+					// If main item is split, upsell amount should be proportionally split
+					$upsellAmount = $upsell->amount;
+
+					if ($amount !== $cartItem->amount) {
+						// Calculate proportional amount: (upsell total / main item total) * amount in this package
+						$upsellAmount = (int) \round(($upsell->amount / $cartItem->amount) * $amount);
+
+						// Ensure at least 1 if there was originally an upsell
+						if ($upsellAmount === 0 && $upsell->amount > 0) {
+							$upsellAmount = 1;
+						}
+					}
+
+					// If upsell amount differs from original, create duplicate cart item for upsell
+					if ($upsellAmount !== $upsell->amount) {
+						$duplicateUpsellData = $upsell->toArray();
+						unset($duplicateUpsellData['uuid']);
+						$duplicateUpsellData['amount'] = $upsellAmount;
+
+						/** @var \Eshop\DB\CartItem $duplicatedUpsell */
+						$duplicatedUpsell = $this->cartItemRepository->createOne($duplicateUpsellData);
+						$upsellForPackage = $duplicatedUpsell;
+					} else {
+						$upsellForPackage = $upsell;
+					}
+
 					$this->packageItemRepository->createOne([
 						'package' => $package->getPK(),
-						'cartItem' => $upsell->getPK(),
-						'amount' => $upsell->amount,
+						'cartItem' => $upsellForPackage->getPK(),
+						'amount' => $upsellAmount,
 						'upsell' => $packageItem->getPK(),
 					]);
 				}
@@ -2076,7 +2121,7 @@ class CheckoutManager
 
 					/* Create related cart items with price computed to match unit price of top-level cart item */
 					$relatedCartItems[] = [
-						'cartItem' => $cartItem->getPK(),
+						'cartItem' => $cartItemForPackage->getPK(), // Use the cart item for this package
 						'relatedType' => $setRelationType->getPK(),
 						'product' => $product->getPK(),
 						'relatedTypeCode' => $setRelationType->code,
@@ -2089,7 +2134,7 @@ class CheckoutManager
 						'productWidth' => $product->width,
 						'productLength' => $product->length,
 						'productDepth' => $product->depth,
-						'amount' => $relatedProduct->amount * $cartItem->amount,
+						'amount' => $relatedProduct->amount * $amount, // Use amount in this package, not total cart amount
 						'price' => $product->getPrice() * $setTotalPriceModifier,
 						'priceVat' => $product->getPriceVat() * $setTotalPriceVatModifier,
 						'priceBefore' => $product->getPriceBefore() ?: ($slaveProductUsed ? $product->getPrice() : null),
@@ -2098,7 +2143,7 @@ class CheckoutManager
 					];
 				}
 
-				$this->relatedCartItemRepository->many()->where('fk_cartItem', $cartItem->getPK())->delete();
+				$this->relatedCartItemRepository->many()->where('fk_cartItem', $cartItemForPackage->getPK())->delete(); // Delete related items for the package cart item
 
 				/** @var array<\Eshop\DB\RelatedCartItem> $relatedCartItems */
 				$relatedCartItems = $this->relatedCartItemRepository->createMany($relatedCartItems)->toArray();
