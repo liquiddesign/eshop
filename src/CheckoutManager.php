@@ -65,7 +65,6 @@ use Security\DB\AccountRepository;
 use StORM\Collection;
 use StORM\Connection;
 use StORM\DIConnection;
-use StORM\Exception\NotFoundException;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
