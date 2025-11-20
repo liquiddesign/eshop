@@ -115,9 +115,6 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 
 		try {
 			$this->getConnection()->exec('SET SESSION group_concat_max_len=4294967295');
-			$this->getConnection()->exec('SET SESSION wait_timeout=28800');
-			$this->getConnection()->exec('SET SESSION interactive_timeout=28800');
-			$this->getConnection()->exec('SET SESSION max_allowed_packet=1073741824');
 
 			$visibilityPricesCacheTableName = $this::PRICES_TABLE_NAME;
 
