@@ -14,6 +14,7 @@ use Eshop\DB\OfferState;
 use Eshop\Integration\FreeloNotificationService;
 use Messages\DB\TemplateRepository;
 use Nette\Application\LinkGenerator;
+use Nette\Mail\Mailer;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
@@ -23,6 +24,7 @@ class RequestManagerApproval extends BaseAction
 		private readonly GetOfferState $getOfferState,
 		private readonly MerchantRepository $merchantRepository,
 		private readonly TemplateRepository $templateRepository,
+		private readonly Mailer $mailer,
 		private readonly FreeloNotificationService $freeloNotificationService,
 		private readonly LinkGenerator $linkGenerator,
 	) {
@@ -75,11 +77,24 @@ class RequestManagerApproval extends BaseAction
 			}
 
 			try {
-				$this->templateRepository->sendMessage(
+				$message = $this->templateRepository->createMessage(
 					'offers.manager_approval_requested',
 					$this->getEmailVariables($offer, $manager),
 					$manager->email
 				);
+
+				// Add reply-to header to offer author (merchant)
+				$merchant = $offer->order->purchase->merchant;
+
+				if ($message !== null && $merchant !== null && $merchant->email !== '') {
+					$message->addReplyTo($merchant->email, $merchant->fullname);
+				}
+
+				// Send the message
+				if ($message !== null) {
+					$this->mailer->send($message);
+				}
+
 				$notifiedCount++;
 			} catch (\Throwable $e) {
 				// Log error but don't fail the operation
