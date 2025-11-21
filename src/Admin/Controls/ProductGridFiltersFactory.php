@@ -72,11 +72,11 @@ class ProductGridFiltersFactory
 			$nameColumns[] = 'this.name' . $mutationSuffix;
 		}
 
-		$grid->addFilterTextInput('full', $columns, null, 'Název, EAN, kód, P/N', '');
-		$grid->addFilterTextInput('code', ['this.code', 'this.externalCode', 'this.supplierCode',], null, 'Kód', '');
-		$grid->addFilterTextInput('ean', ['this.ean', 'this.secondaryEan',], null, 'EAN', '');
-		$grid->addFilterTextInput('mpn', ['this.mpn'], null, 'P/N', '');
-		$grid->addFilterTextInput('name', $nameColumns, null, 'Název', '');
+		$grid->addFilterTextInput('full', $columns, null, 'Název, EAN, kód, P/N', '', likeFormat: '%s');
+		$grid->addFilterTextInput('code', ['this.code', 'this.externalCode', 'this.supplierCode',], null, 'Kód', '', likeFormat: '%s');
+		$grid->addFilterTextInput('ean', ['this.ean', 'this.secondaryEan',], null, 'EAN', '', likeFormat: '%s');
+		$grid->addFilterTextInput('mpn', ['this.mpn'], null, 'P/N', '', likeFormat: '%s');
+		$grid->addFilterTextInput('name', $nameColumns, null, 'Název', '', likeFormat: '%s');
 
 		if ($shops = $this->shopsConfig->getAvailableShops()) {
 			$categoryTypes = [];

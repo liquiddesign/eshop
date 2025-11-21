@@ -20,19 +20,26 @@ class SupplierProductPhotoPresenter extends \Eshop\BackendPresenter
 	#[Inject]
 	public SupplierRepository $supplierRepository;
 
+	#[Inject]
+	public \Eshop\DB\PhotoRepository $photoRepository;
+
 	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create(
 			$this->supplierProductPhotoRepository->many()
-				->join(['supplierProduct' => 'eshop_supplierproduct'], 'this.fk_supplierProduct = supplierProduct.uuid')
-				->join(['supplier' => 'eshop_supplier'], 'supplierProduct.fk_supplier = supplier.uuid')
-				->join(['photo' => 'eshop_photo'], 'this.uuid = photo.fk_supplierProductPhoto', [], 'LEFT')
+				// INNER JOIN na supplierProduct - každá fotka musí mít produkt
+				->join(['supplierProduct' => 'eshop_supplierproduct'], 'this.fk_supplierProduct = supplierProduct.uuid', [], 'INNER')
+				// INNER JOIN na supplier - každý produkt musí mít dodavatele
+				->join(['supplier' => 'eshop_supplier'], 'supplierProduct.fk_supplier = supplier.uuid', [], 'INNER')
+				// LEFT JOIN na product - ne všechny dodavatelské produkty jsou spárované s našimi produkty
+				->join(['product' => 'eshop_product'], 'supplierProduct.fk_product = product.uuid', [], 'LEFT')
+				// POZN: photo JOIN odstraněn z hlavního dotazu kvůli výkonu (způsoboval full table scan 187K řádků)
+				// Photo data se načítají lazy v callbacku sloupce "V galerii"
 				->select(['supplierProductCode' => 'supplierProduct.code'])
 				->select(['supplierProductName' => 'supplierProduct.name'])
 				->select(['supplierName' => 'supplier.name'])
 				->select(['supplierCode' => 'supplier.code'])
-				->select(['photoFileName' => 'photo.fileName'])
-				->select(['photoUuid' => 'photo.uuid']),
+				->select(['productCode' => 'product.code']),
 			20,
 			'createdTs',
 			'DESC',
@@ -42,8 +49,13 @@ class SupplierProductPhotoPresenter extends \Eshop\BackendPresenter
 		// Thumbnail obrázku (origin - thumb a detail neexistují)
 		$grid->addColumnImage('fileName', self::SUPPLIER_IMAGES_DIR, 'origin', 'Obrázek');
 
+		// Náš kód produktu
+		$grid->addColumn('Náš kód', function (SupplierProductPhoto $photo): string {
+			return $photo->getValue('productCode') ?? '-';
+		}, '%s', 'product.code');
+
 		// Kód dodavatelského produktu
-		$grid->addColumn('Kód produktu', function (SupplierProductPhoto $photo): string {
+		$grid->addColumn('Kód dodavatele', function (SupplierProductPhoto $photo): string {
 			return $photo->getValue('supplierProductCode') ?? '-';
 		}, '%s', 'supplierProduct.code');
 
@@ -63,18 +75,23 @@ class SupplierProductPhotoPresenter extends \Eshop\BackendPresenter
 		// Priorita
 		$grid->addColumnText('Priorita', 'priority', '%s', 'priority');
 
-		// Propojení s galerií
-		$grid->addColumn('V galerii', function (SupplierProductPhoto $photo): string {
-			$photoFileName = $photo->getValue('photoFileName');
+		// Propojení s galerií (lazy loading - načítá se až při zobrazení)
+		$grid->addColumn('V galerii', function (SupplierProductPhoto $supplierPhoto): string {
+			// Načíst photo z databáze pro tento konkrétní supplierProductPhoto
+			$photo = $this->photoRepository->many()
+				->where('fk_supplierProductPhoto', $supplierPhoto->getPK())
+				->first();
 
-			return $photoFileName !== null ? '✓ ' . $photoFileName : '-';
-		}, '%s', 'photo.fileName');
+			return $photo !== null ? '✓ ' . ($photo->fileName ?? '-') : '-';
+		}, '%s');
 
 		// Datum vytvoření
 		$grid->addColumnText('Vytvořeno', "createdTs|date:'d.m.Y G:i'", '%s', 'createdTs', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
 
 		// Filtry
-		$grid->addFilterTextInput('search', ['supplierProduct.code', 'supplierProduct.name'], null, 'Kód produktu, název');
+		$grid->addFilterTextInput('productCode', ['product.code'], null, 'Náš kód', null, '%s');
+		$grid->addFilterTextInput('supplierProductCode', ['supplierProduct.code'], null, 'Kód dodavatele', null, '%s');
+		$grid->addFilterTextInput('supplierProductName', ['supplierProduct.name'], null, 'Název', null, '%s');
 
 		$suppliers = $this->supplierRepository->many()
 			->orderBy(['name' => 'ASC'])
@@ -84,11 +101,12 @@ class SupplierProductPhotoPresenter extends \Eshop\BackendPresenter
 			$source->where('supplier.uuid', $value);
 		}, '', 'supplier', null, $suppliers)->setPrompt('- Dodavatel -');
 
+		// Filtr "V galerii" - použije EXISTS subquery místo JOIN
 		$grid->addFilterDataSelect(function (\StORM\Collection $source, $value): void {
 			if ($value === 'yes') {
-				$source->where('photo.uuid IS NOT NULL');
+				$source->where('EXISTS (SELECT 1 FROM eshop_photo WHERE eshop_photo.fk_supplierProductPhoto = this.uuid)');
 			} elseif ($value === 'no') {
-				$source->where('photo.uuid IS NULL');
+				$source->where('NOT EXISTS (SELECT 1 FROM eshop_photo WHERE eshop_photo.fk_supplierProductPhoto = this.uuid)');
 			}
 		}, '', 'inGallery', null, [
 			'yes' => 'Ano',

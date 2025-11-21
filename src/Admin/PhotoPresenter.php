@@ -98,7 +98,7 @@ class PhotoPresenter extends \Eshop\BackendPresenter
 
 		$grid->addBulkAction('export', 'export', 'Exportovat (CSV)');
 
-		$grid->addFilterTextInput('search', ['product.code', 'fileName'], null, 'Kód produktu, název');
+		$grid->addFilterTextInput('search', ['product.code', 'fileName'], null, 'Kód produktu, název', likeFormat: '%s');
 
 		if ($shops = $this->shopsConfig->getAvailableShops()) {
 			$categoryTypes = [];

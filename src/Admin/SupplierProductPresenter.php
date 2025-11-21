@@ -153,14 +153,14 @@ class SupplierProductPresenter extends BackendPresenter
 
 		$grid->addButtonSaveAll();
 
-		$grid->addFilterTextInput('search', ['this.ean', 'this.code', 'this.mpn'], null, 'EAN, kód, P/N');
-		$grid->addFilterTextInput('q', ['this.name'], null, 'Název produktu');
+		$grid->addFilterTextInput('search', ['this.ean', 'this.code', 'this.mpn'], null, 'EAN, kód, P/N', likeFormat: '%s');
+		$grid->addFilterTextInput('q', ['this.name'], null, 'Název produktu', likeFormat: '%s');
 
 		$grid->addFilterText(function (ICollection $source, $value): void {
 			$expression = new Expression();
 
 			for ($i = 1; $i !== 5; $i++) {
-				$expression->add('OR', "category.categoryNameL$i LIKE %s", ['%' . $value . '%']);
+				$expression->add('OR', "category.categoryNameL$i LIKE %s", [$value]);
 			}
 
 			$source->where('(' . $expression->getSql() . ')', $expression->getVars());
@@ -172,7 +172,7 @@ class SupplierProductPresenter extends BackendPresenter
 
 			for ($i = 1; $i !== 5; $i++) {
 				if (isset($parsed[$i - 1])) {
-					$expression->add('AND', "category.categoryNameL$i LIKE %s", [Strings::trim($parsed[$i - 1]) . '%']);
+					$expression->add('AND', "category.categoryNameL$i LIKE %s", [Strings::trim($parsed[$i - 1])]);
 				}
 			}
 
@@ -195,7 +195,7 @@ class SupplierProductPresenter extends BackendPresenter
 			}
 
 			$source->join(['pairedAtProduct' => 'eshop_product'], 'this.fk_product = pairedAtProduct.uuid');
-			$source->where('pairedAtProduct.code LIKE :pairedAt', ['pairedAt' => '%' . $value . '%']);
+			$source->where('pairedAtProduct.code LIKE :pairedAt', ['pairedAt' => $value]);
 		},
 			'',
 			'pairedAt')

@@ -126,9 +126,9 @@ class RelatedPresenter extends BackendPresenter
 		$mutationSuffix = $this->relatedTypeRepository->getConnection()->getMutationSuffix();
 
 		$grid->addFilterTextInput('master', ['master.code', 'master.ean', "master.name$mutationSuffix"], null, $this->relatedType->getMasterInternalName() .
-			': EAN, kód, název', '');
+			': EAN, kód, název', '', likeFormat: '%s');
 		$grid->addFilterTextInput('slave', ['slave.code', 'slave.ean', "slave.name$mutationSuffix"], null, $this->relatedType->getSlaveInternalName() .
-			': EAN, kód, název', '');
+			': EAN, kód, název', '', likeFormat: '%s');
 		$grid->addFilterText(function (ICollection $source, $value): void {
 			$parsed = \explode(',', Strings::trim($value));
 			$expression = new Expression();
@@ -138,11 +138,13 @@ class RelatedPresenter extends BackendPresenter
 			foreach ($parsed as $value) {
 				$value = Strings::trim($value);
 
-				$expression->add('OR', "this.shops LIKE :shop__$i", ["shop__$i" => "%$value%"]);
+				$expression->add('OR', "this.shops LIKE :shop__$i", ["shop__$i" => "$value"]);
 			}
 
 			$source->where('this.shops LIKE :shops', ['shops' => Strings::trim($value)]);
-		}, '', 'shops')->setHtmlAttribute('placeholder', 'Obchody')->setHtmlAttribute('class', 'form-control form-control-sm');
+		}, '', 'shops')
+			->setHtmlAttribute('placeholder', 'Obchody')
+			->setHtmlAttribute('class', 'form-control form-control-sm');
 
 		$grid->addFilterButtons();
 
@@ -339,7 +341,7 @@ class RelatedPresenter extends BackendPresenter
 			return false;
 		});
 
-		$grid->addFilterTextInput('search', ['name_cs', 'code'], 'Kód, název', 'Kód, název');
+		$grid->addFilterTextInput('search', ['name_cs', 'code'], 'Kód, název', 'Kód, název', likeFormat: '%s');
 		$grid->addFilterButtons();
 
 		return $grid;

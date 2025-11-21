@@ -495,7 +495,7 @@ class CategoryPresenter extends BackendPresenter
 
 		$grid->addButtonBulkEdit('categoryTypeForm', ['hidden', 'priority'], 'categoryTypeGrid');
 
-		$grid->addFilterTextInput('search', ['name'], null, 'Název');
+		$grid->addFilterTextInput('search', ['name'], null, 'Název', likeFormat: '%s');
 		$grid->addFilterButtons();
 
 		$grid->onDelete[] = function (CategoryType $object): void {
@@ -661,8 +661,7 @@ class CategoryPresenter extends BackendPresenter
 		});
 
 		$grid->addButtonBulkEdit('dynamicCategoryDetail', ['isOffline'], 'dynamicCategoriesGrid');
-
-		$grid->addFilterTextInput('search', ['title_cs', 'url'], null, 'Název, URL');
+		$grid->addFilterTextInput('search', ['title_cs', 'url'], null, 'Název, URL', likeFormat: '%s');
 
 		$grid->addFilterButtons();
 

@@ -36,7 +36,7 @@ class WatcherList extends Datalist
 		$langSuffix = $connection->getMutationSuffix();
 
 		$this->addFilterExpression('productName', function (ICollection $collection, $value) use ($langSuffix): void {
-			$collection->where("products.name$langSuffix LIKE :query", ['query' => '%' . $value . '%']);
+			$collection->where("products.name$langSuffix LIKE :query", ['query' => $value]);
 		}, '');
 
 		/** @var \Forms\Form $filterForm */

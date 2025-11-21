@@ -181,7 +181,7 @@ class SupplierMappingPresenter extends BackendPresenter
 					$orExpression .= " OR categoryNameL$i LIKE :value";
 				}
 
-				$source->where($expression->getSql() . $orExpression, $expression->getVars() + ['value' => "%$value%"]);
+				$source->where($expression->getSql() . $orExpression, $expression->getVars() + ['value' => "$value"]);
 			}, '', 'category')->setHtmlAttribute('placeholder', 'Název')->setHtmlAttribute('class', 'form-control form-control-sm');
 
 			$grid->addFilterText(function (ICollection $source, $value): void {
@@ -192,7 +192,7 @@ class SupplierMappingPresenter extends BackendPresenter
 				$source->where(
 					'EXISTS(SELECT * FROM eshop_category as ec INNER JOIN eshop_suppliercategory_nxn_eshop_category AS nxn ON
 					nxn.fk_category=ec.uuid AND nxn.fk_supplierCategory = this.uuid AND (ec.name_cs LIKE :category_name or ec.code LIKE :category_code))',
-					['category_name' => "%$value%", 'category_code' => "$value%",],
+					['category_name' => "$value", 'category_code' => "$value",],
 				);
 			}, '', 'categories')
 				->setHtmlAttribute('placeholder', 'Napárovaná kategorie (název, kód)')
@@ -209,7 +209,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			});
 
 			$property = 'producer';
-			$grid->addFilterTextInput('search', ['name'], null, 'Název');
+			$grid->addFilterTextInput('search', ['name'], null, 'Název', likeFormat: '%s');
 		}
 
 		if ($this->tab === 'attribute') {
@@ -226,7 +226,7 @@ class SupplierMappingPresenter extends BackendPresenter
 
 			$property = 'attribute';
 			$grid->addColumnInputCheckbox('Aktivní', 'active', '', 'active');
-			$grid->addFilterTextInput('search', ['name'], null, 'Název');
+			$grid->addFilterTextInput('search', ['name'], null, 'Název', likeFormat: '%s');
 
 			$grid->addFilterText(function (ICollection $source, $value): void {
 				if (!$value) {
@@ -241,7 +241,7 @@ class SupplierMappingPresenter extends BackendPresenter
 						IF(sc.categoryNameL3 IS NULL, "" ," - "),
 						COALESCE(sc.categoryNameL3, "")
 					) SEPARATOR ", "
-				) LIKE :supplierCategories', ['supplierCategories' => "%$value%"]);
+				) LIKE :supplierCategories', ['supplierCategories' => "$value"]);
 			}, '', 'supplierCategories')
 				->setHtmlAttribute('placeholder', 'Dodavatelské kategorie')
 				->setHtmlAttribute('class', 'form-control form-control-sm');
@@ -271,7 +271,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			});
 
 			$property = 'attributeValue';
-			$grid->addFilterTextInput('search', ['label'], null, 'Název');
+			$grid->addFilterTextInput('search', ['label'], null, 'Název', likeFormat: '%s');
 		}
 
 		if ($this->tab === 'amount') {
@@ -284,7 +284,7 @@ class SupplierMappingPresenter extends BackendPresenter
 			});
 
 			$property = 'displayAmount';
-			$grid->addFilterTextInput('search', ['name'], null, 'Název');
+			$grid->addFilterTextInput('search', ['name'], null, 'Název', likeFormat: '%s');
 		}
 
 		$grid->addColumn('', function ($object, $datagrid) {

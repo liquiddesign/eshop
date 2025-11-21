@@ -271,7 +271,7 @@ class AttributePresenter extends BackendPresenter
 					IF(sc.categoryNameL3 IS NULL, "" ," - "),
 					COALESCE(sc.categoryNameL3, "")
 				) SEPARATOR ", "
-			) LIKE :supplierCategories', ['supplierCategories' => "%$value%"]);
+			) LIKE :supplierCategories', ['supplierCategories' => "$value"]);
 		}, '', 'supplierCategories')
 			->setHtmlAttribute('placeholder', 'Dodavatelské kategorie')
 			->setHtmlAttribute('class', 'form-control form-control-sm');

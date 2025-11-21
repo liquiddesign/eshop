@@ -35,7 +35,7 @@ class CartList extends \Grid\Datalist
 
 		$this->addFilterExpression('customer', function (ICollection $collection, $value): void {
 			$collection->join(['customerTable' => 'eshop_customer'], 'this.fk_customer = customerTable.uuid');
-			$collection->where('customerTable.fullname LIKE :query OR customerTable.email LIKE :query', ['query' => '%' . $value . '%']);
+			$collection->where('customerTable.fullname LIKE :query OR customerTable.email LIKE :query', ['query' => $value]);
 		}, '');
 
 		/** @var \Forms\Form $form */

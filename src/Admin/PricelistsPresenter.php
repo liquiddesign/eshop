@@ -198,7 +198,7 @@ class PricelistsPresenter extends BackendPresenter
 			return false;
 		}, 'this.uuid');
 
-		$grid->addFilterTextInput('search', ['name', 'code'], null, 'Kód, název');
+		$grid->addFilterTextInput('search', ['name', 'code'], null, 'Kód, název', likeFormat: '%s');
 		$grid->addFilterSelectInput(
 			'search2',
 			'fk_currency = :s',
@@ -376,7 +376,7 @@ class PricelistsPresenter extends BackendPresenter
 
 		$grid->addFilterButtons();
 
-		$grid->addFilterTextInput('code', ['products.code', 'products.ean', 'products.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
+		$grid->addFilterTextInput('code', ['products.code', 'products.ean', 'products.name_cs'], null, 'Název, EAN, kód', '', '%s');
 
 		$grid->addFilterInteger(function (ICollection $source, $value): void {
 			if ($value) {
@@ -603,7 +603,7 @@ class PricelistsPresenter extends BackendPresenter
 
 		$grid->addFilterButtons(['priceListItems', $this->getParameter('pricelist')]);
 
-		$grid->addFilterTextInput('code', ['products.code', 'products.ean', 'products.name_cs'], null, 'Název, EAN, kód', '', '%s%%');
+		$grid->addFilterTextInput('code', ['products.code', 'products.ean', 'products.name_cs'], null, 'Název, EAN, kód', '', '%s');
 
 		$grid->addFilterInteger(function (ICollection $source, $value): void {
 			$source->where('this.price >= :price', ['price' => $value]);
@@ -698,7 +698,7 @@ class PricelistsPresenter extends BackendPresenter
 		$grid->addButtonSaveAll($this->shopperUser->getShowVat() ? ['priceVat', 'validFrom'] : ['validFrom'], $processTypes, null, false, null, null, false);
 		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
 
-		$grid->addFilterTextInput('search', ['product.code', 'product.name_cs'], null, 'Kód, název');
+		$grid->addFilterTextInput('search', ['product.code', 'product.name_cs'], null, 'Kód, název', likeFormat: '%s');
 		$grid->addFilterButtons(['quantityPrices', $this->getParameter('pricelist')]);
 
 		$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');

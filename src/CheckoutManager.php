@@ -65,7 +65,6 @@ use Security\DB\AccountRepository;
 use StORM\Collection;
 use StORM\Connection;
 use StORM\DIConnection;
-use StORM\Exception\NotFoundException;
 use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
@@ -1934,6 +1933,7 @@ class CheckoutManager
 		}
 
 		$packageId = 0;
+		$usedCartItems = [];
 
 		foreach ($boxList as $box) {
 			$packageItems = [];
@@ -1993,6 +1993,19 @@ class CheckoutManager
 			foreach ($packageItems as $cartItemToParse) {
 				/** @var \Eshop\DB\CartItem $cartItem */
 				[$cartItem, $amount] = $cartItemToParse;
+
+				// Duplikace CartItem při rozpadu na více balíků
+				if (isset($usedCartItems[$cartItem->getPK()])) {
+					// CartItem už použit v předchozím balíku - vytvořit duplikát
+					$cartItemArray = $cartItem->toArray();
+					unset($cartItemArray['uuid']);
+					$cartItemArray['amount'] = $amount;
+					$cartItem = $this->cartItemRepository->createOne($cartItemArray);
+				} else {
+					// První použití CartItem - označit jako použitý a snížit amount
+					$usedCartItems[$cartItem->getPK()] = true;
+					$cartItem->update(['amount' => $amount]);
+				}
 
 				/* Create package item for top-level cart items */
 				$packageItem = $this->packageItemRepository->createOne([
@@ -2247,8 +2260,7 @@ class CheckoutManager
 				continue;
 			}
 
-			foreach (
-				$this->attributeAssignRepository->many()
+			foreach ($this->attributeAssignRepository->many()
 				->join(['attributevalue' => 'eshop_attributevalue'], 'this.fk_value = attributevalue.uuid')
 				->where('attributevalue.fk_attribute', $attribute->getPK())
 				->where('fk_product', $item->getValue('product')) as $assign
