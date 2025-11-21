@@ -867,8 +867,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				/** @var null|string $autoPriceConfig */
 				$autoPriceConfig = $this->configuration[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
-				if (
-					((!$autoPriceConfig
+				if (((!$autoPriceConfig
 					|| $autoPriceConfig === ProductFormAutoPriceConfig::NONE
 					|| $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT)
 						&& $prices['price'] === null)

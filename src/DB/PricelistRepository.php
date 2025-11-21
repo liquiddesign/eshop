@@ -315,11 +315,10 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		$pricelists = [];
 
 		/** @var \Eshop\DB\CustomerGroup $group */
-		foreach (
-			$collection->where(
-				'this.uuid = :unregistred OR defaultAfterRegistration=1',
-				['unregistred' => CustomerGroupRepository::UNREGISTERED_PK],
-			) as $group
+		foreach ($collection->where(
+			'this.uuid = :unregistred OR defaultAfterRegistration=1',
+			['unregistred' => CustomerGroupRepository::UNREGISTERED_PK],
+		) as $group
 		) {
 			$pricelists = \array_merge($pricelists, $group->defaultPricelists->toArrayOf('uuid', [], true));
 		}
@@ -343,11 +342,10 @@ class PricelistRepository extends \StORM\Repository implements IGeneralRepositor
 		]);
 
 		/** @var \Eshop\DB\QuantityPrice|\Eshop\DB\Price $row */
-		foreach (
-			$this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class)->many()->where(
-				'fk_pricelist',
-				$priceList,
-			) as $row
+		foreach ($this->getConnection()->findRepository($quantityPrices ? QuantityPrice::class : Price::class)->many()->where(
+			'fk_pricelist',
+			$priceList,
+		) as $row
 		) {
 			$values = [
 				$row->product->getFullCode(),
