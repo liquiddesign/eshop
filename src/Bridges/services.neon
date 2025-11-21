@@ -14,5 +14,4 @@ search:
 services:
 	balikobot.api: Eshop\Services\BalikobotApi\ApiConnection('https://apiv2.balikobot.cz/', '', '')
 	vies.api: Vies\ViesApiClient('https://viesapi.eu/api-test/', 'test_id', 'test_key')
-	freeloNotification: Eshop\Integration\FreeloNotificationService('test@test.cz')
 #	- Vies\ViesApiClient('https://viesapi.eu/api/', 'test_id', 'test_key')
