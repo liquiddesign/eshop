@@ -12,9 +12,8 @@ use Eshop\DB\OfferState;
 
 class RequestManagerApproval extends BaseAction
 {
-	public function __construct(
-		private readonly GetOfferState $getOfferState
-	) {
+	public function __construct(private readonly GetOfferState $getOfferState)
+	{
 	}
 
 	/**

@@ -8,5 +8,6 @@ composer.lock
 changelog/vendor/*
 auth.json
 .env
+temp
 
 !/.idea/runConfigurations

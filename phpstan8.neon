@@ -4,6 +4,7 @@ includes:
 	- vendor/dave-liddament/phpstan-php-language-extensions/extension.neon
 
 parameters:
+	tmpDir: temp/phpstan8
 	universalObjectCratesClasses:
 		- Nette\Http\SessionSection
 		- Nette\Application\UI\Template
