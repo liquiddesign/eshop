@@ -3,6 +3,7 @@ includes:
 	- vendor/liquiddesign/storm/phpstan-extension.neon
 
 parameters:
+	tmpDir: temp/phpstan
 	universalObjectCratesClasses:
 		- Nette\Http\SessionSection
 		- Nette\Application\UI\Template
