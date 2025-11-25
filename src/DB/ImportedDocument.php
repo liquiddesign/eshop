@@ -8,7 +8,7 @@ use StORM\RelationCollection;
 
 /**
  * @table
- * @index{"name":"importeddocument_id_uniqued","unique":true,"columns":["id"]}
+ * @method \StORM\RelationCollection<\Eshop\DB\Order> getOrders()
  */
 class ImportedDocument extends \StORM\Entity
 {

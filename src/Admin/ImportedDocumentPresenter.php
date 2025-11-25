@@ -46,7 +46,7 @@ class ImportedDocumentPresenter extends BackendPresenter
 			->onRenderCell[] = [$grid, 'decoratorEmpty'];
 
 		$grid->addColumn('Objednávky', function (ImportedDocument $document): string {
-			$count = $document->orders->count();
+			$count = $document->getOrders()->count();
 
 			if ($count === 0) {
 				return '0';
@@ -54,7 +54,7 @@ class ImportedDocumentPresenter extends BackendPresenter
 
 			$orderCodes = [];
 
-			foreach ($document->orders->setTake(5) as $order) {
+			foreach ($document->getOrders()->setTake(5) as $order) {
 				$orderCodes[] = $order->code;
 			}
 
