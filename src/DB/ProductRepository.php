@@ -93,11 +93,11 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function getProductsAsGroup(CustomerGroup $customerGroup, bool $selects = true): Collection
 	{
 		return $this->getProducts(
-			$this->getValidPricelists($customerGroup->defaultPricelists)->toArray(),
+			$this->getValidPricelists($customerGroup->getDefaultPricelists())->toArray(),
 			null,
 			$selects,
 			$customerGroup,
-			visibilityLists: $this->getValidVisibilityLists($customerGroup->defaultVisibilityLists)->toArray(),
+			visibilityLists: $this->getValidVisibilityLists($customerGroup->getDefaultVisibilityLists())->toArray(),
 		);
 	}
 
@@ -2074,14 +2074,12 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	protected function getValidPricelists(Collection $collection): Collection
 	{
-		return $collection
-			->setGroupBy(['this.uuid'])
-			->where('this.isActive', true)
-			->join(['nxnDiscount' => 'eshop_discount_nxn_eshop_pricelist'], 'nxnDiscount.fk_pricelist=this.uuid')
-			->join(['discount' => 'eshop_discount'], 'nxnDiscount.fk_discount=discount.uuid')
-			->where('(discount.validFrom IS NULL OR discount.validFrom <= DATE(now())) AND (discount.validTo IS NULL OR discount.validTo >= DATE(now()))')
-			->where('this.fk_currency', $this->shopperUser->getCurrency()->getPK())
-			->where('this.fk_country', $this->shopperUser->getCountry()->getPK());
+		return $this->pricelistRepository->getPricelists(
+			$collection->toArrayOf('uuid'),
+			$this->shopperUser->getCurrency(),
+			$this->shopperUser->getCountry(),
+			$this->shopperUser->getCheckoutManager()->getDiscountCoupon(),
+		);
 	}
 
 	/**

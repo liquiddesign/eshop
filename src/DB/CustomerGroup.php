@@ -10,8 +10,8 @@ use StORM\RelationCollection;
 /**
  * Skupiny uživatelů
  * @table
- * @method \StORM\ICollection<\Eshop\DB\Pricelist> getDefaultPricelists()
- * @method \StORM\ICollection<\Eshop\DB\VisibilityList> getDefaultVisibilityLists()
+ * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getDefaultPricelists()
+ * @method \StORM\RelationCollection<\Eshop\DB\VisibilityList> getDefaultVisibilityLists()
  */
 class CustomerGroup extends ShopSystemicEntity
 {
