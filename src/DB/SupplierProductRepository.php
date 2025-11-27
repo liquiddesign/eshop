@@ -38,6 +38,7 @@ class SupplierProductRepository extends \StORM\Repository
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly SettingRepository $settingRepository,
 		protected readonly ShopperUser $shopperUser,
+		protected readonly SupplierProductPhotoRepository $supplierProductPhotoRepository,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -65,6 +66,11 @@ class SupplierProductRepository extends \StORM\Repository
 		$sep = \DIRECTORY_SEPARATOR;
 		$sourceImageDirectory = $this->container->parameters['wwwDir'] . $sep . 'userfiles' . $sep . 'supplier_images';
 		$galleryImageDirectory = $this->container->parameters['wwwDir'] . $sep . 'userfiles' . $sep . 'product_gallery_images';
+
+		// Vytvořit základní složky pro všechny 3 varianty obrázků
+		FileSystem::createDir($galleryImageDirectory . $sep . 'origin');
+		FileSystem::createDir($galleryImageDirectory . $sep . 'detail');
+		FileSystem::createDir($galleryImageDirectory . $sep . 'thumb');
 
 		$vatLevels = $this->getConnection()->findRepository(VatRate::class)->many()->where('fk_country', $country)->setBufferedQuery(false)->setIndex('rate')->toArrayOf('uuid');
 		$supplierProductRepository = $this->getConnection()->findRepository(SupplierProduct::class);
