@@ -60,7 +60,6 @@
         "liquiddesign/codestyle": "^3.0.13",
         "liquiddesign/migrator": "~1.0",
         "phpstan/phpstan-nette": "~1.0",
-        "marcocesarato/php-conventional-changelog": "^1.17",
         "pestphp/pest": "^3.1",
         "dave-liddament/phpstan-php-language-extensions": "^0.9",
         "phpstan/phpstan-deprecation-rules": "^1.2",
@@ -81,7 +80,8 @@
         "phpstan8": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan8.neon --ansi",
         "phpcs": "@php ./vendor/bin/phpcs --standard=ruleset.xml --ignore=assets --cache=temp/phpcs.cache src",
         "phpcsfix": "@php ./vendor/bin/phpcbf --standard=ruleset.xml --ignore=assets --cache=temp/phpcs.cache src",
-        "lattelint": "@php lattelint.php"
+        "lattelint": "@php lattelint.php",
+        "tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php"
     },
     "config": {
         "allow-plugins": {
