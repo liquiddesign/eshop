@@ -93,11 +93,11 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	public function getProductsAsGroup(CustomerGroup $customerGroup, bool $selects = true): Collection
 	{
 		return $this->getProducts(
-			$this->getValidPricelists($customerGroup->defaultPricelists)->toArray(),
+			$this->getValidPricelists($customerGroup->getDefaultPricelists())->toArray(),
 			null,
 			$selects,
 			$customerGroup,
-			visibilityLists: $this->getValidVisibilityLists($customerGroup->defaultVisibilityLists)->toArray(),
+			visibilityLists: $this->getValidVisibilityLists($customerGroup->getDefaultVisibilityLists())->toArray(),
 		);
 	}
 
