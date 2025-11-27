@@ -50,6 +50,21 @@ class RejectByManager extends BaseAction
 	}
 
 	/**
+	 * Prepare email template variables
+	 * @return array<string, mixed>
+	 */
+	protected function getEmailVariables(Offer $offer, Merchant $rejectingManager, string $rejectionNote): array
+	{
+		return [
+			'offerCode' => $offer->code,
+			'managerName' => $rejectingManager->fullname,
+			'rejectionNote' => $rejectionNote,
+			'rejectionDate' => Carbon::now()->format('d.m.Y H:i'),
+			'offerLink' => '',
+		];
+	}
+
+	/**
 	 * Send email notification to offer author about rejection
 	 */
 	private function notifyAuthor(Offer $offer, Merchant $rejectingManager, string $rejectionNote): void
@@ -87,20 +102,5 @@ class RejectByManager extends BaseAction
 				ILogger::ERROR
 			);
 		}
-	}
-
-	/**
-	 * Prepare email template variables
-	 * @return array<string, mixed>
-	 */
-	protected function getEmailVariables(Offer $offer, Merchant $rejectingManager, string $rejectionNote): array
-	{
-		return [
-			'offerCode' => $offer->code,
-			'managerName' => $rejectingManager->fullname,
-			'rejectionNote' => $rejectionNote,
-			'rejectionDate' => Carbon::now()->format('d.m.Y H:i'),
-			'offerLink' => '',
-		];
 	}
 }

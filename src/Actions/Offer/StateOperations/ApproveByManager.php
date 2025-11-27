@@ -50,6 +50,20 @@ class ApproveByManager extends BaseAction
 	}
 
 	/**
+	 * Prepare email template variables
+	 * @return array<string, mixed>
+	 */
+	protected function getEmailVariables(Offer $offer, Merchant $approvingManager): array
+	{
+		return [
+			'offerCode' => $offer->code,
+			'managerName' => $approvingManager->fullname,
+			'approvalDate' => Carbon::parse($offer->managerApprovedTs)->format('d.m.Y H:i'),
+			'offerLink' => '',
+		];
+	}
+
+	/**
 	 * Send email notification to offer author about approval
 	 */
 	private function notifyAuthor(Offer $offer, Merchant $approvingManager): void
@@ -87,19 +101,5 @@ class ApproveByManager extends BaseAction
 				ILogger::ERROR
 			);
 		}
-	}
-
-	/**
-	 * Prepare email template variables
-	 * @return array<string, mixed>
-	 */
-	protected function getEmailVariables(Offer $offer, Merchant $approvingManager): array
-	{
-		return [
-			'offerCode' => $offer->code,
-			'managerName' => $approvingManager->fullname,
-			'approvalDate' => Carbon::parse($offer->managerApprovedTs)->format('d.m.Y H:i'),
-			'offerLink' => '',
-		];
 	}
 }
