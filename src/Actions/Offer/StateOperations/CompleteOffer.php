@@ -8,12 +8,16 @@ use Base\BaseAction;
 use Carbon\Carbon;
 use Eshop\Actions\Offer\GetOfferState;
 use Eshop\DB\Offer;
+use Eshop\DB\OfferLogItem;
+use Eshop\DB\OfferLogItemRepository;
 use Eshop\DB\OfferState;
 
 class CompleteOffer extends BaseAction
 {
-	public function __construct(private readonly GetOfferState $getOfferState)
-	{
+	public function __construct(
+		private readonly GetOfferState $getOfferState,
+		private readonly OfferLogItemRepository $offerLogItemRepository,
+	) {
 	}
 
 	/**
@@ -26,6 +30,13 @@ class CompleteOffer extends BaseAction
 		$date = Carbon::now()->toDateTimeString();
 
 		$offer->update(['approvedTs' => $date]);
+
+		$this->offerLogItemRepository->createLog(
+			$offer,
+			OfferLogItem::COMPLETED,
+			null,
+			$offer->order->purchase->merchant
+		);
 
 		$this->onOfferCompleted($offer);
 	}

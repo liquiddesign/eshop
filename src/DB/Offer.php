@@ -54,6 +54,24 @@ class Offer extends Entity
 	public string|null $validUntilTs = null;
 
 	/**
+	 * Požádáno o schválení managerem
+	 * @column{"type":"timestamp"}
+	 */
+	public string|null $managerApprovalRequestedTs = null;
+
+	/**
+	 * Schváleno managerem
+	 * @column{"type":"timestamp"}
+	 */
+	public string|null $managerApprovedTs = null;
+
+	/**
+	 * Poznámka
+	 * @column{"type":"text"}
+	 */
+	public ?string $internalNote;
+
+	/**
 	 * Poznámka obchodníka pro zákazníka
 	 * @column{"type":"longtext"}
 	 */

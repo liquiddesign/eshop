@@ -8,6 +8,8 @@ use Base\BaseAction;
 use Carbon\Carbon;
 use Eshop\Actions\Offer\GetOfferState;
 use Eshop\DB\Offer;
+use Eshop\DB\OfferLogItem;
+use Eshop\DB\OfferLogItemRepository;
 use Eshop\DB\OfferState;
 use Eshop\Services\Offer\OfferService;
 use Messages\DB\TemplateRepository;
@@ -21,6 +23,7 @@ class SendOffer extends BaseAction
 		private readonly DIConnection $storm,
 		private readonly TemplateRepository $templateRepository,
 		private readonly OfferService $offerService,
+		private readonly OfferLogItemRepository $offerLogItemRepository,
 	) {
 	}
 
@@ -47,6 +50,13 @@ class SendOffer extends BaseAction
 				);
 			}
 
+			$this->offerLogItemRepository->createLog(
+				$offer,
+				OfferLogItem::SENT,
+				$sendEmail ? null : 'Odesláno bez emailu',
+				$offer->order->purchase->merchant
+			);
+
 			$this->storm->getLink()->commit();
 		} catch (\Exception $exception) {
 			Debugger::barDump($exception);
@@ -65,7 +75,8 @@ class SendOffer extends BaseAction
 	{
 		$state = $this->getOfferState->execute($offer);
 
-		if ($state === OfferState::Created) {
+		// Can send from Created (if validated) or ManagerApproved state
+		if ($state === OfferState::Created || $state === OfferState::ManagerApproved) {
 			return;
 		}
 

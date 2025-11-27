@@ -127,6 +127,12 @@ class ProductForm extends Control
 		$form->addText('subCode', 'Kód podskladu');
 		$form->addText('ean', 'Hlavní EAN (unikátní)')->setNullable();
 
+		$minimalRecommendedPrice = $form->addText('minimalRecommendedPrice', 'Minimální doporučená cena pro schválení managerem')
+			->setNullable()
+			->setHtmlType('number')
+			->setHtmlAttribute('step', 'any');
+		$minimalRecommendedPrice->addRule(Form::Float);
+
 		if (isset($this->configuration['secondaryEan']) && $this->configuration['secondaryEan']) {
 			$form->addText('secondaryEan', 'Sekundární EAN')->setNullable();
 		}
