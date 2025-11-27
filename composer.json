@@ -45,7 +45,7 @@
         "soukicz/zbozicz": "^1.2",
         "heureka/overeno-zakazniky": "^4.0",
         "dfridrich/qr-platba": "^2.0",
-        "latte/latte": "^3.0",
+        "latte/latte": "~3.0.0",
         "ramsey/uuid": "^4.7",
         "liquiddesign/liquid-monitor-connector": "^1.0.19",
         "illuminate/database": "^11.0|^12.0",
@@ -60,7 +60,6 @@
         "liquiddesign/codestyle": "^3.0.13",
         "liquiddesign/migrator": "~1.0",
         "phpstan/phpstan-nette": "~1.0",
-        "marcocesarato/php-conventional-changelog": "^1.17",
         "pestphp/pest": "^3.1",
         "dave-liddament/phpstan-php-language-extensions": "^0.9",
         "phpstan/phpstan-deprecation-rules": "^1.2",
@@ -77,26 +76,12 @@
             "@phpcs"
         ],
         "check-code": "npx concurrently -c \\\"#93c5fd,#c4b5fd,#fb7185,#fdba74\\\" --success all \"composer phpcs\" \"composer phpstan\" \"composer phpstan8\" \"composer lattelint\" --names=cs,stan,stan8,lattelint",
-        "phpstan-clear-cache": "@php ./vendor/bin/phpstan clear-result-cache",
         "phpstan": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan.neon --ansi",
         "phpstan8": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan8.neon --ansi",
-        "phpstan9": "@php ./vendor/bin/phpstan analyse --memory-limit 10G -c phpstan9.neon --ansi",
-        "phpcs": "@php ./vendor/bin/phpcs --standard=ruleset.xml --ignore=assets --cache src",
-        "phpcsfix": "@php ./vendor/bin/phpcbf --standard=ruleset.xml --ignore=assets --cache src",
+        "phpcs": "@php ./vendor/bin/phpcs --standard=ruleset.xml --ignore=assets --cache=temp/phpcs.cache src",
+        "phpcsfix": "@php ./vendor/bin/phpcbf --standard=ruleset.xml --ignore=assets --cache=temp/phpcs.cache src",
         "lattelint": "@php lattelint.php",
-        "tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php",
-        "changelog": "@php ./vendor/bin/conventional-changelog",
-        "release": "@php ./vendor/bin/conventional-changelog --patch --commit",
-        "release:patch": "@php ./vendor/bin/conventional-changelog --patch --commit",
-        "rp": "@release:patch-full",
-        "release:minor": "@php ./vendor/bin/conventional-changelog --minor --commit",
-        "release:major": "@php ./vendor/bin/conventional-changelog --major --commit",
-        "release:patch-full": [
-            "git pull",
-            "@release:patch",
-            "git push",
-            "git push --tags"
-        ]
+        "tester": "tester tests/Cases/*.phpt  -c tests/php.ini --setup tests/setup.php"
     },
     "config": {
         "allow-plugins": {
@@ -104,6 +89,5 @@
             "php-http/discovery": true,
             "pestphp/pest-plugin": true
         }
-    },
-    "version": "2.1.552"
+    }
 }
