@@ -93,14 +93,13 @@ class RejectByManager extends BaseAction
 	 * Prepare email template variables
 	 * @return array<string, mixed>
 	 */
-	private function getEmailVariables(Offer $offer, Merchant $rejectingManager, string $rejectionNote): array
+	protected function getEmailVariables(Offer $offer, Merchant $rejectingManager, string $rejectionNote): array
 	{
 		return [
 			'offerCode' => $offer->code,
 			'managerName' => $rejectingManager->fullname,
 			'rejectionNote' => $rejectionNote,
 			'rejectionDate' => Carbon::now()->format('d.m.Y H:i'),
-			// TODO: Add proper link to offer in admin
 			'offerLink' => '',
 		];
 	}

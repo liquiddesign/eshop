@@ -93,13 +93,12 @@ class ApproveByManager extends BaseAction
 	 * Prepare email template variables
 	 * @return array<string, mixed>
 	 */
-	private function getEmailVariables(Offer $offer, Merchant $approvingManager): array
+	protected function getEmailVariables(Offer $offer, Merchant $approvingManager): array
 	{
 		return [
 			'offerCode' => $offer->code,
 			'managerName' => $approvingManager->fullname,
 			'approvalDate' => Carbon::parse($offer->managerApprovedTs)->format('d.m.Y H:i'),
-			// TODO: Add proper link to offer in admin
 			'offerLink' => '',
 		];
 	}
