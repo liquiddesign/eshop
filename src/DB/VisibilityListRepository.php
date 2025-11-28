@@ -65,4 +65,18 @@ class VisibilityListRepository extends \StORM\Repository implements IGeneralRepo
 
 		return $visibilityLists;
 	}
+
+	/**
+	 * @param \Eshop\DB\Merchant $merchant
+	 * @return \StORM\Collection<\Eshop\DB\VisibilityList>
+	 */
+	public function getVisibilityListsByMerchant(Merchant $merchant): Collection
+	{
+		$visibilityLists = $merchant->getVisibilityLists();
+
+		$this->shopsConfig->filterShopsInShopEntityCollection($visibilityLists, $merchant->shop);
+		$visibilityLists->select(['this.id'])->where('this.hidden', false)->orderBy(['this.priority' => 'ASC', 'this.uuid' => 'ASC']);
+
+		return $visibilityLists;
+	}
 }
