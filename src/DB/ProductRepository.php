@@ -144,6 +144,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 * @param \Eshop\DB\CustomerGroup|null $customerGroup
 	 * @param array<\Eshop\DB\VisibilityList>|null $visibilityLists
 	 * @param \Eshop\DB\Currency|null $currency
+	 * @param bool $includeHiddenPrices Include prices marked as hidden in pricelist
 	 * @return \StORM\Collection<\Eshop\DB\Product>
 	 */
 	public function getProducts(
@@ -153,6 +154,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		?CustomerGroup $customerGroup = null,
 		?array $visibilityLists = null,
 		?Currency $currency = null,
+		bool $includeHiddenPrices = false,
 	): Collection {
 		$discountCoupon = $this->shopperUser->getCheckoutManager()->getDiscountCoupon();
 
@@ -359,7 +361,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}
 		}
 
-		$this->setProductsConditions($collection, true, $pricelists);
+		$this->setProductsConditions($collection, true, $pricelists, $includeHiddenPrices);
 
 		$collection->setGroupBy(['this.uuid']);
 
@@ -676,15 +678,16 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 * @param \StORM\ICollection $collection
 	 * @param bool $includeHidden
 	 * @param array<\Eshop\DB\Pricelist>|null $pricelists
+	 * @param bool $includeHiddenPrices Include prices marked as hidden in pricelist
 	 */
-	public function setProductsConditions(ICollection $collection, bool $includeHidden = true, ?array $pricelists = null): void
+	public function setProductsConditions(ICollection $collection, bool $includeHidden = true, ?array $pricelists = null, bool $includeHiddenPrices = false): void
 	{
 		$pricelists = $pricelists ?: \array_values($this->shopperUser->getPriceListsCached());
 		$priceWhere = new Expression();
 
 		foreach ($pricelists as $id => $pricelist) {
-//			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'");
-			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "' AND prices$id.hidden = 0");
+			$hiddenCondition = $includeHiddenPrices ? '' : " AND prices$id.hidden = 0";
+			$collection->join(["prices$id" => 'eshop_price'], "prices$id.fk_product=this.uuid AND prices$id.fk_pricelist = '" . $pricelist->getPK() . "'" . $hiddenCondition);
 
 			$priceZeroWhere = null;
 
