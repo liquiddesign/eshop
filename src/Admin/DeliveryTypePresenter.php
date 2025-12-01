@@ -7,6 +7,7 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
+use Base\BaseHelpers;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\CustomerGroupRepository;
@@ -28,6 +29,7 @@ use Nette\Http\Request;
 use Nette\Utils\Arrays;
 use Nette\Utils\Html;
 use Nette\Utils\Image;
+use StORM\Collection;
 use StORM\DIConnection;
 use StORM\ICollection;
 
@@ -131,7 +133,19 @@ class DeliveryTypePresenter extends BackendPresenter
 
 		$grid->addColumnSelector();
 
-		$grid->addColumnText('Typ dopravy', 'deliveryType.name', '%s', 'deliveryType.name_cs',);
+		$grid->addColumn('<i class="fas fa-store-alt"></i>', function (DeliveryTypeThreshold $threshold): string|null {
+			if ($shop = $threshold->deliveryType->shop) {
+				return $shop->icon ? "<img
+					width=\"24\"
+					height=\"24\"
+					src=\"data:image/png;base64,$shop->icon\"
+					alt=\"$shop->name\"
+				/>" : $shop->name;
+			}
+
+			return null;
+		}, '%s', null, ['class' => 'fit']);
+		$grid->addColumnText('Typ dopravy', 'deliveryType.name', '%s', 'deliveryType.name_cs');
 		$grid->addColumnInputTime('Časový práh', 'time', '', '', 'time');
 		$grid->addColumnInputCheckbox('Pondělí', 'monday', 'monday', 'monday');
 		$grid->addColumnInputCheckbox('Úterý', 'tuesday', 'tuesday', 'tuesday');
@@ -145,6 +159,12 @@ class DeliveryTypePresenter extends BackendPresenter
 
 		$grid->addButtonSaveAll();
 		$grid->addButtonDeleteSelected(sourceIdName: 'this.uuid');
+
+		if ($shops = $this->shopsConfig->getAvailableShopsArrayForSelect()) {
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->where('deliveryType.fk_shop', BaseHelpers::replaceArrayValue($value, '0', null));
+			}, '', 'shops', null, ['0' => 'Bez obchodu'] + $shops, ['placeholder' => '- Obchody -']);
+		}
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 			$source->where('this.fk_deliveryType', $value);
