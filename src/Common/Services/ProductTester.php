@@ -16,6 +16,7 @@ use Eshop\DB\VisibilityListItem;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\DevelTools;
+use Eshop\ShopperUser;
 use Web\DB\PageRepository;
 
 readonly class ProductTester
@@ -30,6 +31,7 @@ readonly class ProductTester
 		protected VisibilityListItemRepository $visibilityListItemRepository,
 		protected ShopsConfig $shopsConfig,
 		protected PageRepository $pageRepository,
+		protected ShopperUser $shopperUser,
 	) {
 	}
 
@@ -48,6 +50,8 @@ readonly class ProductTester
 	 */
 	public function testProductByCustomer(Product $product, Customer $customer): array
 	{
+		$this->shopperUser->setMerchant(null);
+
 		$country = $this->countryRepository->one('CZ', true);
 		$currency = $this->currencyRepository->one('CZK', true);
 
@@ -92,6 +96,8 @@ readonly class ProductTester
 	 */
 	public function testProductByGroup(Product $product, CustomerGroup $customerGroup): array
 	{
+		$this->shopperUser->setMerchant(null);
+
 		$productFromGetProducts = $this->productRepository->getProducts(customerGroup: $customerGroup)->where('this.uuid', $product->getPK())->first();
 		$priceLists = $customerGroup->getDefaultPricelists()->toArray();
 		$visibilityLists = $customerGroup->getDefaultVisibilityLists()->toArray();

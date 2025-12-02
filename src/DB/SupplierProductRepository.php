@@ -144,7 +144,12 @@ class SupplierProductRepository extends \StORM\Repository
 		$allCategories = $categoryRepository->many()->select(['typePK' => 'this.fk_type'])->fetchArray(\stdClass::class);
 
 		$productsMap = $productRepository->many()
-			->setSelect(['contentLock' => 'supplierContentLock', 'sourcePK' => 'fk_supplierSource'], [], true)
+			->setSelect([
+				'contentLock' => 'supplierContentLock',
+				'importImages' => 'importSupplierImages',
+				'sourcePK' => 'fk_supplierSource',
+				'imageFileName' => 'imageFileName',
+			], [], true)
 			->setBufferedQuery(false)
 			->fetchArray(\stdClass::class);
 
@@ -245,8 +250,6 @@ class SupplierProductRepository extends \StORM\Repository
 				$uuid = $draft->getValue('product');
 			}
 
-			$primary = isset($productsMap[$uuid]) && $productsMap[$uuid]->sourcePK === $supplierId;
-
 			$values = [
 				'uuid' => $uuid,
 				'ean' => $draft->ean ?: null,
@@ -280,16 +283,14 @@ class SupplierProductRepository extends \StORM\Repository
 
 			if (!$importImages ||
 				!$supplier->importImages ||
-				!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName) ||
 				!isset($productsMap[$uuid])
 			) {
 				$importImage = false;
 			}
 
-			if ($primary && $importImage) {
-				$values['imageFileName'] = $draft->fileName;
-			} else {
-				unset($currentUpdates['imageFileName']);
+			// NOVÁ KONTROLA: pokud je importSupplierImages = false, NEIMPORTOVAT
+			if ($importImage && $productsMap[$uuid]->importImages === false) {
+				$importImage = false;
 			}
 
 			/** @var \Eshop\DB\Product $product */
@@ -427,49 +428,172 @@ class SupplierProductRepository extends \StORM\Repository
 				continue;
 			}
 
-			$photoRepository->syncOne([
-				'uuid' => $draft->getPK(),
-				'product' => $product->getPK(),
-				'supplier' => $supplierId,
-				'fileName' => $draft->fileName,
-			]);
+			// Načíst všechny SupplierProductPhoto pro tento dodavatelský produkt
+			/** @var array<\Eshop\DB\SupplierProductPhoto> $supplierProductPhotos */
+			$supplierProductPhotos = $this->supplierProductPhotoRepository->many()
+				->where('fk_supplierProduct', $draft->getPK())
+				->orderBy(['priority' => 'ASC'])
+				->toArray();
 
-            // phpcs:ignore
-            $mtime = @\filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
-
-            // phpcs:ignore
-            $copyImage = !(!$overwrite || !$draft->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName));
-
-			if (!$copyImage) {
+			if (!$supplierProductPhotos) {
 				continue;
 			}
 
-			try {
-				FileSystem::copy($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
-				\touch($galleryImageDirectory . $sep . 'origin' . $sep . $draft->fileName, $mtime);
+			// Nastavit primární obrázek (imageFileName), pokud ještě není vyplněný
+			if (!isset($productsMap[$uuid]->imageFileName) || !$productsMap[$uuid]->imageFileName) {
+				$firstPhoto = Arrays::first($supplierProductPhotos);
 
-				if (\is_file($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName)) {
-					FileSystem::copy($sourceImageDirectory . $sep . 'detail' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
-				} else {
-                    // phpcs:ignore
-                    $image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
-					$image->resize(600, null);
-					$image->save($galleryImageDirectory . $sep . 'detail' . $sep . $draft->fileName);
+				if ($firstPhoto instanceof \Eshop\DB\SupplierProductPhoto) {
+					$product->update(['imageFileName' => $firstPhoto->fileName]);
+				}
+			}
+
+			// Najít existující Photo od dodavatele (starý systém - 1 SupplierProduct = 1 Photo)
+			$existingPhotos = $photoRepository->many()
+				->where('fk_product', $product->getPK())
+				->where('fk_supplier', $supplierId)
+				->orderBy(['priority' => 'ASC', 'uuid' => 'ASC'])
+				->toArray();
+
+			$firstExistingPhoto = Arrays::first($existingPhotos);
+			$first = true;
+
+			// Pro každou dodavatelskou fotku vytvořit Photo entitu
+			foreach ($supplierProductPhotos as $supplierPhoto) {
+				if (!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName)) {
+					continue;
 				}
 
-				if (\is_file($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName)) {
-					FileSystem::copy($sourceImageDirectory . $sep . 'thumb' . $sep . $draft->fileName, $galleryImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
-				} else {
-                    // phpcs:ignore
-                    $image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $draft->fileName);
-					$image->resize(300, null);
-					$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $draft->fileName);
+				// PRVNÍ fotka: Propojit s existující starým Photo (zachovat SEO a fileName)
+				if ($firstExistingPhoto && $first) {
+					$firstExistingPhoto->update([
+						'supplierProductPhoto' => $supplierPhoto->getPK(),
+						'priority' => $supplierPhoto->priority,
+					]);
+
+					// Zkontrolovat existenci souborů v galerii a nakopírovat chybějící
+					$sourceOrigin = $sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName;
+					$targetOrigin = $galleryImageDirectory . $sep . 'origin' . $sep . $firstExistingPhoto->fileName;
+
+					// Origin - prostě zkopírovat
+					if (\is_file($sourceOrigin) && !\is_file($targetOrigin)) {
+						FileSystem::copy($sourceOrigin, $targetOrigin);
+					}
+
+					// Detail (600px) - zkopírovat nebo vytvořit z origin
+					$targetDetail = $galleryImageDirectory . $sep . 'detail' . $sep . $firstExistingPhoto->fileName;
+
+					if (!\is_file($targetDetail)) {
+						$sourceDetail = $sourceImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName;
+
+						if (\is_file($sourceDetail)) {
+							FileSystem::copy($sourceDetail, $targetDetail);
+						} elseif (\is_file($sourceOrigin)) {
+							try {
+								// phpcs:ignore
+								$image = @Image::fromFile($sourceOrigin);
+								$image->resize(600, null);
+								// Normalize .jfif extension to .jpg for Nette Image compatibility
+								$targetDetailNormalized = \preg_replace('/\.jfif$/i', '.jpg', $targetDetail);
+								$image->save($targetDetailNormalized, 100);
+							} catch (\Throwable $e) {
+								Debugger::log($e, ILogger::WARNING);
+							}
+						}
+					}
+
+					// Thumb (300px) - zkopírovat nebo vytvořit z origin
+					$targetThumb = $galleryImageDirectory . $sep . 'thumb' . $sep . $firstExistingPhoto->fileName;
+
+					if (!\is_file($targetThumb)) {
+						$sourceThumb = $sourceImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName;
+
+						if (\is_file($sourceThumb)) {
+							FileSystem::copy($sourceThumb, $targetThumb);
+						} elseif (\is_file($sourceOrigin)) {
+							try {
+								// phpcs:ignore
+								$image = @Image::fromFile($sourceOrigin);
+								$image->resize(300, null);
+								// Normalize .jfif extension to .jpg for Nette Image compatibility
+								$targetThumbNormalized = \preg_replace('/\.jfif$/i', '.jpg', $targetThumb);
+								$image->save($targetThumbNormalized, 100);
+							} catch (\Throwable $e) {
+								Debugger::log($e, ILogger::WARNING);
+							}
+						}
+					}
+
+					$first = false;
+
+					// NEPŘIDÁVAT nové Photo pro první obrázek
+					continue;
 				}
-			} catch (\Throwable $e) {
-				if ($e instanceof InvalidArgumentException && \str_starts_with($e->getMessage(), 'Unsupported file extension')) {
-					Debugger::log($e, ILogger::INFO);
-				} else {
-					Debugger::log($e, ILogger::WARNING);
+
+				// DALŠÍ fotky nebo NOVÝ produkt: Vytvořit nové Photo entity
+				$photoRepository->syncOne([
+					'uuid' => $supplierPhoto->getPK(),
+					'product' => $product->getPK(),
+					'supplier' => $supplierId,
+					'fileName' => $supplierPhoto->fileName,
+					'priority' => $supplierPhoto->priority,
+					'supplierProductPhoto' => $supplierPhoto->getPK(),
+				]);
+
+				// Zkontrolovat, jestli kopírovat soubory
+				// phpcs:ignore
+				$mtime = @\filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
+
+				// phpcs:ignore
+				$copyImage = !(!$overwrite || !$supplierPhoto->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName));
+
+				if (!$copyImage) {
+					continue;
+				}
+
+				try {
+					// Kopírovat origin
+					FileSystem::copy(
+						$sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName,
+						$galleryImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName
+					);
+					\touch($galleryImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName, $mtime);
+
+					// Vytvořit/zkopírovat detail (600px)
+					if (\is_file($sourceImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName)) {
+						FileSystem::copy(
+							$sourceImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName,
+							$galleryImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName
+						);
+					} else {
+						// phpcs:ignore
+						$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
+						$image->resize(600, null);
+						// Normalize .jfif extension to .jpg for Nette Image compatibility
+						$detailFileName = \preg_replace('/\.jfif$/i', '.jpg', $supplierPhoto->fileName);
+						$image->save($galleryImageDirectory . $sep . 'detail' . $sep . $detailFileName, 100);
+					}
+
+					// Vytvořit/zkopírovat thumb (300px)
+					if (\is_file($sourceImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName)) {
+						FileSystem::copy(
+							$sourceImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName,
+							$galleryImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName
+						);
+					} else {
+						// phpcs:ignore
+						$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
+						$image->resize(300, null);
+						// Normalize .jfif extension to .jpg for Nette Image compatibility
+						$thumbFileName = \preg_replace('/\.jfif$/i', '.jpg', $supplierPhoto->fileName);
+						$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $thumbFileName, 100);
+					}
+				} catch (\Throwable $e) {
+					if ($e instanceof InvalidArgumentException && \str_starts_with($e->getMessage(), 'Unsupported file extension')) {
+						Debugger::log($e, ILogger::INFO);
+					} else {
+						Debugger::log($e, ILogger::WARNING);
+					}
 				}
 			}
 		}
