@@ -172,11 +172,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		?Currency $currency = null,
 		bool $includeHiddenPrices = false,
 	): Collection {
-		// Automatically include hidden prices for merchants
-		if ($this->shopperUser->getMerchant() !== null) {
-			$includeHiddenPrices = true;
-		}
-
 		$discountCoupon = $this->shopperUser->getCheckoutManager()->getDiscountCoupon();
 
 		$currency ??= $this->shopperUser->getCurrency();
