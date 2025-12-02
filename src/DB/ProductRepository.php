@@ -150,6 +150,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			selects: $selects,
 			visibilityLists: $this->visibilityListRepository->getVisibilityListsByMerchant($merchant)->toArray(),
 			currency: $currency,
+			includeHiddenPrices: true,
 		);
 	}
 
