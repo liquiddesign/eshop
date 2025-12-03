@@ -50,8 +50,6 @@ readonly class ProductTester
 	 */
 	public function testProductByCustomer(Product $product, Customer $customer): array
 	{
-		$this->shopperUser->setMerchant(null);
-
 		$country = $this->countryRepository->one('CZ', true);
 		$currency = $this->currencyRepository->one('CZK', true);
 
@@ -96,8 +94,6 @@ readonly class ProductTester
 	 */
 	public function testProductByGroup(Product $product, CustomerGroup $customerGroup): array
 	{
-		$this->shopperUser->setMerchant(null);
-
 		$productFromGetProducts = $this->productRepository->getProducts(customerGroup: $customerGroup)->where('this.uuid', $product->getPK())->first();
 		$priceLists = $customerGroup->getDefaultPricelists()->toArray();
 		$visibilityLists = $customerGroup->getDefaultVisibilityLists()->toArray();
