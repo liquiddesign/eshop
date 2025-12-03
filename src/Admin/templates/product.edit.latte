@@ -401,7 +401,7 @@
                 {foreach $photos as $photo}
                 var mockFile = { name: {$photo['name']}, size: {$photo['size']}};
                 thisDropzone.options.addedfile.call(thisDropzone, mockFile);
-                thisDropzone.options.thumbnail.call(thisDropzone, mockFile, {$baseUrl . '/userfiles/product_gallery_images/thumb/' . $photo['name']});
+                thisDropzone.options.thumbnail.call(thisDropzone, mockFile, {$baseUrl . '/userfiles/product_gallery_images/detail/' . $photo['name']});
                 thisDropzone.emit("success", mockFile);
                 thisDropzone.emit("complete", mockFile);
                 {/foreach}
