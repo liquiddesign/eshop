@@ -16,16 +16,18 @@ class UnsendOffer extends BaseAction
 	}
 
 	/**
-	 * Unsend offer - move from Sent back to Created state
+	 * Unsend offer - move from Sent/Approved back to Created state
 	 * @throws \Eshop\Actions\Offer\StateOperations\UnauthorizedStateChangeException|\StORM\Exception\NotFoundException
 	 */
 	public function execute(Offer $offer): void
 	{
 		$this->canUnsendOffer($offer);
 
-		// Nullify sentTs to move back to Created state
+		// Nullify all timestamps to move back to Created state
+		// Must include approvedTs - otherwise offer won't appear in any tab
 		$offer->update([
 			'sentTs' => null,
+			'approvedTs' => null,
 			'managerApprovalRequestedTs' => null,
 			'managerApprovedTs' => null,
 		]);
