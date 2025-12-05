@@ -248,28 +248,22 @@ class ProductGridFiltersFactory
 			if ($value === 'noean') {
 				$source->where('this.ean IS NULL');
 			}
-
+			
 			if ($value === 'content') {
-				$source->where("this.content_cs IS NOT NULL AND this.content_cs != ''");
+				$source->where("EXISTS (SELECT 1 FROM eshop_productcontent WHERE this.uuid = eshop_productcontent.fk_product AND eshop_productcontent.content_cs IS NOT NULL AND eshop_productcontent.content_cs != '')");
 			}
-
+			
 			if ($value === 'nocontent') {
-				$source->where("this.content_cs IS NULL OR this.content_cs=''");
+				$source->where("NOT EXISTS (SELECT 1 FROM eshop_productcontent WHERE this.uuid = eshop_productcontent.fk_product AND eshop_productcontent.content_cs IS NOT NULL AND eshop_productcontent.content_cs != '')");
 			}
-
+			
 			if ($value !== 'fixcontent') {
 				return;
 			}
-
+			
 			$thresholdLength = 1000;
 			$suffix = '_cs';
-			$expression = new Expression();
-			$expression->add('AND', "LOCATE(%s, this.content$suffix)=0", ['<div>']);
-			$expression->add('AND', "LOCATE(%s, this.content$suffix)=0", ['<br>']);
-			$expression->add('AND', "LOCATE(%s, this.content$suffix)=0", ['<p>']);
-			$expression->add('AND', "LOCATE(%s, this.content$suffix)=0", ['<table>']);
-
-			$source->where("LENGTH(this.content$suffix) > :length", ['length' => $thresholdLength])->where($expression->getSql(), $expression->getVars());
+			$source->where("EXISTS (SELECT 1 FROM eshop_productcontent WHERE this.uuid = eshop_productcontent.fk_product AND LENGTH(eshop_productcontent.content$suffix) > :length AND LOCATE('<div>', eshop_productcontent.content$suffix) = 0 AND LOCATE('<br>', eshop_productcontent.content$suffix) = 0 AND LOCATE('<p>', eshop_productcontent.content$suffix) = 0 AND LOCATE('<table>', eshop_productcontent.content$suffix) = 0)", ['length' => $thresholdLength]);
 		}, '', 'image', null, [
 			'mainImage' => 'S hlavním obrázkem',
 			'noMainImage' => 'Chybí hlavní obrázek',
