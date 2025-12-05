@@ -538,6 +538,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 					->setDisabled(!$pricesPermission || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT || $prc->isReadonly)
 					->addCondition($form::FILLED)
 					->addRule($form::FLOAT);
+				$pricelist->addCheckbox('hidden')
+					->setDisabled(!$pricesPermission || $prc->isReadonly);
 			}
 
 			$stores = $form->addContainer('stores');

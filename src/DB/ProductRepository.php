@@ -171,9 +171,13 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		?CustomerGroup $customerGroup = null,
 		?array $visibilityLists = null,
 		?Currency $currency = null,
-		bool $includeHiddenPrices = false,
+		bool|null $includeHiddenPrices = null,
 	): Collection {
 		$discountCoupon = $this->shopperUser->getCheckoutManager()->getDiscountCoupon();
+
+		if ($includeHiddenPrices === null || $includeHiddenPrices === true) {
+			$includeHiddenPrices = $this->shopperUser->canViewHiddenPrices();
+		}
 
 		$currency ??= $this->shopperUser->getCurrency();
 		$convertRatio = null;

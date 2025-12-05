@@ -17,6 +17,7 @@ use Eshop\DB\Pricelist;
 use Eshop\DB\PricelistRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
+use Eshop\Services\SettingsService;
 use Forms\Form;
 use Grid\Datagrid;
 use Messages\DB\TemplateRepository;
@@ -26,6 +27,7 @@ use Nette\Mail\Mailer;
 use Nette\Security\Passwords;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
+use Tracy\Debugger;
 
 class MerchantPresenter extends BackendPresenter
 {
@@ -66,6 +68,9 @@ class MerchantPresenter extends BackendPresenter
 
 	#[Inject]
 	public GeneralProductsCacheProvider $productsCacheGetterService;
+
+	#[Inject]
+	public SettingsService $settingsService;
 
 	/**
 	 * @var null|callable(array<mixed> $values, \Admin\Controls\AdminForm $form): bool
@@ -294,6 +299,21 @@ class MerchantPresenter extends BackendPresenter
 		$this->presenter->redirect(':Web:Index:default');
 	}
 
+	public function handleRefreshCache(Merchant $merchant): void
+	{
+		try {
+			$this->productsCacheGetterService->updatePricesCacheTable([], [], [$merchant->getPK()]);
+
+			$this->flashMessage('Provedeno', 'success');
+		} catch (\Exception $e) {
+			$this->flashMessage('Chyba', 'error');
+
+			Debugger::barDump($e);
+		}
+
+		$this->redirect('this');
+	}
+
 	public function renderDefault(): void
 	{
 		$this->template->headerLabel = 'Obchodníci';
@@ -317,14 +337,21 @@ class MerchantPresenter extends BackendPresenter
 
 	public function renderDetail(Merchant $merchant): void
 	{
-		unset($merchant);
-
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Obchodníci', 'default'],
 			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
+
+		if ($this->settingsService->isUsingProductsCache()) {
+			$this->template->displayButtons[] = $this->createButton2(
+				'refreshCache!',
+				'Přepočítat cache obchodníka',
+				linkArgs: [$merchant],
+			);
+		}
+
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
 

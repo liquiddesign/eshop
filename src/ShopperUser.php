@@ -684,6 +684,13 @@ class ShopperUser extends User
 			$repo->getPricelists($unregisteredPricelists, $currency, $this->getCountry(), $discountCoupon);
 	}
 
+	public function canViewHiddenPrices(): bool
+	{
+		$priceListsMode = $this->getMerchantPriceListsMode();
+
+		return $priceListsMode === 'merge' || $priceListsMode === 'merchant';
+	}
+
 	/**
 	 * Vrací kolekci aktuálních ceník, respektující uživatel i měnu, cachuje se do proměnné
 	 * @param \Eshop\DB\Currency|null $currency

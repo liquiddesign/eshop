@@ -474,12 +474,12 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 			->join(['priceList' => 'eshop_pricelist'], 'this.fk_pricelist = priceList.uuid', type: 'INNER')
 			->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid', type: 'INNER')
 			->where('priceList.id', $allPriceLists)
-			->where('this.hidden', false)
 			->setSelect([
 				'this.price',
 				'this.priceVat',
 				'this.priceBefore',
 				'this.priceVatBefore',
+				'priceHidden' => 'this.hidden',
 				'productId' => 'product.id',
 				'priceListId' => 'priceList.id',
 				'priceListPriority' => 'priceList.priority',
@@ -528,7 +528,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		}
 
 		Debugger::timer('getAllPossibleVisibilityAndPriceListOptions');
-		[$visibilityPriceListsOptions, $allVisibilityLists, $allPriceLists] = $this->getAllPossibleVisibilityAndPriceListOptions($customers, $customerGroups, $merchants);
+		[$visibilityPriceListsOptions, $allVisibilityLists, $allPriceLists, $merchantIndexes] = $this->getAllPossibleVisibilityAndPriceListOptions($customers, $customerGroups, $merchants);
 
 		Debugger::log(
 			'diffUpdateVisibilityPriceTable -- getAllPossibleVisibilityAndPriceListOptions: ' . Debugger::timer('getAllPossibleVisibilityAndPriceListOptions') .
@@ -606,6 +606,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 			$visibilityLists = \explode(',', $visibilityListsString);
 			/** @var array<int> $priceLists */
 			$priceLists = \explode(',', $priceListsString);
+			$isMerchantIndex = isset($merchantIndexes[$index]);
 
 			foreach ($allProductsWithVLI as $product => $vliItems) {
 				foreach ($visibilityLists as $visibilityListId) {
@@ -626,8 +627,14 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 							continue;
 						}
 
-						$cachePrice = $cachePrices[$product] ?? null;
 						$price = $priceItems[$priceListId];
+
+						// Skip hidden prices for non-merchant indexes
+						if (!$isMerchantIndex && $price->priceHidden) {
+							continue;
+						}
+
+						$cachePrice = $cachePrices[$product] ?? null;
 
 						$newPrice = [
 							'product' => $product,
