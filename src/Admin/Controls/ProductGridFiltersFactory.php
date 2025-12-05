@@ -250,11 +250,17 @@ class ProductGridFiltersFactory
 			}
 			
 			if ($value === 'content') {
-				$source->where("EXISTS (SELECT 1 FROM eshop_productcontent WHERE this.uuid = eshop_productcontent.fk_product AND eshop_productcontent.content_cs IS NOT NULL AND eshop_productcontent.content_cs != '')");
+				$source->where(
+					'EXISTS (SELECT 1 FROM eshop_productcontent WHERE this.uuid = eshop_productcontent.fk_product ' .
+					"AND eshop_productcontent.content_cs IS NOT NULL AND eshop_productcontent.content_cs != '')",
+				);
 			}
 			
 			if ($value === 'nocontent') {
-				$source->where("NOT EXISTS (SELECT 1 FROM eshop_productcontent WHERE this.uuid = eshop_productcontent.fk_product AND eshop_productcontent.content_cs IS NOT NULL AND eshop_productcontent.content_cs != '')");
+				$source->where(
+					'NOT EXISTS (SELECT 1 FROM eshop_productcontent WHERE this.uuid = eshop_productcontent.fk_product ' .
+					"AND eshop_productcontent.content_cs IS NOT NULL AND eshop_productcontent.content_cs != '')",
+				);
 			}
 			
 			if ($value !== 'fixcontent') {
@@ -263,7 +269,15 @@ class ProductGridFiltersFactory
 			
 			$thresholdLength = 1000;
 			$suffix = '_cs';
-			$source->where("EXISTS (SELECT 1 FROM eshop_productcontent WHERE this.uuid = eshop_productcontent.fk_product AND LENGTH(eshop_productcontent.content$suffix) > :length AND LOCATE('<div>', eshop_productcontent.content$suffix) = 0 AND LOCATE('<br>', eshop_productcontent.content$suffix) = 0 AND LOCATE('<p>', eshop_productcontent.content$suffix) = 0 AND LOCATE('<table>', eshop_productcontent.content$suffix) = 0)", ['length' => $thresholdLength]);
+			$source->where(
+				'EXISTS (SELECT 1 FROM eshop_productcontent WHERE this.uuid = eshop_productcontent.fk_product ' .
+				"AND LENGTH(eshop_productcontent.content$suffix) > :length " .
+				"AND LOCATE('<div>', eshop_productcontent.content$suffix) = 0 " .
+				"AND LOCATE('<br>', eshop_productcontent.content$suffix) = 0 " .
+				"AND LOCATE('<p>', eshop_productcontent.content$suffix) = 0 " .
+				"AND LOCATE('<table>', eshop_productcontent.content$suffix) = 0)",
+				['length' => $thresholdLength],
+			);
 		}, '', 'image', null, [
 			'mainImage' => 'S hlavním obrázkem',
 			'noMainImage' => 'Chybí hlavní obrázek',
