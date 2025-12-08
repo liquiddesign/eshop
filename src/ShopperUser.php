@@ -686,9 +686,10 @@ class ShopperUser extends User
 
 	public function canViewHiddenPrices(): bool
 	{
-		$priceListsMode = $this->getMerchantPriceListsMode();
-
-		return $priceListsMode === 'merge' || $priceListsMode === 'merchant';
+		return match ($this->getMerchantPriceListsMode()) {
+			'merge', 'merchant' => true,
+			default => false,
+		};
 	}
 
 	/**
