@@ -1133,7 +1133,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 	/**
 	 * @param \Eshop\DB\Order $order
-	 * @return array<string, array|bool|\Eshop\DB\Currency|\Eshop\DB\DiscountCoupon|\Eshop\DB\Order|float|string|null>
+	 * @return array<string, array|bool|\Eshop\DB\Currency|\Eshop\DB\Customer|\Eshop\DB\DiscountCoupon|\Eshop\DB\Order|float|string|null>
 	 * @throws \StORM\Exception\NotFoundException
 	 */
 	public function getEmailVariables(Order $order): array
@@ -1227,6 +1227,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 			'accountFullname' => $purchase->accountFullname,
 			'displayedTransactionEmailBlocks' => $currentContextCatalogPermissions->getDisplayedTransactionEmailBlocks(),
 			'additionalEmailText' => $currentContextCatalogPermissions->additionalEmailText,
+			'_customerEntity' => $customer,
 		];
 
 		if ($currentContextCatalogPermissions->catalogPermission === 'price') {
