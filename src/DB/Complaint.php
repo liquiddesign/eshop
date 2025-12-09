@@ -110,7 +110,7 @@ class Complaint extends ShopEntity
 	public string $createdTs;
 
 	/**
-	 * @return array<string|float|int|null>
+	 * @return array<string, mixed>
 	 */
 	public function getEmailVariables(): array
 	{
@@ -122,6 +122,7 @@ class Complaint extends ShopEntity
 			'customerPhone' => $this->customer ? $this->customer->phone : $this->customerPhone,
 			'createdTs' => $this->createdTs,
 			'orderCode' => $this->order ? $this->order->code : $this->orderCode,
+			'_customerEntity' => $this->customer,
 		];
 	}
 }
