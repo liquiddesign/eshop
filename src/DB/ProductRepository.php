@@ -83,11 +83,17 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		return $this->getProducts()->where('this.uuid', $condition)->first(true);
 	}
 
-	public function getProductsAsCustomer(?Customer $customer, bool $selects = true): Collection
+	public function getProductsAsCustomer(?Customer $customer, bool $selects = true, bool $includeHiddenPrices = false): Collection
 	{
 		$priceLists = $customer ? $customer->pricelists : $this->customerGroupRepository->getUnregisteredGroup()->defaultPricelists;
 
-		return $this->getProducts($this->getValidPricelists($priceLists)->toArray(), $customer, $selects, $customer === null ? $this->customerGroupRepository->getUnregisteredGroup() : null);
+		return $this->getProducts(
+			$this->getValidPricelists($priceLists)->toArray(),
+			$customer,
+			$selects,
+			$customer === null ? $this->customerGroupRepository->getUnregisteredGroup() : null,
+			includeHiddenPrices: $includeHiddenPrices,
+		);
 	}
 
 	public function getProductsAsGroup(CustomerGroup $customerGroup, bool $selects = true): Collection
@@ -171,9 +177,13 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		?CustomerGroup $customerGroup = null,
 		?array $visibilityLists = null,
 		?Currency $currency = null,
-		bool $includeHiddenPrices = false,
+		bool|null $includeHiddenPrices = null,
 	): Collection {
 		$discountCoupon = $this->shopperUser->getCheckoutManager()->getDiscountCoupon();
+
+		if ($includeHiddenPrices === null || $includeHiddenPrices === true) {
+			$includeHiddenPrices = $this->shopperUser->canViewHiddenPrices();
+		}
 
 		$currency ??= $this->shopperUser->getCurrency();
 		$convertRatio = null;

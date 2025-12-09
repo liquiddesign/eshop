@@ -571,6 +571,7 @@ class ProductPresenter extends BackendPresenter
 				'priceVat' => 'prices.priceVat',
 				'priceBefore' => 'prices.priceBefore',
 				'priceVatBefore' => 'prices.priceVatBefore',
+				'hidden' => 'prices.hidden',
 			])->toArray();
 
 		/** @var \Forms\Container $input */

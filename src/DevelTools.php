@@ -24,12 +24,27 @@ class DevelTools
 	}
 
 	/**
-	 * Returns SQL
-	 * @param \StORM\ICollection $collection
+	 * Returns SQL with all parameters replaced (fixes PdoDebugger replacing only first occurrence)
 	 */
 	public static function showCollection(ICollection $collection): string
 	{
-		return \PdoDebugger::show($collection->getSql(), $collection->getVars());
+		$sql = $collection->getSql();
+
+		foreach ($collection->getVars() as $key => $value) {
+			if (\is_string($value)) {
+				$replacement = "'" . $value . "'";
+			} elseif (\is_array($value)) {
+				$replacement = \implode(',', $value);
+			} elseif ($value === null) {
+				$replacement = 'NULL';
+			} else {
+				$replacement = (string) $value;
+			}
+
+			$sql = \str_replace(':' . $key, $replacement, $sql);
+		}
+
+		return $sql;
 	}
 
 	/**

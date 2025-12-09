@@ -126,7 +126,7 @@ abstract class ProductsCacheBaseWarmUpService
 	 * @param array<string|int> $customers
 	 * @param array<string|int> $customerGroups
 	 * @param array<string|int> $merchants
-	 * @return array{0: array<string, true>, 1: list<int>, 2: list<int>}
+	 * @return array{0: array<string, true>, 1: list<int>, 2: list<int>, 3: array<string, true>}
 	 */
 	public function getAllPossibleVisibilityAndPriceListOptions(array $customers = [], array $customerGroups = [], array $merchants = []): array
 	{
@@ -134,22 +134,31 @@ abstract class ProductsCacheBaseWarmUpService
 		$existingOptions = [];
 		$allVisibilityLists = [];
 		$allPriceLists = [];
+		/** @var array<string, true> $merchantIndexes */
+		$merchantIndexes = [];
 
 		if (!$this->shopsConfig->getAvailableShops()) {
 			return $this->getAllPossibleVisibilityAndPriceListOptionsHelper($customers, $customerGroups, $merchants);
 		}
 
 		foreach ($this->shopsConfig->getAvailableShops() as $shop) {
-			[$existingOptionsShop, $allVisibilityListsShop, $allPriceListsShop] = $this->getAllPossibleVisibilityAndPriceListOptionsHelper($customers, $customerGroups, $merchants, $shop);
+			[
+				$existingOptionsShop,
+				$allVisibilityListsShop,
+				$allPriceListsShop,
+				$merchantIndexesShop,
+			] = $this->getAllPossibleVisibilityAndPriceListOptionsHelper($customers, $customerGroups, $merchants, $shop);
 			/** @var array<string, true> $existingOptions */
 			$existingOptions = Arrays::mergeTree($existingOptions, $existingOptionsShop);
+			/** @var array<string, true> $merchantIndexes */
+			$merchantIndexes = Arrays::mergeTree($merchantIndexes, $merchantIndexesShop);
 
 			// merge only new values
 			$allVisibilityLists = \array_merge($allVisibilityLists, \array_diff($allVisibilityListsShop, $allVisibilityLists));
 			$allPriceLists = \array_merge($allPriceLists, \array_diff($allPriceListsShop, $allPriceLists));
 		}
 
-		return [$existingOptions, $allVisibilityLists, $allPriceLists];
+		return [$existingOptions, $allVisibilityLists, $allPriceLists, $merchantIndexes];
 	}
 
 	/**
@@ -386,7 +395,7 @@ abstract class ProductsCacheBaseWarmUpService
 	 * @param array<string|int> $customers
 	 * @param array<string|int> $customerGroups
 	 * @param array<string|int> $merchants
-	 * @return array{0: array<string, true>, 1: list<int>, 2: list<int>}
+	 * @return array{0: array<string, true>, 1: list<int>, 2: list<int>, 3: array<string, true>}
 	 */
 	private function getAllPossibleVisibilityAndPriceListOptionsHelper(array $customers = [], array $customerGroups = [], array $merchants = [], Shop|null $shop = null): array
 	{
@@ -396,6 +405,8 @@ abstract class ProductsCacheBaseWarmUpService
 		$existingOptions = [];
 		$allVisibilityLists = [];
 		$allPriceLists = [];
+		/** @var array<string, true> $merchantIndexes */
+		$merchantIndexes = [];
 
 		$customerGroupsQuery = $this->customerGroupRepository->many();
 
@@ -667,10 +678,11 @@ abstract class ProductsCacheBaseWarmUpService
 						\implode(',', $combination);
 
 					$existingOptions[$index] = true;
+					$merchantIndexes[$index] = true;
 				}
 			}
 		}
 
-		return [$existingOptions, \array_keys($allVisibilityLists), \array_keys($allPriceLists)];
+		return [$existingOptions, \array_keys($allVisibilityLists), \array_keys($allPriceLists), $merchantIndexes];
 	}
 }
