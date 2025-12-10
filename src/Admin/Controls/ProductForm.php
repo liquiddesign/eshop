@@ -877,13 +877,22 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				/** @var null|string $autoPriceConfig */
 				$autoPriceConfig = $this->configuration[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
-				if (((!$autoPriceConfig
-					|| $autoPriceConfig === ProductFormAutoPriceConfig::NONE
-					|| $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT)
-						&& $prices['price'] === null)
-					|| ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT
-					&& $prices['priceVat'] === null)
-				) {
+				// Delete price record if both price and priceVat are null (for bidirectional mode)
+				// or based on config-specific requirements
+				$shouldDelete = false;
+
+				if ($autoPriceConfig === null || $autoPriceConfig === ProductFormAutoPriceConfig::NONE) {
+					// Bidirectional mode: delete only if BOTH prices are null
+					$shouldDelete = $prices['price'] === null && $prices['priceVat'] === null;
+				} elseif ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
+					// WITH_VAT mode: user enters price, delete if price is null
+					$shouldDelete = $prices['price'] === null;
+				} elseif ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
+					// WITHOUT_VAT mode: user enters priceVat, delete if priceVat is null
+					$shouldDelete = $prices['priceVat'] === null;
+				}
+
+				if ($shouldDelete) {
 					$this->priceRepository->many()
 						->where('this.fk_pricelist', $pricelistId)
 						->where('this.fk_product', $values['uuid'])
@@ -892,18 +901,42 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 					continue;
 				}
 
+				$vatRate = $this->vatRateRepository->getDefaultVatRates()[$product->vatRate];
+
 				if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
-					$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), ShopperUser::PRICE_PRECISSION);
+					$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $vatRate), ShopperUser::PRICE_PRECISSION);
 					$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
-						\round($prices['priceVatBefore'] * \fdiv(100, 100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate]), ShopperUser::PRICE_PRECISSION) :
+						\round($prices['priceVatBefore'] * \fdiv(100, 100 + $vatRate), ShopperUser::PRICE_PRECISSION) :
 						null;
 				}
 
 				if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
-					$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), ShopperUser::PRICE_PRECISSION);
+					$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $vatRate, 100), ShopperUser::PRICE_PRECISSION);
 					$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
-						\round($prices['priceBefore'] * \fdiv(100 + $this->vatRateRepository->getDefaultVatRates()[$product->vatRate], 100), ShopperUser::PRICE_PRECISSION) :
+						\round($prices['priceBefore'] * \fdiv(100 + $vatRate, 100), ShopperUser::PRICE_PRECISSION) :
 						null;
+				}
+
+				// Bidirectional auto-calculation when config is NONE or not set
+				if ($autoPriceConfig === null || $autoPriceConfig === ProductFormAutoPriceConfig::NONE) {
+					// Calculate priceVat from price
+					if ($prices['price'] !== null && $prices['priceVat'] === null) {
+						$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $vatRate, 100), ShopperUser::PRICE_PRECISSION);
+					}
+
+					// Calculate price from priceVat
+					if ($prices['priceVat'] !== null && $prices['price'] === null) {
+						$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $vatRate), ShopperUser::PRICE_PRECISSION);
+					}
+
+					// Same for "before" prices
+					if ($prices['priceBefore'] !== null && $prices['priceVatBefore'] === null) {
+						$prices['priceVatBefore'] = \round($prices['priceBefore'] * \fdiv(100 + $vatRate, 100), ShopperUser::PRICE_PRECISSION);
+					}
+
+					if ($prices['priceVatBefore'] !== null && $prices['priceBefore'] === null) {
+						$prices['priceBefore'] = \round($prices['priceVatBefore'] * \fdiv(100, 100 + $vatRate), ShopperUser::PRICE_PRECISSION);
+					}
 				}
 
 				$conditions = [
