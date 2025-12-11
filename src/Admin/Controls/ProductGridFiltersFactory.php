@@ -248,25 +248,25 @@ class ProductGridFiltersFactory
 			if ($value === 'noean') {
 				$source->where('this.ean IS NULL');
 			}
-			
+
 			if ($value === 'content') {
 				$source->where(
 					'EXISTS (SELECT 1 FROM eshop_productcontent WHERE this.uuid = eshop_productcontent.fk_product ' .
 					"AND eshop_productcontent.content_cs IS NOT NULL AND eshop_productcontent.content_cs != '')",
 				);
 			}
-			
+
 			if ($value === 'nocontent') {
 				$source->where(
 					'NOT EXISTS (SELECT 1 FROM eshop_productcontent WHERE this.uuid = eshop_productcontent.fk_product ' .
 					"AND eshop_productcontent.content_cs IS NOT NULL AND eshop_productcontent.content_cs != '')",
 				);
 			}
-			
+
 			if ($value !== 'fixcontent') {
 				return;
 			}
-			
+
 			$thresholdLength = 1000;
 			$suffix = '_cs';
 			$source->where(

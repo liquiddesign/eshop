@@ -1147,7 +1147,8 @@ class ShopperUser extends User
 	 */
 	protected function getSelectedCustomerForPriceListOperations(): ?Customer
 	{
-		if ($this->getCustomer()?->allowUsageOfBranchPriceList === true &&
+		if (
+			$this->getCustomer()?->allowUsageOfBranchPriceList === true &&
 			$this->getUseSelectedCustomerPriceList() === true &&
 			$this->getSessionSelectedCustomer() !== null &&
 			$this->getSessionSelectedCustomer()->getPK() !== $this->getCustomer()->getPK()

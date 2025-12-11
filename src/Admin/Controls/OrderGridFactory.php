@@ -261,7 +261,8 @@ class OrderGridFactory
 		];
 
 		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
-			if (!isset($orderStatesEvents[$state]) || !Arrays::contains($orderStatesEvents[$state], $targetState) ||
+			if (
+				!isset($orderStatesEvents[$state]) || !Arrays::contains($orderStatesEvents[$state], $targetState) ||
 				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())
 			) {
 				continue;
@@ -484,7 +485,8 @@ class OrderGridFactory
 		];
 
 		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
-			if (!isset($orderStatesEvents[$state]) || !Arrays::contains($orderStatesEvents[$state], $targetState) ||
+			if (
+				!isset($orderStatesEvents[$state]) || !Arrays::contains($orderStatesEvents[$state], $targetState) ||
 				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())
 			) {
 				continue;

@@ -45,6 +45,8 @@ class VisibilityListPresenter extends BackendPresenter
 		'items' => 'Položky',
 	];
 
+	protected const BULK_EDIT_INPUTS = ['priority', 'hidden', 'hiddenInMenu', 'unavailable', 'recommended'];
+
 	#[Inject]
 	public VisibilityListRepository $visibilityListRepository;
 
@@ -89,6 +91,12 @@ class VisibilityListPresenter extends BackendPresenter
 
 	#[Persistent]
 	public string $tab = 'lists';
+
+	/** @var ?callable */
+	protected $onBeforeProcess = null;
+
+	/** @var ?callable */
+	protected $onBulkFormInit = null;
 
 	public function createComponentListsGrid(): AdminGrid
 	{
@@ -269,7 +277,7 @@ class VisibilityListPresenter extends BackendPresenter
 
 		$grid->addFilterButtons();
 
-		$grid->addButtonBulkEdit('itemForm', ['priority', 'hidden', 'hiddenInMenu', 'unavailable', 'recommended'], 'itemsGrid');
+		$grid->addButtonBulkEdit('itemForm', self::BULK_EDIT_INPUTS, 'itemsGrid', onBeforeProcess: $this->onBeforeProcess, onFormInit: $this->onBulkFormInit);
 
 		$submit = $grid->getForm()->addSubmit('export', 'Exportovat ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
@@ -375,6 +383,8 @@ class VisibilityListPresenter extends BackendPresenter
 			$hiddenInMenuInput->addConditionOn($hiddenInput, $form::EQUAL, false)->toggle($hiddenInMenuInput->getHtmlId() . '-toogle');
 
 			$form->addCheckbox('unavailable', 'Neprodejné')->setHtmlAttribute('data-info', 'Znemožňuje nákup produktu.');
+
+			$this->addCustomFieldsToItemForm($form, $object);
 
 			$productInput = $form->addSelectAjax('product', 'Produkt', 'Zvolte produkt', Product::class);
 
@@ -577,5 +587,10 @@ priority - Priorita<br>
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('exportItemsForm')];
+	}
+
+	protected function addCustomFieldsToItemForm(AdminForm $form, ?VisibilityListItem $object): void
+	{
+		unset($form, $object);
 	}
 }
