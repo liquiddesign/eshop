@@ -382,8 +382,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 						->count();
 				}
 
-				$this->prepareRelationsContainer($relationsMasterContainer, $relatedType, $this->relationExtraItemsCount + $masterCount);
-				$this->prepareRelationsContainer($relationsSlaveContainer, $relatedType, $this->relationExtraItemsCount + $slaveCount);
+				$this->prepareRelationsContainer($relationsMasterContainer, $relatedType, $this->relationExtraItemsCount + $masterCount, true);
+				$this->prepareRelationsContainer($relationsSlaveContainer, $relatedType, $this->relationExtraItemsCount + $slaveCount, false);
 
 				if (!$this->product) {
 					continue;
@@ -408,10 +408,17 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 					/** @var \Nette\Forms\Controls\Checkbox $hiddenInput */
 					$hiddenInput = $relationsMasterContainer["hidden_$i"];
 
-					$presenter->template->select2AjaxDefaults[$productInput->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->name];
+					if ($relation->slave !== null) {
+						$presenter->template->select2AjaxDefaults[$productInput->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->name];
+					}
+
 					$amountInput->setDefaultValue($relation->amount);
 					$priorityInput->setDefaultValue($relation->priority);
 					$hiddenInput->setDefaultValue($relation->hidden);
+
+					/** @var \Nette\Forms\Controls\TextInput $slaveNameInput */
+					$slaveNameInput = $relationsMasterContainer["slaveName_$i"];
+					$slaveNameInput->setDefaultValue($relation->slaveName);
 
 					if ($relatedType->defaultDiscountPct) {
 						/** @var \Nette\Forms\Controls\TextInput $discountPctInput */
@@ -775,7 +782,12 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			$relatedTypeValues = $values['relatedType_master_' . $relatedType->getPK()];
 
 			for ($i = 0; $i < $this->relationExtraItemsCount + $masterCount; $i++) {
-				if (!isset($data['relatedType_master_' . $relatedType->getPK()]["product_$i"])) {
+				$productId = $data['relatedType_master_' . $relatedType->getPK()]["product_$i"] ?? null;
+				$slaveName = $relatedTypeValues["slaveName_$i"] ?? null;
+				$slaveName = $slaveName !== '' ? $slaveName : null;
+
+				// Skip if neither product nor name provided
+				if ($productId === null && $slaveName === null) {
 					continue;
 				}
 
@@ -790,7 +802,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				$this->relatedRepository->syncOne([
 					'type' => $relatedType->getPK(),
 					'master' => $product->getPK(),
-					'slave' => $data['relatedType_master_' . $relatedType->getPK()]["product_$i"],
+					'slave' => $productId,
+					'slaveName' => $productId !== null ? null : $slaveName,
 					'amount' => $relatedTypeValues["amount_$i"] ?? $relatedType->defaultAmount,
 					'priority' => $relatedTypeValues["priority_$i"] ?? 10,
 					'hidden' => $relatedTypeValues["hidden_$i"] ?? false,
@@ -1126,10 +1139,15 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		$this->getPresenter()->redirect('this');
 	}
 
-	private function prepareRelationsContainer(Container $formContainer, RelatedType $relatedType, int $entriesCount): void
+	private function prepareRelationsContainer(Container $formContainer, RelatedType $relatedType, int $entriesCount, bool $includeSlaveName = false): void
 	{
 		for ($i = 0; $i < $entriesCount; $i++) {
 			$formContainer->addSelect2Ajax("product_$i", $this->getPresenter()->link('getProductsForSelect2!'), null, [], 'Zvolte produkt');
+
+			if ($includeSlaveName) {
+				$formContainer->addText("slaveName_$i")->setNullable();
+			}
+
 			$formContainer->addInteger("amount_$i")->setDefaultValue($relatedType->defaultAmount)->setNullable();
 			$formContainer->addInteger("priority_$i")->setDefaultValue(10)->setNullable();
 			$formContainer->addCheckbox("hidden_$i");

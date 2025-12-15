@@ -139,16 +139,22 @@ Eshop\DB\Order::STATE_RECEIVED => 'Přijatá',
                                     {if $packageItem->cartItem->getValue('product') && isset($relations[$order->getPK()][$packageItem->cartItem->getValue('product')])}
                                         {foreach $relations[$order->getPK()][$packageItem->cartItem->getValue('product')] as $related}
                                             {varType Eshop\DB\Related $related}
-                                            {var Eshop\DB\Product $slave = $related->slave}
+                                            {var Eshop\DB\Product|null $slave = $related->slave}
                                             <tr>
                                                 <td>
-                                                    {$slave->getFullCode()}
-									                {if $slave->getEan()}<br><small>EAN: {$slave->getEan()}</small>{/if}
+                                                    {if $slave}
+                                                        {$slave->getFullCode()}
+									                    {if $slave->getEan()}<br><small>EAN: {$slave->getEan()}</small>{/if}
+                                                    {/if}
                                                 </td>
                                                 <td>
-                                                    <a n:tag-if="$admin->isAllowed(':Eshop:Admin:Product:default')" href="{plink :Eshop:Admin:Product:default, productGrid-code=>$slave->getFullCode()}" target="_blank">
-                                                        <span n:class="true ? ml-3 : null">-- {$slave->name}</span>
-                                                    </a>
+                                                    {if $slave}
+                                                        <a n:tag-if="$admin->isAllowed(':Eshop:Admin:Product:default')" href="{plink :Eshop:Admin:Product:default, productGrid-code=>$slave->getFullCode()}" target="_blank">
+                                                            <span n:class="true ? ml-3 : null">-- {$slave->name}</span>
+                                                        </a>
+                                                    {else}
+                                                        <span class="ml-3 text-muted">-- {$related->slaveName} (neexistuje)</span>
+                                                    {/if}
                                                 </td>
                                                 <td>{$related->amount}</td>
                                                 <td>

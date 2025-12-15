@@ -751,6 +751,7 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
 		}
 
 		$relations = $this->relatedRepository->many()
+			->where('this.fk_slave IS NOT NULL')
 			->join(['type' => 'eshop_relatedtype'], 'this.fk_type = type.uuid')
 			->join(['masterProduct' => 'eshop_product'], 'this.fk_master = masterProduct.uuid')
 			->join(['slaveProduct' => 'eshop_product'], 'this.fk_slave = slaveProduct.uuid')

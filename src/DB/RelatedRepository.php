@@ -39,7 +39,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 	 */
 	public function getArrayForSelect(bool $includeHidden = true): array
 	{
-		return $this->getCollection($includeHidden)->toArrayOf('CONCAT(master.name,"-",slave.name)');
+		return $this->getCollection($includeHidden)->toArrayOf('CONCAT(master.name,"-",COALESCE(slave.name, this.slaveName))');
 	}
 
 	/**
@@ -84,6 +84,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			'type',
 			'master',
 			'slave',
+			'slaveName',
 			'amount',
 			'discountPct',
 			'masterPct',
@@ -97,7 +98,8 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			$writer->insertOne([
 				$related->type->code,
 				$related->master->getFullCode(),
-				$related->slave->getFullCode(),
+				$related->slave?->getFullCode() ?? '',
+				$related->slaveName,
 				$related->amount,
 				$related->discountPct,
 				$related->masterPct,
@@ -121,6 +123,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			'type',
 			'master',
 			'slave',
+			'slaveName',
 			'amount',
 			'discountPct',
 			'masterPct',
@@ -156,7 +159,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 		foreach ($iterator as $value) {
 			$relatedType = $relatedTypesByCode[$value['type']] ?? null;
 
-			if (!$relatedType) {
+			if ($relatedType === null) {
 				$notFoundRelationTypes[] = $value['type'];
 
 				continue;
@@ -165,7 +168,7 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			$master = Strings::trim($value['master']);
 			$masterPK = $productsByEan[$master] ?? $productsByFullCode[$master] ?? $productsByCode[$master] ?? null;
 
-			if (!$masterPK) {
+			if ($masterPK === null) {
 				$notFoundProducts[] = $master;
 
 				continue;
@@ -174,10 +177,21 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			$slave = Strings::trim($value['slave']);
 			$slavePK = $productsByEan[$slave] ?? $productsByFullCode[$slave] ?? $productsByCode[$slave] ?? null;
 
-			if (!$slavePK) {
-				$notFoundProducts[] = $slave;
+			// Allow name-only relations
+			$slaveName = null;
 
-				continue;
+			if ($slavePK === null) {
+				// If slaveName column exists and has value, use it; otherwise use slave identifier as name
+				$slaveName = isset($value['slaveName']) && $value['slaveName'] !== ''
+					? Strings::trim($value['slaveName'])
+					: $slave;
+
+				// Require slaveName to have content (skip empty relations)
+				if ($slaveName === '') {
+					$notFoundProducts[] = $slave;
+
+					continue;
+				}
 			}
 
 			$shopsArray = \explode(',', Strings::lower(Strings::trim($value['shops'])));
@@ -185,10 +199,11 @@ class RelatedRepository extends \StORM\Repository implements IGeneralRepository
 			$rowShops = \array_intersect($shopsArray, $availableShops);
 
 			$data = [
-				'uuid' => DIConnection::generateUuid('relation', "{$relatedType->getPK()}$masterPK$slavePK"),
+				'uuid' => DIConnection::generateUuid('relation', "{$relatedType->getPK()}$masterPK" . ($slavePK ?? $slaveName)),
 				'type' => $relatedType->getPK(),
 				'master' => $masterPK,
 				'slave' => $slavePK,
+				'slaveName' => $slavePK === null ? $slaveName : null,
 				'amount' => (int) ($value['amount'] ?: 1),
 				'discountPct' => isset($value['discountPct']) ? NumbersHelper::strToFloat($value['discountPct']) : null,
 				'masterPct' => isset($value['masterPct']) ? NumbersHelper::strToFloat($value['masterPct']) : null,

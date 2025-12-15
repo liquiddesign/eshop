@@ -2044,6 +2044,11 @@ class CheckoutManager
 				$slaveProducts = [];
 
 				foreach ($relatedProducts as $relatedProduct) {
+					// Skip name-only relations (no pricing)
+					if ($relatedProduct->getValue('slave') === null) {
+						continue;
+					}
+
 					$slaveProducts[] = $relatedProduct->getValue('slave');
 				}
 
@@ -2054,6 +2059,11 @@ class CheckoutManager
 				$slaveProductsTotalPriceVat = 0;
 
 				foreach ($relatedProducts as $relatedProduct) {
+					// Skip name-only relations (no pricing)
+					if ($relatedProduct->getValue('slave') === null) {
+						continue;
+					}
+
 					if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
 						$slaveProductsTotalPrice += $relatedProduct->amount;
 						$slaveProductsTotalPriceVat += (($this->shopperUser->getVatRates()[$relatedProduct->slave->vatRate] / 100) + 1) * $relatedProduct->amount;
@@ -2069,6 +2079,11 @@ class CheckoutManager
 				$setTotalPriceVatModifier = $slaveProductsTotalPriceVat > 0 ? $cartItem->priceVat / $slaveProductsTotalPriceVat : 1;
 
 				foreach ($relatedProducts as $relatedProduct) {
+					// Skip name-only relations (no pricing)
+					if ($relatedProduct->getValue('slave') === null) {
+						continue;
+					}
+
 					if (!isset($slaveProducts[$relatedProduct->getValue('slave')])) {
 						$product = $this->productRepository->one($relatedProduct->getValue('slave'), true);
 

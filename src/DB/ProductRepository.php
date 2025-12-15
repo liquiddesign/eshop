@@ -1189,6 +1189,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function filterRelatedSlave($value, ICollection $collection): void
 	{
+		$collection->where('related.fk_slave IS NOT NULL');
 		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave');
 		$collection->where('related.fk_type', $value[0]);
 		$collection->where('related.fk_master', $value[1]);
@@ -1209,6 +1210,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function filterCompatiblePrinters($value, ICollection $collection): void
 	{
+		$collection->where('related.fk_slave IS NOT NULL');
 		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave');
 		$collection->where('related.fk_master', $value);
 		$collection->where('related.fk_type = "tonerForPrinter"');
@@ -1571,7 +1573,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}
 		}
 
-		return $this->many()->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave')
+		return $this->many()
+			->where('related.fk_slave IS NOT NULL')
+			->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave')
 			->where('related.hidden', false)
 			->where('related.fk_master', $product->getPK())
 			->where('related.fk_type', $relatedType->getPK())
