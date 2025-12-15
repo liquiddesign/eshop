@@ -2001,8 +2001,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		/** @var \Eshop\DB\DeliveryDiscount $deliveryDiscount */
 		foreach ($deliveryDiscountQuery as $deliveryDiscount) {
-			if (
-				$deliveryDiscount->discount->isActive() === false ||
+			if ($deliveryDiscount->discount->isActive() === false ||
 				$deliveryDiscount->discountPriceFrom > ($vat ? $product->getValue('priceVat') : $product->getValue('price')) ||
 				(\abs($deliveryDiscount->discountPct - 100) >= \PHP_FLOAT_EPSILON)
 			) {

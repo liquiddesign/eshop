@@ -277,7 +277,7 @@ class VisibilityListPresenter extends BackendPresenter
 
 		$grid->addFilterButtons();
 
-		$grid->addButtonBulkEdit('itemForm', static::BULK_EDIT_INPUTS, 'itemsGrid', onBeforeProcess: $this->onBeforeProcess, onFormInit: $this->onBulkFormInit);
+		$grid->addButtonBulkEdit('itemForm', self::BULK_EDIT_INPUTS, 'itemsGrid', onBeforeProcess: $this->onBeforeProcess, onFormInit: $this->onBulkFormInit);
 
 		$submit = $grid->getForm()->addSubmit('export', 'Exportovat ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
