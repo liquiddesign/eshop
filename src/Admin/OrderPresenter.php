@@ -1734,7 +1734,8 @@ class OrderPresenter extends BackendPresenter
 		];
 
 		foreach ($buttonsByTargetStates[$state] ?? [] as $targetState => $button) {
-			if (!isset($this::ORDER_STATES_EVENTS[$state]) || !Arrays::contains($this::ORDER_STATES_EVENTS[$state], $targetState) ||
+			if (
+				!isset($this::ORDER_STATES_EVENTS[$state]) || !Arrays::contains($this::ORDER_STATES_EVENTS[$state], $targetState) ||
 				($state === Order::STATE_OPEN && !$this->shopperUser->getEditOrderAfterCreation())
 			) {
 				continue;

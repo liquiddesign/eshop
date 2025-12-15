@@ -1428,7 +1428,8 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 		$pointsGain = 0.0;
 
 		/** @var \Eshop\DB\CartItem $cartItem */
-		foreach ($order->purchase->getItems()->join(['loyaltyProgramProduct' => 'eshop_loyaltyprogramproduct'], 'this.fk_product = loyaltyProgramProduct.fk_product')
+		foreach (
+			$order->purchase->getItems()->join(['loyaltyProgramProduct' => 'eshop_loyaltyprogramproduct'], 'this.fk_product = loyaltyProgramProduct.fk_product')
 					 ->where('loyaltyProgramProduct.fk_loyaltyProgram', $loyaltyProgram)
 					 ->select(['pointsGain' => 'loyaltyProgramProduct.points']) as $cartItem
 		) {
