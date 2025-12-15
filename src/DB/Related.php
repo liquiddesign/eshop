@@ -73,9 +73,9 @@ class Related extends SystemicEntity
 	/**
 	 * Slave produkt
 	 * @relation
-	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 */
-	public Product $slave;
+	public ?Product $slave = null;
 
 	public function isSystemic(): bool
 	{
