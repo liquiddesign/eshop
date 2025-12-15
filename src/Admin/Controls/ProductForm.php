@@ -240,6 +240,14 @@ Ostatní: Přebírání ze zvoleného zdroje
 		$form->addText('storageDate', 'Nejbližší datum naskladnění')->setNullable(true)->setHtmlType('date');
 
 		$form->addGroup('Nákup');
+
+		$manualPurchasePrice = $form->addText('manualPurchasePrice', 'Manuálně zadaná nákupní cena')
+			->setNullable()
+			->setHtmlType('number')
+			->setHtmlAttribute('step', 'any')
+			->setHtmlAttribute('data-info', 'Nákupní cena pro výpočet marže v nabídce, pokud neexistuje dodavatelský produkt.');
+		$manualPurchasePrice->addCondition($form::Filled)->addRule($form::Float);
+
 		$form->addLocaleText('unit', 'Jednotka');
 		//	->setHtmlAttribute('data-info', 'Např.: ks, ml, ...');
 

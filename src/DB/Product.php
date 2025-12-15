@@ -345,6 +345,12 @@ class Product extends \StORM\Entity
 	public string $supplierContentMode = 'none';
 
 	/**
+	 * Manuálně zadaná nákupní cena
+	 * @column
+	 */
+	public float|null $manualPurchasePrice = null;
+
+	/**
 	 * Přebírat obsah
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
