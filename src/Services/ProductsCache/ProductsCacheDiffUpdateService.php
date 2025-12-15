@@ -74,7 +74,7 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 
 			// update products table - compare cache vs live data
 			Debugger::timer();
-			[$productsByCategories, $productsToBeInCache] = $this->diffUpdateMainTable(
+			[$productsByCategories] = $this->diffUpdateMainTable(
 				$productsCacheTableName,
 				$allCategoryTypes,
 				$allDisplayAmounts,
@@ -85,8 +85,9 @@ class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService impl
 				$productCategories,
 			);
 
+
 			Debugger::log('diffUpdateMainTable: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
-			$this->diffUpdateRelations($relationsCacheTableName, $productsCacheTableName, $productsToBeInCache);
+			$this->diffUpdateRelations($relationsCacheTableName, $productsCacheTableName);
 			Debugger::log('diffUpdateRelations: ' . Debugger::timer() . ', ' . DevelTools::getPeakMemoryUsage(), $this->logName);
 
 			$this->diffUpdateCategories($categoriesTableName, $productsCacheTableName, $productsByCategories, $allCategories);
@@ -277,7 +278,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 
 		$productsCollection = $this->productRepository->many()
 			->join(['masterProduct' => 'eshop_product'], 'this.fk_masterProduct = masterProduct.uuid')
-			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product', type: 'INNER')
+			->join(['price' => 'eshop_price'], 'this.uuid = price.fk_product')
 			->join(['eshop_displayamount'], 'this.fk_displayAmount = eshop_displayamount.uuid')
 			->join(['eshop_displaydelivery'], 'this.fk_displayDelivery = eshop_displaydelivery.uuid')
 			->join(['eshop_producer'], 'this.fk_producer = eshop_producer.uuid')
@@ -312,7 +313,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		$productsToCreate = [];
 		$productsToUpdate = [];
 		$productsByCategories = [];
-		$productsToBoInCache = [];
+		$productsToBeInCache = [];
 
 		Debugger::timer('diffUpdateMainTable -- main query');
 		$fetchedProducts = $productsCollection->fetchArray(\stdClass::class);
@@ -383,7 +384,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				$productsToCreate[$product->id] = $productData;
 			}
 
-			$productsToBoInCache[$product->id] = true;
+			$productsToBeInCache[$product->id] = true;
 
 			unset($productsInCache[$product->id]);
 		}
@@ -423,7 +424,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 			);
 		}
 
-		return [$productsByCategories, $productsToBoInCache];
+		return [$productsByCategories, $productsToBeInCache];
 	}
 
 	/**
@@ -702,12 +703,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		Debugger::log('diffUpdateVisibilityPriceTable -- main while: ' . Debugger::timer('diffUpdateVisibilityPriceTable -- main while'), $this->logName);
 	}
 
-	/**
-	 * @param string $relationsCacheTableName
-	 * @param string $productsCacheTableName
-	 * @param array<string|int, true> $productsInProductsCacheTable
-	 */
-	protected function diffUpdateRelations(string $relationsCacheTableName, string $productsCacheTableName, array $productsInProductsCacheTable): void
+	protected function diffUpdateRelations(string $relationsCacheTableName, string $productsCacheTableName): void
 	{
 		$this->getConnection()->exec("
 CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
@@ -776,10 +772,6 @@ CREATE TABLE IF NOT EXISTS `$relationsCacheTableName` (
 				'discountPct' => $relation->discountPct,
 				'masterPct' => $relation->masterPct,
 			];
-
-			if (!isset($productsInProductsCacheTable[$row['master']]) || !isset($productsInProductsCacheTable[$row['slave']])) {
-				continue;
-			}
 
 			$rowsToInsert[$relation->getPK()] = $row;
 		}
