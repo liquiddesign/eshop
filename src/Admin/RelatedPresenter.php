@@ -7,6 +7,7 @@ namespace Eshop\Admin;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\BackendPresenter;
+use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Related;
 use Eshop\DB\RelatedRepository;
@@ -38,6 +39,9 @@ class RelatedPresenter extends BackendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
+
+	#[\Nette\DI\Attributes\Inject]
+	public ProducerRepository $producerRepository;
 
 	#[\Nette\DI\Attributes\Inject]
 	public Application $application;
@@ -75,7 +79,9 @@ class RelatedPresenter extends BackendPresenter
 
 		$grid->addColumn($this->relatedType->getSlaveInternalName(), function (Related $object, $datagrid) {
 			if ($object->slave === null) {
-				return Html::el('span')->class('text-muted')->setText($object->slaveName . ' (neexistuje)');
+				$producerName = $object->slaveProducer !== null ? ' (' . $object->slaveProducer->name . ')' : '';
+
+				return Html::el('span')->class('text-muted')->setHtml($object->slaveName . $producerName . ' <small>(textová vazba)</small>');
 			}
 
 			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$object->slave]) : '#';
@@ -199,6 +205,9 @@ class RelatedPresenter extends BackendPresenter
 		$form->addText('slaveName', 'Název (pokud produkt neexistuje)')
 			->setNullable()
 			->setHtmlAttribute('data-info', 'Vyplňte pouze pokud produkt v systému neexistuje');
+		$slaveProducerSelect = $form->addSelect2('slaveProducer', 'Výrobce (pokud produkt neexistuje)', $this->producerRepository->getArrayForSelect())
+			->setPrompt('-- Vyberte výrobce --')
+			->setHtmlAttribute('data-info', 'Vyberte výrobce pro textovou vazbu');
 
 		/** @var \Eshop\DB\Related|null $relation */
 		$relation = $this->getParameter('relation');
@@ -208,6 +217,10 @@ class RelatedPresenter extends BackendPresenter
 
 			if ($relation->slave !== null) {
 				$this->template->select2AjaxDefaults[$slave->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->getName()];
+			}
+
+			if ($relation->slaveProducer !== null) {
+				$slaveProducerSelect->setDefaultValue($relation->getValue('slaveProducer'));
 			}
 		}
 
@@ -251,7 +264,10 @@ class RelatedPresenter extends BackendPresenter
 			$values['slave'] = $hasSlave
 				? $this->productRepository->one($httpData['slave'])->getPK()
 				: null;
+
+			// slaveName a slaveProducer pouze pokud slave je null
 			$values['slaveName'] = $values['slave'] === null ? ($values['slaveName'] ?? null) : null;
+			$values['slaveProducer'] = $values['slave'] === null ? ($values['slaveProducer'] ?? null) : null;
 
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();

@@ -87,7 +87,7 @@ class ProductForm extends Control
 		CategoryRepository $categoryRepository,
 		RibbonRepository $ribbonRepository,
 		InternalRibbonRepository $internalRibbonRepository,
-		ProducerRepository $producerRepository,
+		private readonly ProducerRepository $producerRepository,
 		private readonly VatRateRepository $vatRateRepository,
 		DisplayAmountRepository $displayAmountRepository,
 		DisplayDeliveryRepository $displayDeliveryRepository,
@@ -194,7 +194,7 @@ class ProductForm extends Control
 	V případě zvolení kategorie do které již nepatří, se zvolí automaticky jedna z přiřazených.');
 		}
 
-		$form->addSelect2('producer', 'Výrobce', $producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
+		$form->addSelect2('producer', 'Výrobce', $this->producerRepository->getArrayForSelect())->setPrompt('Nepřiřazeno');
 
 		$form->addDataMultiSelect('ribbons', 'Veřejné štítky', $ribbonRepository->getArrayForSelect());
 		$form->addDataMultiSelect('internalRibbons', 'Interní štítky', $internalRibbonRepository->getArrayForSelect(type: 'product'));
@@ -419,6 +419,10 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 					/** @var \Nette\Forms\Controls\TextInput $slaveNameInput */
 					$slaveNameInput = $relationsMasterContainer["slaveName_$i"];
 					$slaveNameInput->setDefaultValue($relation->slaveName);
+
+					/** @var \Nette\Forms\Controls\SelectBox $slaveProducerInput */
+					$slaveProducerInput = $relationsMasterContainer["slaveProducer_$i"];
+					$slaveProducerInput->setDefaultValue($relation->getValue('slaveProducer'));
 
 					if ($relatedType->defaultDiscountPct) {
 						/** @var \Nette\Forms\Controls\TextInput $discountPctInput */
@@ -785,6 +789,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				$productId = $data['relatedType_master_' . $relatedType->getPK()]["product_$i"] ?? null;
 				$slaveName = $relatedTypeValues["slaveName_$i"] ?? null;
 				$slaveName = $slaveName !== '' ? $slaveName : null;
+				$slaveProducer = $relatedTypeValues["slaveProducer_$i"] ?? null;
+				$slaveProducer = $slaveProducer !== '' ? $slaveProducer : null;
 
 				// Skip if neither product nor name provided
 				if ($productId === null && $slaveName === null) {
@@ -804,6 +810,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 					'master' => $product->getPK(),
 					'slave' => $productId,
 					'slaveName' => $productId !== null ? null : $slaveName,
+					'slaveProducer' => $productId !== null ? null : $slaveProducer,
 					'amount' => $relatedTypeValues["amount_$i"] ?? $relatedType->defaultAmount,
 					'priority' => $relatedTypeValues["priority_$i"] ?? 10,
 					'hidden' => $relatedTypeValues["hidden_$i"] ?? false,
@@ -1146,6 +1153,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 			if ($includeSlaveName) {
 				$formContainer->addText("slaveName_$i")->setNullable();
+				$formContainer->addSelect2("slaveProducer_$i", null, $this->producerRepository->getArrayForSelect())->setPrompt('-- Výrobce --');
 			}
 
 			$formContainer->addInteger("amount_$i")->setDefaultValue($relatedType->defaultAmount)->setNullable();
