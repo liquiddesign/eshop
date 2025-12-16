@@ -81,7 +81,7 @@ class RelatedPresenter extends BackendPresenter
 			if ($object->slave === null) {
 				$producerName = $object->slaveProducer !== null ? ' (' . $object->slaveProducer->name . ')' : '';
 
-				return Html::el('span')->class('text-muted')->setHtml($object->slaveName . $producerName . ' <small>(textová vazba)</small>');
+				return Html::el('span')->class('text-muted')->setHtml($object->slaveName . $producerName);
 			}
 
 			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$object->slave]) : '#';
