@@ -184,6 +184,12 @@ class ProductList extends Datalist
 		$this->addFilterExpression('relatedTypeSlave', function (ICollection $collection, $value): void {
 			$this->productRepository->filterRelatedTypeSlave($value, $collection);
 		});
+		$this->addFilterExpression('relatedTextSlave', function (ICollection $collection, $value): void {
+			$this->productRepository->filterRelatedTextSlave($value, $collection);
+		});
+		$this->addFilterExpression('relatedTextSlaveByName', function (ICollection $collection, $value): void {
+			$this->productRepository->filterRelatedTextSlaveByName($value, $collection);
+		});
 	}
 
 	/**

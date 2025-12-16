@@ -203,6 +203,7 @@ class CartItemRepository extends \StORM\Repository
 	{
 		return $items->where('fk_upsell IS NOT NULL')
 			->where('fk_product IS NOT NULL')
+			->where('related.fk_slave IS NOT NULL')
 			->join(['related' => 'eshop_related'], 'this.fk_product = related.fk_slave')
 			->where('related.fk_type', $relatedType->getPK());
 	}

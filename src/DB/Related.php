@@ -77,6 +77,19 @@ class Related extends SystemicEntity
 	 */
 	public ?Product $slave = null;
 
+	/**
+	 * Název slave produktu (pokud produkt neexistuje)
+	 * @column
+	 */
+	public ?string $slaveName = null;
+
+	/**
+	 * Výrobce slave produktu (pro případ kdy slave je NULL)
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?Producer $slaveProducer = null;
+
 	public function isSystemic(): bool
 	{
 		return $this->systemic || $this->systemicLock > 0;

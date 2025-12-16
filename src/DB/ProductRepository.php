@@ -1189,6 +1189,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function filterRelatedSlave($value, ICollection $collection): void
 	{
+		$collection->where('related.fk_slave IS NOT NULL');
 		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave');
 		$collection->where('related.fk_type', $value[0]);
 		$collection->where('related.fk_master', $value[1]);
@@ -1209,6 +1210,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 */
 	public function filterCompatiblePrinters($value, ICollection $collection): void
 	{
+		$collection->where('related.fk_slave IS NOT NULL');
 		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave');
 		$collection->where('related.fk_master', $value);
 		$collection->where('related.fk_type = "tonerForPrinter"');
@@ -1238,6 +1240,42 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master', [], 'LEFT');
 		$collection->where('related.fk_slave', $value[0]);
 		$collection->where('related.fk_type', $value[1]);
+	}
+
+	/**
+	 * Filtruje produkty podle textové vazby (kde slave je NULL a slaveName je vyplněn)
+	 * @param array<int, string> $value [relatedUuid, relatedTypeCode]
+	 */
+	public function filterRelatedTextSlave(array $value, ICollection $collection): void
+	{
+		if (!isset($value[0]) || !isset($value[1])) {
+			Debugger::log('filterRelatedTextSlave: missing values', ILogger::WARNING);
+
+			return;
+		}
+
+		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master', [], 'LEFT');
+		$collection->where('related.uuid', $value[0]);
+		$collection->where('related.fk_type', $value[1]);
+		$collection->where('related.fk_slave IS NULL');
+	}
+
+	/**
+	 * Filtruje produkty podle názvu textové vazby (najde všechny Related záznamy se stejným slaveName)
+	 * @param array<int, string> $value [slaveName, relatedTypeCode]
+	 */
+	public function filterRelatedTextSlaveByName(array $value, ICollection $collection): void
+	{
+		if (!isset($value[0]) || !isset($value[1])) {
+			Debugger::log('filterRelatedTextSlaveByName: missing values', ILogger::WARNING);
+
+			return;
+		}
+
+		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master', [], 'LEFT');
+		$collection->where('related.slaveName', $value[0]);
+		$collection->where('related.fk_type', $value[1]);
+		$collection->where('related.fk_slave IS NULL');
 	}
 
 	public function filterSimilarProducts($value, ICollection $collection): void
@@ -1571,7 +1609,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}
 		}
 
-		return $this->many()->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave')
+		return $this->many()
+			->where('related.fk_slave IS NOT NULL')
+			->join(['related' => 'eshop_related'], 'this.uuid = related.fk_slave')
 			->where('related.hidden', false)
 			->where('related.fk_master', $product->getPK())
 			->where('related.fk_type', $relatedType->getPK())

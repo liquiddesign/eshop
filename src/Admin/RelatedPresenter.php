@@ -7,6 +7,7 @@ namespace Eshop\Admin;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\BackendPresenter;
+use Eshop\DB\ProducerRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\Related;
 use Eshop\DB\RelatedRepository;
@@ -40,6 +41,9 @@ class RelatedPresenter extends BackendPresenter
 	public ProductRepository $productRepository;
 
 	#[\Nette\DI\Attributes\Inject]
+	public ProducerRepository $producerRepository;
+
+	#[\Nette\DI\Attributes\Inject]
 	public Application $application;
 
 	/** @persistent */
@@ -55,7 +59,9 @@ class RelatedPresenter extends BackendPresenter
 	public function createComponentRelationGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create(
-			$this->relatedRepository->many()->where('this.fk_type', $this->tab),
+			$this->relatedRepository->many()
+				->setJoin(['slave' => 'eshop_product'], 'this.fk_slave = slave.uuid', [], 'LEFT')
+				->where('this.fk_type', $this->tab),
 			20,
 			'this.priority',
 			'ASC',
@@ -72,6 +78,12 @@ class RelatedPresenter extends BackendPresenter
 		}, '%s');
 
 		$grid->addColumn($this->relatedType->getSlaveInternalName(), function (Related $object, $datagrid) {
+			if ($object->slave === null) {
+				$producerName = $object->slaveProducer !== null ? ' (' . $object->slaveProducer->name . ')' : '';
+
+				return Html::el('span')->class('text-muted')->setHtml($object->slaveName . $producerName);
+			}
+
 			$link = $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $datagrid->getPresenter()->link(':Eshop:Admin:Product:edit', [$object->slave]) : '#';
 
 			return "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;" . $object->slave->getName() . '</a>';
@@ -127,7 +139,7 @@ class RelatedPresenter extends BackendPresenter
 
 		$grid->addFilterTextInput('master', ['master.code', 'master.ean', "master.name$mutationSuffix"], null, $this->relatedType->getMasterInternalName() .
 			': EAN, kód, název', '', likeFormat: '%s');
-		$grid->addFilterTextInput('slave', ['slave.code', 'slave.ean', "slave.name$mutationSuffix"], null, $this->relatedType->getSlaveInternalName() .
+		$grid->addFilterTextInput('slave', ['slave.code', 'slave.ean', "slave.name$mutationSuffix", 'this.slaveName'], null, $this->relatedType->getSlaveInternalName() .
 			': EAN, kód, název', '', likeFormat: '%s');
 		$grid->addFilterText(function (ICollection $source, $value): void {
 			$parsed = \explode(',', Strings::trim($value));
@@ -190,13 +202,26 @@ class RelatedPresenter extends BackendPresenter
 
 		$master = $form->addSelect2Ajax('master', $this->link('getProductsForSelect2!'), $this->relatedType->getMasterInternalName(), [], 'Zvolte produkt');
 		$slave = $form->addSelect2Ajax('slave', $this->link('getProductsForSelect2!'), $this->relatedType->getSlaveInternalName(), [], 'Zvolte produkt');
+		$form->addText('slaveName', 'Název (pokud produkt neexistuje)')
+			->setNullable()
+			->setHtmlAttribute('data-info', 'Vyplňte pouze pokud produkt v systému neexistuje');
+		$slaveProducerSelect = $form->addSelect2('slaveProducer', 'Výrobce (pokud produkt neexistuje)', $this->producerRepository->getArrayForSelect())
+			->setPrompt('-- Vyberte výrobce --')
+			->setHtmlAttribute('data-info', 'Vyberte výrobce pro textovou vazbu');
 
 		/** @var \Eshop\DB\Related|null $relation */
 		$relation = $this->getParameter('relation');
 
-		if ($relation) {
+		if ($relation !== null) {
 			$this->template->select2AjaxDefaults[$master->getHtmlId()] = [$relation->getValue('master') => $relation->master->getName()];
-			$this->template->select2AjaxDefaults[$slave->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->getName()];
+
+			if ($relation->slave !== null) {
+				$this->template->select2AjaxDefaults[$slave->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->getName()];
+			}
+
+			if ($relation->slaveProducer !== null) {
+				$slaveProducerSelect->setDefaultValue($relation->getValue('slaveProducer'));
+			}
 		}
 
 		$form->addMultiSelect2('shops', 'Obchody', $this->shopsConfig->getAvailableShopsArrayForSelect());
@@ -212,13 +237,17 @@ class RelatedPresenter extends BackendPresenter
 				$input->addError('Toto pole je povinné!');
 			}
 
-			if (isset($data['slave'])) {
+			// Allow either slave product OR slaveName
+			$hasSlave = isset($data['slave']) && $data['slave'] !== '';
+			$hasSlaveName = isset($data['slaveName']) && $data['slaveName'] !== '';
+
+			if ($hasSlave || $hasSlaveName) {
 				return;
 			}
 
 			/** @var \Nette\Forms\Controls\SelectBox $input */
 			$input = $form['slave'];
-			$input->addError('Toto pole je povinné!');
+			$input->addError('Vyberte produkt nebo zadejte název!');
 		};
 
 		$form->onSuccess[] = function (AdminForm $form): void {
@@ -228,7 +257,17 @@ class RelatedPresenter extends BackendPresenter
 			$values['shops'] = $values['shops'] ? \implode(',', $values['shops']) : null;
 
 			$values['master'] = $this->productRepository->one($form->getHttpData()['master'])->getPK();
-			$values['slave'] = $this->productRepository->one($form->getHttpData()['slave'])->getPK();
+
+			$httpData = $form->getHttpData();
+			$hasSlave = isset($httpData['slave']) && $httpData['slave'] !== '';
+
+			$values['slave'] = $hasSlave
+				? $this->productRepository->one($httpData['slave'])->getPK()
+				: null;
+
+			// slaveName a slaveProducer pouze pokud slave je null
+			$values['slaveName'] = $values['slave'] === null ? ($values['slaveName'] ?? null) : null;
+			$values['slaveProducer'] = $values['slave'] === null ? ($values['slaveProducer'] ?? null) : null;
 
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
@@ -576,15 +615,17 @@ Povinné sloupce:<br>
 type - Kód typu<br>
 			master - Kód/EAN master produktu<br>
 			slave - Kód/EAN slave produktu<br>
+			slaveName - Název slave produktu (použije se pokud slave produkt neexistuje)<br>
 			amount - Množství - celé číslo větší nebo rovno 1<br>
 			discountPct - Procentuální sleva - 0 až 100<br>
 			masterPct - Procentuální cena z master produktu - číslo větší než 0<br>
 			priority - Priorita - celé číslo<br>
 			hidden - Skryto - 0/1<br>
 			shops - Obchody oddělené čárkou<br><br>
-			
+
 Sloupce discountPct a masterPct <b>nejsou</b> kombinovatelné a může být nastavený vždy maxímálně jeden nebo žádný.<br>
-Pokud nebude nalezen produkt tak se daný řádek ignoruje. V případě chyby nedojde k žádným změnám.');
+Pokud nebude nalezen slave produkt, použije se hodnota ze sloupce slaveName (pokud je prázdný, použije se hodnota ze sloupce slave jako název).<br>
+Pouze master produkt je povinný - pokud nebude nalezen, řádek se přeskočí.');
 		$form->addSubmit('submit', 'Uložit');
 
 		$form->onRender[] = function (AdminForm $form): void {

@@ -574,7 +574,9 @@ abstract class ExportPresenter extends Presenter
 		$groupIdRelationType = $this->settingRepo->many()->where('name', 'zboziGroupRelation')->first();
 
 		$this->template->groupIdMasterProducts = $groupIdRelationType ?
-			$this->productRepo->many()->join(['rel' => 'eshop_related'], 'rel.fk_master = this.uuid')
+			$this->productRepo->many()
+				->where('rel.fk_slave IS NOT NULL')
+				->join(['rel' => 'eshop_related'], 'rel.fk_master = this.uuid')
 				->setIndex('rel.fk_slave')
 				->where('rel.fk_type', $groupIdRelationType->value)
 				->toArray() : [];
