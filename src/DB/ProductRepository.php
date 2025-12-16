@@ -1260,6 +1260,24 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		$collection->where('related.fk_slave IS NULL');
 	}
 
+	/**
+	 * Filtruje produkty podle názvu textové vazby (najde všechny Related záznamy se stejným slaveName)
+	 * @param array<int, string> $value [slaveName, relatedTypeCode]
+	 */
+	public function filterRelatedTextSlaveByName(array $value, ICollection $collection): void
+	{
+		if (!isset($value[0]) || !isset($value[1])) {
+			Debugger::log('filterRelatedTextSlaveByName: missing values', ILogger::WARNING);
+
+			return;
+		}
+
+		$collection->join(['related' => 'eshop_related'], 'this.uuid = related.fk_master', [], 'LEFT');
+		$collection->where('related.slaveName', $value[0]);
+		$collection->where('related.fk_type', $value[1]);
+		$collection->where('related.fk_slave IS NULL');
+	}
+
 	public function filterSimilarProducts($value, ICollection $collection): void
 	{
 		$collection->join(['relation' => 'eshop_related'], 'this.uuid=relation.fk_master OR this.uuid=relation.fk_slave')
