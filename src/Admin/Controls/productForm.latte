@@ -692,7 +692,11 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                                 </thead>
                                 {for $i =0; $i < $relationMaxItemsCount + ($masterRelationsCount[$relatedType->getPK()] ?? 0); $i++}
                                     <tr>
-                                        <td class="p-2" style="min-width: 360px;">{input "product_$i", class: "form-control form-control-sm", style: "width: 100% !important"}</td>
+                                        <td class="p-2" style="min-width: 360px;">
+                                            {input "product_$i", class: "form-control form-control-sm", style: "width: 100% !important"}<br>nebo<br>
+                                            {input "slaveProducer_$i", class: "form-control form-control-sm mt-1"}
+                                            {input "slaveName_$i", class: "form-control form-control-sm mt-1", placeholder: "Název"}
+                                        </td>
                                         <td class="p-2">{input "amount_$i", class: "form-control form-control-sm"}</td>
                                         <td class="p-2">{input "priority_$i", class: "form-control form-control-sm"}</td>
                                         <td class="p-2">{input "hidden_$i", class: "form-check-input form-control-sm"}</td>
