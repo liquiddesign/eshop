@@ -2275,8 +2275,7 @@ class CheckoutManager
 				continue;
 			}
 
-			foreach (
-				$this->attributeAssignRepository->many()
+			foreach ($this->attributeAssignRepository->many()
 				->join(['attributevalue' => 'eshop_attributevalue'], 'this.fk_value = attributevalue.uuid')
 				->where('attributevalue.fk_attribute', $attribute->getPK())
 				->where('fk_product', $item->getValue('product')) as $assign

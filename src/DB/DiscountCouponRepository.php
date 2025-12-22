@@ -74,8 +74,7 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 			throw new InvalidCouponException(code: InvalidCouponException::NOT_FOUND);
 		}
 
-		if (
-			($coupon->discount->validFrom && Carbon::parse($coupon->discount->validFrom)->greaterThan(Carbon::now())) ||
+		if (($coupon->discount->validFrom && Carbon::parse($coupon->discount->validFrom)->greaterThan(Carbon::now())) ||
 			($coupon->discount->validTo && Carbon::parse($coupon->discount->validTo)->lessThan(Carbon::now()))
 		) {
 			throw new InvalidCouponException(code: InvalidCouponException::NOT_ACTIVE);

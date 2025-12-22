@@ -64,6 +64,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		protected readonly VisibilityListRepository $visibilityListRepository,
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly PricelistRepository $pricelistRepository,
+		protected readonly \Eshop\Services\Related\RelatedTagsMatchingService $relatedTagsMatchingService,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -1654,10 +1655,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			return $collection?->toArray() ?? [];
 		}
 
-		/** @var \Eshop\Services\Related\RelatedTagsMatchingService $matchingService */
-		$matchingService = $this->getConnection()->getContainer()->getByType(\Eshop\Services\Related\RelatedTagsMatchingService::class);
-
-		return $matchingService->getSlaveProductsIncludingTagMatched($product, $onlyVisible);
+		return $this->relatedTagsMatchingService->getSlaveProductsIncludingTagMatched($product, $onlyVisible);
 	}
 
 	/**
@@ -2069,8 +2067,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		/** @var \Eshop\DB\DeliveryDiscount $deliveryDiscount */
 		foreach ($deliveryDiscountQuery as $deliveryDiscount) {
-			if (
-				$deliveryDiscount->discount->isActive() === false ||
+			if ($deliveryDiscount->discount->isActive() === false ||
 				$deliveryDiscount->discountPriceFrom > ($vat ? $product->getValue('priceVat') : $product->getValue('price')) ||
 				(\abs($deliveryDiscount->discountPct - 100) >= \PHP_FLOAT_EPSILON)
 			) {

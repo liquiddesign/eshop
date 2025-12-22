@@ -421,8 +421,7 @@ class PickupPointPresenter extends BackendPresenter
 		$form->onValidate[] = function (AdminForm $form) use ($dateInput): void {
 			$values = $form->getValues('array');
 
-			if (
-				!$this->openingHoursRepo->many()
+			if (!$this->openingHoursRepo->many()
 				->where('date', $values['date'])
 				->first()
 			) {
