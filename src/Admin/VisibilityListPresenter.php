@@ -156,6 +156,8 @@ class VisibilityListPresenter extends BackendPresenter
 		$grid->addColumnInputCheckbox('<i title="Skryto v menu a vyhledávání" class="far fa-minus-square"></i>', 'hiddenInMenu', '', '', 'hiddenInMenu');
 		$grid->addColumnInputCheckbox('<i title="Neprodejné" class="fas fa-ban"></i>', 'unavailable', '', '', 'unavailable');
 
+		$this->addCustomItemColumns($grid);
+
 		$grid->addColumnLinkDetail('itemDetail');
 		$grid->addColumnActionDelete();
 
@@ -600,5 +602,10 @@ priority - Priorita<br>
 	protected function addCustomFieldsToItemForm(AdminForm $form, ?VisibilityListItem $object): void
 	{
 		unset($form, $object);
+	}
+
+	protected function addCustomItemColumns(AdminGrid $grid): void
+	{
+		unset($grid);
 	}
 }
