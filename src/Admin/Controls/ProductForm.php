@@ -199,6 +199,12 @@ class ProductForm extends Control
 		$form->addDataMultiSelect('ribbons', 'Veřejné štítky', $ribbonRepository->getArrayForSelect());
 		$form->addDataMultiSelect('internalRibbons', 'Interní štítky', $internalRibbonRepository->getArrayForSelect(type: 'product'));
 
+		$form->addTextArea('relatedTags', 'Tagy pro související produkty')
+			->setNullable()
+			->setHtmlAttribute('placeholder', 'HP LaserJet Pro M15, HP LaserJet Pro M28')
+			->setHtmlAttribute('rows', 3)
+			->setHtmlAttribute('data-info', 'Čárkou oddělené hodnoty. Porovnávají se se slaveName v Related záznamech pro matching tonerů k tiskárnám.');
+
 		$form->addSelect(
 			'displayAmount',
 			'Dostupnost',
@@ -437,6 +443,30 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 					}
 
 					$i++;
+				}
+
+				// Prefill bulk textarea for tonerForPrinter type
+				if ($relatedType->getPK() === 'tonerForPrinter' && isset($relationsMasterContainer['bulkSlaveProducts'])) {
+					$bulkLines = [];
+					$masterRelations = $this->relatedRepository->many()
+						->where('fk_master', $this->product->getPK())
+						->where('fk_type', $relatedType->getPK())
+						->toArray();
+
+					/** @var \Eshop\DB\Related $rel */
+					foreach ($masterRelations as $rel) {
+						if ($rel->slave !== null) {
+							$bulkLines[] = $rel->slave->code;
+						} elseif ($rel->slaveName !== null) {
+							$bulkLines[] = $rel->slaveName;
+						}
+					}
+
+					if (\count($bulkLines) > 0) {
+						/** @var \Nette\Forms\Controls\TextArea $bulkInput */
+						$bulkInput = $relationsMasterContainer['bulkSlaveProducts'];
+						$bulkInput->setDefaultValue(\implode("\n", $bulkLines));
+					}
 				}
 
 				$relations = $this->relatedRepository->many()
@@ -819,6 +849,88 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				]);
 			}
 
+			// Process bulk textarea for tonerForPrinter type
+			if ($relatedType->getPK() === 'tonerForPrinter') {
+				$bulkValue = $relatedTypeValues['bulkSlaveProducts'] ?? null;
+
+				if ($bulkValue !== null && $bulkValue !== '') {
+					$lines = \explode("\n", $bulkValue);
+					$processedEntries = [];
+
+					// Collect already processed entries from individual rows to avoid duplicates
+					for ($j = 0; $j < $this->relationExtraItemsCount + $masterCount; $j++) {
+						$rowProductId = $data['relatedType_master_' . $relatedType->getPK()]["product_$j"] ?? null;
+						$rowSlaveName = $relatedTypeValues["slaveName_$j"] ?? null;
+						$rowSlaveName = $rowSlaveName !== '' ? $rowSlaveName : null;
+
+						if ($rowProductId !== null) {
+							$processedEntries['product_' . $rowProductId] = true;
+						} elseif ($rowSlaveName !== null) {
+							$processedEntries['name_' . $rowSlaveName] = true;
+						}
+					}
+
+					foreach ($lines as $line) {
+						$line = Strings::trim($line);
+
+						if ($line === '') {
+							continue;
+						}
+
+						// Try to find product by code
+						$slaveProduct = $this->productRepository->many()->where('code', $line)->first();
+
+						// If not found by code, try by EAN
+						if ($slaveProduct === null) {
+							$slaveProduct = $this->productRepository->many()->where('ean', $line)->first();
+						}
+
+						if ($slaveProduct !== null) {
+							// Skip if already processed from individual rows
+							if (isset($processedEntries['product_' . $slaveProduct->getPK()])) {
+								continue;
+							}
+
+							$processedEntries['product_' . $slaveProduct->getPK()] = true;
+
+							$this->relatedRepository->syncOne([
+								'type' => $relatedType->getPK(),
+								'master' => $product->getPK(),
+								'slave' => $slaveProduct->getPK(),
+								'slaveName' => null,
+								'slaveProducer' => null,
+								'amount' => $relatedType->defaultAmount,
+								'priority' => 10,
+								'hidden' => false,
+								'discountPct' => $relatedType->defaultDiscountPct,
+								'masterPct' => $relatedType->defaultMasterPct,
+							]);
+						} else {
+							// Skip if already processed from individual rows
+							if (isset($processedEntries['name_' . $line])) {
+								continue;
+							}
+
+							$processedEntries['name_' . $line] = true;
+
+							// Use line as slaveName
+							$this->relatedRepository->syncOne([
+								'type' => $relatedType->getPK(),
+								'master' => $product->getPK(),
+								'slave' => null,
+								'slaveName' => $line,
+								'slaveProducer' => null,
+								'amount' => $relatedType->defaultAmount,
+								'priority' => 10,
+								'hidden' => false,
+								'discountPct' => $relatedType->defaultDiscountPct,
+								'masterPct' => $relatedType->defaultMasterPct,
+							]);
+						}
+					}
+				}
+			}
+
 			$relatedTypeValues = $values['relatedType_slave_' . $relatedType->getPK()];
 
 			for ($i = 0; $i < $this->relationExtraItemsCount + $slaveCount; $i++) {
@@ -1170,5 +1282,15 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 			$formContainer->addText("masterPct_$i")->setDefaultValue($relatedType->defaultMasterPct)->setNullable()->addCondition(Form::Filled)->addRule(Form::Float);
 		}
+
+		// Add bulk textarea only for tonerForPrinter type master relations
+		if (!$includeSlaveName || $relatedType->getPK() !== 'tonerForPrinter') {
+			return;
+		}
+
+		$formContainer->addTextArea('bulkSlaveProducts')
+			->setNullable()
+			->setHtmlAttribute('rows', 5)
+			->setHtmlAttribute('placeholder', 'Zadejte kódy nebo názvy produktů, jeden na řádek');
 	}
 }

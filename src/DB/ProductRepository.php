@@ -1633,6 +1633,34 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	}
 
 	/**
+	 * Get slave products including tag-matched products for tonerForPrinter relations.
+	 * Combines direct slave relations with products matched via relatedTags.
+	 * @param \Eshop\DB\RelatedType|string $relatedType
+	 * @param \Eshop\DB\Product|string $product
+	 * @return array<\Eshop\DB\Product>
+	 */
+	public function getSlaveProductsWithTagsMatching(
+		RelatedType|string $relatedType,
+		Product|string $product,
+		bool $onlyVisible = false,
+	): array {
+		$relatedTypeCode = $relatedType instanceof RelatedType ? $relatedType->code : $relatedType;
+
+		if ($relatedTypeCode !== 'tonerForPrinter') {
+			$collection = $onlyVisible
+				? $this->getSlaveProductsByRelationAndMasterVisible($relatedType, $product)
+				: $this->getSlaveProductsByRelationAndMaster($relatedType, $product);
+
+			return $collection?->toArray() ?? [];
+		}
+
+		/** @var \Eshop\Services\Related\RelatedTagsMatchingService $matchingService */
+		$matchingService = $this->getConnection()->getContainer()->getByType(\Eshop\Services\Related\RelatedTagsMatchingService::class);
+
+		return $matchingService->getSlaveProductsIncludingTagMatched($product, $onlyVisible);
+	}
+
+	/**
 	 * @param string|\Eshop\DB\RelatedType $relatedType
 	 * @param string|\Eshop\DB\Product $product
 	 * @return \StORM\Collection<\Eshop\DB\Related>
@@ -2041,7 +2069,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		/** @var \Eshop\DB\DeliveryDiscount $deliveryDiscount */
 		foreach ($deliveryDiscountQuery as $deliveryDiscount) {
-			if ($deliveryDiscount->discount->isActive() === false ||
+			if (
+				$deliveryDiscount->discount->isActive() === false ||
 				$deliveryDiscount->discountPriceFrom > ($vat ? $product->getValue('priceVat') : $product->getValue('price')) ||
 				(\abs($deliveryDiscount->discountPct - 100) >= \PHP_FLOAT_EPSILON)
 			) {

@@ -665,6 +665,16 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
             </fieldset>
         </div>
         <div id="menu4-content" class="tab-pane {$presenter->editTab == 'menu4' ? 'active show' : ''}">
+            <table class="mt-1 mb-1" style="width: auto;">
+                    <tr class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col">{label relatedTags/}</th>
+
+                        <td class="align-middle">{input relatedTags class=>'form-control form-control-sm '}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError relatedTags}</span>
+                        </td>
+                        <td colspan="3"></td>
+                    </tr>
+                </table>
             <fieldset>
                 {foreach $relatedTypes as $relatedType}
                     <legend>
@@ -705,6 +715,17 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                                     </tr>
                                 {/for}
                             </table>
+
+                            {if $relatedType->getPk() === 'tonerForPrinter'}
+                                <div class="mt-3 mb-3">
+                                    <label class="font-weight-bold">Hromadné přidání produktů</label>
+                                    <span class="text-sm text-muted d-block mb-2">
+                                        Zadejte kódy nebo názvy produktů, jeden na řádek.
+                                        Kódy/EAN budou napárovány na existující produkty, ostatní budou vytvořeny jako textové vazby.
+                                    </span>
+                                    {input bulkSlaveProducts class => 'form-control form-control-sm', style => 'width: 100%;'}
+                                </div>
+                            {/if}
                         {/formContainer}
                         </div>
                         <div class="col-6">
