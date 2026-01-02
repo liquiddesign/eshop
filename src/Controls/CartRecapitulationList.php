@@ -37,6 +37,12 @@ class CartRecapitulationList extends Datalist
 		$this->template->cartCheckoutPrice = $this->shopperUser->getCheckoutManager()->getCheckoutPrice();
 		$this->template->cartCheckoutPriceVat = $this->shopperUser->getCheckoutManager()->getCheckoutPriceVat();
 
+		// Purchase price permission levels
+		$merchant = $this->shopperUser->getMerchant();
+		$permissionLevel = $merchant?->getPurchasePricePermissionLevel() ?? \Eshop\DB\PurchasePricePermissionLevel::None;
+		$this->template->viewPurchasePricePermission = $permissionLevel->canViewLowestPrice();
+		$this->template->viewSupplierPrices = $permissionLevel->canViewSupplierPrices();
+
 		Arrays::invoke($this->onRender, $this);
 
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
