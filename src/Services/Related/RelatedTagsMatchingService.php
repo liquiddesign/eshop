@@ -209,12 +209,15 @@ class RelatedTagsMatchingService implements AutoWireService
 		);
 	}
 
+	/**
+	 * Get slave products for a master product with matching tags.
+	 * @return array<\Eshop\DB\Product>
+	 */
 	public function getSlaveProductsWithMatchingTags(
 		RelatedType|string $relatedType,
 		Product|string $product,
 		bool $onlyVisible = false,
-	): array
-	{
+	): array {
 		$productsFromRepository = $this->productRepository
 			->getSlaveProductsForTagsMatching($relatedType, $product, $onlyVisible);
 
