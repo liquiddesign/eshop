@@ -209,6 +209,22 @@ class RelatedTagsMatchingService implements AutoWireService
 		);
 	}
 
+	public function getSlaveProductsWithMatchingTags(
+		RelatedType|string $relatedType,
+		Product|string $product,
+		bool $onlyVisible = false,
+	): array
+	{
+		$productsFromRepository = $this->productRepository
+			->getSlaveProductsForTagsMatching($relatedType, $product, $onlyVisible);
+
+		if ($productsFromRepository !== null) {
+			return $productsFromRepository;
+		}
+
+		return $this->getSlaveProductsIncludingTagMatched($product, $onlyVisible);
+	}
+
 	private function getTonerForPrinterType(): RelatedType|null
 	{
 		return $this->relatedTypeRepository->one(self::TONER_FOR_PRINTER_CODE);

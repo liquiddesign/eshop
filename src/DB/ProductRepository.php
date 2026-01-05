@@ -64,7 +64,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		protected readonly VisibilityListRepository $visibilityListRepository,
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly PricelistRepository $pricelistRepository,
-		protected readonly \Eshop\Services\Related\RelatedTagsMatchingService $relatedTagsMatchingService,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -1638,13 +1637,15 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	 * Combines direct slave relations with products matched via relatedTags.
 	 * @param \Eshop\DB\RelatedType|string $relatedType
 	 * @param \Eshop\DB\Product|string $product
-	 * @return array<\Eshop\DB\Product>
+	 * @param bool $onlyVisible
+	 * @return ?array<\Eshop\DB\Product>
+	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function getSlaveProductsWithTagsMatching(
+	public function getSlaveProductsForTagsMatching(
 		RelatedType|string $relatedType,
 		Product|string $product,
 		bool $onlyVisible = false,
-	): array {
+	): ?array {
 		$relatedTypeCode = $relatedType instanceof RelatedType ? $relatedType->code : $relatedType;
 
 		if ($relatedTypeCode !== 'tonerForPrinter') {
@@ -1655,7 +1656,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			return $collection?->toArray() ?? [];
 		}
 
-		return $this->relatedTagsMatchingService->getSlaveProductsIncludingTagMatched($product, $onlyVisible);
+		return null;
 	}
 
 	/**
