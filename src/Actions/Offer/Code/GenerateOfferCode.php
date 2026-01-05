@@ -15,10 +15,12 @@ class GenerateOfferCode extends BaseAction
 	public function execute(): string
 	{
 		$year = Carbon::now()->format('Y');
+		$format = $this->getOfferCodeFormat->execute();
+		$counter = $this->offerRepository->many()->where('YEAR(this.createdTs)', $year)->enum() + 1;
 
 		return \vsprintf(
-			$this->getOfferCodeFormat->execute(),
-			[$this->offerRepository->many()->where('YEAR(this.createdTs)', $year)->enum()],
+			$format,
+			[$year, $counter],
 		);
 	}
 }
