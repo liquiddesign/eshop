@@ -723,7 +723,12 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                                         Zadejte kódy nebo názvy produktů, jeden na řádek.
                                         Kódy/EAN budou napárovány na existující produkty, ostatní budou vytvořeny jako textové vazby.
                                     </span>
-                                    {input bulkSlaveProducts class => 'form-control form-control-sm', style => 'width: 100%;'}
+                                    <div class="mb-3">
+                                        {input bulkSlaveProductsProducer class => 'form-control form-control-sm'}
+                                    </div>
+                                    <div>
+                                        {input bulkSlaveProducts class => 'form-control form-control-sm', style => 'width: 100%;'}
+                                    </div>
                                 </div>
                             {/if}
                         {/formContainer}

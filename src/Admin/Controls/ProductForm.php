@@ -445,30 +445,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 					$i++;
 				}
 
-				// Prefill bulk textarea for tonerForPrinter type
-				if ($relatedType->getPK() === 'tonerForPrinter' && isset($relationsMasterContainer['bulkSlaveProducts'])) {
-					$bulkLines = [];
-					$masterRelations = $this->relatedRepository->many()
-						->where('fk_master', $this->product->getPK())
-						->where('fk_type', $relatedType->getPK())
-						->toArray();
-
-					/** @var \Eshop\DB\Related $rel */
-					foreach ($masterRelations as $rel) {
-						if ($rel->slave !== null) {
-							$bulkLines[] = $rel->slave->code;
-						} elseif ($rel->slaveName !== null) {
-							$bulkLines[] = $rel->slaveName;
-						}
-					}
-
-					if (\count($bulkLines) > 0) {
-						/** @var \Nette\Forms\Controls\TextArea $bulkInput */
-						$bulkInput = $relationsMasterContainer['bulkSlaveProducts'];
-						$bulkInput->setDefaultValue(\implode("\n", $bulkLines));
-					}
-				}
-
 				$relations = $this->relatedRepository->many()
 					->where('fk_slave', $this->product->getPK())
 					->where('fk_type', $relatedType->getPK())
@@ -855,19 +831,11 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 				if ($bulkValue !== null && $bulkValue !== '') {
 					$lines = \explode("\n", $bulkValue);
-					$processedEntries = [];
 
-					// Collect already processed entries from individual rows to avoid duplicates
-					for ($j = 0; $j < $this->relationExtraItemsCount + $masterCount; $j++) {
-						$rowProductId = $data['relatedType_master_' . $relatedType->getPK()]["product_$j"] ?? null;
-						$rowSlaveName = $relatedTypeValues["slaveName_$j"] ?? null;
-						$rowSlaveName = $rowSlaveName !== '' ? $rowSlaveName : null;
+					$bulkValueProducer = $relatedTypeValues['bulkSlaveProductsProducer'] ?? null;
 
-						if ($rowProductId !== null) {
-							$processedEntries['product_' . $rowProductId] = true;
-						} elseif ($rowSlaveName !== null) {
-							$processedEntries['name_' . $rowSlaveName] = true;
-						}
+					if ($bulkValueProducer !== null) {
+						$bulkValueProducer = $this->producerRepository->one($bulkValueProducer);
 					}
 
 					foreach ($lines as $line) {
@@ -886,19 +854,12 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 						}
 
 						if ($slaveProduct !== null) {
-							// Skip if already processed from individual rows
-							if (isset($processedEntries['product_' . $slaveProduct->getPK()])) {
-								continue;
-							}
-
-							$processedEntries['product_' . $slaveProduct->getPK()] = true;
-
 							$this->relatedRepository->syncOne([
 								'type' => $relatedType->getPK(),
 								'master' => $product->getPK(),
 								'slave' => $slaveProduct->getPK(),
 								'slaveName' => null,
-								'slaveProducer' => null,
+								'slaveProducer' => $bulkValueProducer,
 								'amount' => $relatedType->defaultAmount,
 								'priority' => 10,
 								'hidden' => false,
@@ -906,20 +867,13 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 								'masterPct' => $relatedType->defaultMasterPct,
 							]);
 						} else {
-							// Skip if already processed from individual rows
-							if (isset($processedEntries['name_' . $line])) {
-								continue;
-							}
-
-							$processedEntries['name_' . $line] = true;
-
 							// Use line as slaveName
 							$this->relatedRepository->syncOne([
 								'type' => $relatedType->getPK(),
 								'master' => $product->getPK(),
 								'slave' => null,
 								'slaveName' => $line,
-								'slaveProducer' => null,
+								'slaveProducer' => $bulkValueProducer,
 								'amount' => $relatedType->defaultAmount,
 								'priority' => 10,
 								'hidden' => false,
@@ -1287,6 +1241,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		if (!$includeSlaveName || $relatedType->getPK() !== 'tonerForPrinter') {
 			return;
 		}
+
+		$formContainer->addSelect2('bulkSlaveProductsProducer', null, $this->producerRepository->getArrayForSelect())->setPrompt('-- Výrobce --');
 
 		$formContainer->addTextArea('bulkSlaveProducts')
 			->setNullable()
