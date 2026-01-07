@@ -17,7 +17,7 @@ class DisplayAmount extends ShopSystemicEntity
 	 * @column
 	 */
 	public ?string $code;
-	
+
 	/**
 	 * Popisek
 	 * @column{"mutations":true}

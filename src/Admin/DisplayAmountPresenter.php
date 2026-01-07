@@ -25,12 +25,12 @@ class DisplayAmountPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($this->displayAmountRepository->many(), 20, 'priority', 'ASC', true);
 
 		$grid->addColumnSelector();
-		
-		
+
+
 		$grid->addColumnText('Popisek', 'label', '%s', 'label');
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
 		$grid->addColumnText('Interní popisek', 'internalLabel', '%s', 'internalLabel');
-		
+
 		//      $grid->addColumnText('Množství od', 'amountFrom', '%s', 'amountFrom', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		//      $grid->addColumnText('Množství do', 'amountTo', '%s', 'amountTo', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 
