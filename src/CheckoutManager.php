@@ -385,7 +385,21 @@ class CheckoutManager
 			return $item;
 		}
 
-		$cartItem = $this->cartItemRepository->syncItem($cart ?? $this->getCart($cartId), null, $product, $variant, $amount, $this->shopperUser->getCountry(), $disabled);
+		$merchant = $this->shopperUser->getMerchant();
+		$customer = $this->shopperUser->getCustomer();
+		$account = $merchant?->getAccount() ?? $customer?->getAccount();
+
+		$cartItem = $this->cartItemRepository->syncItem(
+			$cart ?? $this->getCart($cartId),
+			null,
+			$product,
+			$variant,
+			$amount,
+			$this->shopperUser->getCountry(),
+			$disabled,
+			$merchant,
+			$account,
+		);
 
 		if ($upsell) {
 			$cartItem->update(['upsell' => $upsell->getPK(),]);

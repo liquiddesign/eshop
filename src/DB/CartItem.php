@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use DVDoug\BoxPacker;
+use Security\DB\Account;
 use StORM\ICollection;
 use StORM\RelationCollection;
 
@@ -180,6 +181,20 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	 * @relation
 	 */
 	public ?CartItem $upsell;
+
+	/**
+	 * Obchodník, který přidal položku do košíku
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 * @relation
+	 */
+	public ?Merchant $merchant;
+
+	/**
+	 * Účet, který přidal položku do košíku
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 * @relation
+	 */
+	public ?Account $account;
 
 	/**
 	 * Related cart items

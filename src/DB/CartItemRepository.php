@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Security\DB\Account;
 use StORM\Collection;
 use StORM\DIConnection;
 use StORM\SchemaManager;
@@ -96,8 +97,17 @@ class CartItemRepository extends \StORM\Repository
 		return $this->many()->where('fk_cart', $cart)->where('this.uuid', $item)->delete();
 	}
 
-	public function syncItem(Cart $cart, ?CartItem $item, \Eshop\DB\Product $product, ?Variant $variant, int $amount, Country $country, bool $disabled = false): CartItem
-	{
+	public function syncItem(
+		Cart $cart,
+		?CartItem $item,
+		\Eshop\DB\Product $product,
+		?Variant $variant,
+		int $amount,
+		Country $country,
+		bool $disabled = false,
+		?Merchant $merchant = null,
+		?Account $account = null,
+	): CartItem {
 		$vatRate = $product->getProductVatRateByCountry($country);
 
 		return $this->syncOne([
@@ -124,6 +134,8 @@ class CartItemRepository extends \StORM\Repository
 			'pricelist' => $product->pricelist ?? null,
 			'variant' => $variant?->getPK(),
 			'cart' => $cart->getPK(),
+			'merchant' => $merchant?->getPK(),
+			'account' => $account?->getPK(),
 		]);
 	}
 
