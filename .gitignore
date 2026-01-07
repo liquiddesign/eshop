@@ -10,3 +10,6 @@ auth.json
 .env
 
 !/.idea/runConfigurations
+temp/phpstan
+temp/phpstan8
+temp/phpcs.cache
