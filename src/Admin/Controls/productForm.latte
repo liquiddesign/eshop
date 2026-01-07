@@ -706,6 +706,20 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                                             {input "product_$i", class: "form-control form-control-sm", style: "width: 100% !important"}<br>nebo<br>
                                             {input "slaveProducer_$i", class: "form-control form-control-sm mt-1"}
                                             {input "slaveName_$i", class: "form-control form-control-sm mt-1", placeholder: "Název"}
+                                            {input "imageName_$i"}
+                                            {input "imageExists_$i"}
+                                            {var $imageName = $form["relatedType_master_" . $relatedType->uuid]["imageName_$i"]->getValue()}
+                                            {var $imageExists = $form["relatedType_master_" . $relatedType->uuid]["imageExists_$i"]->getValue()}
+                                            {if $imageName}
+                                                <div class="mt-1 d-flex align-items-center">
+                                                    <small class="text-muted mr-2">Obrázek: {$imageName}</small>
+                                                    {if $imageExists === '1'}
+                                                        <span class="badge badge-success" title="Soubor existuje"><i class="fas fa-check"></i></span>
+                                                    {else}
+                                                        <span class="badge badge-danger" title="Soubor neexistuje"><i class="fas fa-times"></i></span>
+                                                    {/if}
+                                                </div>
+                                            {/if}
                                         </td>
                                         <td class="p-2">{input "amount_$i", class: "form-control form-control-sm"}</td>
                                         <td class="p-2">{input "priority_$i", class: "form-control form-control-sm"}</td>

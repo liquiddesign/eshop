@@ -40,6 +40,7 @@ use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\FormValidators;
 use Eshop\Integration\Integrations;
+use Eshop\Services\Related\FileExistenceService;
 use Eshop\ShopperUser;
 use Forms\Container;
 use Nette\Application\UI\Control;
@@ -99,6 +100,7 @@ class ProductForm extends Control
 		private readonly LoyaltyProgramProductRepository $loyaltyProgramProductRepository,
 		private readonly RelatedTypeRepository $relatedTypeRepository,
 		private readonly RelatedRepository $relatedRepository,
+		private readonly FileExistenceService $fileExistenceService,
 		private readonly StoreRepository $storeRepository,
 		private readonly AmountRepository $amountRepository,
 		private readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
@@ -429,6 +431,17 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 					/** @var \Nette\Forms\Controls\SelectBox $slaveProducerInput */
 					$slaveProducerInput = $relationsMasterContainer["slaveProducer_$i"];
 					$slaveProducerInput->setDefaultValue($relation->getValue('slaveProducer'));
+
+					// Set image name and existence check for relations with slaveName only (no slave product)
+					$expectedImageName = $relation->getExpectedImageName();
+
+					/** @var \Nette\Forms\Controls\HiddenField $imageNameInput */
+					$imageNameInput = $relationsMasterContainer["imageName_$i"];
+					$imageNameInput->setDefaultValue($expectedImageName ?? '');
+
+					/** @var \Nette\Forms\Controls\HiddenField $imageExistsInput */
+					$imageExistsInput = $relationsMasterContainer["imageExists_$i"];
+					$imageExistsInput->setDefaultValue($expectedImageName ? ($this->fileExistenceService->relatedImageExists($relation) ? '1' : '0') : '');
 
 					if ($relatedType->defaultDiscountPct) {
 						/** @var \Nette\Forms\Controls\TextInput $discountPctInput */
@@ -1220,6 +1233,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			if ($includeSlaveName) {
 				$formContainer->addText("slaveName_$i")->setNullable();
 				$formContainer->addSelect2("slaveProducer_$i", null, $this->producerRepository->getArrayForSelect())->setPrompt('-- Výrobce --');
+				$formContainer->addHidden("imageName_$i");
+				$formContainer->addHidden("imageExists_$i");
 			}
 
 			$formContainer->addInteger("amount_$i")->setDefaultValue($relatedType->defaultAmount)->setNullable();

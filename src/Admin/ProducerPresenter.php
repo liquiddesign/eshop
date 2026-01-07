@@ -14,6 +14,7 @@ use Eshop\DB\ProducerRepository;
 use Forms\Form;
 use Nette\Application\UI\Presenter;
 use Nette\Http\Request;
+use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
 use Pages\DB\PageRepository;
 use Pages\Helpers;
@@ -113,6 +114,21 @@ class ProducerPresenter extends BackendPresenter
 				$this->redirect('this');
 			};
 
+			$fallbackPrinterImagePicker = $form->addImagePicker('fallbackPrinterImage', 'Záložní obrázek produktu', [
+				Producer::FALLBACK_PRINTER_IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
+				Producer::FALLBACK_PRINTER_IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
+					$image->resize(600, null);
+				},
+				Producer::FALLBACK_PRINTER_IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
+					$image->resize(300, null);
+				},
+			]);
+
+			$fallbackPrinterImagePicker->onDelete[] = function () use ($producer): void {
+				$this->onDeleteFallbackPrinterImage($producer);
+				$this->redirect('this');
+			};
+
 			$productInput = $form->addMultiSelectAjax('mainCategories', 'Hlavní kategorie', 'Zvolte kategorie', Category::class, ['maximumSelectionLength' => 500]);
 
 			if ($producer) {
@@ -136,6 +152,7 @@ class ProducerPresenter extends BackendPresenter
 			$values = $form->getValuesWithAjax();
 
 			$this->createImageDirs(Producer::IMAGE_DIR);
+			$this->createImageDirs(Producer::FALLBACK_PRINTER_IMAGE_DIR);
 
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
@@ -145,6 +162,11 @@ class ProducerPresenter extends BackendPresenter
 			$upload = $form['imageFileName'];
 
 			$values['imageFileName'] = $upload->upload(DIConnection::generateUuid() . '.%2$s');
+
+			/** @var \Forms\Controls\UploadImage $fallbackUpload */
+			$fallbackUpload = $form['fallbackPrinterImage'];
+
+			$values['fallbackPrinterImage'] = $fallbackUpload->upload(DIConnection::generateUuid() . '.%2$s');
 
 			$producer = $this->producerRepository->syncOne($values, null, true);
 
@@ -203,6 +225,7 @@ class ProducerPresenter extends BackendPresenter
 	public function onDelete(Entity $object): void
 	{
 		$this->onDeleteImage($object);
+		$this->onDeleteFallbackPrinterImage($object);
 
 		/** @var \Web\DB\Page|null $page */
 		$page = $this->pageRepository->getPageByTypeAndParams('product_list', null, ['producer' => $object->getPK()]);
@@ -212,6 +235,28 @@ class ProducerPresenter extends BackendPresenter
 		}
 
 		$page->delete();
+	}
+
+	protected function onDeleteFallbackPrinterImage(?Producer $producer): void
+	{
+		if (!$producer || !$producer->fallbackPrinterImage) {
+			return;
+		}
+
+		$basePath = $this->request->getUrl()->getBasePath();
+		$sizes = ['origin', 'detail', 'thumb'];
+
+		foreach ($sizes as $size) {
+			$path = $basePath . 'userfiles/' . Producer::FALLBACK_PRINTER_IMAGE_DIR . '/' . $size . '/' . $producer->fallbackPrinterImage;
+
+			if (!\file_exists($path)) {
+				continue;
+			}
+
+			FileSystem::delete($path);
+		}
+
+		$producer->update(['fallbackPrinterImage' => null]);
 	}
 
 	protected function addCustomFieldsToProducerForm(AdminForm $form): void
