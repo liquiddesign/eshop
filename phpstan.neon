@@ -20,5 +20,6 @@ parameters:
 		- src/migrations
 		- src/Admin/MerchantPresenter.php
 		- src/Services/ProductsCache
+		- src/Services/Related
 		- src/DB/SupplierProductPhoto.php
 		- src/DB/SupplierProductPhotoRepository.php

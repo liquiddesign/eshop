@@ -1633,6 +1633,33 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	}
 
 	/**
+	 * Get slave products including tag-matched products for tonerForPrinter relations.
+	 * Combines direct slave relations with products matched via relatedTags.
+	 * @param \Eshop\DB\RelatedType|string $relatedType
+	 * @param \Eshop\DB\Product|string $product
+	 * @param bool $onlyVisible
+	 * @return ?array<\Eshop\DB\Product>
+	 * @throws \StORM\Exception\NotFoundException
+	 */
+	public function getSlaveProductsForTagsMatching(
+		RelatedType|string $relatedType,
+		Product|string $product,
+		bool $onlyVisible = false,
+	): ?array {
+		$relatedTypeCode = $relatedType instanceof RelatedType ? $relatedType->code : $relatedType;
+
+		if ($relatedTypeCode !== 'tonerForPrinter') {
+			$collection = $onlyVisible
+				? $this->getSlaveProductsByRelationAndMasterVisible($relatedType, $product)
+				: $this->getSlaveProductsByRelationAndMaster($relatedType, $product);
+
+			return $collection?->toArray() ?? [];
+		}
+
+		return null;
+	}
+
+	/**
 	 * @param string|\Eshop\DB\RelatedType $relatedType
 	 * @param string|\Eshop\DB\Product $product
 	 * @return \StORM\Collection<\Eshop\DB\Related>

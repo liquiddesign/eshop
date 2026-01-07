@@ -15,6 +15,7 @@ parameters:
 		- src/Services/LostPasswordService.php
 		- src/Services/Order
 		- src/Services/Comgate.php
+		- src/Services/Related
 		- src/Front/Web/SandboxPresenter.php
 		- src/Front/Eshop/ExportPresenter.php
 		- src/Admin/MerchantPresenter.php

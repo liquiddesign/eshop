@@ -210,7 +210,14 @@ class MerchantPresenter extends BackendPresenter
 				->setHtmlAttribute('data-info', 'Pokud se obchodník přihlásí na zákazníka, tak určuje, jestli použít ceníky zákazníka, obchodníka nebo spojit ceníky obou.');
 			$form->addCheckbox('customersPermission', 'Oprávnění: Správa zákazníků');
 			$form->addCheckbox('ordersPermission', 'Oprávnění: Správa objednávek');
-			$form->addCheckbox('viewPurchasePricePermission', 'Oprávnění: Zobrazení nákupních cen');
+			$form->addSelect(
+				'viewPurchasePricePermission',
+				'Oprávnění: Zobrazení nákupních cen',
+				\Eshop\DB\PurchasePricePermissionLevel::getLabels(),
+			)->setHtmlAttribute(
+				'data-info',
+				'Základní: vidí nejnižší a průměrnou nákupní cenu. Plný: vidí i ceny jednotlivých dodavatelů.',
+			);
 			$form->addCheckbox('approveOfferPermission', 'Oprávnění: Schvalování nabídek');
 			$form->addCheckbox(
 				'customerEmailNotification',

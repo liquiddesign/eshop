@@ -91,9 +91,9 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 
 	/**
 	 * Oprávnění: Zobrazení nákupních cen
-	 * @column
+	 * @column{"type":"enum","length":"'none','basic','full'"}
 	 */
-	public bool $viewPurchasePricePermission = false;
+	public string $viewPurchasePricePermission = 'none';
 
 	/**
 	 * Oprávnění: Schvalování nabídek
@@ -189,5 +189,10 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	public function getName(): string
 	{
 		return $this->fullname;
+	}
+
+	public function getPurchasePricePermissionLevel(): PurchasePricePermissionLevel
+	{
+		return PurchasePricePermissionLevel::from($this->viewPurchasePricePermission);
 	}
 }
