@@ -284,23 +284,33 @@
 											<i class="fas fa-file-import mr-1"></i>
 											Hromadný import vazeb
 										</h6>
-										<p class="small text-muted mb-2">
-											Zadejte kódy nebo názvy produktů, každý na nový řádek.
-											Pokud produkt existuje (podle kódu/EAN), vytvoří se vazba na produkt.
-											Pokud ne, vytvoří se textová vazba.
-										</p>
-										<div class="form-group mb-2">
-											<label class="small">Výrobce (nepovinné, pro textové vazby):</label>
-											<select
-												class="form-control form-control-sm bulk-producer-select"
-												x-init="$nextTick(() => initBulkProducerSelect2($el, type.uuid))"
-											>
-												<option value="">-- Bez výrobce --</option>
-												<template x-for="(name, uuid) in producers" :key="uuid">
-													<option :value="uuid" x-text="name"></option>
-												</template>
-											</select>
-										</div>
+										<template x-if="type.allowTextRelations">
+											<p class="small text-muted mb-2">
+												Zadejte kódy nebo názvy produktů, každý na nový řádek.
+												Pokud produkt existuje (podle kódu/EAN), vytvoří se vazba na produkt.
+												Pokud ne, vytvoří se textová vazba.
+											</p>
+										</template>
+										<template x-if="!type.allowTextRelations">
+											<p class="small text-muted mb-2">
+												Zadejte kódy nebo EAN produktů, každý na nový řádek.
+												Produkty, které neexistují v databázi, budou přeskočeny.
+											</p>
+										</template>
+										<template x-if="type.allowTextRelations">
+											<div class="form-group mb-2">
+												<label class="small">Výrobce (nepovinné, pro textové vazby):</label>
+												<select
+													class="form-control form-control-sm bulk-producer-select"
+													x-init="$nextTick(() => initBulkProducerSelect2($el, type.uuid))"
+												>
+													<option value="">-- Bez výrobce --</option>
+													<template x-for="(name, uuid) in producers" :key="uuid">
+														<option :value="uuid" x-text="name"></option>
+													</template>
+												</select>
+											</div>
+										</template>
 										<div class="form-group mb-2">
 											<textarea
 												class="form-control form-control-sm"

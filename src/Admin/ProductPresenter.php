@@ -1776,6 +1776,7 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 				'defaultAmount' => $type->defaultAmount,
 				'defaultDiscountPct' => $type->defaultDiscountPct,
 				'defaultMasterPct' => $type->defaultMasterPct,
+				'allowTextRelations' => $type->allowTextRelations,
 			];
 		}
 
@@ -2040,7 +2041,7 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 				->max('priority');
 
 			foreach ($lines as $line) {
-				$line = \trim($line);
+				$line = Strings::trim($line);
 
 				if ($line === '') {
 					continue;
@@ -2061,6 +2062,7 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 
 					if ($existingRelation !== null) {
 						$skipped[] = ['line' => $line, 'reason' => 'Vazba již existuje'];
+
 						continue;
 					}
 
@@ -2076,6 +2078,13 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 
 					$added[] = ['line' => $line, 'type' => 'product', 'name' => $foundProduct->name];
 				} else {
+					// Produkt nenalezen - pokud typ nepodporuje textové vazby, přeskočit
+					if (!$type->allowTextRelations) {
+						$skipped[] = ['line' => $line, 'reason' => 'Produkt nenalezen'];
+
+						continue;
+					}
+
 					// Textová vazba - zkontrolovat duplicitu
 					$existingTextRelation = $this->relatedRepository->many()
 						->where('fk_master', $data['productUuid'])
@@ -2085,6 +2094,7 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 
 					if ($existingTextRelation !== null) {
 						$skipped[] = ['line' => $line, 'reason' => 'Textová vazba již existuje'];
+
 						continue;
 					}
 
