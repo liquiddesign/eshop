@@ -36,6 +36,7 @@ use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductContentRepository;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\RelatedRepository;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\StoreRepository;
 use Eshop\DB\SupplierProductRepository;
@@ -58,6 +59,7 @@ use Nette\IOException;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Image;
+use Nette\Utils\Json;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
 use Pages\DB\PageRepository;
@@ -230,6 +232,9 @@ class ProductPresenter extends BackendPresenter
 
 	#[Inject]
 	public RelatedTypeRepository $relatedTypeRepository;
+
+	#[Inject]
+	public RelatedRepository $relatedRepository;
 
 	#[Inject]
 	public Application $application;
@@ -1746,6 +1751,377 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 		}
 
 		$this->redirect('this');
+	}
+
+	/**
+	 * API endpoint: Načíst vazby produktu pro Alpine.js komponentu
+	 */
+	public function handleGetProductRelations(string $productUuid): void
+	{
+		$product = $this->productRepository->one($productUuid);
+
+		if ($product === null) {
+			$this->sendJson(['error' => 'Product not found']);
+		}
+
+		$relatedTypes = [];
+
+		foreach ($this->relatedTypeRepository->many()->orderBy(['name']) as $type) {
+			$relatedTypes[] = [
+				'uuid' => $type->getPK(),
+				'code' => $type->code,
+				'name' => $type->name,
+				'masterName' => $type->getSlaveInternalName(),
+				'slaveName' => $type->getMasterInternalName(),
+				'defaultAmount' => $type->defaultAmount,
+				'defaultDiscountPct' => $type->defaultDiscountPct,
+				'defaultMasterPct' => $type->defaultMasterPct,
+			];
+		}
+
+		$relations = [];
+
+		foreach ($this->relatedTypeRepository->many() as $type) {
+			$masterRelations = [];
+			$slaveRelations = [];
+
+			// Master relace - kde tento produkt je master
+			foreach ($this->relatedRepository->many()
+				->where('fk_master', $productUuid)
+				->where('fk_type', $type->getPK())
+				->orderBy(['priority', 'uuid']) as $relation) {
+				$slaveProduct = $relation->slave;
+
+				$imageName = $relation->getExpectedImageName();
+
+				$masterRelations[] = [
+					'uuid' => $relation->getPK(),
+					'slaveUuid' => $relation->getValue('slave'),
+					'slaveName' => $relation->slaveName,
+					'slaveProducer' => $relation->getValue('slaveProducer'),
+					'amount' => $relation->amount,
+					'priority' => $relation->priority,
+					'hidden' => $relation->hidden,
+					'discountPct' => $relation->discountPct,
+					'masterPct' => $relation->masterPct,
+					'productName' => $slaveProduct !== null ? $slaveProduct->name : null,
+					'productCode' => $slaveProduct !== null ? $slaveProduct->code : null,
+					'imageName' => $imageName,
+					'imageExists' => $imageName !== null && \file_exists($this->wwwDir . '/userfiles/related/' . $imageName),
+				];
+			}
+
+			// Slave relace - kde tento produkt je slave
+			foreach ($this->relatedRepository->many()
+				->where('fk_slave', $productUuid)
+				->where('fk_type', $type->getPK())
+				->orderBy(['priority', 'uuid']) as $relation) {
+				$slaveRelations[] = [
+					'uuid' => $relation->getPK(),
+					'masterUuid' => $relation->getValue('master'),
+					'amount' => $relation->amount,
+					'priority' => $relation->priority,
+					'hidden' => $relation->hidden,
+					'discountPct' => $relation->discountPct,
+					'masterPct' => $relation->masterPct,
+					'productName' => $relation->master->name,
+					'productCode' => $relation->master->code,
+				];
+			}
+
+			$relations[$type->getPK()] = [
+				'master' => $masterRelations,
+				'slave' => $slaveRelations,
+			];
+		}
+
+		$this->sendJson([
+			'relatedTypes' => $relatedTypes,
+			'relations' => $relations,
+			'producers' => $this->producerRepository->getArrayForSelect(),
+			'relatedTags' => $product->relatedTags ?? '',
+		]);
+	}
+
+	/**
+	 * API endpoint: Uložit relatedTags produktu
+	 */
+	public function handleSaveRelatedTags(): void
+	{
+		$rawBody = $this->getHttpRequest()->getRawBody();
+
+		if ($rawBody === null || $rawBody === '') {
+			$this->sendJson(['error' => 'Empty request body']);
+		}
+
+		try {
+			/** @var array{productUuid: string, relatedTags: string} $data */
+			$data = Json::decode($rawBody, forceArrays: true);
+		} catch (\Exception $e) {
+			$this->sendJson(['error' => 'Invalid JSON: ' . $e->getMessage()]);
+		}
+
+		$product = $this->productRepository->one($data['productUuid']);
+
+		if ($product === null) {
+			$this->sendJson(['error' => 'Product not found']);
+		}
+
+		$this->productRepository->many()
+			->where('uuid', $data['productUuid'])
+			->update(['relatedTags' => $data['relatedTags'] !== '' ? $data['relatedTags'] : null]);
+
+		$this->sendJson(['success' => true]);
+	}
+
+	/**
+	 * API endpoint: Uložit vazby produktu z Alpine.js komponenty
+	 */
+	public function handleSaveProductRelations(): void
+	{
+		$rawBody = $this->getHttpRequest()->getRawBody();
+
+		if ($rawBody === null || $rawBody === '') {
+			$this->sendJson(['error' => 'Empty request body']);
+		}
+
+		try {
+			$data = Json::decode($rawBody, forceArrays: true);
+		} catch (\Exception $e) {
+			$this->sendJson(['error' => 'Invalid JSON: ' . $e->getMessage()]);
+		}
+
+		if (!isset($data['productUuid']) || !isset($data['relations'])) {
+			$this->sendJson(['error' => 'Missing productUuid or relations']);
+		}
+
+		$productUuid = $data['productUuid'];
+		$product = $this->productRepository->one($productUuid);
+
+		if ($product === null) {
+			$this->sendJson(['error' => 'Product not found']);
+		}
+
+		$link = $this->productRepository->getConnection()->getLink();
+
+		try {
+			$link->beginTransaction();
+
+			foreach ($data['relations'] as $relatedTypeId => $sides) {
+				// Smazat existující master vazby pro tento typ
+				$this->relatedRepository->many()
+					->where('fk_master', $productUuid)
+					->where('fk_type', $relatedTypeId)
+					->delete();
+
+				// Smazat existující slave vazby pro tento typ
+				$this->relatedRepository->many()
+					->where('fk_slave', $productUuid)
+					->where('fk_type', $relatedTypeId)
+					->delete();
+
+				$relatedType = $this->relatedTypeRepository->one($relatedTypeId);
+
+				if ($relatedType === null) {
+					continue;
+				}
+
+				// Vytvořit nové master vazby
+				foreach ($sides['master'] ?? [] as $relation) {
+					$slaveUuid = $relation['slaveUuid'] ?? null;
+					$slaveName = $relation['slaveName'] ?? null;
+
+					// Přeskočit prázdné řádky
+					if (($slaveUuid === null || $slaveUuid === '') && ($slaveName === null || $slaveName === '')) {
+						continue;
+					}
+
+					$this->relatedRepository->createOne([
+						'type' => $relatedTypeId,
+						'master' => $productUuid,
+						'slave' => $slaveUuid !== null && $slaveUuid !== '' ? $slaveUuid : null,
+						'slaveName' => $slaveUuid !== null && $slaveUuid !== '' ? null : $slaveName,
+						'slaveProducer' => $slaveUuid !== null && $slaveUuid !== '' ? null : ($relation['slaveProducer'] ?? null),
+						'amount' => (int) ($relation['amount'] ?? $relatedType->defaultAmount),
+						'priority' => (int) ($relation['priority'] ?? 10),
+						'hidden' => (bool) ($relation['hidden'] ?? false),
+						'discountPct' => $relatedType->defaultDiscountPct !== null ? ($relation['discountPct'] ?? null) : null,
+						'masterPct' => $relatedType->defaultMasterPct !== null ? ($relation['masterPct'] ?? null) : null,
+					]);
+				}
+
+				// Vytvořit nové slave vazby
+				foreach ($sides['slave'] ?? [] as $relation) {
+					$masterUuid = $relation['masterUuid'] ?? null;
+
+					// Přeskočit prázdné řádky
+					if ($masterUuid === null || $masterUuid === '') {
+						continue;
+					}
+
+					$this->relatedRepository->createOne([
+						'type' => $relatedTypeId,
+						'master' => $masterUuid,
+						'slave' => $productUuid,
+						'amount' => (int) ($relation['amount'] ?? $relatedType->defaultAmount),
+						'priority' => (int) ($relation['priority'] ?? 10),
+						'hidden' => (bool) ($relation['hidden'] ?? false),
+						'discountPct' => $relatedType->defaultDiscountPct !== null ? ($relation['discountPct'] ?? null) : null,
+						'masterPct' => $relatedType->defaultMasterPct !== null ? ($relation['masterPct'] ?? null) : null,
+					]);
+				}
+			}
+
+			$link->commit();
+
+			$this->sendJson(['success' => true]);
+		} catch (\Exception $e) {
+			if ($link->inTransaction()) {
+				$link->rollBack();
+			}
+
+			$this->sendJson(['error' => $e->getMessage()]);
+		}
+	}
+
+	/**
+	 * API: Kontrola existence obrázku pro textovou vazbu
+	 */
+	public function handleCheckRelatedImage(string $imageName): void
+	{
+		$path = $this->wwwDir . '/userfiles/related/' . $imageName;
+		$exists = \file_exists($path);
+
+		$this->sendJson([
+			'imageName' => $imageName,
+			'exists' => $exists,
+		]);
+	}
+
+	/**
+	 * API: Hromadné přidání vazeb
+	 */
+	public function handleBulkAddRelations(): void
+	{
+		$json = \file_get_contents('php://input');
+
+		if ($json === false) {
+			$this->sendJson(['error' => 'Invalid request']);
+		}
+
+		/** @var array{productUuid: string, typeUuid: string, producerUuid: string|null, lines: list<string>} $data */
+		$data = Json::decode($json, forceArrays: true);
+
+		$product = $this->productRepository->one($data['productUuid']);
+
+		if ($product === null) {
+			$this->sendJson(['error' => 'Product not found']);
+		}
+
+		$type = $this->relatedTypeRepository->one($data['typeUuid']);
+
+		if ($type === null) {
+			$this->sendJson(['error' => 'Related type not found']);
+		}
+
+		$producerUuid = $data['producerUuid'] !== '' ? $data['producerUuid'] : null;
+		$lines = $data['lines'];
+		$added = [];
+		$skipped = [];
+
+		$link = $this->relatedRepository->getConnection();
+		$link->beginTransaction();
+
+		try {
+			// Získat aktuální max prioritu
+			$maxPriority = (int) $this->relatedRepository->many()
+				->where('fk_master', $data['productUuid'])
+				->where('fk_type', $data['typeUuid'])
+				->max('priority');
+
+			foreach ($lines as $line) {
+				$line = \trim($line);
+
+				if ($line === '') {
+					continue;
+				}
+
+				// Zkusit najít produkt podle kódu nebo EAN
+				$foundProduct = $this->productRepository->many()
+					->where('code = :code OR ean = :ean', ['code' => $line, 'ean' => $line])
+					->first();
+
+				if ($foundProduct !== null) {
+					// Zkontrolovat jestli vazba už neexistuje
+					$existingRelation = $this->relatedRepository->many()
+						->where('fk_master', $data['productUuid'])
+						->where('fk_slave', $foundProduct->getPK())
+						->where('fk_type', $data['typeUuid'])
+						->first();
+
+					if ($existingRelation !== null) {
+						$skipped[] = ['line' => $line, 'reason' => 'Vazba již existuje'];
+						continue;
+					}
+
+					$maxPriority += 10;
+					$this->relatedRepository->createOne([
+						'master' => $data['productUuid'],
+						'slave' => $foundProduct->getPK(),
+						'type' => $data['typeUuid'],
+						'priority' => $maxPriority,
+						'amount' => $type->defaultAmount ?? 1,
+						'hidden' => false,
+					]);
+
+					$added[] = ['line' => $line, 'type' => 'product', 'name' => $foundProduct->name];
+				} else {
+					// Textová vazba - zkontrolovat duplicitu
+					$existingTextRelation = $this->relatedRepository->many()
+						->where('fk_master', $data['productUuid'])
+						->where('fk_type', $data['typeUuid'])
+						->where('slaveName', $line)
+						->first();
+
+					if ($existingTextRelation !== null) {
+						$skipped[] = ['line' => $line, 'reason' => 'Textová vazba již existuje'];
+						continue;
+					}
+
+					$maxPriority += 10;
+					$this->relatedRepository->createOne([
+						'master' => $data['productUuid'],
+						'type' => $data['typeUuid'],
+						'slaveName' => $line,
+						'slaveProducer' => $producerUuid,
+						'priority' => $maxPriority,
+						'amount' => $type->defaultAmount ?? 1,
+						'hidden' => false,
+					]);
+
+					$added[] = ['line' => $line, 'type' => 'text'];
+				}
+			}
+
+			$link->commit();
+
+			$this->sendJson([
+				'success' => true,
+				'added' => $added,
+				'skipped' => $skipped,
+			]);
+		} catch (\Nette\Application\AbortException $e) {
+			// AbortException je normální ukončení presenteru po sendJson - re-throw
+			throw $e;
+		} catch (\Exception $e) {
+			try {
+				$link->rollBack();
+			} catch (\Throwable) {
+				// Transaction already rolled back or not active
+			}
+
+			$this->sendJson(['error' => $e->getMessage()]);
+		}
 	}
 
 	/**

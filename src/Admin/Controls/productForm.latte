@@ -665,128 +665,22 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
             </fieldset>
         </div>
         <div id="menu4-content" class="tab-pane {$presenter->editTab == 'menu4' ? 'active show' : ''}">
-            <table class="mt-1 mb-1" style="width: auto;">
-                    <tr class="m-0 mt-1 has-danger">
-                        <th class="col-label col-form-label col">{label relatedTags/}</th>
-
-                        <td class="align-middle">{input relatedTags class=>'form-control form-control-sm '}
-                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError relatedTags}</span>
-                        </td>
-                        <td colspan="3"></td>
-                    </tr>
-                </table>
-            <fieldset>
-                {foreach $relatedTypes as $relatedType}
-                    <legend>
-                        {$relatedType->name} ({$masterRelationsCount[$relatedType->getPK()] ?? 0} - {$slaveRelationsCount[$relatedType->getPK()] ?? 0})
-
-                        <span class="ml-2" data-toggle="collapse" data-target="#relatedType-{$relatedType->getPK()}" aria-expanded="false"
-                                aria-controls="collapseExample">
-                            <i class="fas fa-chevron-down" id="toggleIcon"></i>
-                        </span>
-                    </legend>
-
-                    <div class="row collapse" id="relatedType-{$relatedType->getPK()}">
-                        <div class="col-6">
-                        {formContainer "relatedType_master_" . $relatedType->uuid}
-                            <table class="mt-1 mb-1" style="width: auto;">
-                                <thead>
-                                <tr>
-                                    <th class="p-2">{$relatedType->getSlaveInternalName()}</th>
-                                    <th class="p-2">Množství</th>
-                                    <th class="p-2">Priorita</th>
-                                    <th class="p-2">Skryto</th>
-                                    {if $relatedType->defaultDiscountPct}<th class="p-2">Sleva (0-100%)</th>{/if}
-                                {if $relatedType->defaultMasterPct}<th class="p-2">Procento z ceny produktu: {$relatedType->getMasterInternalName()} (0-max%)</th>{/if}
-                                </tr>
-                                </thead>
-                                {for $i =0; $i < $relationMaxItemsCount + ($masterRelationsCount[$relatedType->getPK()] ?? 0); $i++}
-                                    <tr>
-                                        <td class="p-2" style="min-width: 360px;">
-                                            {input "product_$i", class: "form-control form-control-sm", style: "width: 100% !important"}<br>nebo<br>
-                                            {input "slaveProducer_$i", class: "form-control form-control-sm mt-1"}
-                                            {input "slaveName_$i", class: "form-control form-control-sm mt-1", placeholder: "Název"}
-                                            {input "imageName_$i"}
-                                            {input "imageExists_$i"}
-                                            {var $imageName = $form["relatedType_master_" . $relatedType->uuid]["imageName_$i"]->getValue()}
-                                            {var $imageExists = $form["relatedType_master_" . $relatedType->uuid]["imageExists_$i"]->getValue()}
-                                            {if $imageName}
-                                                <div class="mt-1 d-flex align-items-center">
-                                                    <small class="text-muted mr-2">Obrázek: {$imageName}</small>
-                                                    {if $imageExists === '1'}
-                                                        <span class="badge badge-success" title="Soubor existuje"><i class="fas fa-check"></i></span>
-                                                    {else}
-                                                        <span class="badge badge-danger" title="Soubor neexistuje"><i class="fas fa-times"></i></span>
-                                                    {/if}
-                                                </div>
-                                            {/if}
-                                        </td>
-                                        <td class="p-2">{input "amount_$i", class: "form-control form-control-sm"}</td>
-                                        <td class="p-2">{input "priority_$i", class: "form-control form-control-sm"}</td>
-                                        <td class="p-2">{input "hidden_$i", class: "form-check-input form-control-sm"}</td>
-                                        {if $relatedType->defaultDiscountPct}<td class="p-2">{input "discountPct_$i", class: "form-control form-control-sm"}</td>{/if}
-                                    {if $relatedType->defaultMasterPct}<td class="p-2">{input "masterPct_$i", class: "form-control form-control-sm"}</td>{/if}
-                                    </tr>
-                                {/for}
-                            </table>
-
-                            {if $relatedType->getPk() === 'tonerForPrinter'}
-                                <div class="mt-3 mb-3">
-                                    <label class="font-weight-bold">Hromadné přidání produktů</label>
-                                    <span class="text-sm text-muted d-block mb-2">
-                                        Zadejte kódy nebo názvy produktů, jeden na řádek.
-                                        Kódy/EAN budou napárovány na existující produkty, ostatní budou vytvořeny jako textové vazby.
-                                    </span>
-                                    <div class="mb-3">
-                                        {input bulkSlaveProductsProducer class => 'form-control form-control-sm'}
-                                    </div>
-                                    <div>
-                                        {input bulkSlaveProducts class => 'form-control form-control-sm', style => 'width: 100%;'}
-                                    </div>
-                                </div>
-                            {/if}
-                        {/formContainer}
-                        </div>
-                        <div class="col-6">
-                        {formContainer "relatedType_slave_" . $relatedType->uuid}
-                            <table class="mt-1 mb-1" style="width: auto;">
-                                <thead>
-                                <tr>
-                                    <th class="p-2">{$relatedType->getMasterInternalName()}</th>
-                                    <th class="p-2">Množství</th>
-                                    <th class="p-2">Priorita</th>
-                                    <th class="p-2">Skryto</th>
-                                    {if $relatedType->defaultDiscountPct}<th class="p-2">Sleva (0-100%)</th>{/if}
-                                {if $relatedType->defaultMasterPct}<th class="p-2">Procento z ceny produktu: {$relatedType->getSlaveInternalName()} (0-max%)</th>{/if}
-                                </tr>
-                                </thead>
-                                {for $i =0; $i < $relationMaxItemsCount + ($slaveRelationsCount[$relatedType->getPK()] ?? 0); $i++}
-                                    <tr>
-                                        <td class="p-2" style="min-width: 360px;">{input "product_$i", class: "form-control form-control-sm", style: "width: 100% !important"}</td>
-                                        <td class="p-2">{input "amount_$i", class: "form-control form-control-sm"}</td>
-                                        <td class="p-2">{input "priority_$i", class: "form-control form-control-sm"}</td>
-                                        <td class="p-2">{input "hidden_$i", class: "form-check-input form-control-sm"}</td>
-                                        {if $relatedType->defaultDiscountPct}<td class="p-2">{input "discountPct_$i", class: "form-control form-control-sm"}</td>{/if}
-                                    {if $relatedType->defaultMasterPct}<td class="p-2">{input "masterPct_$i", class: "form-control form-control-sm"}</td>{/if}
-                                    </tr>
-                                {/for}
-                            </table>
-                        {/formContainer}
-                        </div>
-                    </div>
-                {/foreach}
-            </fieldset>
-            <fieldset>
-                <table class="mt-1 mb-1">
-                    <tr>
-                        {ifset $form['submitAndNext']}
-                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue'], $form['submitAndNext']])|noescape}
-                        {else}
-                            {$renderer->renderPairMulti([$form['submit'], $form['submitAndContinue']])|noescape}
-                        {/ifset}
-                    </tr>
-                </table>
-            </fieldset>
+            {if $product}
+                {include 'productRelations.latte',
+                    productUuid: $product->getPK(),
+                    apiGetUrl: $presenter->link('getProductRelations!', ['productUuid' => $product->getPK()]),
+                    apiSaveUrl: $presenter->link('saveProductRelations!'),
+                    productsSearchUrl: $presenter->link('getProductsForSelect2!'),
+                    checkImageUrl: $presenter->link('checkRelatedImage!', ['imageName' => '__IMAGE_NAME__']),
+                    bulkAddUrl: $presenter->link('bulkAddRelations!'),
+                    saveTagsUrl: $presenter->link('saveRelatedTags!')
+                }
+            {else}
+                <div class="alert alert-info m-3">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Vazby lze přidávat až po uložení produktu.
+                </div>
+            {/if}
         </div>
         <div id="gallery-content" class="tab-pane {$presenter->editTab == 'gallery' ? 'active show' : ''}">
         </div>
@@ -1085,4 +979,83 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
     })
 </script>
 
+<style>
+.relation-delete-label.active,
+.relation-hidden-label.active {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: white !important;
+}
+.relation-delete-label.active {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+}
+.relation-row-deleted td:first-child {
+    opacity: 0.5;
+}
+</style>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle delete checkbox
+    function toggleDeleteState(checkbox) {
+        var row = checkbox.closest('tr');
+        var label = checkbox.closest('.relation-delete-label');
+        var firstTd = row ? row.querySelector('td:first-child') : null;
+
+        if (checkbox.checked) {
+            row.classList.add('relation-row-deleted');
+            if (label) label.classList.add('active');
+            // Disable all inputs in first td
+            if (firstTd) {
+                firstTd.querySelectorAll('input, select, textarea').forEach(function(el) {
+                    el.disabled = true;
+                });
+            }
+        } else {
+            row.classList.remove('relation-row-deleted');
+            if (label) label.classList.remove('active');
+            // Enable all inputs in first td
+            if (firstTd) {
+                firstTd.querySelectorAll('input, select, textarea').forEach(function(el) {
+                    el.disabled = false;
+                });
+            }
+        }
+    }
+
+    document.querySelectorAll('.relation-delete-checkbox').forEach(function(cb) {
+        cb.addEventListener('change', function() {
+            toggleDeleteState(this);
+        });
+        toggleDeleteState(cb);
+    });
+
+    // Handle hidden checkbox (eye icon)
+    function toggleHiddenState(checkbox) {
+        var label = checkbox.closest('.relation-hidden-label');
+        var icon = label ? label.querySelector('i') : null;
+
+        if (checkbox.checked) {
+            if (label) label.classList.add('active');
+            if (icon) {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
+        } else {
+            if (label) label.classList.remove('active');
+            if (icon) {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+    }
+
+    document.querySelectorAll('.relation-hidden-checkbox').forEach(function(cb) {
+        cb.addEventListener('change', function() {
+            toggleHiddenState(this);
+        });
+        toggleHiddenState(cb);
+    });
+});
+</script>

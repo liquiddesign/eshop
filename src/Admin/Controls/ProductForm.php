@@ -28,7 +28,6 @@ use Eshop\DB\ProductContentRepository;
 use Eshop\DB\ProductPrimaryCategoryRepository;
 use Eshop\DB\ProductRepository;
 use Eshop\DB\RelatedRepository;
-use Eshop\DB\RelatedType;
 use Eshop\DB\RelatedTypeRepository;
 use Eshop\DB\RibbonRepository;
 use Eshop\DB\StoreRepository;
@@ -40,9 +39,7 @@ use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\FormValidators;
 use Eshop\Integration\Integrations;
-use Eshop\Services\Related\FileExistenceService;
 use Eshop\ShopperUser;
-use Forms\Container;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
 use Nette\Forms\Form;
@@ -100,7 +97,6 @@ class ProductForm extends Control
 		private readonly LoyaltyProgramProductRepository $loyaltyProgramProductRepository,
 		private readonly RelatedTypeRepository $relatedTypeRepository,
 		private readonly RelatedRepository $relatedRepository,
-		private readonly FileExistenceService $fileExistenceService,
 		private readonly StoreRepository $storeRepository,
 		private readonly AmountRepository $amountRepository,
 		private readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
@@ -108,6 +104,8 @@ class ProductForm extends Control
 		private readonly VisibilityListItemRepository $visibilityListItemRepository,
 		SettingRepository $settingRepository,
 		Integrations $integrations,
+		private readonly \Base\Application $application,
+		private readonly \Nette\Caching\Storage $storage,
 		$product = null,
 		$onRenderGetPriceLists = null,
 		private readonly array $configuration = []
@@ -367,136 +365,10 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			->setHtmlAttribute('data-info', 'Čas posledního naskladnění u jakéhokoliv dodavatele. Vyplňuje se automaticky.')
 			->setNullable();
 
-		// Relations
-		$this->monitor(Presenter::class, function ($presenter) use ($form): void {
+		// Relations - nyní spravováno Alpine.js komponentou v productRelations.latte
+		// Inicializace relatedTypes pro template
+		$this->monitor(Presenter::class, function ($presenter): void {
 			$this->relatedTypes = $this->template->relatedTypes = $this->relatedTypeRepository->many()->toArray();
-
-			foreach ($this->relatedTypes as $relatedType) {
-				$relationsMasterContainer = $form->addContainer('relatedType_master_' . $relatedType->getPK());
-				$relationsSlaveContainer = $form->addContainer('relatedType_slave_' . $relatedType->getPK());
-
-				$slaveCount = 0;
-				$masterCount = 0;
-
-				if ($this->product) {
-					$slaveCount = $this->relatedRepository->many()
-						->where('fk_slave', $this->product->getPK())
-						->where('fk_type', $relatedType->getPK())
-						->count();
-
-					$masterCount = $this->relatedRepository->many()
-						->where('fk_master', $this->product->getPK())
-						->where('fk_type', $relatedType->getPK())
-						->count();
-				}
-
-				$this->prepareRelationsContainer($relationsMasterContainer, $relatedType, $this->relationExtraItemsCount + $masterCount, true);
-				$this->prepareRelationsContainer($relationsSlaveContainer, $relatedType, $this->relationExtraItemsCount + $slaveCount, false);
-
-				if (!$this->product) {
-					continue;
-				}
-
-				$relations = $this->relatedRepository->many()
-					->where('fk_master', $this->product->getPK())
-					->where('fk_type', $relatedType->getPK())
-					->orderBy(['uuid' => 'asc'])
-					->toArray();
-
-				$i = 0;
-
-				/** @var \Eshop\DB\Related $relation */
-				foreach ($relations as $relation) {
-					/** @var \Nette\Forms\Controls\SelectBox $productInput */
-					$productInput = $relationsMasterContainer["product_$i"];
-					/** @var \Nette\Forms\Controls\TextInput $amountInput */
-					$amountInput = $relationsMasterContainer["amount_$i"];
-					/** @var \Nette\Forms\Controls\TextInput $priorityInput */
-					$priorityInput = $relationsMasterContainer["priority_$i"];
-					/** @var \Nette\Forms\Controls\Checkbox $hiddenInput */
-					$hiddenInput = $relationsMasterContainer["hidden_$i"];
-
-					if ($relation->slave !== null) {
-						$presenter->template->select2AjaxDefaults[$productInput->getHtmlId()] = [$relation->getValue('slave') => $relation->slave->name];
-					}
-
-					$amountInput->setDefaultValue($relation->amount);
-					$priorityInput->setDefaultValue($relation->priority);
-					$hiddenInput->setDefaultValue($relation->hidden);
-
-					/** @var \Nette\Forms\Controls\TextInput $slaveNameInput */
-					$slaveNameInput = $relationsMasterContainer["slaveName_$i"];
-					$slaveNameInput->setDefaultValue($relation->slaveName);
-
-					/** @var \Nette\Forms\Controls\SelectBox $slaveProducerInput */
-					$slaveProducerInput = $relationsMasterContainer["slaveProducer_$i"];
-					$slaveProducerInput->setDefaultValue($relation->getValue('slaveProducer'));
-
-					// Set image name and existence check for relations with slaveName only (no slave product)
-					$expectedImageName = $relation->getExpectedImageName();
-
-					/** @var \Nette\Forms\Controls\HiddenField $imageNameInput */
-					$imageNameInput = $relationsMasterContainer["imageName_$i"];
-					$imageNameInput->setDefaultValue($expectedImageName ?? '');
-
-					/** @var \Nette\Forms\Controls\HiddenField $imageExistsInput */
-					$imageExistsInput = $relationsMasterContainer["imageExists_$i"];
-					$imageExistsInput->setDefaultValue($expectedImageName ? ($this->fileExistenceService->relatedImageExists($relation) ? '1' : '0') : '');
-
-					if ($relatedType->defaultDiscountPct) {
-						/** @var \Nette\Forms\Controls\TextInput $discountPctInput */
-						$discountPctInput = $relationsMasterContainer["discountPct_$i"];
-						$discountPctInput->setDefaultValue($relation->discountPct);
-					}
-
-					if ($relatedType->defaultMasterPct) {
-						/** @var \Nette\Forms\Controls\TextInput $masterPctInput */
-						$masterPctInput = $relationsMasterContainer["masterPct_$i"];
-						$masterPctInput->setDefaultValue($relation->masterPct);
-					}
-
-					$i++;
-				}
-
-				$relations = $this->relatedRepository->many()
-					->where('fk_slave', $this->product->getPK())
-					->where('fk_type', $relatedType->getPK())
-					->orderBy(['uuid' => 'asc'])
-					->toArray();
-
-				$i = 0;
-
-				/** @var \Eshop\DB\Related $relation */
-				foreach ($relations as $relation) {
-					/** @var \Nette\Forms\Controls\SelectBox $productInput */
-					$productInput = $relationsSlaveContainer["product_$i"];
-					/** @var \Nette\Forms\Controls\TextInput $amountInput */
-					$amountInput = $relationsSlaveContainer["amount_$i"];
-					/** @var \Nette\Forms\Controls\TextInput $priorityInput */
-					$priorityInput = $relationsSlaveContainer["priority_$i"];
-					/** @var \Nette\Forms\Controls\Checkbox $hiddenInput */
-					$hiddenInput = $relationsSlaveContainer["hidden_$i"];
-
-					$presenter->template->select2AjaxDefaults[$productInput->getHtmlId()] = [$relation->getValue('master') => $relation->master->name];
-					$amountInput->setDefaultValue($relation->amount);
-					$priorityInput->setDefaultValue($relation->priority);
-					$hiddenInput->setDefaultValue($relation->hidden);
-
-					if ($relatedType->defaultDiscountPct) {
-						/** @var \Nette\Forms\Controls\TextInput $discountPctInput */
-						$discountPctInput = $relationsSlaveContainer["discountPct_$i"];
-						$discountPctInput->setDefaultValue($relation->discountPct);
-					}
-
-					if ($relatedType->defaultMasterPct) {
-						/** @var \Nette\Forms\Controls\TextInput $masterPctInput */
-						$masterPctInput = $relationsSlaveContainer["masterPct_$i"];
-						$masterPctInput->setDefaultValue($relation->masterPct);
-					}
-
-					$i++;
-				}
-			}
 		});
 
 		$contentContainer = $form->addContainer('content');
@@ -675,7 +547,6 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 	public function submit(AdminForm $form): void
 	{
-		$data = $this->getPresenter()->getHttpRequest()->getPost();
 		$values = $form->getValues('array');
 		$editTab = Arrays::pick($values, 'editTab', null);
 
@@ -762,169 +633,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			]);
 		}
 
-		$masterCounts = [];
-		$slaveCounts = [];
-
-		if ($this->product) {
-			foreach ($this->relatedTypes as $relatedType) {
-				$slaveCounts[$relatedType->getPK()] = $this->relatedRepository->many()
-					->where('fk_slave', $this->product->getPK())
-					->where('fk_type', $relatedType->getPK())
-					->count();
-
-				$masterCounts[$relatedType->getPK()] = $this->relatedRepository->many()
-					->where('fk_master', $this->product->getPK())
-					->where('fk_type', $relatedType->getPK())
-					->count();
-
-				$this->relatedRepository->many()->where(
-					'this.uuid',
-					\array_values($this->relatedRepository->many()
-						->setSelect(['uuid' => 'this.uuid'])
-						->where('fk_master', $this->product->getPK())
-						->where('fk_type', $relatedType->getPK())
-						->toArrayOf('uuid')),
-				)->delete();
-
-				$this->relatedRepository->many()->where(
-					'this.uuid',
-					\array_values($this->relatedRepository->many()
-						->setSelect(['uuid' => 'this.uuid'])
-						->where('fk_slave', $this->product->getPK())
-						->where('fk_type', $relatedType->getPK())
-						->toArrayOf('uuid')),
-				)->delete();
-			}
-		}
-
-		// Relations
-		foreach ($this->relatedTypes as $relatedType) {
-			$masterCount = $masterCounts[$relatedType->getPK()] ?? 0;
-			$slaveCount = $slaveCounts[$relatedType->getPK()] ?? 0;
-
-			$relatedTypeValues = $values['relatedType_master_' . $relatedType->getPK()];
-
-			for ($i = 0; $i < $this->relationExtraItemsCount + $masterCount; $i++) {
-				$productId = $data['relatedType_master_' . $relatedType->getPK()]["product_$i"] ?? null;
-				$slaveName = $relatedTypeValues["slaveName_$i"] ?? null;
-				$slaveName = $slaveName !== '' ? $slaveName : null;
-				$slaveProducer = $relatedTypeValues["slaveProducer_$i"] ?? null;
-				$slaveProducer = $slaveProducer !== '' ? $slaveProducer : null;
-
-				// Skip if neither product nor name provided
-				if ($productId === null && $slaveName === null) {
-					continue;
-				}
-
-				if ($relatedType->defaultDiscountPct) {
-					$relatedTypeValues["discountPct_$i"] ??= $relatedType->defaultDiscountPct;
-				}
-
-				if ($relatedType->defaultMasterPct) {
-					$relatedTypeValues["masterPct_$i"] ??= $relatedType->defaultMasterPct;
-				}
-
-				$this->relatedRepository->syncOne([
-					'type' => $relatedType->getPK(),
-					'master' => $product->getPK(),
-					'slave' => $productId,
-					'slaveName' => $productId !== null ? null : $slaveName,
-					'slaveProducer' => $productId !== null ? null : $slaveProducer,
-					'amount' => $relatedTypeValues["amount_$i"] ?? $relatedType->defaultAmount,
-					'priority' => $relatedTypeValues["priority_$i"] ?? 10,
-					'hidden' => $relatedTypeValues["hidden_$i"] ?? false,
-					'discountPct' => $relatedType->defaultDiscountPct ? ($relatedTypeValues["discountPct_$i"] ?? $relatedType->defaultDiscountPct) : null,
-					'masterPct' => $relatedType->defaultMasterPct ? ($relatedTypeValues["masterPct_$i"] ?? $relatedType->defaultMasterPct) : null,
-				]);
-			}
-
-			// Process bulk textarea for tonerForPrinter type
-			if ($relatedType->getPK() === 'tonerForPrinter') {
-				$bulkValue = $relatedTypeValues['bulkSlaveProducts'] ?? null;
-
-				if ($bulkValue !== null && $bulkValue !== '') {
-					$lines = \explode("\n", $bulkValue);
-
-					$bulkValueProducer = $relatedTypeValues['bulkSlaveProductsProducer'] ?? null;
-
-					if ($bulkValueProducer !== null) {
-						$bulkValueProducer = $this->producerRepository->one($bulkValueProducer);
-					}
-
-					foreach ($lines as $line) {
-						$line = Strings::trim($line);
-
-						if ($line === '') {
-							continue;
-						}
-
-						// Try to find product by code
-						$slaveProduct = $this->productRepository->many()->where('code', $line)->first();
-
-						// If not found by code, try by EAN
-						if ($slaveProduct === null) {
-							$slaveProduct = $this->productRepository->many()->where('ean', $line)->first();
-						}
-
-						if ($slaveProduct !== null) {
-							$this->relatedRepository->syncOne([
-								'type' => $relatedType->getPK(),
-								'master' => $product->getPK(),
-								'slave' => $slaveProduct->getPK(),
-								'slaveName' => null,
-								'slaveProducer' => $bulkValueProducer,
-								'amount' => $relatedType->defaultAmount,
-								'priority' => 10,
-								'hidden' => false,
-								'discountPct' => $relatedType->defaultDiscountPct,
-								'masterPct' => $relatedType->defaultMasterPct,
-							]);
-						} else {
-							// Use line as slaveName
-							$this->relatedRepository->syncOne([
-								'type' => $relatedType->getPK(),
-								'master' => $product->getPK(),
-								'slave' => null,
-								'slaveName' => $line,
-								'slaveProducer' => $bulkValueProducer,
-								'amount' => $relatedType->defaultAmount,
-								'priority' => 10,
-								'hidden' => false,
-								'discountPct' => $relatedType->defaultDiscountPct,
-								'masterPct' => $relatedType->defaultMasterPct,
-							]);
-						}
-					}
-				}
-			}
-
-			$relatedTypeValues = $values['relatedType_slave_' . $relatedType->getPK()];
-
-			for ($i = 0; $i < $this->relationExtraItemsCount + $slaveCount; $i++) {
-				if (!isset($data['relatedType_slave_' . $relatedType->getPK()]["product_$i"])) {
-					continue;
-				}
-
-				if ($relatedType->defaultDiscountPct) {
-					$relatedTypeValues["discountPct_$i"] ??= $relatedType->defaultDiscountPct;
-				}
-
-				if ($relatedType->defaultMasterPct) {
-					$relatedTypeValues["masterPct_$i"] ??= $relatedType->defaultMasterPct;
-				}
-
-				$this->relatedRepository->syncOne([
-					'type' => $relatedType->getPK(),
-					'slave' => $product->getPK(),
-					'master' => $data['relatedType_slave_' . $relatedType->getPK()]["product_$i"],
-					'amount' => $relatedTypeValues["amount_$i"] ?? $relatedType->defaultAmount,
-					'priority' => $relatedTypeValues["priority_$i"] ?? 10,
-					'hidden' => $relatedTypeValues["hidden_$i"] ?? false,
-					'discountPct' => $relatedType->defaultDiscountPct ? ($relatedTypeValues["discountPct_$i"] ?? $relatedType->defaultDiscountPct) : null,
-					'masterPct' => $relatedType->defaultMasterPct ? ($relatedTypeValues["masterPct_$i"] ?? $relatedType->defaultMasterPct) : null,
-				]);
-			}
-		}
+		// Relations - nyní spravováno Alpine.js komponentou přes API handlery
+		// handleGetProductRelations a handleSaveProductRelations v ProductPresenter
 
 		// Loyalty programs
 		$this->loyaltyProgramProductRepository->many()->where('fk_product', $product->getPK())->delete();
@@ -1171,6 +881,11 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			'content' => 'frm-content-cs',
 		];
 
+		// Timestamp pro cache busting JS souborů
+		$this->template->ts = $this->application->getEnvironment() === 'production'
+			? (new \Nette\Caching\Cache($this->storage))->call('time')
+			: \time();
+
 		/** @var \Nette\Bridges\ApplicationLatte\Template $template */
 		$template = $this->template;
 		$template->render(__DIR__ . '/productForm.latte');
@@ -1223,45 +938,5 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		$this->getPresenter()->flashMessage('Provedeno', 'success');
 		$this->getPresenter()->redirect('this');
-	}
-
-	private function prepareRelationsContainer(Container $formContainer, RelatedType $relatedType, int $entriesCount, bool $includeSlaveName = false): void
-	{
-		for ($i = 0; $i < $entriesCount; $i++) {
-			$formContainer->addSelect2Ajax("product_$i", $this->getPresenter()->link('getProductsForSelect2!'), null, [], 'Zvolte produkt');
-
-			if ($includeSlaveName) {
-				$formContainer->addText("slaveName_$i")->setNullable();
-				$formContainer->addSelect2("slaveProducer_$i", null, $this->producerRepository->getArrayForSelect())->setPrompt('-- Výrobce --');
-				$formContainer->addHidden("imageName_$i");
-				$formContainer->addHidden("imageExists_$i");
-			}
-
-			$formContainer->addInteger("amount_$i")->setDefaultValue($relatedType->defaultAmount)->setNullable();
-			$formContainer->addInteger("priority_$i")->setDefaultValue(10)->setNullable();
-			$formContainer->addCheckbox("hidden_$i");
-
-			if ($relatedType->defaultDiscountPct) {
-				$formContainer->addText("discountPct_$i")->setDefaultValue($relatedType->defaultDiscountPct)->setNullable()->addCondition(Form::Filled)->addRule(Form::Float);
-			}
-
-			if (!$relatedType->defaultMasterPct) {
-				continue;
-			}
-
-			$formContainer->addText("masterPct_$i")->setDefaultValue($relatedType->defaultMasterPct)->setNullable()->addCondition(Form::Filled)->addRule(Form::Float);
-		}
-
-		// Add bulk textarea only for tonerForPrinter type master relations
-		if (!$includeSlaveName || $relatedType->getPK() !== 'tonerForPrinter') {
-			return;
-		}
-
-		$formContainer->addSelect2('bulkSlaveProductsProducer', null, $this->producerRepository->getArrayForSelect())->setPrompt('-- Výrobce --');
-
-		$formContainer->addTextArea('bulkSlaveProducts')
-			->setNullable()
-			->setHtmlAttribute('rows', 5)
-			->setHtmlAttribute('placeholder', 'Zadejte kódy nebo názvy produktů, jeden na řádek');
 	}
 }

@@ -1,0 +1,498 @@
+{**
+ * Alpine.js komponenta pro správu vazeb produktu
+ * @var string $productUuid
+ * @var string $apiGetUrl
+ * @var string $apiSaveUrl
+ * @var string $productsSearchUrl
+ * @var string $checkImageUrl
+ * @var string $bulkAddUrl
+ * @var string $saveTagsUrl
+ *}
+
+<div
+	x-data="productRelations({
+		productUuid: '{$productUuid}',
+		apiGetUrl: '{$apiGetUrl}',
+		apiSaveUrl: '{$apiSaveUrl}',
+		productsSearchUrl: '{$productsSearchUrl}',
+		checkImageUrl: '{$checkImageUrl}',
+		bulkAddUrl: '{$bulkAddUrl}',
+		saveTagsUrl: '{$saveTagsUrl}'
+	})"
+	x-init="init()"
+	class="product-relations"
+>
+	{* Loading stav *}
+	<template x-if="loading">
+		<div class="text-center py-5">
+			<i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+			<p class="mt-3 text-muted">Načítám vazby...</p>
+		</div>
+	</template>
+
+	{* Error stav *}
+	<template x-if="!loading && error">
+		<div class="alert alert-danger">
+			<i class="fas fa-exclamation-triangle mr-2"></i>
+			<span x-text="error"></span>
+			<button type="button" class="btn btn-sm btn-outline-danger ml-3" @click="loadRelations()">
+				<i class="fas fa-sync"></i> Zkusit znovu
+			</button>
+		</div>
+	</template>
+
+	{* Hlavní obsah *}
+	<template x-if="!loading && !error">
+		<div :key="reloadKey">
+			{* Related Tags *}
+			<fieldset class="mb-4 px-2">
+				<legend class="mb-3">Tagy pro související produkty</legend>
+				<div class="form-group">
+					<textarea
+						class="form-control"
+						rows="3"
+						x-model="relatedTags"
+						@input.debounce.500ms="saveRelatedTags()"
+						placeholder="HP LaserJet Pro M15, HP LaserJet Pro M28"
+					></textarea>
+					<small class="form-text text-muted">
+						Čárkou oddělené hodnoty. Porovnávají se se slaveName v Related záznamech pro matching tonerů k tiskárnám.
+					</small>
+					<div class="small mt-1">
+						<span class="text-success" x-show="tagsLastSaved && !tagsPendingChanges && !tagsSaving">
+							<i class="fas fa-check-circle mr-1"></i>
+							Uloženo <span x-text="formatTagsLastSaved()"></span>
+						</span>
+						<span class="text-warning" x-show="tagsPendingChanges && !tagsSaving">
+							<i class="fas fa-circle mr-1"></i>
+							Neuložené změny...
+						</span>
+						<span class="text-primary" x-show="tagsSaving">
+							<i class="fas fa-spinner fa-spin mr-1"></i>
+							Ukládám...
+						</span>
+					</div>
+				</div>
+			</fieldset>
+
+			{* Status bar *}
+			<div class="mb-3 px-2">
+				<div class="text-muted small">
+					<i class="fas fa-magic mr-1"></i>
+					Změny se ukládají automaticky
+				</div>
+				<div class="small mt-1">
+					<span class="text-success" x-show="lastSaved && !pendingChanges && !saving">
+						<i class="fas fa-check-circle mr-1"></i>
+						Uloženo <span x-text="formatLastSaved()"></span>
+					</span>
+					<span class="text-warning" x-show="pendingChanges && !saving">
+						<i class="fas fa-circle mr-1"></i>
+						Neuložené změny...
+					</span>
+					<span class="text-primary" x-show="saving">
+						<i class="fas fa-spinner fa-spin mr-1"></i>
+						Ukládám...
+					</span>
+				</div>
+			</div>
+
+			{* Accordion s typy vazeb *}
+			<div class="accordion" id="relatedTypesAccordion">
+				<template x-for="(type, typeIndex) in relatedTypes" :key="type.uuid">
+					<div class="card mb-2">
+						{* Header karty *}
+						<div
+							class="card-header py-2 d-flex justify-content-between align-items-center cursor-pointer"
+							@click="toggleType(type.uuid)"
+							:id="'heading-' + type.uuid"
+							style="cursor: pointer;"
+						>
+							<div>
+								<i class="fas fa-chevron-right mr-2 transition-transform" :class="{ 'rotate-90': expandedTypes[type.uuid] }"></i>
+								<strong x-text="type.name"></strong>
+								<code class="ml-2 text-muted small" x-text="type.code" x-show="type.code"></code>
+								<span class="ml-2">
+									<span class="badge badge-primary" x-text="relations[type.uuid]?.master?.length || 0" title="Master vazby"></span>
+									<span class="text-muted mx-1">-</span>
+									<span class="badge badge-secondary" x-text="relations[type.uuid]?.slave?.length || 0" title="Slave vazby"></span>
+								</span>
+							</div>
+						</div>
+
+						{* Body karty *}
+						<div
+							class="card-body"
+							x-show="expandedTypes[type.uuid]"
+							x-transition:enter="transition ease-out duration-200"
+							x-transition:enter-start="opacity-0"
+							x-transition:enter-end="opacity-100"
+						>
+							<div class="row">
+								{* MASTER strana *}
+								<div class="col-lg-6 mb-4">
+									<h6 class="text-primary mb-3">
+										<i class="fas fa-arrow-right mr-1"></i>
+										<span x-text="type.masterName || 'Master vazby'"></span>
+										<span class="badge badge-info ml-1" x-text="relations[type.uuid]?.master?.length || 0"></span>
+									</h6>
+
+									{* Tabulka master vazeb *}
+									<div class="master-relations-list">
+										<template x-for="(row, index) in relations[type.uuid]?.master || []" :key="index">
+											<div class="relation-row card card-body p-2 mb-2" style="background: #f8f9fa;">
+												<div class="d-flex align-items-start">
+													<div class="flex-grow-1">
+														{* Produkt select *}
+														<div class="mb-2">
+															<select
+																class="form-control form-control-sm select2-product"
+																x-init="$nextTick(() => initSelect2($el, type.uuid, 'master', index))"
+															></select>
+														</div>
+
+														{* Nebo textová vazba *}
+														<div class="mb-2" x-show="!row.slaveUuid">
+															<small class="text-muted d-block mb-1">nebo textová vazba:</small>
+															<div class="d-flex" style="gap: 0.5rem;">
+																<select
+																	class="form-control form-control-sm row-producer-select"
+																	x-init="$nextTick(() => initRowProducerSelect2($el, type.uuid, 'master', index))"
+																	style="width: 40%;"
+																></select>
+																<input
+																	type="text"
+																	class="form-control form-control-sm"
+																	x-model="row.slaveName"
+																	@input.debounce.500ms="updateImageName(type.uuid, index); autoSave()"
+																	placeholder="Název produktu"
+																	style="width: 60%;"
+																	:disabled="row.slaveUuid"
+																>
+															</div>
+														</div>
+
+														{* Obrázek info - jen pro textové vazby *}
+														<div class="mb-2" x-show="!row.slaveUuid && row.slaveName">
+															<small class="text-muted">
+																<i class="fas fa-image mr-1"></i>
+																Obrázek: <span x-text="row.imageName || generateImageName(row.slaveName)"></span>
+																<span x-show="row.imageExists" class="badge badge-success ml-1" title="Soubor existuje">
+																	<i class="fas fa-check"></i>
+																</span>
+																<span x-show="!row.imageExists && row.imageName" class="badge badge-warning ml-1" title="Soubor neexistuje">
+																	<i class="fas fa-times"></i>
+																</span>
+															</small>
+														</div>
+
+														{* Další pole *}
+														<div class="d-flex align-items-center" style="gap: 0.5rem;">
+															<label class="mb-0 d-flex align-items-center" title="Skryto">
+																<input
+																	type="checkbox"
+																	x-model="row.hidden"
+																	@change="autoSave()"
+																	class="mr-1"
+																>
+																<i class="fas fa-eye-slash text-muted"></i>
+															</label>
+
+															<template x-if="type.defaultDiscountPct !== null">
+																<div class="d-flex align-items-center">
+																	<small class="text-muted mr-1">Sleva:</small>
+																	<input
+																		type="number"
+																		class="form-control form-control-sm"
+																		x-model="row.discountPct"
+																		@input.debounce.500ms="autoSave()"
+																		min="0"
+																		max="100"
+																		step="0.01"
+																		style="width: 70px;"
+																		placeholder="%"
+																	>
+																</div>
+															</template>
+
+															<template x-if="type.defaultMasterPct !== null">
+																<div class="d-flex align-items-center">
+																	<small class="text-muted mr-1">% ceny:</small>
+																	<input
+																		type="number"
+																		class="form-control form-control-sm"
+																		x-model="row.masterPct"
+																		@input.debounce.500ms="autoSave()"
+																		min="0"
+																		max="100"
+																		step="0.01"
+																		style="width: 70px;"
+																		placeholder="%"
+																	>
+																</div>
+															</template>
+
+															<div class="d-flex align-items-center ml-auto">
+																<small class="text-muted mr-1">Pořadí:</small>
+																<input
+																	type="number"
+																	class="form-control form-control-sm"
+																	x-model.number="row.priority"
+																	@input.debounce.500ms="autoSave()"
+																	min="0"
+																	step="1"
+																	style="width: 60px;"
+																>
+															</div>
+														</div>
+													</div>
+
+													{* Smazat *}
+													<button
+														type="button"
+														class="btn btn-sm btn-outline-danger ml-2"
+														@click="removeRow(type.uuid, 'master', index)"
+														title="Smazat"
+													>
+														<i class="fas fa-times"></i>
+													</button>
+												</div>
+											</div>
+										</template>
+									</div>
+
+									<div class="d-flex" style="gap: 0.5rem;">
+										<button
+											type="button"
+											class="btn btn-sm btn-outline-primary"
+											@click="addRow(type.uuid, 'master')"
+										>
+											<i class="fas fa-plus mr-1"></i> Přidat vazbu
+										</button>
+										<button
+											type="button"
+											class="btn btn-sm btn-outline-secondary"
+											@click="bulkInput[type.uuid] = !bulkInput[type.uuid]"
+										>
+											<i class="fas fa-list mr-1"></i> Hromadný import
+										</button>
+									</div>
+
+									{* Hromadný import *}
+									<div class="mt-3 p-3 border rounded bg-light" x-show="bulkInput[type.uuid]" x-transition>
+										<h6 class="mb-2">
+											<i class="fas fa-file-import mr-1"></i>
+											Hromadný import vazeb
+										</h6>
+										<p class="small text-muted mb-2">
+											Zadejte kódy nebo názvy produktů, každý na nový řádek.
+											Pokud produkt existuje (podle kódu/EAN), vytvoří se vazba na produkt.
+											Pokud ne, vytvoří se textová vazba.
+										</p>
+										<div class="form-group mb-2">
+											<label class="small">Výrobce (nepovinné, pro textové vazby):</label>
+											<select
+												class="form-control form-control-sm bulk-producer-select"
+												x-init="$nextTick(() => initBulkProducerSelect2($el, type.uuid))"
+											>
+												<option value="">-- Bez výrobce --</option>
+												<template x-for="(name, uuid) in producers" :key="uuid">
+													<option :value="uuid" x-text="name"></option>
+												</template>
+											</select>
+										</div>
+										<div class="form-group mb-2">
+											<textarea
+												class="form-control form-control-sm"
+												rows="5"
+												x-model="bulkText[type.uuid]"
+												x-init="if (!bulkText[type.uuid]) bulkText[type.uuid] = ''"
+												placeholder="HP LaserJet Pro M15&#10;HP LaserJet Pro M28&#10;CF244A"
+											></textarea>
+										</div>
+										<div class="d-flex justify-content-between align-items-center">
+											<button
+												type="button"
+												class="btn btn-sm btn-primary"
+												@click="console.log('Button clicked', type.uuid, bulkText[type.uuid]); processBulkImport(type.uuid)"
+											>
+												<template x-if="bulkProcessing[type.uuid]">
+													<span><i class="fas fa-spinner fa-spin mr-1"></i> Zpracovávám...</span>
+												</template>
+												<template x-if="!bulkProcessing[type.uuid]">
+													<span><i class="fas fa-check mr-1"></i> Importovat</span>
+												</template>
+											</button>
+											<button
+												type="button"
+												class="btn btn-sm btn-outline-secondary"
+												@click="bulkInput[type.uuid] = false; bulkText[type.uuid] = ''"
+											>
+												Zrušit
+											</button>
+										</div>
+										{* Výsledek importu *}
+										<div class="mt-2" x-show="bulkResult[type.uuid]">
+											<template x-if="bulkResult[type.uuid]?.added?.length > 0">
+												<div class="alert alert-success small py-1 px-2 mb-1">
+													<strong>Přidáno (<span x-text="bulkResult[type.uuid].added.length"></span>):</strong>
+													<span x-text="bulkResult[type.uuid].added.map(a => a.line).join(', ')"></span>
+												</div>
+											</template>
+											<template x-if="bulkResult[type.uuid]?.skipped?.length > 0">
+												<div class="alert alert-warning small py-1 px-2 mb-0">
+													<strong>Přeskočeno (<span x-text="bulkResult[type.uuid].skipped.length"></span>):</strong>
+													<span x-text="bulkResult[type.uuid].skipped.map(s => s.line + ' (' + s.reason + ')').join(', ')"></span>
+												</div>
+											</template>
+										</div>
+									</div>
+								</div>
+
+								{* SLAVE strana *}
+								<div class="col-lg-6 mb-4">
+									<h6 class="text-secondary mb-3">
+										<i class="fas fa-arrow-left mr-1"></i>
+										<span x-text="type.slaveName || 'Slave vazby'"></span>
+										<span class="badge badge-info ml-1" x-text="relations[type.uuid]?.slave?.length || 0"></span>
+									</h6>
+
+									{* Tabulka slave vazeb *}
+									<div class="slave-relations-list">
+										<template x-for="(row, index) in relations[type.uuid]?.slave || []" :key="index">
+											<div class="relation-row card card-body p-2 mb-2" style="background: #f8f9fa;">
+												<div class="d-flex align-items-start">
+													<div class="flex-grow-1">
+														{* Produkt select *}
+														<div class="mb-2">
+															<select
+																class="form-control form-control-sm select2-product"
+																x-init="$nextTick(() => initSelect2($el, type.uuid, 'slave', index))"
+															></select>
+														</div>
+
+														{* Další pole *}
+														<div class="d-flex align-items-center" style="gap: 0.5rem;">
+															<label class="mb-0 d-flex align-items-center" title="Skryto">
+																<input
+																	type="checkbox"
+																	x-model="row.hidden"
+																	@change="autoSave()"
+																	class="mr-1"
+																>
+																<i class="fas fa-eye-slash text-muted"></i>
+															</label>
+
+															<template x-if="type.defaultDiscountPct !== null">
+																<div class="d-flex align-items-center">
+																	<small class="text-muted mr-1">Sleva:</small>
+																	<input
+																		type="number"
+																		class="form-control form-control-sm"
+																		x-model="row.discountPct"
+																		@input.debounce.500ms="autoSave()"
+																		min="0"
+																		max="100"
+																		step="0.01"
+																		style="width: 70px;"
+																		placeholder="%"
+																	>
+																</div>
+															</template>
+
+															<template x-if="type.defaultMasterPct !== null">
+																<div class="d-flex align-items-center">
+																	<small class="text-muted mr-1">% ceny:</small>
+																	<input
+																		type="number"
+																		class="form-control form-control-sm"
+																		x-model="row.masterPct"
+																		@input.debounce.500ms="autoSave()"
+																		min="0"
+																		max="100"
+																		step="0.01"
+																		style="width: 70px;"
+																		placeholder="%"
+																	>
+																</div>
+															</template>
+
+															<div class="d-flex align-items-center ml-auto">
+																<small class="text-muted mr-1">Pořadí:</small>
+																<input
+																	type="number"
+																	class="form-control form-control-sm"
+																	x-model.number="row.priority"
+																	@input.debounce.500ms="autoSave()"
+																	min="0"
+																	step="1"
+																	style="width: 60px;"
+																>
+															</div>
+														</div>
+													</div>
+
+													{* Smazat *}
+													<button
+														type="button"
+														class="btn btn-sm btn-outline-danger ml-2"
+														@click="removeRow(type.uuid, 'slave', index)"
+														title="Smazat"
+													>
+														<i class="fas fa-times"></i>
+													</button>
+												</div>
+											</div>
+										</template>
+									</div>
+
+									<button
+										type="button"
+										class="btn btn-sm btn-outline-secondary"
+										@click="addRow(type.uuid, 'slave')"
+									>
+										<i class="fas fa-plus mr-1"></i> Přidat vazbu
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</template>
+			</div>
+
+			{* Prázdný stav *}
+			<template x-if="relatedTypes.length === 0">
+				<div class="alert alert-info">
+					<i class="fas fa-info-circle mr-2"></i>
+					Nejsou definovány žádné typy vazeb. Přidejte je v sekci <strong>Typy vazeb</strong>.
+				</div>
+			</template>
+		</div>
+	</template>
+</div>
+
+<style>
+.product-relations .rotate-90 {
+	transform: rotate(90deg);
+}
+.product-relations .transition-transform {
+	transition: transform 0.2s ease-in-out;
+}
+.product-relations .cursor-pointer {
+	cursor: pointer;
+}
+.product-relations .card-header:hover {
+	background-color: #f8f9fa;
+}
+.product-relations .select2-container {
+	width: 100% !important;
+}
+.product-relations .relation-row {
+	transition: box-shadow 0.2s ease;
+}
+.product-relations .relation-row:hover {
+	box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+</style>
+
+<script src="{$basePath}/public/admin/js/product-relations.js?v={$ts}"></script>
