@@ -110,7 +110,10 @@ class ProducerPresenter extends BackendPresenter
 			]);
 
 			$imagePicker->onDelete[] = function () use ($producer): void {
-				$this->onDeleteImage($producer);
+				if ($producer !== null) {
+					$this->onDeleteImage($producer);
+				}
+
 				$this->redirect('this');
 			};
 
@@ -125,14 +128,19 @@ class ProducerPresenter extends BackendPresenter
 			]);
 
 			$fallbackPrinterImagePicker->onDelete[] = function () use ($producer): void {
-				$this->onDeleteFallbackPrinterImage($producer);
+				if ($producer !== null) {
+					$this->onDeleteFallbackPrinterImage($producer);
+				}
+
 				$this->redirect('this');
 			};
 
 			$productInput = $form->addMultiSelectAjax('mainCategories', 'Hlavní kategorie', 'Zvolte kategorie', Category::class, ['maximumSelectionLength' => 500]);
 
 			if ($producer) {
-				$this->template->select2AjaxDefaults[$productInput->getHtmlId()] = $this->categoryRepository->toArrayForSelect($producer->getMainCategories());
+				$mainCategories = $producer->getMainCategories();
+				\assert($mainCategories instanceof \StORM\Collection);
+				$this->template->select2AjaxDefaults[$productInput->getHtmlId()] = $this->categoryRepository->toArrayForSelect($mainCategories);
 			}
 
 			$form->addInteger('priority', 'Priorita')->setDefaultValue(10);
@@ -224,6 +232,8 @@ class ProducerPresenter extends BackendPresenter
 
 	public function onDelete(Entity $object): void
 	{
+		\assert($object instanceof Producer);
+
 		$this->onDeleteImage($object);
 		$this->onDeleteFallbackPrinterImage($object);
 
