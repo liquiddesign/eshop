@@ -19,6 +19,8 @@ class Producer extends SystemicEntity
 {
 	public const IMAGE_DIR = 'producer_images';
 
+	public const FALLBACK_PRINTER_IMAGE_DIR = 'producer_fallback_images';
+
 	/**
 	 * Kód
 	 * @column
@@ -49,6 +51,12 @@ class Producer extends SystemicEntity
 	 * @column
 	 */
 	public ?string $imageFileName;
+
+	/**
+	 * Fallback tiskový obrázek
+	 * @column
+	 */
+	public ?string $fallbackPrinterImage = null;
 
 	/**
 	 * Priorita
@@ -95,5 +103,16 @@ class Producer extends SystemicEntity
 		}
 
 		return $this->imageFileName ? $basePath . '/userfiles/' . self::IMAGE_DIR . '/' . $size . '/' . $this->imageFileName : $basePath . '/public/img/no-image.png';
+	}
+
+	public function getFallbackPrinterImagePath(string $basePath, string $size = 'detail'): ?string
+	{
+		if (!Arrays::contains(['origin', 'detail', 'thumb'], $size)) {
+			throw new ApplicationException('Invalid fallback printer image size: ' . $size);
+		}
+
+		return $this->fallbackPrinterImage
+			? $basePath . '/userfiles/' . self::FALLBACK_PRINTER_IMAGE_DIR . '/' . $size . '/' . $this->fallbackPrinterImage
+			: null;
 	}
 }
