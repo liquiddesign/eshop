@@ -92,6 +92,12 @@ class RelatedType extends \StORM\Entity
 	public bool $hidden = false;
 
 	/**
+	 * Povolit textové vazby (vazby bez napojení na produkt)
+	 * @column
+	 */
+	public bool $allowTextRelations = false;
+
+	/**
 	 * Název pro front s proměnnými (Latte)
 	 * @column{"mutations":true}
 	 */

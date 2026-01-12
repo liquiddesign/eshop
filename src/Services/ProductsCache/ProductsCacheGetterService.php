@@ -792,7 +792,7 @@ class ProductsCacheGetterService implements AutoWireService
 			->fetchArray(\stdClass::class);
 
 		foreach ($attributeValues as $attributeValue) {
-			if ($attributeValue->showRange) {
+			if ($attributeValue->showRange && $attributeValue->rangePK !== null) {
 				$attributeValuesCounts[$attributeValue->rangePK] = ($attributeValuesCounts[$attributeValue->rangePK] ?? 0) + $attributeValuesCounts[$attributeValue->id];
 			} else {
 				$attributeValuesCounts[$attributeValue->uuid] = $attributeValuesCounts[$attributeValue->id];
