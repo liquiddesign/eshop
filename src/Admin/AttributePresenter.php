@@ -856,6 +856,23 @@ class AttributePresenter extends BackendPresenter
 		$this->template->displayControls = [$this->getComponent('valuesForm')];
 	}
 
+	public function actionValueProducts(AttributeValue $attributeValue): void
+	{
+		unset($attributeValue);
+	}
+
+	public function renderValueProducts(AttributeValue $attributeValue): void
+	{
+		$this->template->headerLabel = 'Produkty s hodnotou: ' . $attributeValue->label;
+		$this->template->headerTree = [
+			['Atributy', 'default',],
+			['Hodnoty', 'default', ['tab' => 'values']],
+			['Produkty'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default', ['tab' => 'values'])];
+		$this->template->displayControls = [$this->getComponent('valueProductsGrid')];
+	}
+
 	/**
 	 * @param array<string|int> $ids
 	 * @param bool $createOrDelete
