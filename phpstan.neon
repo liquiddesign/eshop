@@ -23,3 +23,5 @@ parameters:
 		- src/Services/Related
 		- src/DB/SupplierProductPhoto.php
 		- src/DB/SupplierProductPhotoRepository.php
+		- src/DB/CustomerBonita.php
+		- src/DB/CustomerBonitaRepository.php

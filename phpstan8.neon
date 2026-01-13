@@ -25,6 +25,8 @@ parameters:
 		- src/Services/ProductsCache
 		- src/DB/SupplierProductPhoto.php
 		- src/DB/SupplierProductPhotoRepository.php
+		- src/DB/CustomerBonita.php
+		- src/DB/CustomerBonitaRepository.php
 	excludePaths:
 		- src/assets/*
 		- src/templates/*
