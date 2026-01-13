@@ -3,7 +3,7 @@
   "spec": "001-in-src-admin-attributepresenter-php-under-tab-valu",
   "state": "building",
   "subtasks": {
-    "completed": 1,
+    "completed": 2,
     "total": 5,
     "in_progress": 1,
     "failed": 0
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 2,
+    "number": 3,
     "started_at": "2026-01-13T12:27:02.267872"
   },
-  "last_update": "2026-01-13T12:28:06.954831"
+  "last_update": "2026-01-13T12:29:15.706076"
 }
