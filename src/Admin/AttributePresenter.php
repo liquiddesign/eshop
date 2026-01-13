@@ -18,6 +18,7 @@ use Eshop\DB\AttributeValueRange;
 use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\ProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\Services\SettingsService;
 use Forms\Form;
@@ -83,6 +84,9 @@ class AttributePresenter extends BackendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public SettingsService $settingsService;
+
+	#[\Nette\DI\Attributes\Inject]
+	public ProductRepository $productRepository;
 
 	/** @persistent */
 	public string $tab = 'attributes';
