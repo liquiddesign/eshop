@@ -219,6 +219,7 @@ class MerchantPresenter extends BackendPresenter
 				'Základní: vidí nejnižší a průměrnou nákupní cenu. Plný: vidí i ceny jednotlivých dodavatelů.',
 			);
 			$form->addCheckbox('approveOfferPermission', 'Oprávnění: Schvalování nabídek');
+			$form->addCheckbox('qiProductPairingPermission', 'Oprávnění: Párování produktů QI');
 			$form->addCheckbox(
 				'customerEmailNotification',
 				'Posílat e-mailem informace o objednávkách přiřazených zákazníků.',

@@ -102,6 +102,12 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	public bool $approveOfferPermission = false;
 
 	/**
+	 * Oprávnění: Párování produktů QI
+	 * @column
+	 */
+	public bool $qiProductPairingPermission = false;
+
+	/**
 	 * Informace o objednávkách zákazníků
 	 * @column
 	 */
