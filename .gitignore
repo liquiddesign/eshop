@@ -12,6 +12,6 @@ temp/*
 !temp/.gitkeep
 
 !/.idea/runConfigurations
-
-# Auto Claude data directory
-.auto-claude/
+/.auto-claude-security.json
+/.claude_settings.json
+/.auto-claude/
