@@ -12,3 +12,7 @@ temp/*
 !temp/.gitkeep
 
 !/.idea/runConfigurations
+/.auto-claude-security.json
+/.claude_settings.json
+/.auto-claude/
+/.auto-claude-status

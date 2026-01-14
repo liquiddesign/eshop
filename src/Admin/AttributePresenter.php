@@ -18,6 +18,8 @@ use Eshop\DB\AttributeValueRange;
 use Eshop\DB\AttributeValueRangeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
+use Eshop\DB\Product;
+use Eshop\DB\ProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\Services\SettingsService;
 use Forms\Form;
@@ -83,6 +85,9 @@ class AttributePresenter extends BackendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public SettingsService $settingsService;
+
+	#[\Nette\DI\Attributes\Inject]
+	public ProductRepository $productRepository;
 
 	/** @persistent */
 	public string $tab = 'attributes';
@@ -416,6 +421,15 @@ class AttributePresenter extends BackendPresenter
 		$grid->addColumnText('Atribut', 'attribute.name', '%s', 'attribute.name');
 		$grid->addColumnText('Zdroj', 'supplierName', '%s', 'supplierName');
 		$grid->addColumnText('Rozsah', 'rangeName', '%s');
+		$grid->addColumn('Použití', function (AttributeValue $attributeValue, $grid) {
+			$assignCount = $attributeValue->getValue('assignCount');
+
+			if ($assignCount > 0) {
+				return '<a href="' . $grid->getPresenter()->link('valueProducts', $attributeValue) . '">' . $assignCount . '</a>';
+			}
+
+			return $assignCount;
+		}, '%s', 'assignCount');
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
@@ -505,6 +519,53 @@ class AttributePresenter extends BackendPresenter
 		}
 
 		$grid->onDelete[] = [$this, 'onDelete'];
+
+		return $grid;
+	}
+
+	public function createComponentValueProductsGrid(): AdminGrid
+	{
+		/** @var \Eshop\DB\AttributeValue|null $attributeValue */
+		$attributeValue = $this->getParameter('attributeValue');
+
+		$mutationSuffix = $this->productRepository->getConnection()->getMutationSuffix();
+
+		$source = $this->productRepository->many()
+			->setGroupBy(['this.uuid'])
+			->join(['assign' => 'eshop_attributeassign'], 'assign.fk_product = this.uuid')
+			->where('assign.fk_value', $attributeValue?->getPK())
+			->select([
+				'categoriesNames' => "GROUP_CONCAT(DISTINCT category.name$mutationSuffix SEPARATOR ', ')",
+			])
+			->join(['productXcategory' => 'eshop_product_nxn_eshop_category'], 'productXcategory.fk_product = this.uuid')
+			->join(['category' => 'eshop_category'], 'productXcategory.fk_category = category.uuid');
+
+		$grid = $this->gridFactory->create($source, 20, 'name', 'ASC', true);
+
+		$grid->addColumnSelector();
+
+		// Name column with link to product detail in admin
+		$grid->addColumn('Název', function (Product $product, $grid) {
+			$link = $grid->getPresenter()->link(':Eshop:Admin:Product:edit', ['product' => $product]);
+
+			return '<a href="' . $link . '">' . $product->name . '</a>';
+		}, '%s', 'name');
+
+		// Code & EAN column
+		$grid->addColumn('Kód a EAN', function (Product $product) {
+			return $product->getFullCode() . ($product->getEan() ? "<br><small>EAN {$product->getEan()}</small>" : '') . ($product->mpn ? "<br><small>P/N $product->mpn</small>" : '');
+		}, '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [$grid, 'decoratorNowrap'];
+
+		// Producer column
+		$grid->addColumnText('Výrobce', 'producer.name', '%s');
+
+		// Categories column
+		$grid->addColumnText('Kategorie', 'categoriesNames', '%s');
+
+		// Filter by name/code
+		$grid->addFilterTextInput('search', ['this.name_cs', 'this.code', 'this.ean'], null, 'Název, kód, EAN');
+
+		$grid->addFilterButtons(['valueProducts', ['attributeValue' => $attributeValue]]);
 
 		return $grid;
 	}
@@ -841,6 +902,23 @@ class AttributePresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default', ['attribute' => $this->getParameter('attribute')])];
 		$this->template->displayControls = [$this->getComponent('valuesForm')];
+	}
+
+	public function actionValueProducts(AttributeValue $attributeValue): void
+	{
+		unset($attributeValue);
+	}
+
+	public function renderValueProducts(AttributeValue $attributeValue): void
+	{
+		$this->template->headerLabel = 'Produkty s hodnotou: ' . $attributeValue->label;
+		$this->template->headerTree = [
+			['Atributy', 'default',],
+			['Hodnoty', 'default',],
+			['Produkty'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('valueProductsGrid')];
 	}
 
 	/**
