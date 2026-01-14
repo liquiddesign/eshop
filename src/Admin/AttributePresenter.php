@@ -422,14 +422,14 @@ class AttributePresenter extends BackendPresenter
 		$grid->addColumnText('Zdroj', 'supplierName', '%s', 'supplierName');
 		$grid->addColumnText('Rozsah', 'rangeName', '%s');
 		$grid->addColumn('Použití', function (AttributeValue $attributeValue, $grid) {
-		$assignCount = $attributeValue->getValue('assignCount');
+			$assignCount = $attributeValue->getValue('assignCount');
 
-		if ($assignCount > 0) {
-			return '<a href="' . $grid->getPresenter()->link('valueProducts', $attributeValue) . '">' . $assignCount . '</a>';
-		}
+			if ($assignCount > 0) {
+				return '<a href="' . $grid->getPresenter()->link('valueProducts', $attributeValue) . '">' . $assignCount . '</a>';
+			}
 
-		return $assignCount;
-	}, '%s', 'assignCount');
+			return $assignCount;
+		}, '%s', 'assignCount');
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('<i title="Doporučeno" class="far fa-thumbs-up"></i>', 'recommended', '', '', 'recommended');
 		$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', '', '', 'hidden');
