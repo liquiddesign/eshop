@@ -565,7 +565,7 @@ class AttributePresenter extends BackendPresenter
 		// Filter by name/code
 		$grid->addFilterTextInput('search', ['this.name_cs', 'this.code', 'this.ean'], null, 'Název, kód, EAN');
 
-		$grid->addFilterButtons(['valueProducts', ['attributeValue' => $attributeValue?->getPK()]]);
+		$grid->addFilterButtons(['valueProducts', ['attributeValue' => $attributeValue]]);
 
 		return $grid;
 	}
