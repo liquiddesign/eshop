@@ -425,7 +425,7 @@ class AttributePresenter extends BackendPresenter
 		$assignCount = $attributeValue->getValue('assignCount');
 
 		if ($assignCount > 0) {
-			return '<a href="' . $grid->getPresenter()->link('valueProducts', ['attributeValue' => $attributeValue->getPK()]) . '">' . $assignCount . '</a>';
+			return '<a href="' . $grid->getPresenter()->link('valueProducts', $attributeValue) . '">' . $assignCount . '</a>';
 		}
 
 		return $assignCount;
@@ -546,7 +546,7 @@ class AttributePresenter extends BackendPresenter
 
 		// Name column with link to product detail in admin
 		$grid->addColumn('Název', function (Product $product, $grid) {
-			$link = $grid->getPresenter()->link(':Eshop:Admin:Product:edit', ['product' => $product->getPK()]);
+			$link = $grid->getPresenter()->link(':Eshop:Admin:Product:edit', ['product' => $product]);
 
 			return '<a href="' . $link . '">' . $product->name . '</a>';
 		}, '%s', 'name');
@@ -914,10 +914,10 @@ class AttributePresenter extends BackendPresenter
 		$this->template->headerLabel = 'Produkty s hodnotou: ' . $attributeValue->label;
 		$this->template->headerTree = [
 			['Atributy', 'default',],
-			['Hodnoty', 'default', ['tab' => 'values']],
+			['Hodnoty', 'default',],
 			['Produkty'],
 		];
-		$this->template->displayButtons = [$this->createBackButton('default', ['tab' => 'values'])];
+		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('valueProductsGrid')];
 	}
 
