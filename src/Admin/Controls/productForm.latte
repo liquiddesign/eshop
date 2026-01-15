@@ -291,6 +291,16 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                         <td colspan="3"></td>
                     </tr>
                 </table>
+                <table class="mt-1 mb-1" style="width: auto;">
+                    <tr class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col">{label productStockCostPrice/}</th>
+
+                        <td class="align-middle">{input productStockCostPrice class=>'form-control form-control-sm '}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError productStockCostPrice}</span>
+                        </td>
+                        <td colspan="3"></td>
+                    </tr>
+                </table>
                 <div n:if="$pricelists">
                 <span class="text-sm ml-2">
                     {ifset $configuration[Eshop\Admin\Configs\ProductFormConfig::class][Eshop\Admin\Configs\ProductFormAutoPriceConfig::class]}
