@@ -351,6 +351,12 @@ class Product extends \StORM\Entity
 	public float|null $manualPurchasePrice = null;
 
 	/**
+	 * Skladová nákladová cena z Qi (ProductStockCostPrice)
+	 * @column
+	 */
+	public float|null $productStockCostPrice = null;
+
+	/**
 	 * Přebírat obsah
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
