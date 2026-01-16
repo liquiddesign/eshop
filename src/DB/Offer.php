@@ -78,6 +78,12 @@ class Offer extends Entity
 	public string|null $note = null;
 
 	/**
+	 * Id v pipedrive
+	 * @column
+	 */
+	public string|null $pipedriveDealId = null;
+
+	/**
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
