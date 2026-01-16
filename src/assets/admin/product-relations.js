@@ -50,6 +50,9 @@ function productRelations(config) {
 		// Klíč pro vynucení re-renderu
 		reloadKey: 0,
 
+		// Counter pro generování unikátních klientských klíčů nových řádků
+		_clientKeyCounter: 0,
+
 		/**
 		 * Inicializace komponenty - načte data z API
 		 */
@@ -198,6 +201,7 @@ function productRelations(config) {
 
 			if (side === 'master') {
 				this.relations[typeUuid].master.push({
+					_clientKey: 'new-' + (++this._clientKeyCounter),
 					slaveUuid: null,
 					slaveName: '',
 					slaveProducer: null,
@@ -213,6 +217,7 @@ function productRelations(config) {
 				});
 			} else {
 				this.relations[typeUuid].slave.push({
+					_clientKey: 'new-' + (++this._clientKeyCounter),
 					masterUuid: null,
 					amount: type?.defaultAmount || 1,
 					priority: (currentLength + 1) * 10,

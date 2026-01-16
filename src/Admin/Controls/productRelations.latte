@@ -139,7 +139,7 @@
 
 									{* Tabulka master vazeb *}
 									<div class="master-relations-list">
-										<template x-for="(row, index) in relations[type.uuid]?.master || []" :key="index">
+										<template x-for="(row, index) in relations[type.uuid]?.master || []" :key="row.uuid || row._clientKey">
 											<div class="relation-row card card-body p-2 mb-2" style="background: #f8f9fa;">
 												<div class="d-flex align-items-start">
 													<div class="flex-grow-1">
@@ -369,7 +369,7 @@
 
 									{* Tabulka slave vazeb *}
 									<div class="slave-relations-list">
-										<template x-for="(row, index) in relations[type.uuid]?.slave || []" :key="index">
+										<template x-for="(row, index) in relations[type.uuid]?.slave || []" :key="row.uuid || row._clientKey">
 											<div class="relation-row card card-body p-2 mb-2" style="background: #f8f9fa;">
 												<div class="d-flex align-items-start">
 													<div class="flex-grow-1">
