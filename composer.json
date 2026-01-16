@@ -50,7 +50,7 @@
         "liquiddesign/liquid-monitor-connector": "^1.0.19",
         "illuminate/database": "^12.0",
         "illuminate/support": "^12.0",
-        "dave-liddament/php-language-extensions": "^0.9",
+        "dave-liddament/php-language-extensions": "^0.10",
         "liquiddesign/vies": "^1.0"
     },
     "minimum-stability": "stable",
@@ -60,7 +60,7 @@
         "liquiddesign/codestyle": "4.x-dev",
         "liquiddesign/migrator": "~1.0",
         "phpstan/phpstan-nette": "~2.0",
-        "dave-liddament/phpstan-php-language-extensions": "^0.9",
+        "dave-liddament/phpstan-php-language-extensions": "^0.10",
         "phpstan/phpstan-deprecation-rules": "^2.0",
         "jetbrains/phpstorm-attributes": "^1.2"
     },
