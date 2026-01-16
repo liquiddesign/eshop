@@ -254,7 +254,7 @@ Ostatní: Přebírání ze zvoleného zdroje
 			->setHtmlAttribute('data-info', 'Nákupní cena pro výpočet marže v nabídce, pokud neexistuje dodavatelský produkt.');
 		$manualPurchasePrice->addCondition($form::Filled)->addRule($form::Float);
 
-		$form->addText('productStockCostPrice', 'Skladová cena (ComparativePriceInclVAT)')
+		$form->addText('productStockCostPrice', 'Skladová cena (ProductStockCostPrice)')
 			->setDisabled()
 			->setHtmlAttribute('data-info', 'Manuálně vyplněná skladová cena pro výpočet maržových zarážek v nabídkách.');
 
