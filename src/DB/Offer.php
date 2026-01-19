@@ -84,6 +84,12 @@ class Offer extends Entity
 	public string|null $pipedriveDealId = null;
 
 	/**
+	 * Zaokrouhlování
+	 * @column
+	 */
+	public float|null $roundingTo = null;
+
+	/**
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
 	 */
