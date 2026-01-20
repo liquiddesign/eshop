@@ -113,6 +113,12 @@ class AttributeValue extends SystemicEntity
 	public ?string $imageFileName;
 
 	/**
+	 * Perex (WYSIWYG)
+	 * @column{"mutations":true, "type":"longtext"}
+	 */
+	public ?string $perex;
+
+	/**
 	 * Custom field 1
 	 * @column{"mutations":true}
 	 */

@@ -637,6 +637,8 @@ class AttributePresenter extends BackendPresenter
 			$this->redirect('this');
 		};
 
+		$form->addLocaleRichEdit('perex', 'Perex');
+
 		if (isset($this::CONFIGURATIONS['customField1']) && $this::CONFIGURATIONS['customField1'] && \is_string($this::CONFIGURATIONS['customField1'])) {
 			$form->addLocaleText('customField1', $this::CONFIGURATIONS['customField1']);
 		}
