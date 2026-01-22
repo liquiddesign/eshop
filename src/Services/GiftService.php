@@ -11,20 +11,21 @@ use Eshop\DB\CartItemRepository;
 use Eshop\DB\GiftRuleProductRepository;
 use Eshop\DB\GiftRuleRepository;
 use Eshop\DB\Product;
-use StORM\DIConnection;
+use Eshop\DB\ProductRepository;
 
 class GiftService implements AutoWireService
 {
 	public const GIFT_TYPE_GIFT = 'gift';
 	public const GIFT_TYPE_DISCOUNT = 'gift_discount';
 	public const GIFT_PRODUCT_PREFIX = 'DÁREK: ';
-	public const GIFT_DISCOUNT_NAME = 'Sleva na dárek';
+	public const GIFT_DISCOUNT_PRODUCT_UUID = 'gift-discount-product';
 	public const GIFT_PRICE = 1.0;
 
 	public function __construct(
 		private readonly GiftRuleRepository $giftRuleRepository,
 		private readonly GiftRuleProductRepository $giftRuleProductRepository,
 		private readonly CartItemRepository $cartItemRepository,
+		private readonly ProductRepository $productRepository,
 	) {
 	}
 
@@ -113,17 +114,21 @@ class GiftService implements AutoWireService
 		]);
 
 		// Vytvoříme kompenzační slevovou položku -1 Kč (DPH 0%)
-		$discountNames = \array_map(
-			fn(): string => self::GIFT_DISCOUNT_NAME,
-			$productNames,
-		);
+		// Použijeme skutečný produkt "Sleva na dárek" z databáze
+		$discountProduct = $this->productRepository->one(self::GIFT_DISCOUNT_PRODUCT_UUID);
+
+		$discountProductNames = $discountProduct !== null
+			? $discountProduct->toArray()['name']
+			: ['cs' => 'Sleva na dárek', 'en' => 'Gift discount'];
 
 		$discountItem = $this->cartItemRepository->createOne([
-			'productName' => $discountNames,
+			'productName' => $discountProductNames,
+			'productCode' => $discountProduct?->code ?? 'GIFT-DISCOUNT',
 			'amount' => 1,
 			'price' => -self::GIFT_PRICE,
 			'priceVat' => -self::GIFT_PRICE,
 			'vatPct' => 0.0,
+			'product' => $discountProduct?->getPK(),
 			'cart' => $cart->getPK(),
 			'linkedGiftItem' => $giftItem->getPK(),
 			'giftType' => self::GIFT_TYPE_DISCOUNT,
