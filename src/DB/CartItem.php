@@ -140,6 +140,19 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	public ?string $note;
 
 	/**
+	 * Provázaná položka dárku (pro propojení dárku se slevou)
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public ?CartItem $linkedGiftItem = null;
+
+	/**
+	 * Typ dárkové položky
+	 * @column{"type":"enum","length":"'gift','gift_discount'"}
+	 */
+	public string|null $giftType = null;
+
+	/**
 	 * Produkt
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
 	 * @relation
@@ -315,5 +328,29 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	public function getProductEan(): string|null
 	{
 		return $this->productEan ?: $this->product?->getEan();
+	}
+
+	/**
+	 * Zkontroluje, zda je položka dárkem
+	 */
+	public function isGift(): bool
+	{
+		return $this->giftType === 'gift';
+	}
+
+	/**
+	 * Zkontroluje, zda je položka slevou na dárek
+	 */
+	public function isGiftDiscount(): bool
+	{
+		return $this->giftType === 'gift_discount';
+	}
+
+	/**
+	 * Zkontroluje, zda je položka součástí dárkového páru (dárek nebo sleva)
+	 */
+	public function isGiftRelated(): bool
+	{
+		return $this->giftType !== null;
 	}
 }

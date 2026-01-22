@@ -1,0 +1,69 @@
+{**
+ * Šablona pro výběr dárku k nákupu
+ * @var array<\Eshop\DB\Product> $availableGifts
+ * @var \Eshop\DB\CartItem|null $selectedGift
+ * @var bool $canSelectGift
+ *}
+
+{if $canSelectGift && $availableGifts}
+	<div class="gift-selector">
+		<div class="gift-selector__header">
+			<h4 class="gift-selector__title">
+				<i class="fas fa-gift"></i>
+				{_'giftSelector.title', 'Vyberte si dárek k nákupu'}
+			</h4>
+			<p class="gift-selector__description">
+				{_'giftSelector.description', 'K vaší objednávce si můžete vybrat jeden z následujících dárků zdarma.'}
+			</p>
+		</div>
+
+		<div class="gift-selector__products">
+			{foreach $availableGifts as $gift}
+				{var $isSelected = $selectedGift !== null && $selectedGift->getValue('product') === $gift->getPK()}
+				<div class="gift-selector__product {if $isSelected}gift-selector__product--selected{/if}">
+					<div class="gift-selector__product-image">
+						{if $gift->imageFileName}
+							<img src="{$basePath}/userfiles/{$gift::GALLERY_DIR}/thumb/{$gift->imageFileName}" alt="{$gift->name}" loading="lazy">
+						{else}
+							<div class="gift-selector__product-image-placeholder">
+								<i class="fas fa-image"></i>
+							</div>
+						{/if}
+					</div>
+
+					<div class="gift-selector__product-info">
+						<h5 class="gift-selector__product-name">{$gift->name}</h5>
+						{if $gift->getPerex()}
+							<p class="gift-selector__product-perex">{$gift->getPerex()|striptags|truncate:100}</p>
+						{/if}
+					</div>
+
+					<div class="gift-selector__product-action">
+						{if $isSelected}
+							<a n:href="removeGift!" class="btn btn-outline-danger btn-sm ajax">
+								<i class="fas fa-times"></i>
+								{_'giftSelector.remove', 'Odebrat'}
+							</a>
+							<span class="gift-selector__selected-badge">
+								<i class="fas fa-check"></i>
+								{_'giftSelector.selected', 'Vybráno'}
+							</span>
+						{else}
+							<a n:href="selectGift! $gift->getPK()" class="btn btn-primary btn-sm ajax">
+								<i class="fas fa-plus"></i>
+								{_'giftSelector.select', 'Vybrat'}
+							</a>
+						{/if}
+					</div>
+				</div>
+			{/foreach}
+		</div>
+
+		{if $selectedGift}
+			<div class="gift-selector__info">
+				<i class="fas fa-info-circle"></i>
+				{_'giftSelector.info', 'Vybraný dárek bude přidán k vaší objednávce zdarma.'}
+			</div>
+		{/if}
+	</div>
+{/if}

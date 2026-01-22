@@ -1090,6 +1090,11 @@ class CheckoutManager
 
 		/** @var \Eshop\DB\CartItem $cartItem */
 		foreach ($this->getItems($cartId) as $cartItem) {
+			// Přeskočit dárkové položky - ty mají speciální ceny a nemají se opravovat
+			if ($cartItem->isGiftRelated()) {
+				continue;
+			}
+
 			if (!$cartItem->product) {
 				$cartItem->delete();
 
