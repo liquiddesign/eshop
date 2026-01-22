@@ -391,7 +391,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 
 		if ($productsToCreate) {
 			Debugger::log(
-				'diffUpdateMainTable -- created: ' . $this->getConnection()->createRows($productsCacheTableName, \array_values($productsToCreate), chunkSize: 1000)->getRowCount(),
+				'diffUpdateMainTable -- created: ' . $this->getConnection()->createRows($productsCacheTableName, \array_values($productsToCreate), ignore: true, chunkSize: 1000)->getRowCount(),
 				$this->logName,
 			);
 		}
@@ -681,7 +681,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 			}
 
 			if ($pricesToCreate) {
-				$this->getConnection()->createRows($currentIndexTableName, $pricesToCreate, chunkSize: 10000);
+				$this->getConnection()->createRows($currentIndexTableName, $pricesToCreate, ignore: true, chunkSize: 10000);
 			}
 
 			if (!$cachePrices || $customers) {
