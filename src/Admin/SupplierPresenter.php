@@ -186,6 +186,8 @@ class SupplierPresenter extends BackendPresenter
 		$form->addCheckbox('splitPricelists', 'Rozdělit ceníky (dostupné / nedostupné)');
 		$form->addCheckbox('importImages', 'Importovat obrázky');
 
+		$this->addCustomFieldsToSupplierForm($form);
+
 		$form->addSubmits(true);
 
 		$form->onValidate[] = function (AdminForm $form): void {
