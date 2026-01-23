@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Eshop\Controls;
 
-use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Eshop\Services\GiftService;
 use Eshop\ShopperUser;
@@ -22,7 +21,7 @@ class GiftSelector extends Control
 	public array $onGiftChange = [];
 
 	/**
-	 * @var array<callable(self): void> Occurs when component is anchored to presenter
+	 * @var array<callable(\Nette\Application\UI\Component): void> Occurs when component is anchored to presenter
 	 */
 	public array $onAnchor = [];
 
@@ -40,19 +39,11 @@ class GiftSelector extends Control
 	{
 		$cart = $this->shopperUser->getCheckoutManager()->getCart();
 
-		if ($cart === null) {
-			$this->redirect('this');
-
-			return;
-		}
-
 		$product = $this->productRepository->one($productId);
 
 		if ($product === null) {
 			$this->flashMessage('Produkt nebyl nalezen', 'error');
 			$this->redirect('this');
-
-			return;
 		}
 
 		// Ověříme, že produkt je stále mezi dostupnými dárky
@@ -70,8 +61,6 @@ class GiftSelector extends Control
 		if (!$isAvailable) {
 			$this->flashMessage('Tento dárek již není dostupný pro vaši objednávku', 'warning');
 			$this->redirect('this');
-
-			return;
 		}
 
 		$this->giftService->addGiftToCart($cart, $product);
@@ -87,12 +76,6 @@ class GiftSelector extends Control
 	public function handleRemoveGift(): void
 	{
 		$cart = $this->shopperUser->getCheckoutManager()->getCart();
-
-		if ($cart === null) {
-			$this->redirect('this');
-
-			return;
-		}
 
 		$this->giftService->removeGiftFromCart($cart);
 
