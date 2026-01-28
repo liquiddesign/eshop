@@ -85,7 +85,9 @@ class AddressesForm extends Form
 
 		// company
 		$this->addText('ic', 'AddressesForm.ic')->addConditionOn($isCompany, $this::EQUAL, true)->setRequired();
-		$this->addText('dic', 'AddressesForm.dic');
+		$this->addText('dic', 'AddressesForm.dic')
+			->addCondition($this::Filled)
+			->addRule($this::Pattern, $translator->translate('AddressesForm.dicPattern', 'DIČ musí obsahovat 8-14 znaků (pouze A-z a 0-9, bez mezer).'), '^[A-z0-9]{8,14}$');
 
 		$this->addText('bankAccount', 'AddressesForm.bankAccount');
 		$this->addText('bankAccountCode', 'AddressesForm.bankAccountCode');
