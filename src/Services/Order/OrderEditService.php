@@ -188,21 +188,37 @@ readonly class OrderEditService implements AutoWireService
 			cart: $cart
 		);
 
-		if ($replaceMode === null) {
+		// Always check for existing PackageItem to prevent duplicates
+		// Previously, when replaceMode === null, we always created new PackageItem
+		// which could lead to orphaned CartItems or duplicate PackageItems
+		$existingPackageItem = $package->getItems()
+			->where('this.fk_cartItem', $cartItem->getPK())
+			->first();
+
+		if ($existingPackageItem !== null) {
+			// PackageItem for this CartItem already exists in this package - update amount
+			$existingPackageItem->update(['amount' => $cartItem->amount]);
+			$packageItem = $existingPackageItem;
+		} elseif ($replaceMode === null) {
+			// No existing PackageItem and replaceMode is null - create new
 			$packageItem = $this->packageItemRepository->createOne([
 				'amount' => $cartItem->amount,
 				'package' => $package->getPK(),
 				'cartItem' => $cartItem,
 			]);
 		} else {
-			if (!$packageItem = $package->getItems()->where('cartItem.fk_product', $product->getPK())->first()) {
+			// replaceMode is set - check by product (legacy behavior for backwards compatibility)
+			$packageItemByProduct = $package->getItems()->where('cartItem.fk_product', $product->getPK())->first();
+
+			if ($packageItemByProduct === null) {
 				$packageItem = $this->packageItemRepository->createOne([
 					'amount' => $cartItem->amount,
 					'package' => $package->getPK(),
 					'cartItem' => $cartItem,
 				]);
 			} else {
-				$packageItem->update(['amount' => $cartItem->amount]);
+				$packageItemByProduct->update(['amount' => $cartItem->amount]);
+				$packageItem = $packageItemByProduct;
 			}
 		}
 
@@ -362,6 +378,14 @@ readonly class OrderEditService implements AutoWireService
 
 		$cartItem->getPackageItems()->delete();
 		$cartItem->delete();
+	}
+
+	/**
+	 * Get database connection for transaction management
+	 */
+	public function getConnection(): \StORM\DIConnection
+	{
+		return $this->cartItemRepository->getConnection();
 	}
 
 	protected function beforeProcess(Order $order, Customer|null $customer = null): bool
