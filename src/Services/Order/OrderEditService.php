@@ -380,6 +380,14 @@ readonly class OrderEditService implements AutoWireService
 		$cartItem->delete();
 	}
 
+	/**
+	 * Get database connection for transaction management
+	 */
+	public function getConnection(): \StORM\DIConnection
+	{
+		return $this->cartItemRepository->getConnection();
+	}
+
 	protected function beforeProcess(Order $order, Customer|null $customer = null): bool
 	{
 		if ($customer) {

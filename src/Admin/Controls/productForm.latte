@@ -326,9 +326,9 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                         {var $isHidden = $form['prices'][$id]['hidden']->getValue()}
                         <tr class="m-0 mt-1 has-danger price-row"
                             data-pricelist-id="{$id}"
-                            style="{if !$pricelist->isActive}background-color: #FFEBEE;{elseif $isHidden}background-color: #F5F5F5; opacity: 0.7;{/if}">
+                            style="{if !$pricelist->isActive}background-color: #FFEBEE;{elseif $pricelist->isReadonly}background-color: #E9ECEF;{elseif $isHidden}background-color: #F5F5F5; opacity: 0.7;{/if}">
                             <th class="col-label col-form-label col">{$pricelist->name} {($shop = $pricelist->getValue('shop')) ? "(O:$shop)": null} <i
-                                        class="fa fa-sort-numeric-up mr-1"></i> {$pricelist->priority}</th>
+                                        class="fa fa-sort-numeric-up mr-1"></i> {$pricelist->priority} {if $pricelist->isReadonly}<span class="badge badge-secondary ml-1"><i class="fas fa-lock"></i></span>{/if}</th>
 
                             <td class="align-middle">{input "prices-$id-price" class => 'form-control form-control-sm col-label max-number'}
                                 <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError "prices-$id-price"}</span>
