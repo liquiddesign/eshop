@@ -186,12 +186,16 @@ class SupplierProductRepository extends \StORM\Repository
 		/** @var array<array<\stdClass>> $existingProductContents By product -> shop -> mutations */
 		$existingProductContents = [];
 
-		foreach ($productContentRepository->many()
-					 ->select(['productPK' => 'this.fk_product', 'shopPK' => 'this.fk_shop', 'content' => "this.content$mutationSuffix"])
-					 ->fetchArray(\stdClass::class) as $productContent
-		) {
+		$productContentQuery = $productContentRepository->many()
+			->select(['productPK' => 'this.fk_product', 'shopPK' => 'this.fk_shop', 'content' => "this.content$mutationSuffix"]);
+
+		while ($productContent = $productContentQuery->fetch(\stdClass::class)) {
+			/** @var \stdClass $productContent */
 			$existingProductContents[$productContent->productPK][$productContent->shopPK] = $productContent;
 		}
+
+		$productContentQuery->__destruct();
+		unset($productContentQuery);
 
 		$productsWithDontAssignSupplierCategoryInternalRibbon = $productRepository->many()
 			->where('internalRibbons.uuid', 'dont_assign_supplier_category')

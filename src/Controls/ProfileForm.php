@@ -38,7 +38,9 @@ class ProfileForm extends \Nette\Application\UI\Form
 			->addRule(self::PATTERN, $translator->translate('AddressesForm.phonePattern', 'Pouze čísla a znak "+" na začátku!'), '^\+?[0-9]+$');
 		$this->addText('company', 'profileForm.company');
 		$this->addText('ic', 'profileForm.ic')->addRule($this::MAX_LENGTH, 'Maximální délka je 8 číslic.', 8);
-		$this->addText('dic', 'profileForm.dic')->addRule($this::MAX_LENGTH, 'Maximální délka je 10 znaků.', 10);
+		$this->addText('dic', 'profileForm.dic')
+			->addCondition($this::Filled)
+			->addRule($this::Pattern, $translator->translate('AddressesForm.dicPattern', 'DIČ musí obsahovat 8-14 znaků (pouze A-z a 0-9, bez mezer).'), '^[A-z0-9]{8,14}$');
 		$this->addText('bankAccount', 'AddressesForm.bankAccount');
 		$this->addText('bankAccountCode', 'AddressesForm.bankAccountCode');
 		$this->addText('bankSpecificSymbol', 'AddressesForm.bankSpecificSymbol');

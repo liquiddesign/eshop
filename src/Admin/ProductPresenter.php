@@ -371,7 +371,13 @@ class ProductPresenter extends BackendPresenter
 		$grid = $this->gridFactory->create($collection, 20, 'priority', 'ASC');
 
 		$grid->addColumnText('Kód', 'code', '%s', 'code');
-		$grid->addColumnText('Ceník', 'name', '%s', 'name');
+		$grid->addColumn('Ceník', function (Pricelist $pricelist): string {
+			$readonlyBadge = $pricelist->isReadonly
+				? ' <span class="badge badge-secondary"><i class="fas fa-lock"></i></span>'
+				: '';
+
+			return $pricelist->name . $readonlyBadge;
+		}, '%s', 'name');
 		$grid->addColumnText('Měna', 'currency.code', '%s', 'currency.code');
 		$grid->addColumnInputPrice('Cena', 'price');
 
@@ -385,13 +391,25 @@ class ProductPresenter extends BackendPresenter
 			$grid->addColumnInputPrice('Cena před slevou s DPH', 'priceVatBefore');
 		}
 
-		$grid->addColumnActionDelete([$this, 'deletePrice'], true);
+		$grid->addColumnActionDelete([$this, 'deletePrice'], true, function (Pricelist|null $pricelist): bool {
+			return $pricelist !== null && !$pricelist->isReadonly;
+		});
 
 		$submit = $grid->getForm()->addSubmit('submit', 'Uložit');
 		$submit->setHtmlAttribute('class', 'btn btn-sm btn-primary');
 		$submit->onClick[] = function ($button) use ($grid, $product): void {
+			$skippedReadonly = false;
+
 			foreach ($grid->getInputData() as $id => $data) {
 				if (!isset($data['price'])) {
+					continue;
+				}
+
+				$pricelist = $this->pricelistRepository->one($id);
+
+				if ($pricelist !== null && $pricelist->isReadonly) {
+					$skippedReadonly = true;
+
 					continue;
 				}
 
@@ -413,6 +431,10 @@ class ProductPresenter extends BackendPresenter
 				$this->priceRepository->syncOne($newData);
 			}
 
+			if ($skippedReadonly) {
+				$grid->getPresenter()->flashMessage('Některé ceny nebyly uloženy - ceník je pouze pro čtení.', 'warning');
+			}
+
 			$grid->getPresenter()->flashMessage('Uloženo', 'success');
 			$grid->getPresenter()->redirect('this');
 		};
@@ -425,6 +447,11 @@ class ProductPresenter extends BackendPresenter
 
 	public function deletePrice(Pricelist $pricelist): void
 	{
+		if ($pricelist->isReadonly) {
+			$this->flashMessage('Ceník je pouze pro čtení, nelze mazat ceny.', 'error');
+			$this->redirect('this');
+		}
+
 		$this->priceRepository->getPricesByPriceList($pricelist)->where('fk_product', $this->getParameter('product'))->delete();
 	}
 

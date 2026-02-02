@@ -115,6 +115,7 @@ class SupplierRepository extends Repository implements IGeneralRepository
 			'code' => "$supplier->code-$id",
 			'name' => $supplier->name . ($label === null ? '' : " ($label)"),
 			'isActive' => $active,
+			'isReadonly' => true,
 			'currency' => $currency,
 			'country' => $country,
 			'supplier' => $supplier,

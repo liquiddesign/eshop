@@ -44,7 +44,9 @@ class IRegisterFormFactory
 			->addConditionOn($accountType, $form::EQUAL, 'company')
 			->setRequired($this->translator->translate('registrationForm.enterIC', 'Zadejte prosím IČ firmy'))
 			->endCondition();
-		$form->addText('dic');
+		$form->addText('dic')
+			->addCondition($form::Filled)
+			->addRule($form::Pattern, $this->translator->translate('AddressesForm.dicPattern', 'DIČ musí obsahovat 8-14 znaků (pouze A-z a 0-9, bez mezer).'), '^[A-z0-9]{8,14}$');
 
 		/** @var \Nette\Forms\Controls\TextInput $password */
 		$password = $form['password'];
