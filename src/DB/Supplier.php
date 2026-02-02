@@ -125,6 +125,18 @@ class Supplier extends \StORM\Entity
 	public bool $defaultActive = true;
 
 	/**
+	 * Výchozí povolení Mergado přecenění pro ABEL
+	 * @column
+	 */
+	public bool $defaultMergadoRepricingAbel = true;
+
+	/**
+	 * Výchozí povolení Mergado přecenění pro RT
+	 * @column
+	 */
+	public bool $defaultMergadoRepricingRt = true;
+
+	/**
 	 * Defaultní zobrazení množství
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
