@@ -357,6 +357,24 @@ class Product extends \StORM\Entity
 	public float|null $productStockCostPrice = null;
 
 	/**
+	 * Platnost manuální nákupní ceny (do data)
+	 * @column{"type":"date"}
+	 */
+	public string|null $manualPurchasePriceValidUntil = null;
+
+	/**
+	 * Odkaz na dodavatelský produkt
+	 * @column{"type":"longtext"}
+	 */
+	public string|null $manualPurchasePriceSupplierUrl = null;
+
+	/**
+	 * Omezení na IČ nebo CKP (čárkou oddělené hodnoty)
+	 * @column{"type":"longtext"}
+	 */
+	public string|null $manualPurchasePriceCustomerRestriction = null;
+
+	/**
 	 * Přebírat obsah
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}
@@ -1270,6 +1288,58 @@ class Product extends \StORM\Entity
 					->where('mutations IS NULL OR mutations LIKE :mutation', ['mutation' => '%' . $this->activeMutation . '%'])
 					->where('this.hidden', false)
 					->setOrderBy(['this.priority' => 'ASC']);
+	}
+
+	/**
+	 * Kontrola platnosti manuální nákupní ceny
+	 */
+	public function isManualPurchasePriceValid(): bool
+	{
+		if ($this->manualPurchasePrice === null) {
+			return false;
+		}
+
+		if ($this->manualPurchasePriceValidUntil === null) {
+			// Bez data = neomezená platnost
+			return true;
+		}
+
+		$validUntil = \DateTimeImmutable::createFromFormat('Y-m-d', $this->manualPurchasePriceValidUntil);
+
+		return $validUntil !== false && $validUntil >= new \DateTimeImmutable('today');
+	}
+
+	/**
+	 * Kontrola, zda má manuální cena omezení na zákazníky
+	 */
+	public function hasManualPurchasePriceCustomerRestriction(): bool
+	{
+		return $this->manualPurchasePriceCustomerRestriction !== null
+			&& Strings::trim($this->manualPurchasePriceCustomerRestriction) !== '';
+	}
+
+	/**
+	 * Kontrola, zda zákazník odpovídá omezení manuální ceny
+	 */
+	public function isCustomerInManualPurchasePriceRestriction(
+		string|null $customerIc = null,
+		string|null $customerCkp = null,
+	): bool {
+		if (!$this->hasManualPurchasePriceCustomerRestriction()) {
+			return false;
+		}
+
+		$restrictions = \array_map('trim', \explode(',', $this->manualPurchasePriceCustomerRestriction));
+		$restrictions = \array_filter($restrictions, fn(string $v): bool => $v !== '');
+
+		foreach ($restrictions as $restriction) {
+			if (($customerIc !== null && $customerIc === $restriction)
+				|| ($customerCkp !== null && $customerCkp === $restriction)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

@@ -301,6 +301,39 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                         <td colspan="3"></td>
                     </tr>
                 </table>
+                {ifset $form['manualPurchasePriceValidUntil']}
+                <table class="mt-1 mb-1" style="width: auto;">
+                    <tr class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col">{label manualPurchasePriceValidUntil/}</th>
+                        <td class="align-middle">{input manualPurchasePriceValidUntil class=>'form-control form-control-sm '}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError manualPurchasePriceValidUntil}</span>
+                        </td>
+                        <td colspan="3"></td>
+                    </tr>
+                </table>
+                {/ifset}
+                {ifset $form['manualPurchasePriceSupplierUrl']}
+                <table class="mt-1 mb-1" style="width: auto;">
+                    <tr class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col">{label manualPurchasePriceSupplierUrl/}</th>
+                        <td class="align-middle">{input manualPurchasePriceSupplierUrl class=>'form-control form-control-sm'}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError manualPurchasePriceSupplierUrl}</span>
+                        </td>
+                        <td colspan="3"></td>
+                    </tr>
+                </table>
+                {/ifset}
+                {ifset $form['manualPurchasePriceCustomerRestriction']}
+                <table class="mt-1 mb-1" style="width: auto;">
+                    <tr class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col">{label manualPurchasePriceCustomerRestriction/}</th>
+                        <td class="align-middle">{input manualPurchasePriceCustomerRestriction class=>'form-control form-control-sm'}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError manualPurchasePriceCustomerRestriction}</span>
+                        </td>
+                        <td colspan="3"></td>
+                    </tr>
+                </table>
+                {/ifset}
                 <div n:if="$pricelists">
                 <span class="text-sm ml-2">
                     {ifset $configuration[Eshop\Admin\Configs\ProductFormConfig::class][Eshop\Admin\Configs\ProductFormAutoPriceConfig::class]}

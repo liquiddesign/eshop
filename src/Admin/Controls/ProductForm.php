@@ -258,6 +258,25 @@ Ostatní: Přebírání ze zvoleného zdroje
 			->setDisabled()
 			->setHtmlAttribute('data-info', 'Manuálně vyplněná skladová cena pro výpočet maržových zarážek v nabídkách.');
 
+		$form->addText('manualPurchasePriceValidUntil', 'Platnost ceny do')
+			->setNullable()
+			->setHtmlType('date')
+			->setHtmlAttribute('data-info', 'Po tomto datu nebude manuální nákupní cena platná. Prázdné = neomezená platnost.');
+
+		$form->addText('manualPurchasePriceSupplierUrl', 'Odkaz na produkt u dodavatele')
+			->setNullable()
+			->setHtmlAttribute('data-info', 'URL odkaz na stránku produktu u dodavatele (pouze informativní).')
+			->addCondition($form::Filled)
+			->addRule($form::URL, 'Zadejte platnou URL adresu');
+
+		$form->addTextArea('manualPurchasePriceCustomerRestriction', 'Omezení na IČ/CKP')
+			->setNullable()
+			->setHtmlAttribute('rows', 3)
+			->setHtmlAttribute('placeholder', '12345678, CKP-001, 87654321')
+			->setHtmlAttribute('data-info', 'Čárkou oddělené IČ nebo CKP zákazníků.
+			 Pokud vyplněno, manuální cena platí POUZE pro tyto zákazníky s nejvyšší prioritou.
+			  Pokud prázdné, cena platí jako fallback.');
+
 		$form->addLocaleText('unit', 'Jednotka');
 		//	->setHtmlAttribute('data-info', 'Např.: ks, ml, ...');
 
