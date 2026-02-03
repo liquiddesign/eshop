@@ -1,6 +1,6 @@
 {**
- * Šablona pro výběr dárku k nákupu
- * @var array<\Eshop\DB\Product> $availableGifts
+ * Gift selector slider for cart/checkout
+ * @var \Eshop\DB\Product[] $availableGifts
  * @var \Eshop\DB\CartItem|null $selectedGift
  * @var bool $canSelectGift
  *}
@@ -17,51 +17,75 @@
 			</p>
 		</div>
 
-		<div class="gift-selector__products">
-			{foreach $availableGifts as $gift}
-				{var $isSelected = $selectedGift !== null && $selectedGift->getValue('product') === $gift->getPK()}
-				<div class="gift-selector__product {if $isSelected}gift-selector__product--selected{/if}">
-					<div class="gift-selector__product-image">
-						{if $gift->imageFileName}
-							<img src="{$basePath}/userfiles/{$gift::GALLERY_DIR}/thumb/{$gift->imageFileName}" alt="{$gift->name}" loading="lazy">
-						{else}
-							<div class="gift-selector__product-image-placeholder">
-								<i class="fas fa-image"></i>
+		<div class="gift-selector__slider-wrapper">
+			{* Navigation arrow - prev *}
+			{if count($availableGifts) > 4}
+				<button type="button" class="gift-selector__nav gift-selector__nav--prev" aria-label="{_'giftSelector.prev', 'Předchozí'}">
+					<i class="fas fa-chevron-left"></i>
+				</button>
+			{/if}
+
+			<div class="gift-selector__slider" data-gift-slider>
+				<div class="gift-selector__track">
+					{foreach $availableGifts as $gift}
+						{var $isSelected = $selectedGift !== null && $selectedGift->getValue('product') === $gift->getPK()}
+						<div class="gift-selector__slide">
+							<div class="card h-100 gift-card {if $isSelected}gift-card--selected{/if}">
+								<a href="{plink :Eshop:Product:detail $gift}" class="gift-card__link">
+									<div class="gift-card__image-wrapper">
+										{if $gift->imageFileName}
+											<img src="{$basePath}/userfiles/{$gift::GALLERY_DIR}/thumb/{$gift->imageFileName}"
+												 alt="{$gift->name}"
+												 class="gift-card__image"
+												 loading="lazy">
+										{else}
+											<div class="gift-card__image-placeholder">
+												<i class="fas fa-gift fa-2x text-muted"></i>
+											</div>
+										{/if}
+										{if $isSelected}
+											<span class="gift-card__selected-badge">
+												<i class="fas fa-check"></i>
+											</span>
+										{/if}
+									</div>
+									<div class="card-body p-2">
+										<h6 class="card-title gift-card__name mb-1">{$gift->name}</h6>
+										{if $gift->getPerex()}
+											<p class="card-text gift-card__perex text-muted small mb-0">{$gift->getPerex()|striptags|truncate:60}</p>
+										{/if}
+									</div>
+								</a>
+								<div class="card-footer bg-transparent border-0 p-2 pt-0">
+									{if $isSelected}
+										<a n:href="removeGift!" class="btn btn-outline-danger btn-sm w-100 ajax">
+											<i class="fas fa-times me-1"></i>
+											{_'giftSelector.remove', 'Odebrat'}
+										</a>
+									{else}
+										<a n:href="selectGift! $gift->getPK()" class="btn btn-primary btn-sm w-100 ajax">
+											<i class="fas fa-plus me-1"></i>
+											{_'giftSelector.select', 'Vybrat'}
+										</a>
+									{/if}
+								</div>
 							</div>
-						{/if}
-					</div>
-
-					<div class="gift-selector__product-info">
-						<h5 class="gift-selector__product-name">{$gift->name}</h5>
-						{if $gift->getPerex()}
-							<p class="gift-selector__product-perex">{$gift->getPerex()|striptags|truncate:100}</p>
-						{/if}
-					</div>
-
-					<div class="gift-selector__product-action">
-						{if $isSelected}
-							<a n:href="removeGift!" class="btn btn-outline-danger btn-sm ajax">
-								<i class="fas fa-times"></i>
-								{_'giftSelector.remove', 'Odebrat'}
-							</a>
-							<span class="gift-selector__selected-badge">
-								<i class="fas fa-check"></i>
-								{_'giftSelector.selected', 'Vybráno'}
-							</span>
-						{else}
-							<a n:href="selectGift! $gift->getPK()" class="btn btn-primary btn-sm ajax">
-								<i class="fas fa-plus"></i>
-								{_'giftSelector.select', 'Vybrat'}
-							</a>
-						{/if}
-					</div>
+						</div>
+					{/foreach}
 				</div>
-			{/foreach}
+			</div>
+
+			{* Navigation arrow - next *}
+			{if count($availableGifts) > 4}
+				<button type="button" class="gift-selector__nav gift-selector__nav--next" aria-label="{_'giftSelector.next', 'Další'}">
+					<i class="fas fa-chevron-right"></i>
+				</button>
+			{/if}
 		</div>
 
 		{if $selectedGift}
-			<div class="gift-selector__info">
-				<i class="fas fa-info-circle"></i>
+			<div class="gift-selector__info alert alert-success mt-3 mb-0">
+				<i class="fas fa-info-circle me-2"></i>
 				{_'giftSelector.info', 'Vybraný dárek bude přidán k vaší objednávce zdarma.'}
 			</div>
 		{/if}

@@ -59,8 +59,15 @@ class GiftService implements AutoWireService
 	public function getActiveRuleForCart(Cart $cart): \Eshop\DB\GiftRule|null
 	{
 		$orderPrice = $this->getCartTotalPrice($cart);
+		$shop = $cart->shop;
+		$customerGroup = $cart->customer?->group;
 
-		return $this->giftRuleRepository->getActiveRuleForPrice($orderPrice, $cart->currency);
+		return $this->giftRuleRepository->getActiveRuleForPrice(
+			$orderPrice,
+			$cart->currency,
+			$shop,
+			$customerGroup,
+		);
 	}
 
 	/**
@@ -208,10 +215,16 @@ class GiftService implements AutoWireService
 	}
 
 	/**
-	 * Zkontroluje, zda zákazník může vybírat dárky (pouze B2B)
+	 * Zkontroluje, zda zákazník může vybírat dárky
 	 */
 	public function canSelectGift(Cart $cart): bool
 	{
-		return $cart->customer !== null;
+		$customer = $cart->customer;
+
+		if ($customer === null) {
+			return false;
+		}
+
+		return $customer->allowOrderGift;
 	}
 }

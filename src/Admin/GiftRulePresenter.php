@@ -8,6 +8,7 @@ use Admin\BackendPresenter;
 use Admin\Controls\AdminForm;
 use Admin\Controls\AdminGrid;
 use Eshop\DB\CurrencyRepository;
+use Eshop\DB\CustomerGroupRepository;
 use Eshop\DB\GiftRule;
 use Eshop\DB\GiftRuleProductRepository;
 use Eshop\DB\GiftRuleRepository;
@@ -26,6 +27,9 @@ class GiftRulePresenter extends BackendPresenter
 	#[\Nette\DI\Attributes\Inject]
 	public CurrencyRepository $currencyRepository;
 
+	#[\Nette\DI\Attributes\Inject]
+	public CustomerGroupRepository $customerGroupRepository;
+
 	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create(
@@ -41,6 +45,7 @@ class GiftRulePresenter extends BackendPresenter
 		$grid->addColumnText('Cena od', 'priceFrom', '%s Kč', 'priceFrom', ['class' => 'text-right fit']);
 		$grid->addColumnText('Cena do', 'priceTo', '%s Kč', 'priceTo', ['class' => 'text-right fit']);
 		$grid->addColumnText('Měna', 'currency.code', '%s', 'currency.code', ['class' => 'fit']);
+		$grid->addColumnText('Obchod', 'shop.name', '%s', 'shop.name', ['class' => 'fit']);
 		$grid->addColumnInputInteger('Priorita', 'priority', '', '', 'priority', [], true);
 		$grid->addColumnInputCheckbox('Aktivní', 'active', '', '', 'active');
 
@@ -59,7 +64,7 @@ class GiftRulePresenter extends BackendPresenter
 
 	public function createComponentForm(): AdminForm
 	{
-		$form = $this->formFactory->create(true);
+		$form = $this->formFactory->create(true, useShops: true);
 
 		/** @var \Eshop\DB\GiftRule|null $rule */
 		$rule = $this->getParameter('giftRule');
@@ -78,6 +83,12 @@ class GiftRulePresenter extends BackendPresenter
 		$form->addSelect('currency', 'Měna', $this->currencyRepository->getArrayForSelect())
 			->setRequired();
 
+		$form->addMultiSelect2(
+			'customerGroups',
+			'Skupiny zákazníků',
+			$this->customerGroupRepository->getArrayForSelect(),
+		)->setHtmlAttribute('data-info', 'Prázdné = platí pro všechny skupiny');
+
 		$form->addInteger('priority', 'Priorita')
 			->setDefaultValue(10)
 			->setRequired();
@@ -90,12 +101,22 @@ class GiftRulePresenter extends BackendPresenter
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValues('array');
 
+			$customerGroups = $values['customerGroups'] ?? [];
+			unset($values['customerGroups']);
+
 			if (!$values['uuid']) {
 				$values['uuid'] = DIConnection::generateUuid();
 			}
 
 			/** @var \Eshop\DB\GiftRule $object */
 			$object = $this->giftRuleRepository->syncOne($values, null, true);
+
+			// Sync M:N customer groups
+			$object->customerGroups->unrelateAll();
+
+			foreach ($customerGroups as $groupId) {
+				$object->customerGroups->relate([$groupId]);
+			}
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$object]);
@@ -201,7 +222,7 @@ class GiftRulePresenter extends BackendPresenter
 	{
 		/** @var \Admin\Controls\AdminForm $form */
 		$form = $this->getComponent('form');
-		$form->setDefaults($giftRule->toArray());
+		$form->setDefaults($giftRule->toArray(['customerGroups']));
 	}
 
 	public function renderDetail(): void

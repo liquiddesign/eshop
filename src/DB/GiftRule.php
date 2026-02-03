@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
-use StORM\Entity;
+use Base\Entity\ShopEntity;
 use StORM\RelationCollection;
 
 /**
  * Pravidlo dárku k nákupu
  * @table
  * @method \StORM\RelationCollection<\Eshop\DB\GiftRuleProduct> getGiftRuleProducts()
+ * @method \StORM\RelationCollection<\Eshop\DB\CustomerGroup> getCustomerGroups()
  */
-class GiftRule extends Entity
+class GiftRule extends ShopEntity
 {
 	/**
 	 * Název pravidla
@@ -63,4 +64,11 @@ class GiftRule extends Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\GiftRuleProduct>
 	 */
 	public RelationCollection $giftRuleProducts;
+
+	/**
+	 * Skupiny zákazníků (prázdné = všechny)
+	 * @relationNxN{"sourceViaKey":"fk_giftRule","targetViaKey":"fk_customerGroup","via":"eshop_giftrule_nxn_eshop_customergroup"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\CustomerGroup>
+	 */
+	public RelationCollection $customerGroups;
 }

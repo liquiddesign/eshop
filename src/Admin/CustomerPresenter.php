@@ -822,6 +822,9 @@ class CustomerPresenter extends \Eshop\BackendPresenter
 				])->setDefaultValue('full');
 			}
 
+			$form->addCheckbox('allowOrderGift', 'Povolit výběr dárku k objednávce')
+				->setDefaultValue(true);
+
 			$form->addText('lastOrder', 'Poslední objednávka')->setDisabled();
 
 			$form->addDataSelect(
