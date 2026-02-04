@@ -108,7 +108,7 @@ class Comgate implements IPaymentIntegration
 		$customerFullName = (string) $order->purchase->fullname;
 
 		$payment = Payment::of(
-			Money::of($price, $currency, new \Brick\Money\Context\CustomContext(2), RoundingMode::HALF_EVEN),
+			Money::of((string) $price, $currency, new \Brick\Money\Context\CustomContext(2), RoundingMode::HALF_EVEN),
 			$order->code,
 			$order->code,
 			$customerEmail,
