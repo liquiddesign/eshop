@@ -30,8 +30,10 @@ class GiftRuleProductRepository extends \StORM\Repository
 	{
 		return $this->many()
 			->join(['product' => 'eshop_product'], 'this.fk_product = product.uuid')
+			->join(['eshop_displayamount'], 'eshop_displayamount.uuid = product.fk_displayAmount')
 			->where('this.fk_giftRule', $rule->getPK())
 			->where('product.hidden', false)
+			->where('product.fk_displayAmount IS NULL OR eshop_displayamount.isSold = 0')
 			->orderBy(['this.priority' => 'ASC']);
 	}
 }
