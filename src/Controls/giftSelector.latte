@@ -1,9 +1,7 @@
-{**
- * Gift selector slider for cart/checkout
- * @var \Eshop\DB\Product[] $availableGifts
- * @var \Eshop\DB\CartItem|null $selectedGift
- * @var bool $canSelectGift
- *}
+{varType \Eshop\DB\Product[] $availableGifts}
+{varType \Eshop\DB\CartItem|null $selectedGift}
+{varType bool $canSelectGift}
+{varType array $displayableGifts}
 
 {if $canSelectGift && $availableGifts}
 	<div class="gift-selector">
@@ -31,7 +29,11 @@
 						{var $isSelected = $selectedGift !== null && $selectedGift->getValue('product') === $gift->getPK()}
 						<div class="gift-selector__slide">
 							<div class="card h-100 gift-card {if $isSelected}gift-card--selected{/if}">
+								{if isset($displayableGifts[$gift->getPK()])}
 								<a href="{plink :Eshop:Product:detail $gift}" class="gift-card__link">
+							{else}
+								<div class="gift-card__link">
+							{/if}
 									<div class="gift-card__image-wrapper">
 										{if $gift->imageFileName}
 											<img src="{$basePath}/userfiles/{$gift::GALLERY_DIR}/thumb/{$gift->imageFileName}"
@@ -51,11 +53,12 @@
 									</div>
 									<div class="card-body p-2">
 										<h6 class="card-title gift-card__name mb-1">{$gift->name}</h6>
-										{if $gift->getPerex()}
-											<p class="card-text gift-card__perex text-muted small mb-0">{$gift->getPerex()|striptags|truncate:60}</p>
-										{/if}
 									</div>
+							{if isset($displayableGifts[$gift->getPK()])}
 								</a>
+							{else}
+								</div>
+							{/if}
 								<div class="card-footer bg-transparent border-0 p-2 pt-0">
 									{if $isSelected}
 										<a n:href="removeGift!" class="btn btn-outline-danger btn-sm w-100 ajax">

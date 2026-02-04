@@ -94,8 +94,24 @@ class GiftSelector extends Control
 		$this->template->selectedGift = null;
 		$this->template->canSelectGift = false;
 
+		$this->template->displayableGifts = [];
+
 		if ($cart !== null) {
-			$this->template->availableGifts = $this->giftService->getAvailableGifts($cart);
+			$availableGifts = $this->giftService->getAvailableGifts($cart);
+
+			$giftPks = \array_map(fn($gift) => $gift->getPK(), $availableGifts);
+			$displayableGifts = [];
+
+			if ($giftPks) {
+				$displayableProducts = $this->productRepository->getProducts()
+					->where('this.uuid', $giftPks)
+					->filter(['hidden' => false])
+					->toArrayOf('uuid');
+				$displayableGifts = \array_flip($displayableProducts);
+			}
+
+			$this->template->availableGifts = $availableGifts;
+			$this->template->displayableGifts = $displayableGifts;
 			$this->template->selectedGift = $this->giftService->getSelectedGift($cart);
 			$this->template->canSelectGift = $this->giftService->canSelectGift($cart);
 		}
