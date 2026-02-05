@@ -258,6 +258,10 @@ Ostatní: Přebírání ze zvoleného zdroje
 			->setDisabled()
 			->setHtmlAttribute('data-info', 'Manuálně vyplněná skladová cena pro výpočet maržových zarážek v nabídkách.');
 
+		$form->addText('retailPriceExclVAT', 'Doporučená prodejní cena pro odběratele (RetailPriceExclVAT)')
+			->setDisabled()
+			->setHtmlAttribute('data-info', 'Doporučená prodejní cena pro odběratele bez DPH z Qi.');
+
 		$form->addText('manualPurchasePriceValidUntil', 'Platnost ceny do')
 			->setNullable()
 			->setHtmlType('date')

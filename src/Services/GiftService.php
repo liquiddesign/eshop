@@ -99,7 +99,9 @@ class GiftService implements AutoWireService
 
 		// Připravíme názvy s prefixem pro všechny mutace
 		$productNames = $product->toArray()['name'];
-		$productNames = \array_filter($productNames, function (?string $name): bool {return $name !== null;});
+		$productNames = \array_filter($productNames, function (?string $name): bool {
+			return $name !== null;
+		});
 
 		$prefixedNames = \array_map(
 			fn(string $name): string => self::GIFT_PRODUCT_PREFIX . $name,
