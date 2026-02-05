@@ -301,6 +301,16 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                         <td colspan="3"></td>
                     </tr>
                 </table>
+                <table class="mt-1 mb-1" style="width: auto;">
+                    <tr class="m-0 mt-1 has-danger">
+                        <th class="col-label col-form-label col">{label retailPriceExclVAT/}</th>
+
+                        <td class="align-middle">{input retailPriceExclVAT class=>'form-control form-control-sm '}
+                            <span class="form-control-feedback text-danger text-sm" n:ifcontent>{inputError retailPriceExclVAT}</span>
+                        </td>
+                        <td colspan="3"></td>
+                    </tr>
+                </table>
                 {ifset $form['manualPurchasePriceValidUntil']}
                 <table class="mt-1 mb-1" style="width: auto;">
                     <tr class="m-0 mt-1 has-danger">
