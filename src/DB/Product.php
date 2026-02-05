@@ -357,6 +357,24 @@ class Product extends \StORM\Entity
 	public float|null $productStockCostPrice = null;
 
 	/**
+	 * Platnost manuální nákupní ceny (do data)
+	 * @column{"type":"date"}
+	 */
+	public string|null $manualPurchasePriceValidUntil = null;
+
+	/**
+	 * Odkaz na dodavatelský produkt
+	 * @column{"type":"longtext"}
+	 */
+	public string|null $manualPurchasePriceSupplierUrl = null;
+
+	/**
+	 * Omezení na IČ nebo CKP (čárkou oddělené hodnoty)
+	 * @column{"type":"longtext"}
+	 */
+	public string|null $manualPurchasePriceCustomerRestriction = null;
+
+	/**
 	 * Přebírat obsah
 	 * @relation
 	 * @constraint{"onUpdate":"SET NULL","onDelete":"SET NULL"}

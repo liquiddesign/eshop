@@ -497,8 +497,9 @@ class SupplierProductRepository extends \StORM\Repository
 								// phpcs:ignore
 								$image = @Image::fromFile($sourceOrigin);
 								$image->resize(600, null);
-								// Normalize .jfif extension to .jpg for Nette Image compatibility
-								$targetDetailNormalized = \preg_replace('/\.jfif$/i', '.jpg', $targetDetail);
+								// Normalize problematic extensions to .jpg for Nette Image compatibility
+								$targetDetailNormalized = \preg_replace('/\.asp\?.*$/i', '.jpg', $targetDetail);
+								$targetDetailNormalized = \preg_replace('/\.jfif$/i', '.jpg', $targetDetailNormalized);
 								$image->save($targetDetailNormalized, 100);
 							} catch (\Throwable $e) {
 								Debugger::log($e, ILogger::WARNING);
@@ -519,8 +520,9 @@ class SupplierProductRepository extends \StORM\Repository
 								// phpcs:ignore
 								$image = @Image::fromFile($sourceOrigin);
 								$image->resize(300, null);
-								// Normalize .jfif extension to .jpg for Nette Image compatibility
-								$targetThumbNormalized = \preg_replace('/\.jfif$/i', '.jpg', $targetThumb);
+								// Normalize problematic extensions to .jpg for Nette Image compatibility
+								$targetThumbNormalized = \preg_replace('/\.asp\?.*$/i', '.jpg', $targetThumb);
+								$targetThumbNormalized = \preg_replace('/\.jfif$/i', '.jpg', $targetThumbNormalized);
 								$image->save($targetThumbNormalized, 100);
 							} catch (\Throwable $e) {
 								Debugger::log($e, ILogger::WARNING);
