@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Eshop\DB;
 
 use DVDoug\BoxPacker;
+use DVDoug\BoxPacker\Rotation;
 use StORM\ICollection;
 use StORM\RelationCollection;
 
@@ -320,9 +321,9 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	/**
 	 * Does this item need to be kept flat / packed "this way up"?
 	 */
-	public function getKeepFlat(): bool
+	public function getAllowedRotation(): Rotation
 	{
-		return $this->productKeepFlat ?? false;
+		return $this->productKeepFlat ?? false ? Rotation::KeepFlat : Rotation::BestFit;
 	}
 
 	public function getProductEan(): string|null

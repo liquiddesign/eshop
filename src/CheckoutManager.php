@@ -1945,15 +1945,15 @@ class CheckoutManager
 			$packageWeight = 0.0;
 			$packageId++;
 
-			if (!\count($box->getItems())) {
+			if (!\count($box->items)) {
 				foreach ($topLevelItems as $cartItem) {
 					$packageItems[$cartItem->getPK()] = [$cartItem, $cartItem->amount];
 				}
 
 				$packageWeight = $this->getSumWeight();
 			} else {
-				foreach ($box->getItems() as $item) {
-					$cartItemId = $item->getItem()->getDescription();
+				foreach ($box->items as $item) {
+					$cartItemId = $item->item->getDescription();
 
 					if (isset($packageItems[$cartItemId][1])) {
 						$packageItems[$cartItemId][1]++;
@@ -1961,10 +1961,10 @@ class CheckoutManager
 						continue;
 					}
 
-					$packageItems[$item->getItem()->getDescription()] = [$this->getTopLevelItems()->where('this.uuid', $cartItemId)->first(true), 1];
+					$packageItems[$item->item->getDescription()] = [$this->getTopLevelItems()->where('this.uuid', $cartItemId)->first(true), 1];
 				}
 
-				$packageWeight = $box->getItems()->getWeight() / 1000;
+				$packageWeight = $box->items->getWeight() / 1000;
 			}
 
 			/** @var \Eshop\DB\Delivery $delivery */

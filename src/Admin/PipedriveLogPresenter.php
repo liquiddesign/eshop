@@ -12,15 +12,6 @@ use Tracy\Debugger;
 
 class PipedriveLogPresenter extends BackendPresenter
 {
-	/** @persistent */
-	public ?string $filterLevel = null;
-
-	/** @persistent */
-	public ?string $filterDateFrom = null;
-
-	/** @persistent */
-	public ?string $filterDateTo = null;
-
 	/**
 	 * IP addresses allowed to access this presenter.
 	 * Modify this list to add your IPs.
@@ -34,6 +25,15 @@ class PipedriveLogPresenter extends BackendPresenter
 
 	private const LOG_FILE = 'pipedrive-webhook.log';
 
+	/** @persistent */
+	public ?string $filterLevel = null;
+
+	/** @persistent */
+	public ?string $filterDateFrom = null;
+
+	/** @persistent */
+	public ?string $filterDateTo = null;
+
 	public function checkRequirements($element): void
 	{
 		parent::checkRequirements($element);
@@ -43,11 +43,6 @@ class PipedriveLogPresenter extends BackendPresenter
 		if (!$this->isIpAllowed($clientIp)) {
 			throw new BadRequestException('Access denied: IP not whitelisted', 403);
 		}
-	}
-
-	private function isIpAllowed(?string $ip): bool
-	{
-		return $ip !== null && \in_array($ip, self::ALLOWED_IPS, true);
 	}
 
 	public function renderDefault(): void
@@ -121,6 +116,11 @@ class PipedriveLogPresenter extends BackendPresenter
 		return $form;
 	}
 
+	private function isIpAllowed(?string $ip): bool
+	{
+		return $ip !== null && \Nette\Utils\Arrays::contains(self::ALLOWED_IPS, $ip);
+	}
+
 	/**
 	 * @param array<array{timestamp: string|null, level: string, message: string}> $entries
 	 * @return array<array{timestamp: string|null, level: string, message: string}>
@@ -175,7 +175,7 @@ class PipedriveLogPresenter extends BackendPresenter
 		$lines = \explode("\n", $content);
 
 		foreach ($lines as $line) {
-			$line = \trim($line);
+			$line = \Nette\Utils\Strings::trim($line);
 
 			if ($line === '') {
 				continue;
@@ -199,7 +199,7 @@ class PipedriveLogPresenter extends BackendPresenter
 			}
 
 			// Detect log level
-			$lower = \strtolower($entry['message']);
+			$lower = \Nette\Utils\Strings::lower($entry['message']);
 
 			if (\str_contains($lower, 'error') || \str_contains($lower, 'exception')) {
 				$entry['level'] = 'error';
@@ -212,6 +212,7 @@ class PipedriveLogPresenter extends BackendPresenter
 			$entries[] = $entry;
 		}
 
-		return \array_reverse($entries); // Newest first
+		// Newest first
+		return \array_reverse($entries);
 	}
 }
