@@ -12,19 +12,6 @@ use Tracy\Debugger;
 
 class PipedriveLogPresenter extends BackendPresenter
 {
-	/**
-	 * IP addresses allowed to access this presenter.
-	 * Modify this list to add your IPs.
-	 */
-	private const ALLOWED_IPS = [
-		'127.0.0.1',
-		'::1',
-		// Add production IPs here:
-		// '192.168.1.100',
-	];
-
-	private const LOG_FILE = 'pipedrive-webhook.log';
-
 	/** @persistent */
 	public ?string $filterLevel = null;
 
@@ -34,16 +21,7 @@ class PipedriveLogPresenter extends BackendPresenter
 	/** @persistent */
 	public ?string $filterDateTo = null;
 
-	public function checkRequirements($element): void
-	{
-		parent::checkRequirements($element);
-
-		$clientIp = $this->getHttpRequest()->getRemoteAddress();
-
-		if (!$this->isIpAllowed($clientIp)) {
-			throw new BadRequestException('Access denied: IP not whitelisted', 403);
-		}
-	}
+	private const LOG_FILE = 'pipedrive-webhook.log';
 
 	public function renderDefault(): void
 	{
@@ -114,11 +92,6 @@ class PipedriveLogPresenter extends BackendPresenter
 		};
 
 		return $form;
-	}
-
-	private function isIpAllowed(?string $ip): bool
-	{
-		return $ip !== null && \Nette\Utils\Arrays::contains(self::ALLOWED_IPS, $ip);
 	}
 
 	/**
