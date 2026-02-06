@@ -6,12 +6,13 @@ namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
 use Carbon\Carbon;
-use Nette\Application\BadRequestException;
 use Nette\Application\UI\Form;
 use Tracy\Debugger;
 
 class PipedriveLogPresenter extends BackendPresenter
 {
+	private const LOG_FILE = 'pipedrive-webhook.log';
+
 	/** @persistent */
 	public ?string $filterLevel = null;
 
@@ -20,8 +21,6 @@ class PipedriveLogPresenter extends BackendPresenter
 
 	/** @persistent */
 	public ?string $filterDateTo = null;
-
-	private const LOG_FILE = 'pipedrive-webhook.log';
 
 	public function renderDefault(): void
 	{
