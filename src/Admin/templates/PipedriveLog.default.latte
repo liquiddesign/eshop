@@ -1,0 +1,131 @@
+{define content}
+	<section class="content-header">
+		<div class="container-fluid">
+			<div class="row mb-1">
+				<div class="col-sm-6">
+					<h1>{$headerLabel}</h1>
+				</div>
+				<div class="col-sm-6">
+					<ol class="breadcrumb float-sm-right">
+						<li class="breadcrumb-item"><a href="{plink :Eshop:Admin:Dashboard:default}">Domů</a></li>
+						{foreach $headerTree as $item}
+							<li class="breadcrumb-item {if $iterator->isLast()}active{/if}">
+								{ifset $item[1]}
+									<a href="{plink $item[1]}">{$item[0]}</a>
+								{else}
+									{$item[0]}
+								{/ifset}
+							</li>
+						{/foreach}
+					</ol>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="content">
+		<div class="container-fluid">
+			<div class="row">
+				<div class="col-12">
+					<div class="card">
+						<div class="card-header">
+							<h3 class="card-title">
+								<i class="fas fa-file-alt mr-1"></i>
+								Pipedrive Webhook Log
+							</h3>
+						</div>
+						<div class="card-body">
+							{if $logExists}
+								<div class="mb-3">
+									<span class="badge badge-secondary mr-2">
+										<i class="fas fa-file mr-1"></i>
+										{($logSize / 1024)|number:2, ',', ' '} KB
+									</span>
+									<span class="badge badge-secondary mr-2">
+										<i class="fas fa-clock mr-1"></i>
+										Poslední změna: {$logModified|date:'d.m.Y H:i:s'}
+									</span>
+									<span class="badge badge-info">
+										<i class="fas fa-list mr-1"></i>
+										{$logEntries|length} / {$totalEntries} záznamů
+									</span>
+									{if $filterLevel || $filterDateFrom || $filterDateTo}
+										<span class="badge badge-warning">
+											<i class="fas fa-filter mr-1"></i>
+											Filtrováno
+										</span>
+									{/if}
+								</div>
+
+								{form filterForm, class => 'mb-3'}
+									<div class="row align-items-end">
+										<div class="col-auto">
+											<label class="form-label small mb-1">Úroveň</label>
+											{input level, class => 'form-control form-control-sm'}
+										</div>
+										<div class="col-auto">
+											<label class="form-label small mb-1">Od</label>
+											{input dateFrom, class => 'form-control form-control-sm'}
+										</div>
+										<div class="col-auto">
+											<label class="form-label small mb-1">Do</label>
+											{input dateTo, class => 'form-control form-control-sm'}
+										</div>
+										<div class="col-auto">
+											{input filter, class => 'btn btn-primary btn-sm'}
+											{input reset, class => 'btn btn-outline-secondary btn-sm'}
+										</div>
+									</div>
+								{/form}
+
+								<div style="max-height: 600px; overflow-y: auto;">
+									<table class="table table-sm table-striped table-hover">
+										<thead class="thead-light" style="position: sticky; top: 0;">
+											<tr>
+												<th style="width: 160px;">Čas</th>
+												<th style="width: 80px;">Úroveň</th>
+												<th>Zpráva</th>
+											</tr>
+										</thead>
+										<tbody>
+											{foreach $logEntries as $entry}
+												<tr class="{if $entry['level'] === 'error'}table-danger{elseif $entry['level'] === 'warning'}table-warning{elseif $entry['level'] === 'success'}table-success{/if}">
+													<td class="text-monospace text-muted" style="font-size: 0.85em;">
+														{if $entry['timestamp']}
+															{$entry['timestamp']}
+														{else}
+															<span class="text-muted">-</span>
+														{/if}
+													</td>
+													<td>
+														{if $entry['level'] === 'error'}
+															<span class="badge badge-danger">ERROR</span>
+														{elseif $entry['level'] === 'warning'}
+															<span class="badge badge-warning">WARNING</span>
+														{elseif $entry['level'] === 'success'}
+															<span class="badge badge-success">SUCCESS</span>
+														{else}
+															<span class="badge badge-info">INFO</span>
+														{/if}
+													</td>
+													<td class="text-monospace" style="font-size: 0.85em; word-break: break-all;">
+														{$entry['message']}
+													</td>
+												</tr>
+											{/foreach}
+										</tbody>
+									</table>
+								</div>
+							{else}
+								<div class="alert alert-info">
+									<i class="fas fa-info-circle mr-2"></i>
+									Log soubor neexistuje nebo je prázdný.
+								</div>
+							{/if}
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+{/define}
