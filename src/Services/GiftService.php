@@ -37,8 +37,10 @@ class GiftService implements AutoWireService
 	{
 		$orderPrice = $this->getCartTotalPrice($cart);
 		$currency = $cart->currency;
+		$shop = $cart->shop;
+		$customerGroup = $cart->customer?->group;
 
-		$rule = $this->giftRuleRepository->getActiveRuleForPrice($orderPrice, $currency);
+		$rule = $this->giftRuleRepository->getActiveRuleForPrice($orderPrice, $currency, $shop, $customerGroup);
 
 		if ($rule === null) {
 			return [];
