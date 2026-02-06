@@ -575,8 +575,9 @@ class SupplierProductRepository extends \StORM\Repository
 						// phpcs:ignore
 						$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
 						$image->resize(600, null);
-						// Normalize .jfif extension to .jpg for Nette Image compatibility
-						$detailFileName = \preg_replace('/\.jfif$/i', '.jpg', $supplierPhoto->fileName);
+						// Normalize problematic extensions to .jpg for Nette Image compatibility
+						$detailFileName = \preg_replace('/\.asp\?.*$/i', '.jpg', $supplierPhoto->fileName);
+						$detailFileName = \preg_replace('/\.jfif$/i', '.jpg', $detailFileName);
 						$image->save($galleryImageDirectory . $sep . 'detail' . $sep . $detailFileName, 100);
 					}
 
@@ -590,8 +591,9 @@ class SupplierProductRepository extends \StORM\Repository
 						// phpcs:ignore
 						$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
 						$image->resize(300, null);
-						// Normalize .jfif extension to .jpg for Nette Image compatibility
-						$thumbFileName = \preg_replace('/\.jfif$/i', '.jpg', $supplierPhoto->fileName);
+						// Normalize problematic extensions to .jpg for Nette Image compatibility
+						$thumbFileName = \preg_replace('/\.asp\?.*$/i', '.jpg', $supplierPhoto->fileName);
+						$thumbFileName = \preg_replace('/\.jfif$/i', '.jpg', $thumbFileName);
 						$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $thumbFileName, 100);
 					}
 				} catch (\Throwable $e) {

@@ -384,6 +384,12 @@ class Customer extends ShopEntity implements IIdentity, IUser
 	public bool $orderAllowed = true;
 
 	/**
+	 * Oprávnění: výběr dárku k objednávce
+	 * @column
+	 */
+	public bool $allowOrderGift = true;
+
+	/**
 	 * Oprávnění: vidět všechny objednávky zákazníka
 	 * @column
 	 */

@@ -1281,6 +1281,58 @@ class Product extends \StORM\Entity
 	}
 
 	/**
+	 * Kontrola platnosti manuální nákupní ceny
+	 */
+	public function isManualPurchasePriceValid(): bool
+	{
+		if ($this->manualPurchasePrice === null) {
+			return false;
+		}
+
+		if ($this->manualPurchasePriceValidUntil === null) {
+			// Bez data = neomezená platnost
+			return true;
+		}
+
+		$validUntil = \DateTimeImmutable::createFromFormat('Y-m-d', $this->manualPurchasePriceValidUntil);
+
+		return $validUntil !== false && $validUntil >= new \DateTimeImmutable('today');
+	}
+
+	/**
+	 * Kontrola, zda má manuální cena omezení na zákazníky
+	 */
+	public function hasManualPurchasePriceCustomerRestriction(): bool
+	{
+		return $this->manualPurchasePriceCustomerRestriction !== null
+			&& Strings::trim($this->manualPurchasePriceCustomerRestriction) !== '';
+	}
+
+	/**
+	 * Kontrola, zda zákazník odpovídá omezení manuální ceny
+	 */
+	public function isCustomerInManualPurchasePriceRestriction(
+		string|null $customerIc = null,
+		string|null $customerCkp = null,
+	): bool {
+		if (!$this->hasManualPurchasePriceCustomerRestriction()) {
+			return false;
+		}
+
+		$restrictions = \array_map('trim', \explode(',', $this->manualPurchasePriceCustomerRestriction));
+		$restrictions = \array_filter($restrictions, fn(string $v): bool => $v !== '');
+
+		foreach ($restrictions as $restriction) {
+			if (($customerIc !== null && $customerIc === $restriction)
+				|| ($customerCkp !== null && $customerCkp === $restriction)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * @param ('hidden'|'hiddenInMenu'|'unavailable'|'priority'|'recommended')&string $property
 	 */
 	private function loadVisibilityListItemProperty(string $property): int|string|bool|float|null

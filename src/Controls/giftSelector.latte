@@ -1,0 +1,96 @@
+{varType \Eshop\DB\Product[] $availableGifts}
+{varType \Eshop\DB\CartItem|null $selectedGift}
+{varType bool $canSelectGift}
+{varType array $displayableGifts}
+
+{if $canSelectGift && $availableGifts}
+	<div class="gift-selector">
+		<div class="gift-selector__header">
+			<h4 class="gift-selector__title">
+				<i class="fas fa-gift"></i>
+				{_'giftSelector.title', 'Vyberte si dárek k nákupu'}
+			</h4>
+			<p class="gift-selector__description">
+				{_'giftSelector.description', 'K vaší objednávce si můžete vybrat jeden z následujících dárků zdarma.'}
+			</p>
+		</div>
+
+		<div class="gift-selector__slider-wrapper">
+			{* Navigation arrow - prev *}
+			{if count($availableGifts) > 4}
+				<button type="button" class="gift-selector__nav gift-selector__nav--prev" aria-label="{_'giftSelector.prev', 'Předchozí'}">
+					<i class="fas fa-chevron-left"></i>
+				</button>
+			{/if}
+
+			<div class="gift-selector__slider" data-gift-slider>
+				<div class="gift-selector__track">
+					{foreach $availableGifts as $gift}
+						{var $isSelected = $selectedGift !== null && $selectedGift->getValue('product') === $gift->getPK()}
+						<div class="gift-selector__slide">
+							<div class="card h-100 gift-card {if $isSelected}gift-card--selected{/if}">
+								{if isset($displayableGifts[$gift->getPK()])}
+								<a href="{plink :Eshop:Product:detail $gift}" class="gift-card__link">
+							{else}
+								<div class="gift-card__link">
+							{/if}
+									<div class="gift-card__image-wrapper">
+										{if $gift->imageFileName}
+											<img src="{$basePath}/userfiles/{$gift::GALLERY_DIR}/thumb/{$gift->imageFileName}"
+												 alt="{$gift->name}"
+												 class="gift-card__image"
+												 loading="lazy">
+										{else}
+											<div class="gift-card__image-placeholder">
+												<i class="fas fa-gift fa-2x text-muted"></i>
+											</div>
+										{/if}
+										{if $isSelected}
+											<span class="gift-card__selected-badge">
+												<i class="fas fa-check"></i>
+											</span>
+										{/if}
+									</div>
+									<div class="card-body p-2">
+										<h6 class="card-title gift-card__name mb-1">{$gift->name}</h6>
+									</div>
+							{if isset($displayableGifts[$gift->getPK()])}
+								</a>
+							{else}
+								</div>
+							{/if}
+								<div class="card-footer bg-transparent border-0 p-2 pt-0">
+									{if $isSelected}
+										<a n:href="removeGift!" class="btn btn-outline-danger btn-sm w-100 ajax">
+											<i class="fas fa-times me-1"></i>
+											{_'giftSelector.remove', 'Odebrat'}
+										</a>
+									{else}
+										<a n:href="selectGift! $gift->getPK()" class="btn btn-primary btn-sm w-100 ajax">
+											<i class="fas fa-plus me-1"></i>
+											{_'giftSelector.select', 'Vybrat'}
+										</a>
+									{/if}
+								</div>
+							</div>
+						</div>
+					{/foreach}
+				</div>
+			</div>
+
+			{* Navigation arrow - next *}
+			{if count($availableGifts) > 4}
+				<button type="button" class="gift-selector__nav gift-selector__nav--next" aria-label="{_'giftSelector.next', 'Další'}">
+					<i class="fas fa-chevron-right"></i>
+				</button>
+			{/if}
+		</div>
+
+		{if $selectedGift}
+			<div class="gift-selector__info alert alert-success mt-3 mb-0">
+				<i class="fas fa-info-circle me-2"></i>
+				{_'giftSelector.info', 'Vybraný dárek bude přidán k vaší objednávce zdarma.'}
+			</div>
+		{/if}
+	</div>
+{/if}

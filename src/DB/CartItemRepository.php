@@ -88,7 +88,9 @@ class CartItemRepository extends \StORM\Repository
 	 */
 	public function getItems(array $cartIds): Collection
 	{
-		return clone $this->many()->where('fk_cart', $cartIds);
+		return clone $this->many()
+			->where('fk_cart', $cartIds)
+			->orderBy(['(this.giftType IS NOT NULL)' => 'ASC']);
 	}
 
 	public function deleteItem(Cart $cart, CartItem $item): int
