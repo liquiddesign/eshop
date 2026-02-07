@@ -148,9 +148,13 @@ abstract class SupplierProvider
 					return $fileName;
 				}
 
-				if (!\file_exists($origin)) {
+				if (!\file_exists($origin) || \filesize($origin) === 0) {
+					if (\file_exists($origin)) {
+						FileSystem::delete($origin);
+					}
+
 					$this->imageErrorCount++;
-					$this->importResultRepository->log("Image $origin not found");
+					$this->importResultRepository->log("Image $origin not found or empty");
 
 					return null;
 				}
