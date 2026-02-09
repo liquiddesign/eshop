@@ -42,6 +42,17 @@ class GiftRulePresenter extends BackendPresenter
 
 		$grid->addColumnSelector();
 		$grid->addColumnText('Název', 'name', '%s', 'name');
+
+		$grid->addColumn('Skupiny zákazníků', function (GiftRule $rule): string {
+			$groups = $rule->customerGroups->toArrayOf('name');
+
+			if ($groups === []) {
+				return '<small class="text-muted">Všechny</small>';
+			}
+
+			return \implode(', ', $groups);
+		});
+
 		$grid->addColumnText('Cena od', 'priceFrom', '%s Kč', 'priceFrom', ['class' => 'text-right fit']);
 		$grid->addColumnText('Cena do', 'priceTo', '%s Kč', 'priceTo', ['class' => 'text-right fit']);
 		$grid->addColumnText('Měna', 'currency.code', '%s', 'currency.code', ['class' => 'fit']);

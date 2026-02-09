@@ -232,6 +232,19 @@
 																</div>
 															</template>
 
+															<div class="d-flex align-items-center">
+																<small class="text-muted mr-1">Množství:</small>
+																<input
+																	type="number"
+																	class="form-control form-control-sm"
+																	x-model.number="row.amount"
+																	@input.debounce.500ms="autoSave()"
+																	min="1"
+																	step="1"
+																	style="width: 60px;"
+																>
+															</div>
+
 															<div class="d-flex align-items-center ml-auto">
 																<small class="text-muted mr-1">Pořadí:</small>
 																<input
@@ -426,6 +439,19 @@
 																	>
 																</div>
 															</template>
+
+															<div class="d-flex align-items-center">
+																<small class="text-muted mr-1">Množství:</small>
+																<input
+																	type="number"
+																	class="form-control form-control-sm"
+																	x-model.number="row.amount"
+																	@input.debounce.500ms="autoSave()"
+																	min="1"
+																	step="1"
+																	style="width: 60px;"
+																>
+															</div>
 
 															<div class="d-flex align-items-center ml-auto">
 																<small class="text-muted mr-1">Pořadí:</small>
