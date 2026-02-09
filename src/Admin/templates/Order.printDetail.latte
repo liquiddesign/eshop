@@ -33,7 +33,7 @@
                         <div class="col">
                         {foreach $flashes as $flash}
                             {do $flash->type = $flash->type === 'error' ? 'danger' : $flash->type}
-                            <div class="alert alert-{$flash->type}">{$flash->message}</div>
+                            <div class="alert alert-{$flash->type}">{$flash->message|noescape}</div>
                         {/foreach}
                         </div>
                     </div>
