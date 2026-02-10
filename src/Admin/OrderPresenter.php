@@ -1412,7 +1412,7 @@ class OrderPresenter extends BackendPresenter
 
 			$this->orderRepository->csvPPCExport(
 				$selectedItems,
-				Writer::createFromPath($tempFilename),
+				Writer::from($tempFilename),
 				$headerColumns,
 				$values['delimiter'],
 				$values['header'] ? \array_values($headerColumns) : null,
@@ -2105,7 +2105,7 @@ class OrderPresenter extends BackendPresenter
 				Debugger::log($e, ILogger::WARNING);
 			}
 		};
-		$this->orderRepository->csvExport($object, Writer::createFromPath($tempFilename, 'w+'));
+		$this->orderRepository->csvExport($object, Writer::from($tempFilename, 'w+'));
 		$response = new FileResponse($tempFilename, "objednavka-$object->code.csv", 'text/csv');
 		$presenter->sendResponse($response);
 	}
@@ -2260,7 +2260,7 @@ class OrderPresenter extends BackendPresenter
 				}
 			};
 
-			$this->orderRepository->csvExportTargito(Writer::createFromPath($tempFilename, 'w+'), $collection);
+			$this->orderRepository->csvExportTargito(Writer::from($tempFilename, 'w+'), $collection);
 
 			$this->getPresenter()->sendResponse(new FileResponse($tempFilename, 'transactions.csv', 'text/csv'));
 		};
@@ -2324,7 +2324,7 @@ class OrderPresenter extends BackendPresenter
 				}
 			};
 
-			$this->orderRepository->csvExportZasilkovna(\array_keys($collection->toArray()), Writer::createFromPath($tempFilename, 'w+'));
+			$this->orderRepository->csvExportZasilkovna(\array_keys($collection->toArray()), Writer::from($tempFilename, 'w+'));
 
 			$this->sendResponse(new FileResponse($tempFilename, 'zasilkovna.csv', 'text/csv'));
 		}, $this->getBulkFormActionLink(), $this->orderRepository->many(), $this->getBulkFormIds(), function (AdminForm $form): void {
@@ -2360,7 +2360,7 @@ class OrderPresenter extends BackendPresenter
 						}
 					};
 
-					$this->orderRepository->csvExport($order, Writer::createFromPath($tempFilename, 'w+'));
+					$this->orderRepository->csvExport($order, Writer::from($tempFilename, 'w+'));
 
 					$zip->addFile($tempFilename, "objednavka-$order->code.csv");
 				}

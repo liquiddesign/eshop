@@ -799,7 +799,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			try {
 				$this->priceListRepository->csvImport(
 					$pricelist,
-					Reader::createFromString($file->getContents()),
+					Reader::fromString($file->getContents()),
 					$quantity,
 					$values['delimiter'],
 				);
@@ -912,7 +912,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 		$this->priceListRepository->csvExport(
 			$this->priceListRepository->one($pricelistId),
-			Writer::createFromPath($tempFilename, 'w+'),
+			Writer::from($tempFilename, 'w+'),
 			$type === 'quantity',
 			$this->shopperUser->getShowVat(),
 		);

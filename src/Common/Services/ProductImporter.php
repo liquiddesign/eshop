@@ -74,7 +74,7 @@ class ProductImporter
 		$selectedShop = $this->shopsConfig->getSelectedShop();
 		$mutations = $this->productRepository->getConnection()->getAvailableMutations();
 
-		$reader = Reader::createFromPath($filePath);
+		$reader = Reader::from($filePath);
 
 		$reader->setDelimiter($delimiter);
 		$reader->setHeaderOffset(0);
@@ -666,7 +666,7 @@ class ProductImporter
 	{
 		Debugger::timer();
 
-		$reader = Reader::createFromPath($filePath);
+		$reader = Reader::from($filePath);
 
 		$reader->setDelimiter($delimiter);
 		$reader->setHeaderOffset(0);

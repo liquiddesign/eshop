@@ -202,7 +202,7 @@ Perex a Obsah budou exportovány vždy pro aktuálně zvolený obchod.';
 
 			$this->exportCsv(
 				$products,
-				Writer::createFromPath($tempFilename),
+				Writer::from($tempFilename),
 				$headerColumns,
 				$attributeColumns,
 				$values['delimiter'],
