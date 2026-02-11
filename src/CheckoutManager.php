@@ -1907,7 +1907,6 @@ class CheckoutManager
 		Arrays::invoke($this->onOrderCustomerProcessed, $purchase);
 
 		$orderValues = $defaultOrderValues + [
-				'code' => $this->createOrderCode(),
 				'purchase' => $purchase,
 			];
 
@@ -1923,8 +1922,22 @@ class CheckoutManager
 
 		$orderValues['shop'] = $this->shopsConfig->getSelectedShop();
 
-		/** @var \Eshop\DB\Order $order */
-		$order = $this->orderRepository->createOne($orderValues);
+		$maxRetries = 5;
+
+		for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+			$orderValues['code'] = $this->createOrderCode();
+
+			try {
+				/** @var \Eshop\DB\Order $order */
+				$order = $this->orderRepository->createOne($orderValues);
+
+				break;
+			} catch (\PDOException $e) {
+				if ($attempt === $maxRetries || \strpos($e->getMessage(), 'order_code') === false) {
+					throw $e;
+				}
+			}
+		}
 
 		// Refresh to set all properties
 		$order = $this->orderRepository->oneOrFail($order->getPK());
