@@ -28,6 +28,7 @@ use Eshop\DB\SupplierMappingRepository;
 use Eshop\DB\SupplierProducer;
 use Eshop\DB\SupplierProducerRepository;
 use Eshop\DB\SupplierRepository;
+use Eshop\Services\SettingsService;
 use Nette\Application\UI\Presenter;
 use Nette\DI\Attributes\Inject;
 use Nette\Http\Session;
@@ -101,6 +102,9 @@ class SupplierMappingPresenter extends BackendPresenter
 
 	#[Inject]
 	public Session $session;
+
+	#[Inject]
+	public SettingsService $settingsService;
 
 	/** @persistent */
 	public string $tab = 'category';
@@ -352,7 +356,8 @@ class SupplierMappingPresenter extends BackendPresenter
 		$form = $this->formFactory->create();
 
 		if ($this->tab === 'category') {
-			$form->addDataMultiSelect('categories', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect());
+			$primaryTypeUuids = \array_keys($this->settingsService->getCategoryMainTypes()) ?: null;
+			$form->addDataMultiSelect('categories', 'Kategorie', $this->categoryRepository->getTreeArrayForSelect(true, $primaryTypeUuids));
 		}
 
 		if ($this->tab === 'producer') {
@@ -435,7 +440,8 @@ class SupplierMappingPresenter extends BackendPresenter
 			$form->addCheckbox('overwrite', 'Přepsat');
 
 			if ($this->tab === 'category') {
-				$categoryInput = $form->addDataSelect('category', 'Nadřazená kategorie', $this->categoryRepository->getArrayForSelect())->setPrompt('Žádná');
+				$primaryTypeUuids = \array_keys($this->settingsService->getCategoryMainTypes()) ?: null;
+				$categoryInput = $form->addDataSelect('category', 'Nadřazená kategorie', $this->categoryRepository->getTreeArrayForSelect(true, $primaryTypeUuids))->setPrompt('Žádná');
 				$categoryTypeInput = $form->addSelect('categoryType', 'Typ kategorií', $this->categoryTypeRepository->getArrayForSelect());
 
 				$categoryInput->addCondition($form::BLANK)->toggle($categoryTypeInput->getHtmlId() . '-toogle');
