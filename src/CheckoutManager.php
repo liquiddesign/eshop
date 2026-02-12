@@ -1932,11 +1932,15 @@ class CheckoutManager
 				$order = $this->orderRepository->createOne($orderValues);
 
 				break;
-			} catch (\PDOException $e) {
-				if ($attempt === $maxRetries || \strpos($e->getMessage(), 'order_code') === false) {
+			} catch (\Exception $e) {
+				if (!$e instanceof \PDOException || $attempt === $maxRetries || !\str_contains($e->getMessage(), 'order_code')) {
 					throw $e;
 				}
 			}
+		}
+
+		if (!isset($order)) {
+			throw new \RuntimeException('Failed to create order after ' . $maxRetries . ' attempts');
 		}
 
 		// Refresh to set all properties
