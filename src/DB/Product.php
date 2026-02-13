@@ -394,6 +394,16 @@ class Product extends \StORM\Entity
 	public bool $karsaAllowRepricing = true;
 
 	/**
+	 * @column
+	 */
+	public bool $mergadoAllowRepricingRT = true;
+
+	/**
+	 * @column
+	 */
+	public bool $mergadoAllowRepricingABEL = true;
+
+	/**
 	 * Alternativní produkt k
 	 * @relation
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}

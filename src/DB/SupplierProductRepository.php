@@ -191,6 +191,11 @@ class SupplierProductRepository extends \StORM\Repository
 
 		while ($productContent = $productContentQuery->fetch(\stdClass::class)) {
 			/** @var \stdClass $productContent */
+
+			if ($productContent->productPK === null || $productContent->shopPK === null) {
+				continue;
+			}
+
 			$existingProductContents[$productContent->productPK][$productContent->shopPK] = $productContent;
 		}
 
@@ -283,6 +288,12 @@ class SupplierProductRepository extends \StORM\Repository
 				'supplierSource' => $supplier,
 			];
 
+			// Mergado přecenění nastavit pouze pro NOVÉ produkty
+			if (!isset($productsMap[$uuid])) {
+				$values['mergadoAllowRepricingABEL'] = $supplier->defaultMergadoRepricingAbel ?? true;
+				$values['mergadoAllowRepricingRT'] = $supplier->defaultMergadoRepricingRt ?? true;
+			}
+
 			$importImage = true;
 
 			if (!$importImages ||
@@ -341,10 +352,17 @@ class SupplierProductRepository extends \StORM\Repository
 			}
 
 			foreach ($visibilityLists as $visibilityList) {
+				// Určit správnou hodnotu hidden podle visibility listu
+				$hidden = match ($visibilityList->code ?? '') {
+					'abel' => $supplier->defaultHiddenProductAbel ?? $supplier->defaultHiddenProduct,
+					'rt' => $supplier->defaultHiddenProductRt ?? $supplier->defaultHiddenProduct,
+					default => $supplier->defaultHiddenProduct,
+				};
+
 				$visibilityListItemRepository->syncOne([
 					'visibilityList' => $visibilityList->getPK(),
 					'product' => $product->getPK(),
-					'hidden' => $supplier->defaultHiddenProduct,
+					'hidden' => $hidden,
 					'unavailable' => $draft->unavailable,
 				], []);
 			}
@@ -464,7 +482,13 @@ class SupplierProductRepository extends \StORM\Repository
 
 			// Pro každou dodavatelskou fotku vytvořit Photo entitu
 			foreach ($supplierProductPhotos as $supplierPhoto) {
-				if (!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName)) {
+				$sourceFile = $sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName;
+
+				if (!\is_file($sourceFile) || \filesize($sourceFile) === 0) {
+					if (\is_file($sourceFile) && \filesize($sourceFile) === 0) {
+						Debugger::log("Skipping empty supplier image file: $sourceFile", ILogger::INFO);
+					}
+
 					continue;
 				}
 

@@ -10,6 +10,7 @@ use Base\DB\Shop;
 use Eshop\BackendPresenter;
 use Eshop\Controls\ProductFilter;
 use Eshop\DB\Attribute;
+use Eshop\DB\AttributeAssignRepository;
 use Eshop\DB\AttributeGroup;
 use Eshop\DB\AttributeGroupRepository;
 use Eshop\DB\AttributeRepository;
@@ -20,6 +21,7 @@ use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
+use Eshop\DB\SupplierAttributeValueRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\Services\SettingsService;
 use Forms\Form;
@@ -37,6 +39,8 @@ use StORM\Collection;
 use StORM\DIConnection;
 use StORM\Entity;
 use StORM\ICollection;
+use Tracy\Debugger;
+use Tracy\ILogger;
 
 class AttributePresenter extends BackendPresenter
 {
@@ -88,6 +92,12 @@ class AttributePresenter extends BackendPresenter
 
 	#[\Nette\DI\Attributes\Inject]
 	public ProductRepository $productRepository;
+
+	#[\Nette\DI\Attributes\Inject]
+	public AttributeAssignRepository $attributeAssignRepository;
+
+	#[\Nette\DI\Attributes\Inject]
+	public SupplierAttributeValueRepository $supplierAttributeValueRepository;
 
 	/** @persistent */
 	public string $tab = 'attributes';
@@ -445,6 +455,13 @@ class AttributePresenter extends BackendPresenter
 		}, 'this.uuid');
 		$grid->addButtonBulkEdit('valuesForm', ['attributeValueRange'], 'valuesGrid');
 
+		$submit = $grid->getForm()->addSubmit('join', 'Sloučit')
+			->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+
+		$submit->onClick[] = function ($button) use ($grid): void {
+			$grid->getPresenter()->redirect('mergeSelect', [$grid->getSelectedIds()]);
+		};
+
 		$grid->addFilterTextInput('search', ['this.code', 'this.label_cs'], null, 'Kód, popisek');
 		$grid->addFilterTextInput('attribute', ['attribute.code'], null, 'Kód atributu', null, '%s');
 
@@ -584,8 +601,8 @@ class AttributePresenter extends BackendPresenter
 		$form->addText('code', 'Kód')->setRequired();
 
 		$attributeInput = $form->addSelect2('attribute', 'Atribut', $this->attributeRepository->getArrayForSelect())->setRequired()
-							   ->setHtmlAttribute('data-info', 'Hodnoty systémových atributů "' . \implode(', ', ProductFilter::SYSTEMIC_ATTRIBUTES) . '" nebudou použity.')
-							   ->setDisabled($this->getParameter('attributeValue') && $this->attributeValueRepository->isValuePairedWithProducts($this->getParameter('attributeValue')));
+			->setHtmlAttribute('data-info', 'Hodnoty systémových atributů "' . \implode(', ', ProductFilter::SYSTEMIC_ATTRIBUTES) . '" nebudou použity.')
+			->setDisabled($this->getParameter('attributeValue') && $this->attributeValueRepository->isValuePairedWithProducts($this->getParameter('attributeValue')));
 
 		$attribute = $this->getParameter('attribute') ?: $attributeValue?->attribute;
 
@@ -1195,6 +1212,123 @@ class AttributePresenter extends BackendPresenter
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('groupForm');
 		$form->setDefaults($attributeGroup->toArray());
+	}
+
+	/**
+	 * @param array<string|int> $ids
+	 */
+	public function actionMergeSelect(array $ids): void
+	{
+		if (\count($ids) < 2) {
+			$this->flashMessage('Pro sloučení je potřeba vybrat alespoň 2 hodnoty.', 'error');
+			$this->redirect('default');
+		}
+	}
+
+	/**
+	 * @param array<string|int> $ids
+	 */
+	public function renderMergeSelect(array $ids): void
+	{
+		unset($ids);
+
+		$this->template->headerLabel = 'Sloučení hodnot';
+		$this->template->headerTree = [
+			['Atributy', 'default'],
+			['Hodnoty', 'default'],
+			['Sloučení hodnot'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [$this->getComponent('mergeForm')];
+	}
+
+	public function createComponentMergeForm(): AdminForm
+	{
+		$ids = \array_values($this->getParameter('ids') ?: []);
+
+		$form = $this->formFactory->create();
+		$form->setAction($this->link('this', ['selected' => $this->getParameter('selected')]));
+
+		$mutationSuffix = $this->attributeValueRepository->getConnection()->getMutationSuffix();
+
+		$form->addSelect2(
+			'mainValue',
+			'Hlavní hodnota',
+			$this->attributeValueRepository->many()
+				->join(['attr' => 'eshop_attribute'], 'this.fk_attribute = attr.uuid')
+				->where('this.uuid', $ids)
+				->select(['customName' => "CONCAT(attr.name$mutationSuffix, ' - ', this.label$mutationSuffix, ' (', this.code, ')')"])
+				->toArrayOf('customName'),
+		)
+			->setRequired()
+			->setHtmlAttribute('data-info', 'Všechny ostatní vybrané hodnoty budou sloučeny do této hlavní hodnoty. Přiřazení produktů budou přesměrována.');
+
+		$form->addSubmit('submit', 'Sloučit');
+
+		$form->onSuccess[] = function (AdminForm $form) use ($ids): void {
+			$values = $form->getValues('array');
+			$mainValuePK = $values['mainValue'];
+
+			$connection = $this->attributeValueRepository->getConnection();
+			$link = $connection->getLink();
+			$link->beginTransaction();
+
+			try {
+				$childValuePKs = \array_values(\array_filter($ids, fn($id) => $id !== $mainValuePK));
+
+				foreach ($childValuePKs as $childValuePK) {
+					// 1. Delete duplicate attributeassign rows (product already has parent value)
+					$productsWithMainValue = $this->attributeAssignRepository->many()
+						->where('this.fk_value', $mainValuePK)
+						->toArrayOf('product', toArrayValues: true);
+
+					if ($productsWithMainValue) {
+						$this->attributeAssignRepository->many()
+							->where('this.fk_value', $childValuePK)
+							->where('this.fk_product', $productsWithMainValue)
+							->delete();
+					}
+
+					// 2. Update remaining attributeassign to parent value
+					$this->attributeAssignRepository->many()
+						->where('this.fk_value', $childValuePK)
+						->update(['fk_value' => $mainValuePK]);
+
+					// 3. Update supplier attribute value mappings
+					$this->supplierAttributeValueRepository->many()
+						->where('this.fk_attributeValue', $childValuePK)
+						->update(['fk_attributeValue' => $mainValuePK]);
+
+					// 4. Clean up child value (page + images)
+					$childValue = $this->attributeValueRepository->one($childValuePK);
+
+					if (!$childValue) {
+						continue;
+					}
+
+					$this->onDelete($childValue);
+				}
+
+				// 5. Delete child values
+				$this->attributeValueRepository->many()->where('this.uuid', $childValuePKs)->delete();
+
+				$link->commit();
+
+				$this->clearNetteCache();
+
+				$this->flashMessage('Hodnoty byly úspěšně sloučeny.', 'success');
+			} catch (\Exception $e) {
+				$link->rollBack();
+
+				Debugger::log($e, ILogger::EXCEPTION);
+
+				$this->flashMessage('Chyba při slučování hodnot: ' . $e->getMessage(), 'error');
+			}
+
+			$this->redirect('default');
+		};
+
+		return $form;
 	}
 
 	protected function clearNetteCache(): void
