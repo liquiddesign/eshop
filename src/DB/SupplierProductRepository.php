@@ -482,7 +482,13 @@ class SupplierProductRepository extends \StORM\Repository
 
 			// Pro každou dodavatelskou fotku vytvořit Photo entitu
 			foreach ($supplierProductPhotos as $supplierPhoto) {
-				if (!\is_file($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName)) {
+				$sourceFile = $sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName;
+
+				if (!\is_file($sourceFile) || \filesize($sourceFile) === 0) {
+					if (\is_file($sourceFile) && \filesize($sourceFile) === 0) {
+						Debugger::log("Skipping empty supplier image file: $sourceFile", ILogger::INFO);
+					}
+
 					continue;
 				}
 
