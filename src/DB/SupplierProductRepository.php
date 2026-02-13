@@ -191,6 +191,11 @@ class SupplierProductRepository extends \StORM\Repository
 
 		while ($productContent = $productContentQuery->fetch(\stdClass::class)) {
 			/** @var \stdClass $productContent */
+
+			if ($productContent->productPK === null || $productContent->shopPK === null) {
+				continue;
+			}
+
 			$existingProductContents[$productContent->productPK][$productContent->shopPK] = $productContent;
 		}
 
