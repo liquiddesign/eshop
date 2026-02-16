@@ -20,11 +20,23 @@ use StORM\RelationCollection;
  */
 class Merchant extends ShopEntity implements IIdentity, IUser
 {
+	public const IMAGE_DIR = 'merchant_images';
+
 	public const PRICELISTS_MODES = [
 		'customer' => 'Zákazník',
 		'merchant' => 'Obchodník',
 		'merge' => 'Spojit',
 	];
+
+	/**
+	 * @column
+	 */
+	public string|null $imageFileName = null;
+
+	/**
+	 * @column
+	 */
+	public int|null $pipedriveUserId = null;
 
 	/**
 	 * Kód

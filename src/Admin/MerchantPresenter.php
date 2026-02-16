@@ -25,8 +25,10 @@ use Nette\Application\UI\Presenter;
 use Nette\DI\Attributes\Inject;
 use Nette\Mail\Mailer;
 use Nette\Security\Passwords;
+use Nette\Utils\Image;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
+use StORM\DIConnection;
 use Tracy\Debugger;
 
 class MerchantPresenter extends BackendPresenter
@@ -87,6 +89,7 @@ class MerchantPresenter extends BackendPresenter
 		]), 20, 'this.code', 'ASC', true);
 		$grid->addColumnSelector();
 
+		$grid->addColumnImage('imageFileName', Merchant::IMAGE_DIR);
 		$grid->addColumnText('Kód', 'code', '%s', 'this.code', ['class' => 'fit']);
 		$grid->addColumnText('Jméno a příjmení', 'fullname', '%s', 'this.fullname');
 		$grid->addColumnText('Ceníky / Viditelníky', ['pricelists_names', 'visibilityLists_names'], '%s<hr style="margin: 0">%s');
@@ -172,6 +175,24 @@ class MerchantPresenter extends BackendPresenter
 			$form->addText('fullname', 'Jméno a příjmení')->setRequired();
 			$form->addEmail('email', 'E-mail')->setRequired();
 			$form->addText('phone', 'Telefon')->setNullable();
+
+			$imagePicker = $form->addImagePicker('imageFileName', 'Foto', [
+				Merchant::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'origin' => null,
+				Merchant::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'detail' => static function (Image $image): void {
+					$image->resize(600, null);
+				},
+				Merchant::IMAGE_DIR . \DIRECTORY_SEPARATOR . 'thumb' => static function (Image $image): void {
+					$image->resize(300, null);
+				},
+			]);
+
+			$imagePicker->onDelete[] = function () use ($merchant): void {
+				if ($merchant !== null) {
+					$this->onDeleteImage($merchant);
+				}
+
+				$this->redirect('this');
+			};
 
 			$form->addGroup('Další možnosti');
 
@@ -285,6 +306,17 @@ class MerchantPresenter extends BackendPresenter
 
 		$form->onSuccess[] = function (AdminForm $form): void {
 			$values = $form->getValuesWithAjax();
+
+			$this->createImageDirs(Merchant::IMAGE_DIR);
+
+			if (!$values['uuid']) {
+				$values['uuid'] = DIConnection::generateUuid();
+			}
+
+			/** @var \Forms\Controls\UploadImage $upload */
+			$upload = $form['imageFileName'];
+
+			$values['imageFileName'] = $upload->upload($values['uuid'] . '.%2$s');
 
 			/** @var \Eshop\DB\Merchant $merchant */
 			$merchant = $this->merchantRepository->syncOne($values, null, true, ignore: false);
