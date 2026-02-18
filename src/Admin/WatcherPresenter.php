@@ -41,13 +41,15 @@ class WatcherPresenter extends BackendPresenter
 			return "<a href=\"$link\"><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;$product->name ($code)</a>";
 		});
 		$grid->addColumn('Typ', function (Watcher $watcher): string {
+			$currencySymbol = $watcher->currency !== null ? ' ' . $watcher->currency->symbol : '';
+
 			if (\property_exists($watcher, 'type')) {
 				return $watcher->type === 'price'
-					? 'Cena: ' . ($watcher->priceFrom !== null ? \number_format($watcher->priceFrom, 2, ',', ' ') : '—')
+					? 'Cena: ' . ($watcher->priceFrom !== null ? \number_format($watcher->priceFrom, 2, ',', ' ') . $currencySymbol : '—')
 					: 'Dostupnost';
 			}
 
-			return $watcher->priceFrom !== null ? 'Cena: ' . \number_format($watcher->priceFrom, 2, ',', ' ') : 'Dostupnost';
+			return $watcher->priceFrom !== null ? 'Cena: ' . \number_format($watcher->priceFrom, 2, ',', ' ') . $currencySymbol : 'Dostupnost';
 		});
 		$grid->addColumn('Notifikováno', function (Watcher $watcher): string {
 			return $watcher->notifiedTs !== null

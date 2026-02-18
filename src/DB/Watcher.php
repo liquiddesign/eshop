@@ -56,6 +56,13 @@ class Watcher extends \StORM\Entity
 	public Product $product;
 
 	/**
+	 * Měna
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 * @relation
+	 */
+	public ?Currency $currency;
+
+	/**
 	 * Vytvořen
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
