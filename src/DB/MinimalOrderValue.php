@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use StORM\Entity;
+
 /**
  * Minimální odběr
  * @table
  */
-class MinimalOrderValue extends \StORM\Entity
+class MinimalOrderValue extends Entity
 {
 	/**
 	 * Minimální cena bez DPH včetně
@@ -26,7 +28,14 @@ class MinimalOrderValue extends \StORM\Entity
 	/**
 	 * Skupina uživatel
 	 * @relation
-	 * @constraint
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 */
-	public CustomerGroup $customerGroup;
+	public ?CustomerGroup $customerGroup;
+
+	/**
+	 * Zákazník
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
+	 */
+	public ?Customer $customer;
 }

@@ -629,9 +629,20 @@ class ShopperUser extends User
 
 	public function getMinimalOrderValue(): float
 	{
+		$customer = $this->getCustomer();
+		$currency = $this->getCurrency();
+
+		if ($customer) {
+			$minimalOrderValue = $this->minimalOrderValueRepository->getEffectiveMinimalOrderValue($customer, $currency);
+
+			if ($minimalOrderValue !== null) {
+				return $minimalOrderValue->price;
+			}
+		}
+
 		$group = $this->getCustomerGroup();
 
-		if ($group && $minimalOrderValue = $this->minimalOrderValueRepository->getMinimalOrderValue($group, $this->getCurrency())) {
+		if ($group && $minimalOrderValue = $this->minimalOrderValueRepository->getMinimalOrderValue($group, $currency)) {
 			return $minimalOrderValue->price;
 		}
 
