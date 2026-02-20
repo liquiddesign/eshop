@@ -25,3 +25,6 @@ parameters:
 		- src/DB/SupplierProductPhotoRepository.php
 		- src/DB/CustomerBonita.php
 		- src/DB/CustomerBonitaRepository.php
+		- src/DB/PipedriveLog.php
+		- src/DB/PipedriveLogRepository.php
+		- src/Admin/PipedriveLogPresenter.php

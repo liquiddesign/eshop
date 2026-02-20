@@ -1,0 +1,139 @@
+{block content}
+	{varType Eshop\DB\PipedriveLog $pipedriveLog}
+	{varType array[] $decodedMessages}
+	{varType array $decodedPayload}
+
+	{if @$displayButtons}
+		{foreach $displayButtons as $button}
+			{$button|noescape}
+		{/foreach}
+	{/if}
+	<br><br>
+
+	<div class="row">
+		<div class="col-lg-6">
+			<div class="card card-outline {if $pipedriveLog->success}card-success{else}card-danger{/if}">
+				<div class="card-header">
+					<h3 class="card-title">
+						<i class="fas fa-info-circle mr-1"></i>
+						Informace o webhooku
+					</h3>
+				</div>
+				<div class="card-body p-0">
+					<table class="table table-sm mb-0">
+						<tr>
+							<th class="pl-3" style="width: 180px;">Status</th>
+							<td>
+								{if $pipedriveLog->success}
+									<span class="badge badge-success">OK</span>
+								{else}
+									<span class="badge badge-danger">FAIL</span>
+								{/if}
+							</td>
+						</tr>
+						<tr>
+							<th class="pl-3">Typ entity</th>
+							<td>{$pipedriveLog->entityType ?? '-'}</td>
+						</tr>
+						<tr>
+							<th class="pl-3">Akce</th>
+							<td>{$pipedriveLog->action ?? '-'}</td>
+						</tr>
+						<tr>
+							<th class="pl-3">Pipedrive ID</th>
+							<td>{$pipedriveLog->pipedriveId ?? '-'}</td>
+						</tr>
+						<tr>
+							<th class="pl-3">Zdroj</th>
+							<td>{$pipedriveLog->source ?? '-'}</td>
+						</tr>
+						<tr>
+							<th class="pl-3">Čas</th>
+							<td>{$pipedriveLog->createdTs}</td>
+						</tr>
+						<tr>
+							<th class="pl-3">Zpráva</th>
+							<td>{$pipedriveLog->resultMessage ?? '-'}</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+
+			<div class="card card-outline card-secondary">
+				<div class="card-header" style="cursor: pointer;" data-toggle="collapse" data-target="#payload-body" aria-expanded="false" aria-controls="payload-body">
+					<h3 class="card-title">
+						<i class="fas fa-code mr-1"></i>
+						Request payload
+					</h3>
+				</div>
+				<div class="collapse" id="payload-body">
+					<div class="card-body p-0">
+						{if count($decodedPayload) > 0}
+							<pre class="p-3 mb-0" style="font-size: 0.85em; white-space: pre-wrap; word-break: break-all; max-height: 600px; overflow-y: auto;">{Nette\Utils\Json::encode($decodedPayload, Nette\Utils\Json::PRETTY + JSON_UNESCAPED_UNICODE)}</pre>
+						{else}
+							<div class="p-3 text-muted">
+								<i class="fas fa-info-circle mr-1"></i>
+								Payload nebyl zaznamenán.
+							</div>
+						{/if}
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="col-lg-6">
+			<div class="card card-outline card-primary">
+				<div class="card-header">
+					<h3 class="card-title">
+						<i class="fas fa-list mr-1"></i>
+						Log zprávy ({count($decodedMessages)})
+					</h3>
+				</div>
+				<div class="card-body p-0">
+					{if count($decodedMessages) > 0}
+						<table class="table table-sm table-striped mb-0">
+							<thead>
+								<tr>
+									<th style="width: 40px;">#</th>
+									<th style="width: 140px;">Čas</th>
+									<th style="width: 180px;">Typ</th>
+									<th>Data</th>
+								</tr>
+							</thead>
+							<tbody>
+								{foreach $decodedMessages as $index => $msg}
+									{var $type = $msg['type'] ?? 'unknown'}
+									{var $isError = str_contains($type, 'error') || str_contains($type, 'failed') || str_contains($type, 'exception')}
+									<tr class="{if $isError}table-danger{/if}">
+										<td class="text-muted">{$index + 1}</td>
+										<td class="text-monospace" style="font-size: 0.85em;">
+											{$msg['timestamp'] ?? '-'}
+										</td>
+										<td>
+											{if $isError}
+												<span class="badge badge-danger">{$type}</span>
+											{else}
+												<span class="badge badge-info">{$type}</span>
+											{/if}
+										</td>
+										<td>
+											{var $displayData = array_diff_key($msg, ['type' => true, 'timestamp' => true])}
+											{if count($displayData) > 0}
+												<pre class="mb-0" style="font-size: 0.8em; white-space: pre-wrap; word-break: break-all;">{Nette\Utils\Json::encode($displayData, Nette\Utils\Json::PRETTY + JSON_UNESCAPED_UNICODE)}</pre>
+											{/if}
+										</td>
+									</tr>
+								{/foreach}
+							</tbody>
+						</table>
+					{else}
+						<div class="p-3 text-muted">
+							<i class="fas fa-info-circle mr-1"></i>
+							Žádné log zprávy.
+						</div>
+					{/if}
+				</div>
+			</div>
+		</div>
+	</div>
+{/block}
