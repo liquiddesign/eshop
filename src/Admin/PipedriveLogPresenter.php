@@ -7,11 +7,12 @@ namespace Eshop\Admin;
 use Admin\BackendPresenter;
 use Carbon\Carbon;
 use Nette\Application\UI\Form;
-use Tracy\Debugger;
 
 class PipedriveLogPresenter extends BackendPresenter
 {
 	private const LOG_FILE = 'pipedrive-webhook.log';
+
+	private const ITEMS_PER_PAGE = 100;
 
 	/** @persistent */
 	public ?string $filterLevel = null;
@@ -21,6 +22,9 @@ class PipedriveLogPresenter extends BackendPresenter
 
 	/** @persistent */
 	public ?string $filterDateTo = null;
+
+	/** @persistent */
+	public int $page = 1;
 
 	public function renderDefault(): void
 	{
@@ -33,14 +37,33 @@ class PipedriveLogPresenter extends BackendPresenter
 		$this->template->logExists = \is_file($logPath);
 		$this->template->logEntries = [];
 		$this->template->totalEntries = 0;
+		$this->template->filteredEntries = 0;
 
 		if ($this->template->logExists) {
 			$content = \file_get_contents($logPath);
 			$allEntries = $this->parseLogContent($content);
 			$this->template->totalEntries = \count($allEntries);
-			$this->template->logEntries = $this->filterEntries($allEntries);
+
+			$filtered = $this->filterEntries($allEntries);
+			$this->template->filteredEntries = \count($filtered);
+
+			$totalPages = (int) \max(1, \ceil(\count($filtered) / self::ITEMS_PER_PAGE));
+
+			if ($this->page < 1) {
+				$this->page = 1;
+			}
+
+			if ($this->page > $totalPages) {
+				$this->page = $totalPages;
+			}
+
+			$offset = ($this->page - 1) * self::ITEMS_PER_PAGE;
+			$this->template->logEntries = \array_slice($filtered, $offset, self::ITEMS_PER_PAGE);
 			$this->template->logSize = \filesize($logPath);
 			$this->template->logModified = \filemtime($logPath);
+			$this->template->currentPage = $this->page;
+			$this->template->totalPages = $totalPages;
+			$this->template->itemsPerPage = self::ITEMS_PER_PAGE;
 		}
 
 		$this->template->filterLevel = $this->filterLevel;
@@ -87,6 +110,8 @@ class PipedriveLogPresenter extends BackendPresenter
 				$this->filterDateTo = $values['dateTo'] ?: null;
 			}
 
+			$this->page = 1;
+
 			$this->redirect('this');
 		};
 
@@ -99,10 +124,6 @@ class PipedriveLogPresenter extends BackendPresenter
 	 */
 	private function filterEntries(array $entries): array
 	{
-		Debugger::barDump($this->filterDateTo);
-		Debugger::barDump($this->filterDateFrom);
-		Debugger::barDump($entries);
-
 		return \array_filter($entries, function (array $entry): bool {
 			// Filter by level
 			if ($this->filterLevel !== null && $entry['level'] !== $this->filterLevel) {
