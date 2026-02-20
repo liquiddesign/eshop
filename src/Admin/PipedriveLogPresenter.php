@@ -5,207 +5,135 @@ declare(strict_types=1);
 namespace Eshop\Admin;
 
 use Admin\BackendPresenter;
-use Carbon\Carbon;
-use Nette\Application\UI\Form;
+use Admin\Controls\AdminGrid;
+use Eshop\DB\PipedriveLog;
+use Eshop\DB\PipedriveLogRepository;
+use Nette\Utils\Json;
+use StORM\ICollection;
 
 class PipedriveLogPresenter extends BackendPresenter
 {
-	private const LOG_FILE = 'pipedrive-webhook.log';
+	#[\Nette\DI\Attributes\Inject]
+	public PipedriveLogRepository $pipedriveLogRepository;
 
-	private const ITEMS_PER_PAGE = 100;
+	public function createComponentGrid(): AdminGrid
+	{
+		$source = $this->pipedriveLogRepository->many()->orderBy(['this.createdTs' => 'DESC']);
 
-	/** @persistent */
-	public ?string $filterLevel = null;
+		$grid = $this->gridFactory->create($source, 20, 'createdTs', 'DESC', true);
 
-	/** @persistent */
-	public ?string $filterDateFrom = null;
+		$grid->addColumnText('Čas', 'createdTs', '%s', 'createdTs', ['class' => 'fit']);
 
-	/** @persistent */
-	public ?string $filterDateTo = null;
+		$grid->addColumn('Status', function (PipedriveLog $log): string {
+			if ($log->success) {
+				return '<span class="badge badge-success">OK</span>';
+			}
 
-	/** @persistent */
-	public int $page = 1;
+			return '<span class="badge badge-danger">FAIL</span>';
+		}, '%s', null, ['class' => 'fit']);
+
+		$grid->addColumnText('Entita', 'entityType', '%s', 'entityType', ['class' => 'fit']);
+		$grid->addColumnText('Akce', 'action', '%s', 'action', ['class' => 'fit']);
+		$grid->addColumnText('Pipedrive ID', 'pipedriveId', '%s', 'pipedriveId', ['class' => 'fit']);
+		$grid->addColumnText('Zdroj', 'source', '%s', 'source', ['class' => 'fit']);
+
+		$grid->addColumn('Zpráva', function (PipedriveLog $log): string {
+			$message = $log->resultMessage ?? '';
+
+			if (\mb_strlen($message) > 80) {
+				return \htmlspecialchars(\mb_substr($message, 0, 80)) . '...';
+			}
+
+			return \htmlspecialchars($message);
+		});
+
+		$grid->addColumnLinkDetail('detail');
+
+		$grid->addFilterTextInput('search', ['this.pipedriveId', 'this.resultMessage'], null, 'Pipedrive ID, zpráva');
+
+		$grid->addFilterSelectInput('success', 'this.success = :q', 'Status', '- Status -', null, [
+			'1' => 'OK',
+			'0' => 'FAIL',
+		]);
+
+		$grid->addFilterSelectInput('entityType', 'this.entityType = :q', 'Entita', '- Entita -', null, [
+			'organization' => 'organization',
+			'person' => 'person',
+		]);
+
+		$grid->addFilterSelectInput('source', 'this.source = :q', 'Zdroj', '- Zdroj -', null, [
+			'webhook' => 'webhook',
+			'minimal_organization' => 'minimal_organization',
+			'minimal_person' => 'minimal_person',
+		]);
+
+		$grid->addFilterDate(function (ICollection $source, string $value): void {
+			$source->where('DATE(this.createdTs) >= DATE(:date_from)', ['date_from' => $value]);
+		}, '', 'date_from')->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum od');
+
+		$grid->addFilterDate(function (ICollection $source, string $value): void {
+			$source->where('DATE(this.createdTs) <= DATE(:date_to)', ['date_to' => $value]);
+		}, '', 'date_to')->setHtmlAttribute('class', 'form-control form-control-sm flatpicker')->setHtmlAttribute('placeholder', 'Datum do');
+
+		$grid->addFilterButtons();
+
+		return $grid;
+	}
 
 	public function renderDefault(): void
 	{
-		$logPath = $this->tempDir . '/log/' . self::LOG_FILE;
-
 		$this->template->headerLabel = 'Pipedrive Webhook Log';
 		$this->template->headerTree = [['Pipedrive Log']];
 		$this->template->displayButtons = [];
+		$this->template->displayControls = [$this->getComponent('grid')];
+	}
 
-		$this->template->logExists = \is_file($logPath);
-		$this->template->logEntries = [];
-		$this->template->totalEntries = 0;
-		$this->template->filteredEntries = 0;
+	public function actionDetail(PipedriveLog $pipedriveLog): void
+	{
+		$this->template->pipedriveLog = $pipedriveLog;
 
-		if ($this->template->logExists) {
-			$content = \file_get_contents($logPath);
-			$allEntries = $this->parseLogContent($content);
-			$this->template->totalEntries = \count($allEntries);
+		/** @var array<array<string, mixed>> $decodedMessages */
+		$decodedMessages = [];
 
-			$filtered = $this->filterEntries($allEntries);
-			$this->template->filteredEntries = \count($filtered);
-
-			$totalPages = (int) \max(1, \ceil(\count($filtered) / self::ITEMS_PER_PAGE));
-
-			if ($this->page < 1) {
-				$this->page = 1;
+		if ($pipedriveLog->messages !== null && $pipedriveLog->messages !== '') {
+			try {
+				/** @var array<array<string, mixed>> $decoded */
+				$decoded = Json::decode($pipedriveLog->messages, forceArrays: true);
+				$decodedMessages = $decoded;
+			} catch (\Throwable) {
+				// Invalid JSON — show raw string
 			}
-
-			if ($this->page > $totalPages) {
-				$this->page = $totalPages;
-			}
-
-			$offset = ($this->page - 1) * self::ITEMS_PER_PAGE;
-			$this->template->logEntries = \array_slice($filtered, $offset, self::ITEMS_PER_PAGE);
-			$this->template->logSize = \filesize($logPath);
-			$this->template->logModified = \filemtime($logPath);
-			$this->template->currentPage = $this->page;
-			$this->template->totalPages = $totalPages;
-			$this->template->itemsPerPage = self::ITEMS_PER_PAGE;
 		}
 
-		$this->template->filterLevel = $this->filterLevel;
-		$this->template->filterDateFrom = $this->filterDateFrom;
-		$this->template->filterDateTo = $this->filterDateTo;
+		$this->template->decodedMessages = $decodedMessages;
 
-		$this->template->setFile(__DIR__ . '/templates/PipedriveLog.default.latte');
-	}
+		/** @var array<string, mixed> $decodedPayload */
+		$decodedPayload = [];
 
-	protected function createComponentFilterForm(): Form
-	{
-		$form = new Form();
-
-		$form->addSelect('level', 'Úroveň:', [
-			'' => 'Vše',
-			'error' => 'Error',
-			'warning' => 'Warning',
-			'success' => 'Success',
-			'info' => 'Info',
-		])->setDefaultValue($this->filterLevel ?? '');
-
-		$form->addText('dateFrom', 'Od:')
-			->setHtmlAttribute('type', 'datetime-local')
-			->setDefaultValue($this->filterDateFrom);
-
-		$form->addText('dateTo', 'Do:')
-			->setHtmlAttribute('type', 'datetime-local')
-			->setDefaultValue($this->filterDateTo);
-
-		$form->addSubmit('filter', 'Filtrovat');
-		$form->addSubmit('reset', 'Zrušit filtr');
-
-		$form->onSuccess[] = function (Form $form, array $values): void {
-			/** @var \Nette\Forms\Controls\SubmitButton $resetButton */
-			$resetButton = $form['reset'];
-
-			if ($resetButton->isSubmittedBy()) {
-				$this->filterLevel = null;
-				$this->filterDateFrom = null;
-				$this->filterDateTo = null;
-			} else {
-				$this->filterLevel = $values['level'] ?: null;
-				$this->filterDateFrom = $values['dateFrom'] ?: null;
-				$this->filterDateTo = $values['dateTo'] ?: null;
+		if ($pipedriveLog->requestPayload !== null && $pipedriveLog->requestPayload !== '') {
+			try {
+				/** @var array<string, mixed> $decoded */
+				$decoded = Json::decode($pipedriveLog->requestPayload, forceArrays: true);
+				$decodedPayload = $decoded;
+			} catch (\Throwable) {
+				// Invalid JSON
 			}
-
-			$this->page = 1;
-
-			$this->redirect('this');
-		};
-
-		return $form;
-	}
-
-	/**
-	 * @param array<array{timestamp: string|null, level: string, message: string}> $entries
-	 * @return array<array{timestamp: string|null, level: string, message: string}>
-	 */
-	private function filterEntries(array $entries): array
-	{
-		return \array_filter($entries, function (array $entry): bool {
-			// Filter by level
-			if ($this->filterLevel !== null && $entry['level'] !== $this->filterLevel) {
-				return false;
-			}
-
-			// Filter by date range
-			if ($this->filterDateFrom !== null || $this->filterDateTo !== null) {
-				if ($entry['timestamp'] === null) {
-					return false;
-				}
-
-				$entryTime = Carbon::createFromFormat('Y-m-d H-i-s', $entry['timestamp']);
-
-				if ($this->filterDateFrom !== null) {
-					$fromTime = Carbon::parse($this->filterDateFrom);
-
-					if ($entryTime->lt($fromTime)) {
-						return false;
-					}
-				}
-
-				if ($this->filterDateTo !== null) {
-					$toTime = Carbon::parse($this->filterDateTo);
-
-					if ($entryTime->gt($toTime)) {
-						return false;
-					}
-				}
-			}
-
-			return true;
-		});
-	}
-
-	/**
-	 * @return array<array{timestamp: string|null, level: string, message: string}>
-	 */
-	private function parseLogContent(string $content): array
-	{
-		$entries = [];
-		$lines = \explode("\n", $content);
-
-		foreach ($lines as $line) {
-			$line = \Nette\Utils\Strings::trim($line);
-
-			if ($line === '') {
-				continue;
-			}
-
-			$entry = ['timestamp' => null, 'level' => 'info', 'message' => $line];
-
-			// Parse various timestamp formats
-			// Format: [YYYY-MM-DD HH:MM:SS] or YYYY-MM-DD HH:MM:SS or YYYY-MM-DDTHH:MM:SS
-			if (\preg_match('/^\[?(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2})\]?\s*(.*)$/', $line, $m)) {
-				$entry['timestamp'] = $m[1];
-				$entry['message'] = $m[2];
-			// Format: DD.MM.YYYY HH:MM:SS (European)
-			} elseif (\preg_match('/^\[?(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2}:\d{2})\]?\s*(.*)$/', $line, $m)) {
-				$entry['timestamp'] = $m[1];
-				$entry['message'] = $m[2];
-			// Format: timestamp anywhere in brackets at start: [anything with date-like pattern]
-			} elseif (\preg_match('/^\[([^\]]+)\]\s*(.*)$/', $line, $m)) {
-				$entry['timestamp'] = $m[1];
-				$entry['message'] = $m[2];
-			}
-
-			// Detect log level
-			$lower = \Nette\Utils\Strings::lower($entry['message']);
-
-			if (\str_contains($lower, 'error') || \str_contains($lower, 'exception')) {
-				$entry['level'] = 'error';
-			} elseif (\str_contains($lower, 'warning')) {
-				$entry['level'] = 'warning';
-			} elseif (\str_contains($lower, 'success')) {
-				$entry['level'] = 'success';
-			}
-
-			$entries[] = $entry;
 		}
 
-		// Newest first
-		return \array_reverse($entries);
+		$this->template->decodedPayload = $decodedPayload;
+	}
+
+	public function renderDetail(PipedriveLog $pipedriveLog): void
+	{
+		unset($pipedriveLog);
+
+		$this->template->headerLabel = 'Detail webhook záznamu';
+		$this->template->headerTree = [
+			['Pipedrive Log', 'default'],
+			['Detail'],
+		];
+		$this->template->displayButtons = [$this->createBackButton('default')];
+		$this->template->displayControls = [];
+		$this->template->setFile(__DIR__ . '/templates/PipedriveLog.detail.latte');
 	}
 }
