@@ -27,4 +27,6 @@ parameters:
 		- src/DB/CustomerBonitaRepository.php
 		- src/DB/PipedriveLog.php
 		- src/DB/PipedriveLogRepository.php
+		- src/DB/NpBillingOverride.php
+		- src/DB/NpBillingOverrideRepository.php
 		- src/Admin/PipedriveLogPresenter.php
