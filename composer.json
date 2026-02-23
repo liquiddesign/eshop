@@ -66,6 +66,12 @@
         "jetbrains/phpstorm-attributes": "^1.2"
     },
     "scripts": {
+        "post-install-cmd": [
+            "git config core.hooksPath scripts/hooks 2>/dev/null || true"
+        ],
+        "post-update-cmd": [
+            "git config core.hooksPath scripts/hooks 2>/dev/null || true"
+        ],
         "cf": "@fix-code",
         "ch": "@check-code",
         "fix-code": [
