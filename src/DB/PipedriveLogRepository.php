@@ -16,7 +16,7 @@ class PipedriveLogRepository extends Repository
 	 * @param array<array<string, mixed>> $messages
 	 * @param array<string, mixed> $requestPayload
 	 */
-	public function createFromWebhook(
+	public function createLog(
 		bool $success,
 		string|null $resultMessage = null,
 		string|null $entityType = null,
