@@ -260,6 +260,13 @@
                             </p>
                         {/if}
 
+                        {if $order->purchase->internalNote}
+                            <p class="lead mt-4">Interní poznámka:</p>
+                            <p class="text-muted well well-sm shadow-none" style="margin-top: 10px;">
+                                {$order->purchase->internalNote}
+                            </p>
+                        {/if}
+
                         {if $order->purchase->deliveryNote}
                             <p class="lead mt-4">Poznámka pro dopravce:</p>
                             <p class="text-muted well well-sm shadow-none" style="margin-top: 10px;">
