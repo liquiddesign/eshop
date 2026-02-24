@@ -134,7 +134,7 @@ class PricelistsPresenter extends BackendPresenter
 
 	public function createComponentPriceLists(): AdminGrid
 	{
-		$grid = $this->gridFactory->create($this->priceListRepository->many(), 20, 'priority', 'ASC', filterShops: false);
+		$grid = $this->gridFactory->create($this->priceListRepository->many()->setGroupBy(['this.uuid']), 20, 'priority', 'ASC', filterShops: false);
 		$grid->addColumnSelector();
 
 		$grid->addColumnText('Kód', 'code', '%s', 'code', ['class' => 'fit'])->onRenderCell[] = [
