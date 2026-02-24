@@ -227,7 +227,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		$suffix = $this->getConnection()->getMutationSuffix();
 		$sep = '|';
-		$priorityLpad = '3';
+		$priorityLpad = '4';
+		$priorityOffset = 1000;
 		$priceLpad = (string) ($prec + 9);
 		$priceSelects = $priceWhere = [];
 		$collection = $this->many()->setSmartJoin(false);
@@ -243,7 +244,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				$priceVat = $this->sqlHandlePrice("prices$id", 'priceVat', $discountLevelPct, $maxProductDiscountLevel, $generalPricelistIds, $prec, $convertRatio, $priceListSurchargeLevel);
 				$priceBefore = $this->sqlHandlePrice("prices$id", 'priceBefore', 0, 0, $generalPricelistIds, $prec, $convertRatio, $priceListSurchargeLevel);
 				$priceVatBefore = $this->sqlHandlePrice("prices$id", 'priceVatBefore', 0, 0, $generalPricelistIds, $prec, $convertRatio, $priceListSurchargeLevel);
-				$priceSelects[] = "IF(prices$id.price IS NULL,'X',CONCAT_WS('$sep',LPAD(" . $pricelist->priority .
+				$priceSelects[] = "IF(prices$id.price IS NULL,'X',CONCAT_WS('$sep',LPAD(" . ($pricelist->priority + $priorityOffset) .
 					",$priorityLpad,'0'),LPAD(CAST($price AS DECIMAL($priceLpad,$prec)), $priceLpad, '0'),
 					IFNULL($priceVat, 0),IFNULL($priceBefore,0),IFNULL($priceVatBefore,0),prices$id.fk_pricelist))";
 			}
