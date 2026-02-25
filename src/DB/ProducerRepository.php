@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Admin\DB\IGeneralAjaxRepository;
 use Common\DB\IGeneralRepository;
 use Eshop\Admin\ScriptsPresenter;
 use Eshop\ShopperUser;
@@ -17,7 +18,7 @@ use StORM\SchemaManager;
 /**
  * @extends \StORM\Repository<\Eshop\DB\Producer>
  */
-class ProducerRepository extends Repository implements IGeneralRepository
+class ProducerRepository extends Repository implements IGeneralRepository, IGeneralAjaxRepository
 {
 	private ProductRepository $productRepository;
 
@@ -39,6 +40,19 @@ class ProducerRepository extends Repository implements IGeneralRepository
 		$suffix = $this->getConnection()->getMutationSuffix();
 
 		return $this->getCollection($includeHidden)->setOrderBy(["this.name$suffix"])->toArrayOf('name');
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getAjaxArrayForSelect(bool $includeHidden = true, ?string $q = null, ?int $page = null): array
+	{
+		$suffix = $this->getConnection()->getMutationSuffix();
+
+		return $this->getCollection($includeHidden)
+			->where("this.name$suffix LIKE :like", ['like' => "%$q%"])
+			->setPage($page ?? 1, 5)
+			->toArrayOf('name');
 	}
 
 	/**
