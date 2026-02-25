@@ -177,16 +177,12 @@ class CustomerRepository extends \StORM\Repository implements IUserRepository, I
 
 	public function getByMerchant(Merchant $merchant): Collection
 	{
-		/** @var \Eshop\DB\MerchantRepository $merchantRepo */
-		$merchantRepo = $this->getConnection()->findRepository(Merchant::class);
-		$customers = $merchantRepo->getMerchantCustomers($merchant)->toArray();
-
 		$collection = $this->getCollection();
 
-		if (\count($customers) > 0) {
-			$collection->where('this.uuid', \array_keys($customers));
-		} elseif ($merchant->customerGroups->count() !== 0) {
-			$collection->where('this.fk_group', $merchant->getCustomerGroups()->toArrayOf('uuid', toArrayValues: true));
+		$groupIds = $merchant->getCustomerGroups()->toArrayOf('uuid', toArrayValues: true);
+
+		if (\count($groupIds) > 0) {
+			$collection->where('this.fk_group', $groupIds);
 		}
 
 		return $collection;
