@@ -18,7 +18,7 @@ class GiftService implements AutoWireService
 	public const GIFT_TYPE_GIFT = 'gift';
 	public const GIFT_TYPE_DISCOUNT = 'gift_discount';
 	public const GIFT_PRODUCT_PREFIX = 'DÁREK: ';
-	public const GIFT_DISCOUNT_PRODUCT_UUID = 'gift-discount-product';
+	public const GIFT_DISCOUNT_PRODUCT_UUID = 'giftDiscountProduct';
 	public const GIFT_PRICE = 1.0;
 
 	public function __construct(
