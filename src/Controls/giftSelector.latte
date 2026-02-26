@@ -30,7 +30,7 @@
 						<div class="gift-selector__slide">
 							<div class="card h-100 gift-card {if $isSelected}gift-card--selected{/if}">
 								{if isset($displayableGifts[$gift->getPK()])}
-								<a href="{plink :Eshop:Product:detail $gift}" class="gift-card__link">
+								<a href="{plink :Eshop:Product:detail $gift->getPK()}" class="gift-card__link">
 							{else}
 								<div class="gift-card__link">
 							{/if}
