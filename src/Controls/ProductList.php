@@ -331,7 +331,9 @@ class ProductList extends Datalist
 			$product = $this->itemsOnPage !== null ? ($this->itemsOnPage[$itemId] ?? null) : $productRepository->getProduct($itemId);
 
 			if (!$product) {
-				$this->redirect('this');
+				Debugger::log("ProductList: Product '$itemId' not found during buyForm creation", ILogger::WARNING);
+
+				return new \Forms\Form();
 			}
 
 			$form = $this->buyFormFactory->create($product);
