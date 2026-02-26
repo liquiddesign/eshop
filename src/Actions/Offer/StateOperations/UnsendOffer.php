@@ -31,6 +31,13 @@ class UnsendOffer extends BaseAction
 			'managerApprovalRequestedTs' => null,
 			'managerApprovedTs' => null,
 		]);
+
+		$this->onOfferUnsent($offer);
+	}
+
+	protected function onOfferUnsent(Offer $offer): void
+	{
+		unset($offer);
 	}
 
 	/**
