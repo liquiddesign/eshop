@@ -2,7 +2,6 @@
 
 namespace Eshop\Services\ProductsCache;
 
-use Base\Bridges\AutoWireService;
 use Carbon\Carbon;
 use Eshop\DB\Customer;
 use Eshop\DevelTools;
@@ -14,7 +13,7 @@ use StORM\DIConnection;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
-class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService implements AutoWireService
+class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService
 {
 	private DIConnection $cacheConnection;
 
@@ -524,9 +523,9 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 		Debugger::timer('diffUpdateVisibilityPriceTable -- prefetch -- price sort');
 
 		foreach ($allProductsWithPrice as &$priceListItems) {
-			// sort by priority
+			// sort by priority, then by priceListId for deterministic order
 			\uasort($priceListItems, static function ($a, $b) {
-				return $a->priceListPriority <=> $b->priceListPriority;
+				return $a->priceListPriority <=> $b->priceListPriority ?: $a->priceListId <=> $b->priceListId;
 			});
 		}
 

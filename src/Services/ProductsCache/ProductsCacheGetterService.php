@@ -3,7 +3,6 @@
 namespace Eshop\Services\ProductsCache;
 
 use Base\Application;
-use Base\Bridges\AutoWireService;
 use Base\ShopsConfig;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -36,7 +35,7 @@ use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
-class ProductsCacheGetterService implements AutoWireService
+class ProductsCacheGetterService
 {
 	public bool $debug = false;
 
