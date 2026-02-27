@@ -2,6 +2,7 @@
 
 namespace Eshop\Services\ProductsCache;
 
+use Base\Application;
 use Base\DB\Shop;
 use Base\ShopsConfig;
 use Eshop\Admin\ScriptsPresenter;
@@ -31,6 +32,7 @@ use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use StORM\DIConnection;
+use Tracy\Debugger;
 use Web\DB\SettingRepository;
 
 abstract class ProductsCacheBaseWarmUpService
@@ -47,6 +49,8 @@ abstract class ProductsCacheBaseWarmUpService
 	protected string|false $dbName = false;
 
 	protected string|false $mutationSuffix = false;
+
+	protected string $logName = 'ProductsCache-timing';
 
 	public function __construct(
 		protected readonly ProductRepository $productRepository,
@@ -336,6 +340,8 @@ abstract class ProductsCacheBaseWarmUpService
 			], keepIndex: true)
 			->fetchArray(\stdClass::class);
 
+		Debugger::timer('prefetch_descendants');
+
 		foreach ($allCategories as $category) {
 			$category->descendants = $this->categoryRepository->many()
 				->where('this.path LIKE :path', ['path' => $category->path . '%'])
@@ -344,6 +350,12 @@ abstract class ProductsCacheBaseWarmUpService
 				->setSelect(['this.uuid'], keepIndex: true)
 				->toArrayOf('uuid', toArrayValues: true);
 		}
+
+		Debugger::log(\sprintf(
+			'prefetch_descendants: %.3fs (%d categories, N+1 queries)',
+			Debugger::timer('prefetch_descendants'),
+			\count($allCategories),
+		), $this->logName);
 
 		/** @var array<object{category: string|null, categoryType: string}> $allProductPrimaryCategories */
 		$allProductPrimaryCategories = $this->productPrimaryCategoryRepository->many()
@@ -391,6 +403,44 @@ abstract class ProductsCacheBaseWarmUpService
 		return [$allCategoryTypes, $allDisplayAmounts, $allCategories, $allProductPrimaryCategories, $productPrimaryCategories, $productAttributeValues, $productCategories];
 	}
 
+	protected function isCacheDeduplicationEnabled(): bool
+	{
+		try {
+			/** @var \Base\Application $application */
+			$application = $this->container->getByType(Application::class);
+
+			return $application->getEnvironment() !== 'production';
+		} catch (\Throwable) {
+			return false;
+		}
+	}
+
+	/**
+	 * Returns set of pricelist PKs that have 0 prices (empty pricelists).
+	 * @param array<string|int, \Eshop\DB\Pricelist> $prefetchedPriceLists
+	 * @return array<string|int, true>
+	 */
+	private function getEmptyPriceListPKs(array $prefetchedPriceLists): array
+	{
+		$priceCountsByPriceList = $this->priceRepository->many()
+			->join(['priceList' => 'eshop_pricelist'], 'this.fk_pricelist = priceList.uuid', type: 'INNER')
+			->where('priceList.isActive', true)
+			->setSelect([
+				'priceListPK' => 'priceList.uuid',
+				'cnt' => 'COUNT(*)',
+			])
+			->setGroupBy(['priceList.uuid'])
+			->fetchArray(\stdClass::class);
+
+		$nonEmptyPKs = [];
+
+		foreach ($priceCountsByPriceList as $row) {
+			$nonEmptyPKs[$row->priceListPK] = true;
+		}
+
+		return \array_diff_key(\array_fill_keys(\array_keys($prefetchedPriceLists), true), $nonEmptyPKs);
+	}
+
 	/**
 	 * @param array<string|int> $customers
 	 * @param array<string|int> $customerGroups
@@ -399,6 +449,8 @@ abstract class ProductsCacheBaseWarmUpService
 	 */
 	private function getAllPossibleVisibilityAndPriceListOptionsHelper(array $customers = [], array $customerGroups = [], array $merchants = [], Shop|null $shop = null): array
 	{
+		Debugger::timer('optionsHelper');
+
 		/** @var array<string|int, \Eshop\DB\Pricelist> $prefetchedPriceLists */
 		$prefetchedPriceLists = $this->pricelistRepository->many()->select(['this.id'])->toArray();
 
@@ -407,6 +459,11 @@ abstract class ProductsCacheBaseWarmUpService
 		$allPriceLists = [];
 		/** @var array<string, true> $merchantIndexes */
 		$merchantIndexes = [];
+		$discountQueryCount = 0;
+
+		$filterEmptyPriceLists = $this->isCacheDeduplicationEnabled();
+		/** @var array<string|int, true> $emptyPriceListPKs */
+		$emptyPriceListPKs = $filterEmptyPriceLists ? $this->getEmptyPriceListPKs($prefetchedPriceLists) : [];
 
 		$customerGroupsQuery = $this->customerGroupRepository->many();
 
@@ -455,11 +512,18 @@ abstract class ProductsCacheBaseWarmUpService
 			$dynamicPriceLists = [];
 
 			foreach ($priceLists as $PK => $id) {
+				$discountQueryCount++;
+
 				if ($prefetchedPriceLists[$PK]->getDiscounts()->count() === 0) {
 					$fixedPriceLists[$PK] = $id;
 				} else {
 					$dynamicPriceLists[$PK] = $id;
 				}
+			}
+
+			// Filter out empty dynamic price lists (non-production only)
+			if ($filterEmptyPriceLists) {
+				$dynamicPriceLists = \array_diff_key($dynamicPriceLists, $emptyPriceListPKs);
 			}
 
 			// Generate all possible combinations of dynamic price lists
@@ -550,11 +614,18 @@ abstract class ProductsCacheBaseWarmUpService
 				$dynamicPriceLists = [];
 
 				foreach ($priceLists as $PK => $id) {
+					$discountQueryCount++;
+
 					if ($prefetchedPriceLists[$PK]->getDiscounts()->count() === 0) {
 						$fixedPriceLists[$PK] = $id;
 					} else {
 						$dynamicPriceLists[$PK] = $id;
 					}
+				}
+
+				// Filter out empty dynamic price lists (non-production only)
+				if ($filterEmptyPriceLists) {
+					$dynamicPriceLists = \array_diff_key($dynamicPriceLists, $emptyPriceListPKs);
 				}
 
 				// Generate all possible combinations of dynamic price lists
@@ -646,11 +717,18 @@ abstract class ProductsCacheBaseWarmUpService
 				$dynamicPriceLists = [];
 
 				foreach ($priceLists as $PK => $id) {
+					$discountQueryCount++;
+
 					if ($prefetchedPriceLists[$PK]->getDiscounts()->count() === 0) {
 						$fixedPriceLists[$PK] = $id;
 					} else {
 						$dynamicPriceLists[$PK] = $id;
 					}
+				}
+
+				// Filter out empty dynamic price lists (non-production only)
+				if ($filterEmptyPriceLists) {
+					$dynamicPriceLists = \array_diff_key($dynamicPriceLists, $emptyPriceListPKs);
 				}
 
 				// Generate all possible combinations of dynamic price lists
@@ -682,6 +760,16 @@ abstract class ProductsCacheBaseWarmUpService
 				}
 			}
 		}
+
+		Debugger::log(\sprintf(
+			'optionsHelper: %.3fs (%d combinations, %d VLs, %d PLs, %d discount queries, shop=%s)',
+			Debugger::timer('optionsHelper'),
+			\count($existingOptions),
+			\count($allVisibilityLists),
+			\count($allPriceLists),
+			$discountQueryCount,
+			$shop?->getPK() ?? 'null',
+		), $this->logName);
 
 		return [$existingOptions, \array_keys($allVisibilityLists), \array_keys($allPriceLists), $merchantIndexes];
 	}

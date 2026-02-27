@@ -2,6 +2,7 @@
 
 namespace Eshop\Services\ProductsCache;
 
+use Base\Application;
 use Base\Bridges\AutoWireService;
 use Base\ShopsConfig;
 use Eshop\DB\AttributeRepository;
@@ -96,6 +97,9 @@ class ProductsCacheGetterService implements AutoWireService
 	protected Cache $cache;
 
 	private DIConnection $connection;
+
+	/** @var array<string, string|null> */
+	private array $mappingCache = [];
 
 	public function __construct(
 		protected readonly ProductRepository $productRepository,
@@ -301,6 +305,14 @@ class ProductsCacheGetterService implements AutoWireService
 
 		if (Strings::length($visibilityPricesCacheTableName) > 63) {
 			$visibilityPricesCacheTableName = DIConnection::generateUuid7('cache_prices', $visibilityPricesCacheTableName);
+		}
+
+		if ($this->isCacheDeduplicationEnabled()) {
+			$physicalTable = $this->resolvePhysicalTableName($visibilityPriceListsIndex);
+
+			if ($physicalTable !== null) {
+				$visibilityPricesCacheTableName = $physicalTable;
+			}
 		}
 
 		$productsCollection = $this->getConnection()->rows(['this' => $productsCacheTableName])
@@ -844,10 +856,10 @@ class ProductsCacheGetterService implements AutoWireService
 				$productsCollection->orderBy([
 					'visibilityPrice.priority' => $direction,
 					'case COALESCE(displayAmount_isSold, 2)
-	                     when 0 then 0
-	                     when 1 then 1
-	                     when 2 then 2
-	                     else 2 end' => $direction,
+						 when 0 then 0
+						 when 1 then 1
+						 when 2 then 2
+						 else 2 end' => $direction,
 					'visibilityPrice.price' => $direction,
 				]);
 			};
@@ -1066,5 +1078,39 @@ class ProductsCacheGetterService implements AutoWireService
 		return $values ? ('COALESCE(' . \implode(',', \array_map(static function (mixed $item) use ($prefix, $suffix, $separator): string {
 				return $prefix . ($prefix ? $separator : '') . $item->id . ($suffix ? $separator : '') . $suffix;
 		}, $values)) . ')') : 'NULL';
+	}
+
+	private function isCacheDeduplicationEnabled(): bool
+	{
+		try {
+			/** @var \Base\Application $application */
+			$application = $this->container->getByType(Application::class);
+
+			return $application->getEnvironment() !== 'production';
+		} catch (\Throwable) {
+			return false;
+		}
+	}
+
+	private function resolvePhysicalTableName(string $priceIndex): string|null
+	{
+		if (\array_key_exists($priceIndex, $this->mappingCache)) {
+			return $this->mappingCache[$priceIndex];
+		}
+
+		try {
+			$result = $this->getConnection()->query(
+				'SELECT physical_table FROM `price_table_map` WHERE price_index = :idx LIMIT 1',
+				['idx' => $priceIndex],
+			);
+
+			$row = $result->fetch(\PDO::FETCH_ASSOC);
+
+			$this->mappingCache[$priceIndex] = $row !== false ? $row['physical_table'] : null;
+		} catch (\Throwable) {
+			$this->mappingCache[$priceIndex] = null;
+		}
+
+		return $this->mappingCache[$priceIndex];
 	}
 }
