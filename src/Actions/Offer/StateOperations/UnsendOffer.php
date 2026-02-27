@@ -31,6 +31,8 @@ class UnsendOffer extends BaseAction
 			'managerApprovalRequestedTs' => null,
 			'managerApprovedTs' => null,
 		]);
+
+		$this->onOfferUnsent($offer);
 	}
 
 	/**
@@ -50,5 +52,10 @@ class UnsendOffer extends BaseAction
 		}
 
 		throw new UnauthorizedStateChangeException();
+	}
+
+	protected function onOfferUnsent(Offer $offer): void
+	{
+		unset($offer);
 	}
 }
