@@ -35,11 +35,6 @@ class UnsendOffer extends BaseAction
 		$this->onOfferUnsent($offer);
 	}
 
-	protected function onOfferUnsent(Offer $offer): void
-	{
-		unset($offer);
-	}
-
 	/**
 	 * @throws \Eshop\Actions\Offer\StateOperations\UnauthorizedStateChangeException
 	 */
@@ -57,5 +52,10 @@ class UnsendOffer extends BaseAction
 		}
 
 		throw new UnauthorizedStateChangeException();
+	}
+
+	protected function onOfferUnsent(Offer $offer): void
+	{
+		unset($offer);
 	}
 }
