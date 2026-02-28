@@ -118,7 +118,21 @@ func ComputeIndexHash(
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
+// CollectGroupPLIDs returns the set of all unique PL IDs used across all indexes in a VL group.
+func CollectGroupPLIDs(indexes []model.PriceIndex) map[int32]bool {
+	plSet := make(map[int32]bool)
+
+	for _, idx := range indexes {
+		for _, plID := range idx.PLIDs {
+			plSet[plID] = true
+		}
+	}
+
+	return plSet
+}
+
 // ComputeGroupHash computes the group-level hash for all indexes in a VL group.
+// Only considers PLIDs that belong to the group's indexes (not all PLIDs from priceData).
 // Product and PL iteration order must match PHP (sorted by key) for hash compatibility.
 func ComputeGroupHash(
 	productHashData map[int64]map[int32]*ProductHashData,
@@ -126,8 +140,10 @@ func ComputeGroupHash(
 ) string {
 	h := sha256.New()
 
-	// Sort product IDs to match PHP iteration order (int-keyed arrays iterate in insertion order,
-	// which for productHashData is the order of productVLI iteration — also int-keyed).
+	// Build set of PLIDs relevant to this group
+	groupPLIDs := CollectGroupPLIDs(indexes)
+
+	// Sort product IDs for deterministic iteration
 	productIDs := make([]int64, 0, len(productHashData))
 	for pid := range productHashData {
 		productIDs = append(productIDs, pid)
@@ -141,7 +157,13 @@ func ComputeGroupHash(
 		// Sort PL IDs by pricelist priority (matching PHP's uasort by priceListPriority)
 		plIDs := make([]int32, 0, len(plData))
 		for plID := range plData {
-			plIDs = append(plIDs, plID)
+			if groupPLIDs[plID] {
+				plIDs = append(plIDs, plID)
+			}
+		}
+
+		if len(plIDs) == 0 {
+			continue
 		}
 
 		sort.Slice(plIDs, func(i, j int) bool {

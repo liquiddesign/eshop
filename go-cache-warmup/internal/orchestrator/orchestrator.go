@@ -491,7 +491,7 @@ func processOneIndex(
 			return fmt.Errorf("register mapping: %w", err)
 		}
 
-		atomic.AddInt64(tablesCreated, 1)
+		atomic.AddInt64(tablesUpdated, 1)
 
 		return nil
 	}
