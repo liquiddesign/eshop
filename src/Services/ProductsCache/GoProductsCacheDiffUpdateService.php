@@ -12,7 +12,7 @@ use Tracy\ILogger;
 
 class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 {
-	private const GO_BINARY_PATH = '/var/www/html/vendor/liquiddesign/eshop/bin/cache-warmup';
+	private const GO_BINARY_PATH = __DIR__ . '/../../../bin/cache-warmup';
 
 	/**
 	 * @param array<string|\Eshop\DB\Customer> $customers
