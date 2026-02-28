@@ -12,7 +12,7 @@ use Tracy\ILogger;
 
 class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 {
-	private const GO_BINARY_PATH = '/var/www/html/bin/cache-warmup';
+	private const GO_BINARY_PATH = '/var/www/html/vendor/liquiddesign/eshop/bin/cache-warmup';
 
 	/**
 	 * @param array<string|\Eshop\DB\Customer> $customers
@@ -115,7 +115,7 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 		}
 
 		$args[] = '--workers';
-		$args[] = '4';
+		$args[] = '2';
 		$args[] = '--verbose';
 
 		return $args;
