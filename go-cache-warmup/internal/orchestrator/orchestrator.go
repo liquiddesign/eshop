@@ -204,6 +204,7 @@ type indexWork struct {
 	productVLI      map[int64]*model.VLI
 	productHashData map[int64]map[int32]*resolver.ProductHashData
 	priceData       loader.PriceData
+	precomputedHash string // set in dedup mode (hash already computed in sequential phase)
 }
 
 func processVLGroups(
@@ -293,8 +294,33 @@ func processVLGroups(
 				continue
 			}
 
+			// Pre-filter: compute individual hashes and skip unchanged indexes
+			var changedCount int
+			for _, idx := range group.Indexes {
+				hash := resolver.ComputeIndexHash(productHashData, idx.PLIDs, idx.IsMerchant)
+				storedMapping := existingMappings[idx.Key]
+
+				if storedMapping != nil && storedMapping.ContentHash == hash {
+					// Index unchanged — skip without sending to worker pool
+					existingPricesTables.Delete(storedMapping.PhysicalTable)
+					touchedIndexes.Set(idx.Key)
+					atomic.AddInt64(&tablesUnchanged, 1)
+
+					continue
+				}
+
+				changedCount++
+				indexWorkItems = append(indexWorkItems, indexWork{
+					index:           idx,
+					productVLI:      productVLI,
+					productHashData: productHashData,
+					priceData:       priceData,
+					precomputedHash: hash,
+				})
+			}
+
 			if cfg.Verbose {
-				log.Printf("VL group %s: group hash CHANGED, processing %d indexes", group.VLKey, len(group.Indexes))
+				log.Printf("VL group %s: group hash CHANGED, %d/%d indexes changed", group.VLKey, changedCount, len(group.Indexes))
 			}
 
 			prepared = append(prepared, preparedGroup{
@@ -309,16 +335,16 @@ func processVLGroups(
 				productVLI:      productVLI,
 				productHashData: productHashData,
 			})
-		}
 
-		// Collect all indexes for the worker pool
-		for _, idx := range group.Indexes {
-			indexWorkItems = append(indexWorkItems, indexWork{
-				index:           idx,
-				productVLI:      productVLI,
-				productHashData: productHashData,
-				priceData:       priceData,
-			})
+			// Non-dedup: all indexes go to worker pool
+			for _, idx := range group.Indexes {
+				indexWorkItems = append(indexWorkItems, indexWork{
+					index:           idx,
+					productVLI:      productVLI,
+					productHashData: productHashData,
+					priceData:       priceData,
+				})
+			}
 		}
 	}
 
@@ -329,6 +355,12 @@ func processVLGroups(
 	}
 
 	diffStats := writer.NewDiffStats(10)
+
+	if cfg.Verbose {
+		preFiltered := atomic.LoadInt64(&tablesUnchanged)
+		log.Printf("Worker pool: %d indexes to process (%d pre-filtered as unchanged)",
+			len(indexWorkItems), preFiltered)
+	}
 
 	if len(indexWorkItems) > 0 {
 		indexCh := make(chan indexWork, len(indexWorkItems))
@@ -433,21 +465,8 @@ func processOneIndex(
 	}()
 
 	if dedup {
-		// Phase 1: Hash-only pass
-		hash := resolver.ComputeIndexHash(work.productHashData, index.PLIDs, index.IsMerchant)
-
-		// existingMappings is read-only, safe for concurrent access
-		storedMapping := existingMappings[index.Key]
-
-		// Check unchanged
-		if storedMapping != nil && storedMapping.ContentHash == hash {
-			existingPricesTables.Delete(storedMapping.PhysicalTable)
-			touchedIndexes.Set(index.Key)
-
-			atomic.AddInt64(tablesUnchanged, 1)
-
-			return nil
-		}
+		// Hash already computed and unchanged indexes filtered in sequential phase
+		hash := work.precomputedHash
 
 		// Check dedup match
 		existingTable, err := w.FindExistingTableByHash(hash)
