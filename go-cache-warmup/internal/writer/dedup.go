@@ -9,6 +9,15 @@ import (
 	"github.com/liquiddesign/eshop/go-cache-warmup/internal/model"
 )
 
+const (
+	// GroupHashPrefix is the prefix for group hash keys in price_table_map.
+	GroupHashPrefix = "__group_"
+	// GroupTableName is the physical_table value for group hash entries.
+	GroupTableName = "__group"
+	// PriceTablePrefix is the prefix for price cache tables.
+	PriceTablePrefix = "prices_"
+)
+
 // GenerateTableName generates the cache table name for a price index.
 // If the name exceeds 63 chars, it generates a hashed name.
 func GenerateTableName(prefix, index string) string {

@@ -22,18 +22,9 @@ func writeTSVAndLoad(db *sql.DB, tableName string, rows map[int64]*model.PriceRo
 	var sb strings.Builder
 
 	for _, row := range rows {
-		pb := "\\N"
-		if row.PriceBefore != 0 {
-			pb = fmt.Sprintf("%g", row.PriceBefore)
-		}
-
-		pvb := "\\N"
-		if row.PriceVatBefore != 0 {
-			pvb = fmt.Sprintf("%g", row.PriceVatBefore)
-		}
-
 		sb.WriteString(fmt.Sprintf("%d\t%g\t%g\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\n",
-			row.Product, row.Price, row.PriceVat, pb, pvb,
+			row.Product, row.Price, row.PriceVat,
+			formatNullable(row.PriceBefore, "\\N"), formatNullable(row.PriceVatBefore, "\\N"),
 			row.PriceList, boolToInt(row.Hidden), boolToInt(row.HiddenInMenu),
 			row.Priority, boolToInt(row.Unavailable), boolToInt(row.Recommended),
 		))

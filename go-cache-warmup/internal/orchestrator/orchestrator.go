@@ -243,8 +243,13 @@ func processVLGroups(
 			return fmt.Errorf("ensure mapping table: %w", err)
 		}
 
+		keys := make([]string, 0, len(combResult.Options))
 		for index := range combResult.Options {
-			w.DeleteMapping(index)
+			keys = append(keys, index)
+		}
+
+		if err := w.DeleteStaleMappings(keys); err != nil {
+			return fmt.Errorf("delete partial mappings: %w", err)
 		}
 	}
 
@@ -257,7 +262,7 @@ func processVLGroups(
 
 	// Phase 1: Prepare groups sequentially (resolve VLI + compute hash data + group hash check)
 	var prepared []preparedGroup
-	var indexWorkItems []indexWork
+	indexWorkItems := make([]indexWork, 0, stats.TotalIndexes)
 
 	for _, group := range combResult.VLGroups {
 		productVLI := resolver.ResolveVLI(vliData, group.VLIDs)
@@ -265,7 +270,7 @@ func processVLGroups(
 
 		if dedup {
 			groupHash := resolver.ComputeGroupHash(productHashData, group.Indexes)
-			groupHashKey := "__group_" + group.VLKey
+			groupHashKey := writer.GroupHashPrefix + group.VLKey
 
 			storedMapping := existingMappings[groupHashKey]
 
@@ -360,9 +365,9 @@ func processVLGroups(
 	// Phase 3: Store group hashes sequentially
 	if dedup {
 		for _, pg := range prepared {
-			groupHashKey := "__group_" + pg.group.VLKey
+			groupHashKey := writer.GroupHashPrefix + pg.group.VLKey
 
-			if err := w.RegisterMapping(groupHashKey, "__group", pg.groupHash); err != nil {
+			if err := w.RegisterMapping(groupHashKey, writer.GroupTableName, pg.groupHash); err != nil {
 				return fmt.Errorf("register group hash: %w", err)
 			}
 
@@ -409,7 +414,7 @@ func processOneIndex(
 	tablesCreated, tablesDeduped, tablesUnchanged, tablesUpdated *int64,
 ) error {
 	index := work.index
-	tableName := writer.GenerateTableName("prices_", index.Key)
+	tableName := writer.GenerateTableName(writer.PriceTablePrefix, index.Key)
 
 	if dedup {
 		// Phase 1: Hash-only pass
@@ -453,13 +458,13 @@ func processOneIndex(
 		isNewTable := !existingPricesTables.Has(tableName)
 
 		if isNewTable {
-			if err := w.CreatePriceTable(tableName); err != nil {
-				log.Printf("ERROR: create table %s: %v", tableName, err)
+			created, err := createAndLoadTable(w, tableName, priceRows)
+			if !created {
 				return nil
 			}
 
-			if err := w.BulkLoadPriceRows(tableName, priceRows); err != nil {
-				return fmt.Errorf("bulk load %s: %w", tableName, err)
+			if err != nil {
+				return err
 			}
 
 			if err := w.RegisterMapping(index.Key, tableName, hash); err != nil {
@@ -497,13 +502,13 @@ func processOneIndex(
 	isNewTable := !existingPricesTables.Has(tableName)
 
 	if isNewTable {
-		if err := w.CreatePriceTable(tableName); err != nil {
-			log.Printf("ERROR: create table %s: %v", tableName, err)
+		created, err := createAndLoadTable(w, tableName, priceRows)
+		if !created {
 			return nil
 		}
 
-		if err := w.BulkLoadPriceRows(tableName, priceRows); err != nil {
-			return fmt.Errorf("bulk load %s: %w", tableName, err)
+		if err != nil {
+			return err
 		}
 
 		existingPricesTables.Delete(tableName)
@@ -527,4 +532,20 @@ func processOneIndex(
 	}
 
 	return nil
+}
+
+// createAndLoadTable creates a price table and bulk-loads rows into it.
+// Returns (created bool, err error). When CreatePriceTable fails, it logs the error and returns (false, nil)
+// to match the existing skip-on-error behavior.
+func createAndLoadTable(w *writer.Writer, tableName string, priceRows map[int64]*model.PriceRow) (bool, error) {
+	if err := w.CreatePriceTable(tableName); err != nil {
+		log.Printf("ERROR: create table %s: %v", tableName, err)
+		return false, nil
+	}
+
+	if err := w.BulkLoadPriceRows(tableName, priceRows); err != nil {
+		return true, fmt.Errorf("bulk load %s: %w", tableName, err)
+	}
+
+	return true, nil
 }

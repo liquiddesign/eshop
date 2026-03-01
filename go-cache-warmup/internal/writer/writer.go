@@ -221,7 +221,7 @@ func (w *Writer) FindExistingTableByHash(hash string) (string, error) {
 	var table string
 
 	err := w.cacheDB.QueryRow(
-		"SELECT physical_table FROM price_table_map WHERE content_hash = ? AND physical_table != '__group' LIMIT 1",
+		"SELECT physical_table FROM price_table_map WHERE content_hash = ? AND physical_table != '"+GroupTableName+"' LIMIT 1",
 		hash,
 	).Scan(&table)
 
@@ -293,8 +293,6 @@ func (w *Writer) DropTable(tableName string) error {
 }
 
 func (w *Writer) insertRows(quotedTable string, rows []*model.PriceRow) error {
-	const chunkSize = 10000
-
 	for i := 0; i < len(rows); i += chunkSize {
 		end := min(i+chunkSize, len(rows))
 
@@ -309,18 +307,9 @@ func (w *Writer) insertRows(quotedTable string, rows []*model.PriceRow) error {
 				sb.WriteByte(',')
 			}
 
-			pb := "NULL"
-			if row.PriceBefore != 0 {
-				pb = fmt.Sprintf("%g", row.PriceBefore)
-			}
-
-			pvb := "NULL"
-			if row.PriceVatBefore != 0 {
-				pvb = fmt.Sprintf("%g", row.PriceVatBefore)
-			}
-
 			sb.WriteString(fmt.Sprintf("(%d,%g,%g,%s,%s,%d,%v,%v,%d,%v,%v)",
-				row.Product, row.Price, row.PriceVat, pb, pvb,
+				row.Product, row.Price, row.PriceVat,
+				formatNullable(row.PriceBefore, "NULL"), formatNullable(row.PriceVatBefore, "NULL"),
 				row.PriceList, boolToInt(row.Hidden), boolToInt(row.HiddenInMenu),
 				row.Priority, boolToInt(row.Unavailable), boolToInt(row.Recommended),
 			))
@@ -335,8 +324,6 @@ func (w *Writer) insertRows(quotedTable string, rows []*model.PriceRow) error {
 }
 
 func (w *Writer) updateRows(quotedTable string, rows []*model.PriceRow) error {
-	const chunkSize = 10000
-
 	for i := 0; i < len(rows); i += chunkSize {
 		end := min(i+chunkSize, len(rows))
 
@@ -348,19 +335,10 @@ func (w *Writer) updateRows(quotedTable string, rows []*model.PriceRow) error {
 		}
 
 		for _, row := range chunk {
-			pb := "NULL"
-			if row.PriceBefore != 0 {
-				pb = fmt.Sprintf("%g", row.PriceBefore)
-			}
-
-			pvb := "NULL"
-			if row.PriceVatBefore != 0 {
-				pvb = fmt.Sprintf("%g", row.PriceVatBefore)
-			}
-
 			query := fmt.Sprintf(
 				"UPDATE %s SET price=%g, priceVat=%g, priceBefore=%s, priceVatBefore=%s, priceList=%d, hidden=%d, hiddenInMenu=%d, priority=%d, unavailable=%d, recommended=%d WHERE product=%d",
-				quotedTable, row.Price, row.PriceVat, pb, pvb,
+				quotedTable, row.Price, row.PriceVat,
+				formatNullable(row.PriceBefore, "NULL"), formatNullable(row.PriceVatBefore, "NULL"),
 				row.PriceList, boolToInt(row.Hidden), boolToInt(row.HiddenInMenu),
 				row.Priority, boolToInt(row.Unavailable), boolToInt(row.Recommended),
 				row.Product,
@@ -381,8 +359,6 @@ func (w *Writer) updateRows(quotedTable string, rows []*model.PriceRow) error {
 }
 
 func (w *Writer) deleteRows(quotedTable string, products []int64) error {
-	const chunkSize = 10000
-
 	for i := 0; i < len(products); i += chunkSize {
 		end := min(i+chunkSize, len(products))
 
@@ -420,6 +396,18 @@ func rowsEqual(a, b *model.PriceRow) bool {
 
 func quoteIdentifier(name string) string {
 	return "`" + strings.ReplaceAll(name, "`", "``") + "`"
+}
+
+// chunkSize is the batch size for bulk SQL operations.
+const chunkSize = 10000
+
+// formatNullable formats a float64 value, returning nullStr when the value is 0.
+func formatNullable(value float64, nullStr string) string {
+	if value != 0 {
+		return fmt.Sprintf("%g", value)
+	}
+
+	return nullStr
 }
 
 func boolToInt(b bool) int {

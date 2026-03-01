@@ -97,7 +97,7 @@ func processSource(
 	}
 
 	// Split PLs into fixed and dynamic
-	var fixedPLIDs []int32
+	fixedPLSet := make(map[int32]bool)
 	var dynamicPLIDs []int32
 
 	for i, pk := range src.PLPKs {
@@ -113,7 +113,7 @@ func processSource(
 
 			dynamicPLIDs = append(dynamicPLIDs, src.PLIDs[i])
 		} else {
-			fixedPLIDs = append(fixedPLIDs, src.PLIDs[i])
+			fixedPLSet[src.PLIDs[i]] = true
 		}
 	}
 
@@ -133,7 +133,7 @@ func processSource(
 		var finalPLIDs []int32
 
 		for _, id := range src.PLIDs {
-			if slices.Contains(fixedPLIDs, id) || comboSet[id] {
+			if fixedPLSet[id] || comboSet[id] {
 				finalPLIDs = append(finalPLIDs, id)
 			}
 		}
@@ -162,7 +162,7 @@ func processRawIndex(
 	}
 
 	// Parse VL IDs (these are numeric IDs from GROUP_CONCAT)
-	vlIDs := make([]int32, 0)
+	vlIDs := make([]int32, 0, strings.Count(vlPart, ",")+1)
 
 	for s := range strings.SplitSeq(vlPart, ",") {
 		id, err := strconv.ParseInt(s, 10, 32)
@@ -269,7 +269,7 @@ func parseIntList(s string) []int32 {
 		return nil
 	}
 
-	result := make([]int32, 0)
+	result := make([]int32, 0, strings.Count(s, ",")+1)
 
 	for p := range strings.SplitSeq(s, ",") {
 		id, err := strconv.ParseInt(p, 10, 32)
