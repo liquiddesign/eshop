@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -112,9 +111,28 @@ func (w *Writer) BulkLoadPriceRows(tableName string, rows map[int64]*model.Price
 	return writeTSVAndLoad(w.cacheDB, tableName, rows)
 }
 
+// DiffTiming holds per-phase timing for a single DiffUpdate call.
+type DiffTiming struct {
+	Table     string
+	Existing  int
+	New       int
+	Created   int
+	Updated   int
+	Deleted   int
+	SelectMs  int64
+	CompareMs int64
+	InsertMs  int64
+	UpdateMs  int64
+	DeleteMs  int64
+	TotalMs   int64
+}
+
 // DiffUpdate performs diff-update on an existing price table.
-// Returns (created, updated, deleted) counts.
-func (w *Writer) DiffUpdate(tableName string, newRows map[int64]*model.PriceRow) (int, int, int, error) {
+// Returns row counts and timing breakdown.
+func (w *Writer) DiffUpdate(tableName string, newRows map[int64]*model.PriceRow) (*DiffTiming, error) {
+	totalStart := time.Now()
+	timing := &DiffTiming{Table: tableName, New: len(newRows)}
+
 	// SELECT existing cache
 	selectStart := time.Now()
 
@@ -125,7 +143,7 @@ func (w *Writer) DiffUpdate(tableName string, newRows map[int64]*model.PriceRow)
 
 	dbRows, err := w.cacheDB.Query(query)
 	if err != nil {
-		return 0, 0, 0, fmt.Errorf("select cache prices: %w", err)
+		return nil, fmt.Errorf("select cache prices: %w", err)
 	}
 	defer dbRows.Close()
 
@@ -141,7 +159,7 @@ func (w *Writer) DiffUpdate(tableName string, newRows map[int64]*model.PriceRow)
 			&row.PriceList, &row.Hidden, &row.HiddenInMenu,
 			&row.Priority, &row.Unavailable, &row.Recommended,
 		); err != nil {
-			return 0, 0, 0, fmt.Errorf("scan cache price: %w", err)
+			return nil, fmt.Errorf("scan cache price: %w", err)
 		}
 
 		if priceVat.Valid {
@@ -159,8 +177,8 @@ func (w *Writer) DiffUpdate(tableName string, newRows map[int64]*model.PriceRow)
 		existingRows[row.Product] = row
 	}
 
-	selectMs := time.Since(selectStart).Milliseconds()
-	existingCount := len(existingRows)
+	timing.SelectMs = time.Since(selectStart).Milliseconds()
+	timing.Existing = len(existingRows)
 
 	// Compare
 	compareStart := time.Now()
@@ -187,7 +205,7 @@ func (w *Writer) DiffUpdate(tableName string, newRows map[int64]*model.PriceRow)
 		toDelete = append(toDelete, product)
 	}
 
-	compareMs := time.Since(compareStart).Milliseconds()
+	timing.CompareMs = time.Since(compareStart).Milliseconds()
 
 	// Execute updates
 	quotedTable := quoteIdentifier(tableName)
@@ -197,43 +215,40 @@ func (w *Writer) DiffUpdate(tableName string, newRows map[int64]*model.PriceRow)
 
 	if len(toCreate) > 0 {
 		if err := w.insertRows(quotedTable, toCreate); err != nil {
-			return 0, 0, 0, err
+			return nil, err
 		}
 	}
 
-	insertMs := time.Since(insertStart).Milliseconds()
+	timing.InsertMs = time.Since(insertStart).Milliseconds()
 
 	// UPDATE changed rows
 	updateStart := time.Now()
 
 	if len(toUpdate) > 0 {
 		if err := w.updateRows(quotedTable, toUpdate); err != nil {
-			return 0, 0, 0, err
+			return nil, err
 		}
 	}
 
-	updateMs := time.Since(updateStart).Milliseconds()
+	timing.UpdateMs = time.Since(updateStart).Milliseconds()
 
 	// DELETE removed rows
 	deleteStart := time.Now()
 
 	if len(toDelete) > 0 {
 		if err := w.deleteRows(quotedTable, toDelete); err != nil {
-			return 0, 0, 0, err
+			return nil, err
 		}
 	}
 
-	deleteMs := time.Since(deleteStart).Milliseconds()
+	timing.DeleteMs = time.Since(deleteStart).Milliseconds()
 
-	if w.verbose {
-		log.Printf("DiffUpdate %s: existing=%d new=%d → create=%d update=%d delete=%d | select=%dms compare=%dms insert=%dms update=%dms delete=%dms",
-			tableName, existingCount, len(newRows),
-			len(toCreate), len(toUpdate), len(toDelete),
-			selectMs, compareMs, insertMs, updateMs, deleteMs,
-		)
-	}
+	timing.Created = len(toCreate)
+	timing.Updated = len(toUpdate)
+	timing.Deleted = len(toDelete)
+	timing.TotalMs = time.Since(totalStart).Milliseconds()
 
-	return len(toCreate), len(toUpdate), len(toDelete), nil
+	return timing, nil
 }
 
 // RegisterMapping inserts/updates a mapping in price_table_map.

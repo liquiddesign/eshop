@@ -328,12 +328,17 @@ func processVLGroups(
 		workers = runtime.NumCPU()
 	}
 
+	diffStats := writer.NewDiffStats(10)
+
 	if len(indexWorkItems) > 0 {
 		indexCh := make(chan indexWork, len(indexWorkItems))
 		for _, item := range indexWorkItems {
 			indexCh <- item
 		}
 		close(indexCh)
+
+		var processedCount int64
+		totalCount := int64(len(indexWorkItems))
 
 		errCh := make(chan error, workers)
 		var wg sync.WaitGroup
@@ -346,6 +351,7 @@ func processVLGroups(
 						work,
 						existingMappings, existingPricesTables, touchedIndexes,
 						&tablesCreated, &tablesDeduped, &tablesUnchanged, &tablesUpdated,
+						&processedCount, totalCount, diffStats,
 					); err != nil {
 						errCh <- fmt.Errorf("index %s: %w", work.index.Key, err)
 						return
@@ -399,6 +405,7 @@ func processVLGroups(
 		log.Printf("Cleanup: %dms", stats.CleanupTimeMs)
 		log.Printf("Summary: created=%d deduped=%d unchanged=%d updated=%d",
 			tablesCreated, tablesDeduped, tablesUnchanged, tablesUpdated)
+		diffStats.LogSummary()
 	}
 
 	return nil
@@ -412,9 +419,18 @@ func processOneIndex(
 	existingPricesTables *writer.SyncSet,
 	touchedIndexes *writer.SyncSet,
 	tablesCreated, tablesDeduped, tablesUnchanged, tablesUpdated *int64,
+	processedCount *int64, totalCount int64,
+	diffStats *writer.DiffStats,
 ) error {
 	index := work.index
 	tableName := writer.GenerateTableName(writer.PriceTablePrefix, index.Key)
+
+	defer func() {
+		current := atomic.AddInt64(processedCount, 1)
+		if current%100 == 0 || current == totalCount {
+			log.Printf("Progress: %d/%d indexes processed", current, totalCount)
+		}
+	}()
 
 	if dedup {
 		// Phase 1: Hash-only pass
@@ -482,10 +498,12 @@ func processOneIndex(
 		touchedIndexes.Set(index.Key)
 
 		// Diff-update existing table
-		_, _, _, err = w.DiffUpdate(tableName, priceRows)
+		timing, err := w.DiffUpdate(tableName, priceRows)
 		if err != nil {
 			return fmt.Errorf("diff-update %s: %w", tableName, err)
 		}
+
+		diffStats.Record(timing)
 
 		if err := w.RegisterMapping(index.Key, tableName, hash); err != nil {
 			return fmt.Errorf("register mapping: %w", err)
@@ -520,12 +538,14 @@ func processOneIndex(
 
 	existingPricesTables.Delete(tableName)
 
-	created, updated, deleted, err := w.DiffUpdate(tableName, priceRows)
+	timing, err := w.DiffUpdate(tableName, priceRows)
 	if err != nil {
 		return fmt.Errorf("diff-update %s: %w", tableName, err)
 	}
 
-	if created > 0 || updated > 0 || deleted > 0 {
+	diffStats.Record(timing)
+
+	if timing.Created > 0 || timing.Updated > 0 || timing.Deleted > 0 {
 		atomic.AddInt64(tablesUpdated, 1)
 	} else {
 		atomic.AddInt64(tablesUnchanged, 1)
