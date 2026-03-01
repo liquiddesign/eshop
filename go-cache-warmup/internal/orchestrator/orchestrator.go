@@ -80,8 +80,7 @@ func Run(cfg *config.Config) (*model.Stats, error) {
 
 	if len(shops) > 0 {
 		for _, s := range shops {
-			s := s
-			shopPKs = append(shopPKs, &s)
+			shopPKs = append(shopPKs, new(s))
 		}
 	} else {
 		shopPKs = append(shopPKs, nil) // null shop
@@ -334,12 +333,8 @@ func processVLGroups(
 		errCh := make(chan error, workers)
 		var wg sync.WaitGroup
 
-		for i := 0; i < workers; i++ {
-			wg.Add(1)
-
-			go func() {
-				defer wg.Done()
-
+		for range workers {
+			wg.Go(func() {
 				for work := range indexCh {
 					if err := processOneIndex(
 						w, dedup,
@@ -351,7 +346,7 @@ func processVLGroups(
 						return
 					}
 				}
-			}()
+			})
 		}
 
 		wg.Wait()

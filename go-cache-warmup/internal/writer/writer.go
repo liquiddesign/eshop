@@ -2,6 +2,7 @@ package writer
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -224,7 +225,7 @@ func (w *Writer) FindExistingTableByHash(hash string) (string, error) {
 		hash,
 	).Scan(&table)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil
 	}
 
@@ -248,7 +249,7 @@ func (w *Writer) DeleteStaleMappings(staleIndexes []string) error {
 	}
 
 	placeholders := make([]string, len(staleIndexes))
-	args := make([]interface{}, len(staleIndexes))
+	args := make([]any, len(staleIndexes))
 
 	for i, idx := range staleIndexes {
 		placeholders[i] = "?"
@@ -295,10 +296,7 @@ func (w *Writer) insertRows(quotedTable string, rows []*model.PriceRow) error {
 	const chunkSize = 10000
 
 	for i := 0; i < len(rows); i += chunkSize {
-		end := i + chunkSize
-		if end > len(rows) {
-			end = len(rows)
-		}
+		end := min(i+chunkSize, len(rows))
 
 		chunk := rows[i:end]
 
@@ -340,10 +338,7 @@ func (w *Writer) updateRows(quotedTable string, rows []*model.PriceRow) error {
 	const chunkSize = 10000
 
 	for i := 0; i < len(rows); i += chunkSize {
-		end := i + chunkSize
-		if end > len(rows) {
-			end = len(rows)
-		}
+		end := min(i+chunkSize, len(rows))
 
 		chunk := rows[i:end]
 
@@ -389,14 +384,11 @@ func (w *Writer) deleteRows(quotedTable string, products []int64) error {
 	const chunkSize = 10000
 
 	for i := 0; i < len(products); i += chunkSize {
-		end := i + chunkSize
-		if end > len(products) {
-			end = len(products)
-		}
+		end := min(i+chunkSize, len(products))
 
 		chunk := products[i:end]
 		placeholders := make([]string, len(chunk))
-		args := make([]interface{}, len(chunk))
+		args := make([]any, len(chunk))
 
 		for j, p := range chunk {
 			placeholders[j] = "?"

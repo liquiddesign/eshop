@@ -48,8 +48,7 @@ func LoadPricelists(prodDB *sql.DB, verbose bool) (*PricelistData, error) {
 		pl.HasDiscounts = hasDiscounts == 1
 
 		if shopFK.Valid {
-			s := shopFK.String
-			pl.ShopFK = &s
+			pl.ShopFK = new(shopFK.String)
 		}
 
 		data.ByPK[pl.PK] = pl

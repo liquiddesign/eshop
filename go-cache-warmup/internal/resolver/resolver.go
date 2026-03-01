@@ -1,9 +1,11 @@
 package resolver
 
 import (
+	"cmp"
 	"crypto/sha256"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 
 	"github.com/liquiddesign/eshop/go-cache-warmup/internal/loader"
 	"github.com/liquiddesign/eshop/go-cache-warmup/internal/model"
@@ -90,12 +92,7 @@ func ComputeIndexHash(
 	h := sha256.New()
 
 	// Sort product IDs for deterministic iteration (Go maps have random order)
-	productIDs := make([]int64, 0, len(productHashData))
-	for pid := range productHashData {
-		productIDs = append(productIDs, pid)
-	}
-
-	sort.Slice(productIDs, func(i, j int) bool { return productIDs[i] < productIDs[j] })
+	productIDs := slices.Sorted(maps.Keys(productHashData))
 
 	for _, pid := range productIDs {
 		plData := productHashData[pid]
@@ -144,12 +141,7 @@ func ComputeGroupHash(
 	groupPLIDs := CollectGroupPLIDs(indexes)
 
 	// Sort product IDs for deterministic iteration
-	productIDs := make([]int64, 0, len(productHashData))
-	for pid := range productHashData {
-		productIDs = append(productIDs, pid)
-	}
-
-	sort.Slice(productIDs, func(i, j int) bool { return productIDs[i] < productIDs[j] })
+	productIDs := slices.Sorted(maps.Keys(productHashData))
 
 	for _, pid := range productIDs {
 		plData := productHashData[pid]
@@ -166,15 +158,15 @@ func ComputeGroupHash(
 			continue
 		}
 
-		sort.Slice(plIDs, func(i, j int) bool {
-			pi := plData[plIDs[i]].PriceListPriority
-			pj := plData[plIDs[j]].PriceListPriority
+		slices.SortFunc(plIDs, func(a, b int32) int {
+			pi := plData[a].PriceListPriority
+			pj := plData[b].PriceListPriority
 
 			if pi != pj {
-				return pi < pj
+				return cmp.Compare(pi, pj)
 			}
 
-			return plIDs[i] < plIDs[j]
+			return cmp.Compare(a, b)
 		})
 
 		for _, plID := range plIDs {

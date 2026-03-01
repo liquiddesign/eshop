@@ -31,9 +31,9 @@ func LoadCustomerGroupSources(
 
 	// Determine which groups to query
 	var groupFilter string
-	var groupArgs []interface{}
+	var groupArgs []any
 
-	shopArg := interface{}(nil)
+	shopArg := any(nil)
 	if shopPK != nil {
 		shopArg = *shopPK
 	}
@@ -193,7 +193,7 @@ func LoadCustomerIndexes(
 		log.Println("Loading customer indexes...")
 	}
 
-	shopArg := interface{}(nil)
+	shopArg := any(nil)
 	if shopPK != nil {
 		shopArg = *shopPK
 	}
@@ -207,7 +207,7 @@ func LoadCustomerIndexes(
 
 	for _, table := range tables {
 		customerFilter := ""
-		var args []interface{}
+		var args []any
 		args = append(args, shopArg, shopArg)
 
 		if len(customers) > 0 {
@@ -284,13 +284,13 @@ func LoadMerchantIndexes(
 		log.Println("Loading merchant indexes...")
 	}
 
-	shopArg := interface{}(nil)
+	shopArg := any(nil)
 	if shopPK != nil {
 		shopArg = *shopPK
 	}
 
 	merchantFilter := ""
-	var args []interface{}
+	var args []any
 	args = append(args, shopArg, shopArg)
 
 	if len(merchants) > 0 {

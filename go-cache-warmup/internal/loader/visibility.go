@@ -24,7 +24,7 @@ func LoadVLI(prodDB *sql.DB, vlIDs []int32, verbose bool) (VLIData, error) {
 	}
 
 	placeholders := make([]string, len(vlIDs))
-	args := make([]interface{}, len(vlIDs))
+	args := make([]any, len(vlIDs))
 
 	for i, id := range vlIDs {
 		placeholders[i] = "?"

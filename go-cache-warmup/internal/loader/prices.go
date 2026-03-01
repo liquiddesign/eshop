@@ -1,10 +1,11 @@
 package loader
 
 import (
+	"cmp"
 	"database/sql"
 	"fmt"
 	"log"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/liquiddesign/eshop/go-cache-warmup/internal/model"
@@ -25,7 +26,7 @@ func LoadPrices(prodDB *sql.DB, priceListIDs []int32, verbose bool) (PriceData, 
 	}
 
 	placeholders := make([]string, len(priceListIDs))
-	args := make([]interface{}, len(priceListIDs))
+	args := make([]any, len(priceListIDs))
 
 	for i, id := range priceListIDs {
 		placeholders[i] = "?"
@@ -113,8 +114,8 @@ func LoadPrices(prodDB *sql.DB, priceListIDs []int32, verbose bool) (PriceData, 
 
 	// Sort by priority and build final map
 	for productID, items := range temp {
-		sort.Slice(items, func(i, j int) bool {
-			return items[i].priority < items[j].priority
+		slices.SortFunc(items, func(a, b priceWithPriority) int {
+			return cmp.Compare(a.priority, b.priority)
 		})
 
 		m := make(map[int32]*model.Price, len(items))

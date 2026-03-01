@@ -66,10 +66,9 @@ func splitCSV(s string) []string {
 		return nil
 	}
 
-	parts := strings.Split(s, ",")
-	result := make([]string, 0, len(parts))
+	var result []string
 
-	for _, p := range parts {
+	for p := range strings.SplitSeq(s, ",") {
 		p = strings.TrimSpace(p)
 		if p != "" {
 			result = append(result, p)

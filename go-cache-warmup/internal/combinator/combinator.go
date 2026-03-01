@@ -1,9 +1,11 @@
 package combinator
 
 import (
+	"cmp"
 	"fmt"
 	"log"
-	"sort"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -63,10 +65,8 @@ func Generate(
 	}
 
 	// Collect unique VL and PL IDs
-	result.AllVLIDs = mapKeysInt32(allVLs)
-	result.AllPLIDs = mapKeysInt32(allPLs)
-	sort.Slice(result.AllVLIDs, func(i, j int) bool { return result.AllVLIDs[i] < result.AllVLIDs[j] })
-	sort.Slice(result.AllPLIDs, func(i, j int) bool { return result.AllPLIDs[i] < result.AllPLIDs[j] })
+	result.AllVLIDs = slices.Sorted(maps.Keys(allVLs))
+	result.AllPLIDs = slices.Sorted(maps.Keys(allPLs))
 
 	// Build VL groups
 	result.VLGroups = buildVLGroups(result.Options, result.MerchantIndexes)
@@ -97,9 +97,7 @@ func processSource(
 	}
 
 	// Split PLs into fixed and dynamic
-	var fixedPLPKs []string
 	var fixedPLIDs []int32
-	var dynamicPLPKs []string
 	var dynamicPLIDs []int32
 
 	for i, pk := range src.PLPKs {
@@ -113,10 +111,8 @@ func processSource(
 				continue
 			}
 
-			dynamicPLPKs = append(dynamicPLPKs, pk)
 			dynamicPLIDs = append(dynamicPLIDs, src.PLIDs[i])
 		} else {
-			fixedPLPKs = append(fixedPLPKs, pk)
 			fixedPLIDs = append(fixedPLIDs, src.PLIDs[i])
 		}
 	}
@@ -137,15 +133,7 @@ func processSource(
 		var finalPLIDs []int32
 
 		for _, id := range src.PLIDs {
-			isFixed := false
-			for _, fid := range fixedPLIDs {
-				if id == fid {
-					isFixed = true
-					break
-				}
-			}
-
-			if isFixed || comboSet[id] {
+			if slices.Contains(fixedPLIDs, id) || comboSet[id] {
 				finalPLIDs = append(finalPLIDs, id)
 			}
 		}
@@ -168,16 +156,15 @@ func processRawIndex(
 	result *Result,
 	allVLs, allPLs map[int32]bool,
 ) {
-	parts := strings.SplitN(raw.Index, "-", 2)
-	if len(parts) != 2 {
+	vlPart, plPart, found := strings.Cut(raw.Index, "-")
+	if !found {
 		return
 	}
 
 	// Parse VL IDs (these are numeric IDs from GROUP_CONCAT)
-	vlStrs := strings.Split(parts[0], ",")
-	vlIDs := make([]int32, 0, len(vlStrs))
+	vlIDs := make([]int32, 0)
 
-	for _, s := range vlStrs {
+	for s := range strings.SplitSeq(vlPart, ",") {
 		id, err := strconv.ParseInt(s, 10, 32)
 		if err != nil {
 			continue
@@ -188,12 +175,10 @@ func processRawIndex(
 	}
 
 	// Parse PL PKs (UUIDs from GROUP_CONCAT) → resolve to IDs
-	plPKs := strings.Split(parts[1], ",")
-	var plIDs []int32
 	var srcPLPKs []string
 	var srcPLIDs []int32
 
-	for _, pk := range plPKs {
+	for pk := range strings.SplitSeq(plPart, ",") {
 		pl := plData.ByPK[pk]
 		if pl == nil {
 			continue
@@ -202,7 +187,6 @@ func processRawIndex(
 		allPLs[pl.ID] = true
 		srcPLPKs = append(srcPLPKs, pk)
 		srcPLIDs = append(srcPLIDs, pl.ID)
-		plIDs = append(plIDs, pl.ID)
 	}
 
 	// Split into fixed and dynamic, generate combinations
@@ -239,14 +223,13 @@ func buildVLGroups(options map[string]bool, merchantIndexes map[string]bool) []m
 	indexesByVL := make(map[string][]model.PriceIndex)
 
 	for index := range options {
-		parts := strings.SplitN(index, "-", 2)
-		if len(parts) != 2 {
+		vlKey, plPart, found := strings.Cut(index, "-")
+		if !found {
 			continue
 		}
 
-		vlKey := parts[0]
-		vlIDs := parseIntList(parts[0])
-		plIDs := parseIntList(parts[1])
+		vlIDs := parseIntList(vlKey)
+		plIDs := parseIntList(plPart)
 
 		pi := model.PriceIndex{
 			Key:        index,
@@ -262,8 +245,8 @@ func buildVLGroups(options map[string]bool, merchantIndexes map[string]bool) []m
 
 	for vlKey, indexes := range indexesByVL {
 		// Sort indexes by key for deterministic order (Go maps iterate randomly)
-		sort.Slice(indexes, func(i, j int) bool {
-			return indexes[i].Key < indexes[j].Key
+		slices.SortFunc(indexes, func(a, b model.PriceIndex) int {
+			return cmp.Compare(a.Key, b.Key)
 		})
 
 		groups = append(groups, model.VLGroup{
@@ -274,8 +257,8 @@ func buildVLGroups(options map[string]bool, merchantIndexes map[string]bool) []m
 	}
 
 	// Sort groups for deterministic processing
-	sort.Slice(groups, func(i, j int) bool {
-		return groups[i].VLKey < groups[j].VLKey
+	slices.SortFunc(groups, func(a, b model.VLGroup) int {
+		return cmp.Compare(a.VLKey, b.VLKey)
 	})
 
 	return groups
@@ -286,10 +269,9 @@ func parseIntList(s string) []int32 {
 		return nil
 	}
 
-	parts := strings.Split(s, ",")
-	result := make([]int32, 0, len(parts))
+	result := make([]int32, 0)
 
-	for _, p := range parts {
+	for p := range strings.SplitSeq(s, ",") {
 		id, err := strconv.ParseInt(p, 10, 32)
 		if err != nil {
 			continue
@@ -308,13 +290,4 @@ func int32SliceToStr(ids []int32) string {
 	}
 
 	return strings.Join(strs, ",")
-}
-
-func mapKeysInt32(m map[int32]bool) []int32 {
-	keys := make([]int32, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-
-	return keys
 }
