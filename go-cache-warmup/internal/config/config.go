@@ -35,7 +35,7 @@ func Parse() (*Config, error) {
 	flag.StringVar(&customerGroups, "customer-groups", "", "Comma-separated customer group UUIDs")
 	flag.StringVar(&merchants, "merchants", "", "Comma-separated merchant UUIDs")
 	flag.IntVar(&cfg.Workers, "workers", 4, "Number of parallel workers")
-	flag.BoolVar(&cfg.Verbose, "verbose", false, "Verbose logging to stderr")
+	flag.BoolVar(&cfg.Verbose, "verbose", true, "Verbose logging to stderr")
 
 	flag.Parse()
 

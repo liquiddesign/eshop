@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
+	"time"
 
 	"github.com/liquiddesign/eshop/go-cache-warmup/internal/model"
 )
@@ -114,6 +116,8 @@ func (w *Writer) BulkLoadPriceRows(tableName string, rows map[int64]*model.Price
 // Returns (created, updated, deleted) counts.
 func (w *Writer) DiffUpdate(tableName string, newRows map[int64]*model.PriceRow) (int, int, int, error) {
 	// SELECT existing cache
+	selectStart := time.Now()
+
 	query := fmt.Sprintf(
 		"SELECT product, price, priceVat, priceBefore, priceVatBefore, priceList, hidden, hiddenInMenu, priority, unavailable, recommended FROM %s",
 		quoteIdentifier(tableName),
@@ -155,7 +159,12 @@ func (w *Writer) DiffUpdate(tableName string, newRows map[int64]*model.PriceRow)
 		existingRows[row.Product] = row
 	}
 
+	selectMs := time.Since(selectStart).Milliseconds()
+	existingCount := len(existingRows)
+
 	// Compare
+	compareStart := time.Now()
+
 	var toCreate []*model.PriceRow
 	var toUpdate []*model.PriceRow
 	var toDelete []int64
@@ -178,28 +187,50 @@ func (w *Writer) DiffUpdate(tableName string, newRows map[int64]*model.PriceRow)
 		toDelete = append(toDelete, product)
 	}
 
+	compareMs := time.Since(compareStart).Milliseconds()
+
 	// Execute updates
 	quotedTable := quoteIdentifier(tableName)
 
 	// INSERT new rows
+	insertStart := time.Now()
+
 	if len(toCreate) > 0 {
 		if err := w.insertRows(quotedTable, toCreate); err != nil {
 			return 0, 0, 0, err
 		}
 	}
 
+	insertMs := time.Since(insertStart).Milliseconds()
+
 	// UPDATE changed rows
+	updateStart := time.Now()
+
 	if len(toUpdate) > 0 {
 		if err := w.updateRows(quotedTable, toUpdate); err != nil {
 			return 0, 0, 0, err
 		}
 	}
 
+	updateMs := time.Since(updateStart).Milliseconds()
+
 	// DELETE removed rows
+	deleteStart := time.Now()
+
 	if len(toDelete) > 0 {
 		if err := w.deleteRows(quotedTable, toDelete); err != nil {
 			return 0, 0, 0, err
 		}
+	}
+
+	deleteMs := time.Since(deleteStart).Milliseconds()
+
+	if w.verbose {
+		log.Printf("DiffUpdate %s: existing=%d new=%d → create=%d update=%d delete=%d | select=%dms compare=%dms insert=%dms update=%dms delete=%dms",
+			tableName, existingCount, len(newRows),
+			len(toCreate), len(toUpdate), len(toDelete),
+			selectMs, compareMs, insertMs, updateMs, deleteMs,
+		)
 	}
 
 	return len(toCreate), len(toUpdate), len(toDelete), nil
