@@ -35,9 +35,21 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 
 		try {
 			$args = $this->buildGoArgs($customers, $customerGroups, $merchants);
-			$result = $this->executeGoBinary($args);
 
-			Debugger::log('Go cache-warmup result: ' . \json_encode($result), $this->logName);
+			Debugger::log(\sprintf(
+				'Go cache-warmup starting... | binary=%s | customers=%d customerGroups=%d merchants=%d dedup=%s workers=2',
+				self::GO_BINARY_PATH,
+				\count($customers),
+				\count($customerGroups),
+				\count($merchants),
+				$this->isCacheDeduplicationEnabled() ? 'true' : 'false',
+			), $this->logName);
+
+			$startTime = \microtime(true);
+			$result = $this->executeGoBinary($args);
+			$elapsed = \round(\microtime(true) - $startTime, 1);
+
+			Debugger::log(\sprintf('Go cache-warmup finished in %ss | result: %s', $elapsed, \json_encode($result)), $this->logName);
 		} catch (\Throwable $e) {
 			Debugger::log('Go cache-warmup failed, falling back to PHP: ' . $e->getMessage(), ILogger::EXCEPTION);
 
@@ -174,33 +186,82 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 		// Close stdin
 		\fclose($pipes[0]);
 
-		// Read stdout
-		$stdout = \stream_get_contents($pipes[1]);
-		\fclose($pipes[1]);
+		// Stream stderr line-by-line in real-time
+		\stream_set_blocking($pipes[2], false);
 
-		// Read stderr and log each line
-		$stderr = \stream_get_contents($pipes[2]);
-		\fclose($pipes[2]);
+		$stderrLines = [];
+		$stdout = '';
+		$stderrEof = false;
+		$stdoutEof = false;
 
-		if ($stderr !== false && $stderr !== '') {
-			foreach (\explode("\n", Strings::trim($stderr)) as $line) {
-				if ($line !== '') {
-					Debugger::log('[Go] ' . $line, $this->logName);
+		while (!$stderrEof || !$stdoutEof) {
+			$read = [];
+
+			if (!$stdoutEof) {
+				$read[] = $pipes[1];
+			}
+
+			if (!$stderrEof) {
+				$read[] = $pipes[2];
+			}
+
+			$write = null;
+			$except = null;
+
+			if (\stream_select($read, $write, $except, 1) === false) {
+				break;
+			}
+
+			foreach ($read as $stream) {
+				if ($stream === $pipes[1]) {
+					$chunk = \fread($pipes[1], 65536);
+
+					if ($chunk === false || $chunk === '') {
+						if (\feof($pipes[1])) {
+							$stdoutEof = true;
+						}
+					} else {
+						$stdout .= $chunk;
+					}
+				}
+
+				if ($stream !== $pipes[2]) {
+					continue;
+				}
+
+				$line = \fgets($pipes[2]);
+
+				if ($line === false) {
+					if (\feof($pipes[2])) {
+						$stderrEof = true;
+					}
+				} else {
+					$line = \rtrim($line, "\n\r");
+
+					if ($line !== '') {
+						Debugger::log('[Go] ' . $line, $this->logName);
+						$stderrLines[] = $line;
+					}
 				}
 			}
 		}
 
+		\fclose($pipes[1]);
+		\fclose($pipes[2]);
+
 		$exitCode = \proc_close($process);
 
 		if ($exitCode !== 0) {
+			$stderrStr = \implode("\n", $stderrLines);
+
 			throw new \RuntimeException(\sprintf(
 				'Go binary exited with code %d. Stderr: %s',
 				$exitCode,
-				$stderr !== false ? Strings::substring($stderr, 0, 1000) : '',
+				Strings::substring($stderrStr, 0, 1000),
 			));
 		}
 
-		if ($stdout === false || $stdout === '') {
+		if ($stdout === '') {
 			throw new \RuntimeException('Go binary produced no output');
 		}
 
