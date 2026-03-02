@@ -127,7 +127,7 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 		}
 
 		$args[] = '--workers';
-		$args[] = '2';
+		$args[] = '4';
 		$args[] = '--verbose';
 
 		return $args;
