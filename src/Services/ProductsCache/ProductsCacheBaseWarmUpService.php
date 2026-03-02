@@ -2,7 +2,6 @@
 
 namespace Eshop\Services\ProductsCache;
 
-use Base\Application;
 use Base\DB\Shop;
 use Base\ShopsConfig;
 use Eshop\Admin\ScriptsPresenter;
@@ -405,14 +404,7 @@ abstract class ProductsCacheBaseWarmUpService
 
 	protected function isCacheDeduplicationEnabled(): bool
 	{
-		try {
-			/** @var \Base\Application $application */
-			$application = $this->container->getByType(Application::class);
-
-			return $application->getEnvironment() !== 'production';
-		} catch (\Throwable) {
-			return false;
-		}
+		return true;
 	}
 
 	/**

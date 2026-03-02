@@ -8,7 +8,6 @@ use Eshop\DB\Customer;
 use Nette\Utils\Strings;
 use StORM\DIConnection;
 use Tracy\Debugger;
-use Tracy\ILogger;
 
 class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 {
@@ -26,35 +25,25 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 		array $merchants = [],
 	): void {
 		if (!$this->isGoBinaryAvailable()) {
-			Debugger::log('Go binary not available, falling back to PHP', $this->logName);
-
-			parent::diffUpdateVisibilityPriceTable($pricesCacheTableName, $customers, $customerGroups, $merchants);
-
-			return;
+			throw new \RuntimeException(\sprintf('Go cache-warmup binary not found or not executable: %s', self::GO_BINARY_PATH));
 		}
 
-		try {
-			$args = $this->buildGoArgs($customers, $customerGroups, $merchants);
+		$args = $this->buildGoArgs($customers, $customerGroups, $merchants);
 
-			Debugger::log(\sprintf(
-				'Go cache-warmup starting... | binary=%s | customers=%d customerGroups=%d merchants=%d dedup=%s workers=2',
-				self::GO_BINARY_PATH,
-				\count($customers),
-				\count($customerGroups),
-				\count($merchants),
-				$this->isCacheDeduplicationEnabled() ? 'true' : 'false',
-			), $this->logName);
+		Debugger::log(\sprintf(
+			'Go cache-warmup starting... | binary=%s | customers=%d customerGroups=%d merchants=%d dedup=%s workers=4',
+			self::GO_BINARY_PATH,
+			\count($customers),
+			\count($customerGroups),
+			\count($merchants),
+			$this->isCacheDeduplicationEnabled() ? 'true' : 'false',
+		), $this->logName);
 
-			$startTime = \microtime(true);
-			$result = $this->executeGoBinary($args);
-			$elapsed = \round(\microtime(true) - $startTime, 1);
+		$startTime = \microtime(true);
+		$result = $this->executeGoBinary($args);
+		$elapsed = \round(\microtime(true) - $startTime, 1);
 
-			Debugger::log(\sprintf('Go cache-warmup finished in %ss | result: %s', $elapsed, \json_encode($result)), $this->logName);
-		} catch (\Throwable $e) {
-			Debugger::log('Go cache-warmup failed, falling back to PHP: ' . $e->getMessage(), ILogger::EXCEPTION);
-
-			parent::diffUpdateVisibilityPriceTable($pricesCacheTableName, $customers, $customerGroups, $merchants);
-		}
+		Debugger::log(\sprintf('Go cache-warmup finished in %ss | result: %s', $elapsed, \json_encode($result)), $this->logName);
 	}
 
 	private function isGoBinaryAvailable(): bool
