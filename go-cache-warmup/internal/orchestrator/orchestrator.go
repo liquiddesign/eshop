@@ -328,7 +328,7 @@ func processVLGroups(
 		workers = runtime.NumCPU()
 	}
 
-	diffStats := writer.NewDiffStats(10)
+	swapStats := writer.NewSwapStats(10)
 
 	if len(indexWorkItems) > 0 {
 		indexCh := make(chan indexWork, len(indexWorkItems))
@@ -351,7 +351,7 @@ func processVLGroups(
 						work,
 						existingMappings, existingPricesTables, touchedIndexes,
 						&tablesCreated, &tablesDeduped, &tablesUnchanged, &tablesUpdated,
-						&processedCount, totalCount, diffStats,
+						&processedCount, totalCount, swapStats,
 					); err != nil {
 						errCh <- fmt.Errorf("index %s: %w", work.index.Key, err)
 						return
@@ -405,7 +405,7 @@ func processVLGroups(
 		log.Printf("Cleanup: %dms", stats.CleanupTimeMs)
 		log.Printf("Summary: created=%d deduped=%d unchanged=%d updated=%d",
 			tablesCreated, tablesDeduped, tablesUnchanged, tablesUpdated)
-		diffStats.LogSummary()
+		swapStats.LogSummary()
 	}
 
 	return nil
@@ -420,7 +420,7 @@ func processOneIndex(
 	touchedIndexes *writer.SyncSet,
 	tablesCreated, tablesDeduped, tablesUnchanged, tablesUpdated *int64,
 	processedCount *int64, totalCount int64,
-	diffStats *writer.DiffStats,
+	swapStats *writer.SwapStats,
 ) error {
 	index := work.index
 	tableName := writer.GenerateTableName(writer.PriceTablePrefix, index.Key)
@@ -496,13 +496,13 @@ func processOneIndex(
 		existingPricesTables.Delete(tableName)
 		touchedIndexes.Set(index.Key)
 
-		// Diff-update existing table
-		timing, err := w.DiffUpdate(tableName, priceRows)
+		// Atomic swap existing table
+		timing, err := w.AtomicSwap(tableName, priceRows)
 		if err != nil {
-			return fmt.Errorf("diff-update %s: %w", tableName, err)
+			return fmt.Errorf("atomic-swap %s: %w", tableName, err)
 		}
 
-		diffStats.Record(timing)
+		swapStats.Record(timing)
 
 		if err := w.RegisterMapping(index.Key, tableName, hash); err != nil {
 			return fmt.Errorf("register mapping: %w", err)
@@ -537,18 +537,13 @@ func processOneIndex(
 
 	existingPricesTables.Delete(tableName)
 
-	timing, err := w.DiffUpdate(tableName, priceRows)
+	timing, err := w.AtomicSwap(tableName, priceRows)
 	if err != nil {
-		return fmt.Errorf("diff-update %s: %w", tableName, err)
+		return fmt.Errorf("atomic-swap %s: %w", tableName, err)
 	}
 
-	diffStats.Record(timing)
-
-	if timing.Created > 0 || timing.Updated > 0 || timing.Deleted > 0 {
-		atomic.AddInt64(tablesUpdated, 1)
-	} else {
-		atomic.AddInt64(tablesUnchanged, 1)
-	}
+	swapStats.Record(timing)
+	atomic.AddInt64(tablesUpdated, 1)
 
 	return nil
 }

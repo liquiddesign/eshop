@@ -8,40 +8,34 @@ import (
 	"sync"
 )
 
-// DiffStats aggregates DiffUpdate timings across all workers.
-type DiffStats struct {
+// SwapStats aggregates AtomicSwap timings across all workers.
+type SwapStats struct {
 	mu       sync.Mutex
 	count    int
-	sumMs    phaseSums
-	slowest  slowHeap
+	sumMs    swapPhaseSums
+	slowest  swapSlowHeap
 	heapSize int
 }
 
-type phaseSums struct {
-	Select  int64
-	Compare int64
-	Insert  int64
-	Update  int64
-	Delete  int64
-	Total   int64
+type swapPhaseSums struct {
+	Load  int64
+	Swap  int64
+	Total int64
 }
 
-// NewDiffStats creates a DiffStats that tracks the top N slowest tables.
-func NewDiffStats(topN int) *DiffStats {
-	return &DiffStats{heapSize: topN}
+// NewSwapStats creates a SwapStats that tracks the top N slowest tables.
+func NewSwapStats(topN int) *SwapStats {
+	return &SwapStats{heapSize: topN}
 }
 
-// Record adds a DiffTiming to the aggregate stats. Safe for concurrent use.
-func (s *DiffStats) Record(t *DiffTiming) {
+// Record adds a SwapTiming to the aggregate stats. Safe for concurrent use.
+func (s *SwapStats) Record(t *SwapTiming) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.count++
-	s.sumMs.Select += t.SelectMs
-	s.sumMs.Compare += t.CompareMs
-	s.sumMs.Insert += t.InsertMs
-	s.sumMs.Update += t.UpdateMs
-	s.sumMs.Delete += t.DeleteMs
+	s.sumMs.Load += t.LoadMs
+	s.sumMs.Swap += t.SwapMs
 	s.sumMs.Total += t.TotalMs
 
 	// Min-heap of size N: keeps the N largest TotalMs values
@@ -53,8 +47,8 @@ func (s *DiffStats) Record(t *DiffTiming) {
 	}
 }
 
-// LogSummary prints the aggregate DiffUpdate statistics.
-func (s *DiffStats) LogSummary() {
+// LogSummary prints the aggregate AtomicSwap statistics.
+func (s *SwapStats) LogSummary() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -64,17 +58,17 @@ func (s *DiffStats) LogSummary() {
 
 	n := int64(s.count)
 
-	log.Printf("DiffUpdate summary: count=%d | avg: select=%dms compare=%dms insert=%dms update=%dms delete=%dms total=%dms",
+	log.Printf("AtomicSwap summary: count=%d | avg: load=%dms swap=%dms total=%dms",
 		s.count,
-		s.sumMs.Select/n, s.sumMs.Compare/n, s.sumMs.Insert/n, s.sumMs.Update/n, s.sumMs.Delete/n, s.sumMs.Total/n,
+		s.sumMs.Load/n, s.sumMs.Swap/n, s.sumMs.Total/n,
 	)
 
 	// Sort slowest descending by TotalMs
-	sorted := make([]*DiffTiming, len(s.slowest))
+	sorted := make([]*SwapTiming, len(s.slowest))
 	copy(sorted, s.slowest)
 
 	for i := len(sorted) - 1; i > 0; i-- {
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if sorted[j].TotalMs < sorted[j+1].TotalMs {
 				sorted[j], sorted[j+1] = sorted[j+1], sorted[j]
 			}
@@ -83,27 +77,26 @@ func (s *DiffStats) LogSummary() {
 
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("DiffUpdate top %d slowest:", len(sorted)))
+	sb.WriteString(fmt.Sprintf("AtomicSwap top %d slowest:", len(sorted)))
 
 	for i, t := range sorted {
-		sb.WriteString(fmt.Sprintf("\n  %d. %s: %dms (select=%d compare=%d insert=%d update=%d delete=%d) rows: existing=%d new=%d create=%d update=%d delete=%d",
+		sb.WriteString(fmt.Sprintf("\n  %d. %s: %dms (load=%d swap=%d) rows=%d",
 			i+1, t.Table, t.TotalMs,
-			t.SelectMs, t.CompareMs, t.InsertMs, t.UpdateMs, t.DeleteMs,
-			t.Existing, t.New, t.Created, t.Updated, t.Deleted,
+			t.LoadMs, t.SwapMs, t.RowCount,
 		))
 	}
 
 	log.Print(sb.String())
 }
 
-// slowHeap is a min-heap of DiffTiming by TotalMs (keeps N largest).
-type slowHeap []*DiffTiming
+// swapSlowHeap is a min-heap of SwapTiming by TotalMs (keeps N largest).
+type swapSlowHeap []*SwapTiming
 
-func (h slowHeap) Len() int            { return len(h) }
-func (h slowHeap) Less(i, j int) bool  { return h[i].TotalMs < h[j].TotalMs }
-func (h slowHeap) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }
-func (h *slowHeap) Push(x any)         { *h = append(*h, x.(*DiffTiming)) }
-func (h *slowHeap) Pop() any {
+func (h swapSlowHeap) Len() int            { return len(h) }
+func (h swapSlowHeap) Less(i, j int) bool  { return h[i].TotalMs < h[j].TotalMs }
+func (h swapSlowHeap) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }
+func (h *swapSlowHeap) Push(x any)         { *h = append(*h, x.(*SwapTiming)) }
+func (h *swapSlowHeap) Pop() any {
 	old := *h
 	n := len(old)
 	x := old[n-1]
