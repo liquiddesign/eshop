@@ -13,7 +13,9 @@ use StORM\DIConnection;
 use Tracy\Debugger;
 use Tracy\ILogger;
 
-#[\Deprecated('Use GoProductsCacheDiffUpdateService instead')]
+/**
+ * @deprecated Use GoProductsCacheDiffUpdateService instead
+ */
 class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService
 {
 	private DIConnection $cacheConnection;
