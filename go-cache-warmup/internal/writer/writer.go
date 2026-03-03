@@ -57,26 +57,55 @@ func (w *Writer) LoadExistingMappings() (map[string]*model.TableMapping, error) 
 	return mappings, nil
 }
 
-// LoadExistingPricesTables returns set of existing prices_* tables in cache DB.
+// LoadExistingPricesTables returns set of existing price cache tables in cache DB.
+// Matches both old-style (prices_*) and new hashed (cache_prices_*) tables.
 func (w *Writer) LoadExistingPricesTables() (map[string]bool, error) {
-	rows, err := w.cacheDB.Query("SHOW TABLES LIKE 'prices\\_%'")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
 	tables := make(map[string]bool)
 
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
+	for _, pattern := range []string{"prices\\_%", "cache\\_prices\\_%"} {
+		rows, err := w.cacheDB.Query(fmt.Sprintf("SHOW TABLES LIKE '%s'", pattern))
+		if err != nil {
 			return nil, err
 		}
 
-		tables[name] = true
+		for rows.Next() {
+			var name string
+			if err := rows.Scan(&name); err != nil {
+				rows.Close()
+				return nil, err
+			}
+
+			tables[name] = true
+		}
+
+		rows.Close()
 	}
 
 	return tables, nil
+}
+
+// MigrateOldTableNames checks if any mappings reference old-style table names (prices_*)
+// and truncates the mapping table to force a full rebuild with new hashed names.
+func (w *Writer) MigrateOldTableNames() (bool, error) {
+	var count int
+
+	err := w.cacheDB.QueryRow(
+		"SELECT COUNT(*) FROM price_table_map WHERE physical_table LIKE 'prices\\_%' AND physical_table NOT LIKE 'cache\\_prices\\_%'",
+	).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+
+	if count == 0 {
+		return false, nil
+	}
+
+	_, err = w.cacheDB.Exec("TRUNCATE TABLE price_table_map")
+	if err != nil {
+		return false, fmt.Errorf("truncate price_table_map: %w", err)
+	}
+
+	return true, nil
 }
 
 // CreatePriceTable creates a prices_* table if not exists.

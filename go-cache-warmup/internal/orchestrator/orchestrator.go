@@ -232,6 +232,15 @@ func processVLGroups(
 			return fmt.Errorf("ensure mapping table: %w", err)
 		}
 
+		migrated, err := w.MigrateOldTableNames()
+		if err != nil {
+			return fmt.Errorf("migrate old table names: %w", err)
+		}
+
+		if migrated && cfg.Verbose {
+			log.Printf("Migrated old-style table names: truncated price_table_map to force full rebuild")
+		}
+
 		rawMappings, err := w.LoadExistingMappings()
 		if err != nil {
 			return fmt.Errorf("load mappings: %w", err)
@@ -347,7 +356,7 @@ func processVLGroups(
 			wg.Go(func() {
 				for work := range indexCh {
 					if err := processOneIndex(
-						w, dedup,
+						w, dedup, cfg.Dedup,
 						work,
 						existingMappings, existingPricesTables, touchedIndexes,
 						&tablesCreated, &tablesDeduped, &tablesUnchanged, &tablesUpdated,
@@ -414,6 +423,7 @@ func processVLGroups(
 func processOneIndex(
 	w *writer.Writer,
 	dedup bool,
+	globalDedup bool,
 	work indexWork,
 	existingMappings map[string]*writer.TableMappingInfo,
 	existingPricesTables *writer.SyncSet,
@@ -513,7 +523,8 @@ func processOneIndex(
 		return nil
 	}
 
-	// Non-dedup path: always compute rows and diff-update
+	// Non-dedup path (partial updates): always compute rows and write.
+	// When globalDedup is enabled, register mapping so PHP getter can resolve the table.
 	priceRows := resolver.BuildPriceRows(work.productVLI, work.priceData, index.PLIDs, index.IsMerchant)
 
 	isNewTable := !existingPricesTables.Has(tableName)
@@ -530,6 +541,14 @@ func processOneIndex(
 
 		existingPricesTables.Delete(tableName)
 
+		if globalDedup {
+			hash := resolver.ComputeIndexHash(work.productHashData, index.PLIDs, index.IsMerchant)
+
+			if err := w.RegisterMapping(index.Key, tableName, hash); err != nil {
+				return fmt.Errorf("register mapping: %w", err)
+			}
+		}
+
 		atomic.AddInt64(tablesCreated, 1)
 
 		return nil
@@ -543,6 +562,15 @@ func processOneIndex(
 	}
 
 	swapStats.Record(timing)
+
+	if globalDedup {
+		hash := resolver.ComputeIndexHash(work.productHashData, index.PLIDs, index.IsMerchant)
+
+		if err := w.RegisterMapping(index.Key, tableName, hash); err != nil {
+			return fmt.Errorf("register mapping: %w", err)
+		}
+	}
+
 	atomic.AddInt64(tablesUpdated, 1)
 
 	return nil
