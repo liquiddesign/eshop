@@ -31,12 +31,11 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 		$args = $this->buildGoArgs($customers, $customerGroups, $merchants);
 
 		Debugger::log(\sprintf(
-			'Go cache-warmup starting... | binary=%s | customers=%d customerGroups=%d merchants=%d dedup=%s workers=4',
+			'Go cache-warmup starting... | binary=%s | customers=%d customerGroups=%d merchants=%d dedup=true workers=4',
 			self::GO_BINARY_PATH,
 			\count($customers),
 			\count($customerGroups),
 			\count($merchants),
-			$this->isCacheDeduplicationEnabled() ? 'true' : 'false',
 		), $this->logName);
 
 		$startTime = \microtime(true);
@@ -67,9 +66,7 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 			'--cache-dsn', $cacheDSN,
 		];
 
-		if ($this->isCacheDeduplicationEnabled()) {
-			$args[] = '--dedup';
-		}
+		$args[] = '--dedup';
 
 		// Shops
 		$shops = $this->shopsConfig->getAvailableShops();

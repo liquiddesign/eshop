@@ -2,7 +2,6 @@
 
 namespace Eshop\Services\ProductsCache;
 
-use Base\Application;
 use Base\ShopsConfig;
 use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
@@ -28,7 +27,6 @@ use Nette\Caching\Storage;
 use Nette\DI\Container;
 use Nette\DI\MissingServiceException;
 use Nette\Utils\Arrays;
-use Nette\Utils\Strings;
 use StORM\DIConnection;
 use StORM\ICollection;
 use Tracy\Debugger;
@@ -244,7 +242,6 @@ class ProductsCacheGetterService
 		}
 
 		$productsCacheTableName = ProductsCacheBaseWarmUpService::PRODUCTS_TABLE_NAME;
-		$visibilityPricesCacheTableName = ProductsCacheBaseWarmUpService::PRICES_TABLE_NAME;
 		$categoriesTableName = ProductsCacheBaseWarmUpService::CATEGORIES_TABLE_NAME;
 		$relationsCacheTableName = ProductsCacheBaseWarmUpService::RELATIONS_TABLE_NAME;
 
@@ -300,18 +297,10 @@ class ProductsCacheGetterService
 
 		unset($filters['category']);
 
-		$visibilityPricesCacheTableName = "$visibilityPricesCacheTableName$visibilityPriceListsIndex";
+		$visibilityPricesCacheTableName = $this->resolvePhysicalTableName($visibilityPriceListsIndex);
 
-		if (Strings::length($visibilityPricesCacheTableName) > 63) {
-			$visibilityPricesCacheTableName = DIConnection::generateUuid7('cache_prices', $visibilityPricesCacheTableName);
-		}
-
-		if ($this->isCacheDeduplicationEnabled()) {
-			$physicalTable = $this->resolvePhysicalTableName($visibilityPriceListsIndex);
-
-			if ($physicalTable !== null) {
-				$visibilityPricesCacheTableName = $physicalTable;
-			}
+		if ($visibilityPricesCacheTableName === null) {
+			return false;
 		}
 
 		$productsCollection = $this->getConnection()->rows(['this' => $productsCacheTableName])
@@ -1077,18 +1066,6 @@ class ProductsCacheGetterService
 		return $values ? ('COALESCE(' . \implode(',', \array_map(static function (mixed $item) use ($prefix, $suffix, $separator): string {
 				return $prefix . ($prefix ? $separator : '') . $item->id . ($suffix ? $separator : '') . $suffix;
 		}, $values)) . ')') : 'NULL';
-	}
-
-	private function isCacheDeduplicationEnabled(): bool
-	{
-		try {
-			/** @var \Base\Application $application */
-			$application = $this->container->getByType(Application::class);
-
-			return $application->getEnvironment() !== 'production';
-		} catch (\Throwable) {
-			return false;
-		}
 	}
 
 	private function resolvePhysicalTableName(string $priceIndex): string|null

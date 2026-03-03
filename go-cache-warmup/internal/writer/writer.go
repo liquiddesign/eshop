@@ -58,10 +58,11 @@ func (w *Writer) LoadExistingMappings() (map[string]*model.TableMapping, error) 
 }
 
 // LoadExistingPricesTables returns set of existing price cache tables in cache DB.
-// Matches both old-style (prices_*) and new hashed (cache_prices_*) tables.
+// Matches: old-style (prices_*), new hashed (cache_prices_*), and legacy PHP MD5 (32-char hex).
 func (w *Writer) LoadExistingPricesTables() (map[string]bool, error) {
 	tables := make(map[string]bool)
 
+	// Old-style and new hashed tables
 	for _, pattern := range []string{"prices\\_%", "cache\\_prices\\_%"} {
 		rows, err := w.cacheDB.Query(fmt.Sprintf("SHOW TABLES LIKE '%s'", pattern))
 		if err != nil {
@@ -81,16 +82,37 @@ func (w *Writer) LoadExistingPricesTables() (map[string]bool, error) {
 		rows.Close()
 	}
 
+	// Legacy PHP MD5 tables (32-char hex strings, no prefix)
+	rows, err := w.cacheDB.Query(
+		"SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME REGEXP '^[0-9a-f]{32}$'",
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			rows.Close()
+			return nil, err
+		}
+
+		tables[name] = true
+	}
+
+	rows.Close()
+
 	return tables, nil
 }
 
-// MigrateOldTableNames checks if any mappings reference old-style table names (prices_*)
-// and truncates the mapping table to force a full rebuild with new hashed names.
+// MigrateOldTableNames checks if any mappings reference old-style table names
+// (prices_* or raw MD5 hashes from PHP) and truncates the mapping table to force
+// a full rebuild with new cache_prices_* hashed names.
 func (w *Writer) MigrateOldTableNames() (bool, error) {
 	var count int
 
 	err := w.cacheDB.QueryRow(
-		"SELECT COUNT(*) FROM price_table_map WHERE physical_table LIKE 'prices\\_%' AND physical_table NOT LIKE 'cache\\_prices\\_%'",
+		"SELECT COUNT(*) FROM price_table_map WHERE physical_table NOT LIKE 'cache\\_prices\\_%' AND physical_table != '__group'",
 	).Scan(&count)
 	if err != nil {
 		return false, err

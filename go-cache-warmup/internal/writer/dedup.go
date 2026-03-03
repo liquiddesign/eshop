@@ -19,14 +19,13 @@ const (
 )
 
 // GenerateTableName generates a deterministic hashed cache table name for a price index.
-// All names are hashed to avoid MySQL's 64-char identifier limit (including __new/__old suffixes).
+// Format: cache_prices_<16-char SHA-256 hex> (29 chars total, safe for MySQL + __new/__old suffixes).
 func GenerateTableName(prefix, index string) string {
 	name := prefix + index
 
 	h := sha256.Sum256([]byte(name))
-	hashStr := hex.EncodeToString(h[:8])
 
-	return fmt.Sprintf("cache_prices_%s", hashStr)
+	return "cache_prices_" + hex.EncodeToString(h[:8])
 }
 
 // CleanupStaleMappings removes stale mappings and drops orphaned tables.
