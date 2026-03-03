@@ -19,7 +19,7 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 	 * @param array<string|int> $merchants
 	 */
 	protected function diffUpdateVisibilityPriceTable(
-		string $pricesCacheTableName,
+		string $pricesCacheTableName, // phpcs:ignore
 		array $customers = [],
 		array $customerGroups = [],
 		array $merchants = [],

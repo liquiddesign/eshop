@@ -18,15 +18,11 @@ const (
 	PriceTablePrefix = "prices_"
 )
 
-// GenerateTableName generates the cache table name for a price index.
-// If the name exceeds 63 chars, it generates a hashed name.
+// GenerateTableName generates a deterministic hashed cache table name for a price index.
+// All names are hashed to avoid MySQL's 64-char identifier limit (including __new/__old suffixes).
 func GenerateTableName(prefix, index string) string {
 	name := prefix + index
-	if len(name) <= 63 {
-		return name
-	}
 
-	// Generate deterministic hash-based name matching PHP DIConnection::generateUuid7
 	h := sha256.Sum256([]byte(name))
 	hashStr := hex.EncodeToString(h[:8])
 
