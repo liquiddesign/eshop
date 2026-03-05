@@ -211,10 +211,16 @@ class MerchantPresenter extends BackendPresenter
 			$form->addMultiSelect2('visibilityLists', 'Seznamy viditelnosti', $this->visibilityListRepository->getArrayForSelect());
 
 			if ($this::CONFIGURATIONS['customers']) {
-				$customersInput = $form->addMultiSelectAjax('customers', 'Zákazníci', 'Zvolte zákazníky', Customer::class);
+				$customersInput = $form->addMultiSelectAjax('customers', 'Zákazníci', 'Zvolte zákazníky', Customer::class, ['collapsibleRows' => 3]);
 
 				if ($merchant) {
-					$this->template->select2AjaxDefaults[$customersInput->getHtmlId()] = $merchant->customers->toArrayOf('fullname');
+					$customersMapped = [];
+
+					foreach ($merchant->customers->toArray() as $customer) {
+						$customersMapped[$customer->getPK()] = $customer->getName();
+					}
+
+					$this->template->select2AjaxDefaults[$customersInput->getHtmlId()] = $customersMapped;
 				}
 			}
 
