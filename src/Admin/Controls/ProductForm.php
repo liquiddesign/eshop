@@ -361,8 +361,9 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			$this->relatedTypes = $this->template->relatedTypes = $this->relatedTypeRepository->many()->toArray();
 
 			foreach ($this->relatedTypes as $relatedType) {
-				$relationsMasterContainer = $form->addContainer('relatedType_master_' . $relatedType->getPK());
-				$relationsSlaveContainer = $form->addContainer('relatedType_slave_' . $relatedType->getPK());
+				$sanitizedPK = \str_replace('-', '', $relatedType->getPK());
+				$relationsMasterContainer = $form->addContainer('relatedType_master_' . $sanitizedPK);
+				$relationsSlaveContainer = $form->addContainer('relatedType_slave_' . $sanitizedPK);
 
 				$slaveCount = 0;
 				$masterCount = 0;
@@ -776,11 +777,12 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		foreach ($this->relatedTypes as $relatedType) {
 			$masterCount = $masterCounts[$relatedType->getPK()] ?? 0;
 			$slaveCount = $slaveCounts[$relatedType->getPK()] ?? 0;
+			$sanitizedPK = \str_replace('-', '', $relatedType->getPK());
 
-			$relatedTypeValues = $values['relatedType_master_' . $relatedType->getPK()];
+			$relatedTypeValues = $values['relatedType_master_' . $sanitizedPK];
 
 			for ($i = 0; $i < $this->relationExtraItemsCount + $masterCount; $i++) {
-				if (!isset($data['relatedType_master_' . $relatedType->getPK()]["product_$i"])) {
+				if (!isset($data['relatedType_master_' . $sanitizedPK]["product_$i"])) {
 					continue;
 				}
 
@@ -795,7 +797,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				$this->relatedRepository->syncOne([
 					'type' => $relatedType->getPK(),
 					'master' => $product->getPK(),
-					'slave' => $data['relatedType_master_' . $relatedType->getPK()]["product_$i"],
+					'slave' => $data['relatedType_master_' . $sanitizedPK]["product_$i"],
 					'amount' => $relatedTypeValues["amount_$i"] ?? $relatedType->defaultAmount,
 					'priority' => $relatedTypeValues["priority_$i"] ?? 10,
 					'hidden' => $relatedTypeValues["hidden_$i"] ?? false,
@@ -804,10 +806,10 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				]);
 			}
 
-			$relatedTypeValues = $values['relatedType_slave_' . $relatedType->getPK()];
+			$relatedTypeValues = $values['relatedType_slave_' . $sanitizedPK];
 
 			for ($i = 0; $i < $this->relationExtraItemsCount + $slaveCount; $i++) {
-				if (!isset($data['relatedType_slave_' . $relatedType->getPK()]["product_$i"])) {
+				if (!isset($data['relatedType_slave_' . $sanitizedPK]["product_$i"])) {
 					continue;
 				}
 
@@ -822,7 +824,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				$this->relatedRepository->syncOne([
 					'type' => $relatedType->getPK(),
 					'slave' => $product->getPK(),
-					'master' => $data['relatedType_slave_' . $relatedType->getPK()]["product_$i"],
+					'master' => $data['relatedType_slave_' . $sanitizedPK]["product_$i"],
 					'amount' => $relatedTypeValues["amount_$i"] ?? $relatedType->defaultAmount,
 					'priority' => $relatedTypeValues["priority_$i"] ?? 10,
 					'hidden' => $relatedTypeValues["hidden_$i"] ?? false,

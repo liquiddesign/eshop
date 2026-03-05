@@ -635,7 +635,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
 
                     <div class="row collapse" id="relatedType-{$relatedType->getPK()}">
                         <div class="col-6">
-                        {formContainer "relatedType_master_" . $relatedType->uuid}
+                        {formContainer "relatedType_master_" . str_replace('-', '', $relatedType->uuid)}
                             <table class="mt-1 mb-1" style="width: auto;">
                                 <thead>
                                 <tr>
@@ -661,7 +661,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                         {/formContainer}
                         </div>
                         <div class="col-6">
-                        {formContainer "relatedType_slave_" . $relatedType->uuid}
+                        {formContainer "relatedType_slave_" . str_replace('-', '', $relatedType->uuid)}
                             <table class="mt-1 mb-1" style="width: auto;">
                                 <thead>
                                 <tr>
