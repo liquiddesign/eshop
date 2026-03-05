@@ -591,7 +591,11 @@ class PricelistsPresenter extends BackendPresenter
 		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
 		if (!$isReadonly) {
-			$grid->addButtonSaveAll(onRowUpdate: function (string $id, array &$prices, Price $price) use ($autoPriceConfig): void {
+			$grid->addButtonSaveAll(onRowUpdate: function (string $id, array &$prices, Price|null $price) use ($autoPriceConfig): void {
+				if ($price === null) {
+					return;
+				}
+
 				if ((!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && !isset($prices['price']) ||
 					($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT && !isset($prices['priceVat']))
 				) {
