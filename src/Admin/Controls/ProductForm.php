@@ -596,11 +596,15 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		$values = $form->getValues('array');
 
-		if ($values['ean']) {
+		$ean = $values['ean'] ?? null;
+		$code = $values['code'] ?? null;
+		$subCode = $values['subCode'] ?? null;
+
+		if ($ean) {
 			/** @var \Nette\Forms\Controls\TextInput $eanInput */
 			$eanInput = $form['ean'];
 
-			if ($product = $this->productRepository->many()->where('ean', $values['ean'])->first()) {
+			if ($product = $this->productRepository->many()->where('ean', $ean)->first()) {
 				if ($this->product) {
 					if ($product->getPK() !== $this->product->getPK()) {
 						$eanInput->addError('Již existuje produkt s tímto EAN');
@@ -613,17 +617,17 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		$product = $this->productRepository->many();
 
-		if ($values['code']) {
-			$product = $product->where('code', $values['code']);
+		if ($code) {
+			$product = $product->where('code', $code);
 		}
 
-		if ($values['subCode']) {
-			$product = $product->where('subCode', $values['subCode']);
+		if ($subCode) {
+			$product = $product->where('subCode', $subCode);
 		}
 
 		$product = $product->first();
 
-		if ((!$values['code'] && !$values['subCode']) || !$product) {
+		if ((!$code && !$subCode) || !$product) {
 			return;
 		}
 
@@ -647,7 +651,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		$oldValues = $this->product ? $this->product->toArray() : [];
 
-		if (!$values['uuid']) {
+		if (!($values['uuid'] ?? null)) {
 			$values['uuid'] = DIConnection::generateUuid();
 		}
 
@@ -690,7 +694,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		/** @var array<mixed> $visibility */
 		$visibility = Arrays::pick($values, 'visibility', []);
 
-		if ($values['exportNone']) {
+		if ($values['exportNone'] ?? false) {
 			$values['exportHeureka'] = false;
 			$values['exportGoogle'] = false;
 			$values['exportZbozi'] = false;
@@ -779,7 +783,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			$slaveCount = $slaveCounts[$relatedType->getPK()] ?? 0;
 			$sanitizedPK = \str_replace('-', '', $relatedType->getPK());
 
-			$relatedTypeValues = $values['relatedType_master_' . $sanitizedPK];
+			$relatedTypeValues = $values['relatedType_master_' . $sanitizedPK] ?? [];
 
 			for ($i = 0; $i < $this->relationExtraItemsCount + $masterCount; $i++) {
 				if (!isset($data['relatedType_master_' . $sanitizedPK]["product_$i"])) {
@@ -806,7 +810,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 				]);
 			}
 
-			$relatedTypeValues = $values['relatedType_slave_' . $sanitizedPK];
+			$relatedTypeValues = $values['relatedType_slave_' . $sanitizedPK] ?? [];
 
 			for ($i = 0; $i < $this->relationExtraItemsCount + $slaveCount; $i++) {
 				if (!isset($data['relatedType_slave_' . $sanitizedPK]["product_$i"])) {
@@ -859,7 +863,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		if ($product->getParent() instanceof ICollection && $product->getParent()->getAffectedNumber() > 0) {
 			foreach ($form->getMutations() as $mutation) {
 				foreach ($changeColumns as $column) {
-					if (isset($oldValues[$column][$mutation]) && $oldValues[$column][$mutation] !== $values[$column][$mutation]) {
+					if (isset($oldValues[$column][$mutation], $values[$column][$mutation]) && $oldValues[$column][$mutation] !== $values[$column][$mutation]) {
 						$product->update(['supplierContentLock' => true]);
 
 						break 2;
@@ -874,7 +878,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default');
 
 		if ($pricesPermission) {
-			foreach ($values['prices'] as $pricelistId => $prices) {
+			foreach ($values['prices'] ?? [] as $pricelistId => $prices) {
 				/** @var \Eshop\DB\Pricelist $pricelist */
 				$pricelist = $this->pricelistRepository->oneOrFail($pricelistId);
 
@@ -977,7 +981,11 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			]);
 		}
 
-		foreach ($values['stores'] as $storeId => $amount) {
+		foreach ($values['stores'] ?? [] as $storeId => $amount) {
+			if (!\array_key_exists('inStock', $amount)) {
+				continue;
+			}
+
 			if ($amount['inStock'] === null) {
 				$this->amountRepository->many()->where('fk_product', $product->getPK())->where('fk_store', $storeId)->delete();
 
