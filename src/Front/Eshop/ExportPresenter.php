@@ -874,11 +874,12 @@ abstract class ExportPresenter extends Presenter
 					}
 
 					$attribute = $allAttributes[$attributeValue->getValue('attribute')];
+					$code = $attribute->code ?? '';
 
-					if (isset($productsFrontendData[$product->uuid]['attributes'][$attribute->code])) {
-						$productsFrontendData[$product->uuid]['attributes'][$attribute->code] .= ', ' . $attributeValue->label;
+					if (isset($productsFrontendData[$product->uuid]['attributes'][$code])) {
+						$productsFrontendData[$product->uuid]['attributes'][$code] .= ', ' . $attributeValue->label;
 					} else {
-						$productsFrontendData[$product->uuid]['attributes'][$attribute->code] = $attributeValue->label;
+						$productsFrontendData[$product->uuid]['attributes'][$code] = $attributeValue->label;
 					}
 				}
 

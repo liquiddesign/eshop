@@ -60,12 +60,13 @@ class CurrentContextCatalogPermissions
 				continue;
 			}
 
-			$currentEmailBlocksSetting = Strings::split($displayedTransactionEmailBlock, '/;/', skipEmpty: true);
+			$splitValues = Strings::split($displayedTransactionEmailBlock, '/;/', skipEmpty: true);
 
-			foreach ($currentEmailBlocksSetting as $key => $value) {
+			/** @var array<string, bool> $currentEmailBlocksSetting */
+			$currentEmailBlocksSetting = [];
+
+			foreach ($splitValues as $value) {
 				$exploded = \explode(':', $value);
-
-				unset($currentEmailBlocksSetting[$key]);
 
 				if (\count($exploded) !== 2) {
 					continue;

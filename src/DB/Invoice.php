@@ -276,13 +276,8 @@ class Invoice extends \StORM\Entity
 
 			$vatPct = (int) ($invoiceItem->vatPct);
 
-			isset($basePrices[$vatPct]['base']) ?
-				$basePrices[$vatPct]['base'] += $invoiceItem->getPriceSum() :
-				$basePrices[$vatPct]['base'] = $invoiceItem->getPriceSum();
-
-			isset($basePrices[$vatPct]['vat']) ?
-				$basePrices[$vatPct]['vat'] += $invoiceItem->getPriceVatSum() - $invoiceItem->getPriceSum() :
-				$basePrices[$vatPct]['vat'] = $invoiceItem->getPriceVatSum() - $invoiceItem->getPriceSum();
+			$basePrices[$vatPct]['base'] = ($basePrices[$vatPct]['base'] ?? 0) + $invoiceItem->getPriceSum();
+			$basePrices[$vatPct]['vat'] = ($basePrices[$vatPct]['vat'] ?? 0) + $invoiceItem->getPriceVatSum() - $invoiceItem->getPriceSum();
 		}
 
 		/** @var \Eshop\DB\Order $order */
@@ -291,13 +286,8 @@ class Invoice extends \StORM\Entity
 				$vatPct = (int) ($order->getDeliveryPriceSum() > 0 ? \round($order->getDeliveryPriceVatSum() / $order->getDeliveryPriceSum() * 100 - 100) : 0);
 
 				if ($vatPct > 0) {
-					isset($basePrices[$vatPct]['base']) ?
-						$basePrices[$vatPct]['base'] += $order->getDeliveryPriceSum() :
-						$basePrices[$vatPct]['base'] = $order->getDeliveryPriceSum();
-
-					isset($basePrices[$vatPct]['vat']) ?
-						$basePrices[$vatPct]['vat'] += $order->getDeliveryPriceVatSum() - $order->getDeliveryPriceSum() :
-						$basePrices[$vatPct]['vat'] = $order->getDeliveryPriceVatSum() - $order->getDeliveryPriceSum();
+					$basePrices[$vatPct]['base'] = ($basePrices[$vatPct]['base'] ?? 0) + $order->getDeliveryPriceSum();
+					$basePrices[$vatPct]['vat'] = ($basePrices[$vatPct]['vat'] ?? 0) + $order->getDeliveryPriceVatSum() - $order->getDeliveryPriceSum();
 				}
 			}
 
@@ -311,13 +301,8 @@ class Invoice extends \StORM\Entity
 				continue;
 			}
 
-			isset($basePrices[$vatPct]['base']) ?
-				$basePrices[$vatPct]['base'] += $order->getPaymentPriceSum() :
-				$basePrices[$vatPct]['base'] = $order->getPaymentPriceSum();
-
-			isset($basePrices[$vatPct]['vat']) ?
-				$basePrices[$vatPct]['vat'] += $order->getPaymentPriceVatSum() - $order->getPaymentPriceSum() :
-				$basePrices[$vatPct]['vat'] = $order->getPaymentPriceVatSum() - $order->getPaymentPriceSum();
+			$basePrices[$vatPct]['base'] = ($basePrices[$vatPct]['base'] ?? 0) + $order->getPaymentPriceSum();
+			$basePrices[$vatPct]['vat'] = ($basePrices[$vatPct]['vat'] ?? 0) + $order->getPaymentPriceVatSum() - $order->getPaymentPriceSum();
 		}
 
 		\ksort($basePrices);

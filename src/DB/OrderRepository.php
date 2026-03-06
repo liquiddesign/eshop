@@ -931,7 +931,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 
 		$rootCategories = [];
 
-		$rootCategories[null] = [
+		$rootCategories[''] = [
 			'name' => $this->translator->translate('.notAssigned', 'Nepřiřazeno'),
 			'amount' => 0,
 		];
@@ -986,7 +986,7 @@ class OrderRepository extends \StORM\Repository implements IGeneralRepository, I
 				$sum += $item->amount;
 
 				if (!$category) {
-					$rootCategories[null]['amount'] += $item->amount;
+					$rootCategories['']['amount'] += $item->amount;
 
 					continue;
 				}

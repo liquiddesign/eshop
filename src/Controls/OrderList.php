@@ -341,8 +341,8 @@ class OrderList extends Datalist
 				$accounts[$account->getPK()][] = $order;
 				$accountsInfo[$account->getPK()] = $account->fullname;
 			} elseif ($order->purchase->accountFullname) {
-				$accounts[$account][] = $order;
-				$accountsInfo[$account] = $order->purchase->accountFullname;
+				$accounts[''][] = $order;
+				$accountsInfo[''] = $order->purchase->accountFullname;
 			} else {
 				continue;
 			}

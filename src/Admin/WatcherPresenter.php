@@ -60,6 +60,7 @@ class WatcherPresenter extends BackendPresenter
 		$grid->addColumnActionDelete();
 		$grid->addButtonDeleteSelected();
 
+		/** @phpstan-ignore method.notFound */
 		$grid->addFilterSelect2Ajax(function (Collection $source, $value): void {
 			if ($value !== '') {
 				$source->where('this.fk_customer', $value);
@@ -68,6 +69,7 @@ class WatcherPresenter extends BackendPresenter
 			->setPrompt('Zákazník')
 			->setHtmlAttribute('class', 'form-control form-control-sm');
 
+		/** @phpstan-ignore method.notFound */
 		$grid->addFilterSelect2Ajax(function (Collection $source, $value): void {
 			if ($value !== '') {
 				$source->where('this.fk_product', $value);
@@ -130,7 +132,6 @@ class WatcherPresenter extends BackendPresenter
 			$defaultProduct = $this->productRepository->one($grid->getFilters()['product']);
 
 			if ($defaultProduct !== null) {
-				/** @phpstan-ignore-next-line */
 				$template->select2AjaxDefaults[$productInput->getHtmlId()] = [$defaultProduct->getPK() => $defaultProduct->getName()];
 			}
 		}
@@ -140,7 +141,6 @@ class WatcherPresenter extends BackendPresenter
 			$defaultCustomer = $this->customerRepository->one($grid->getFilters()['customer']);
 
 			if ($defaultCustomer !== null) {
-				/** @phpstan-ignore-next-line */
 				$template->select2AjaxDefaults[$customerInput->getHtmlId()] = [$defaultCustomer->getPK() => $defaultCustomer->getName()];
 			}
 		}
