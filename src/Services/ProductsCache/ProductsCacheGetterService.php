@@ -310,6 +310,14 @@ class ProductsCacheGetterService
 				type: 'INNER',
 			);
 
+		if (!$this->shopperUser->getShowZeroPrices()) {
+			if ($this->shopperUser->getShowWithoutVat()) {
+				$productsCollection->where('visibilityPrice.price > 0');
+			} elseif ($this->shopperUser->getShowVat()) {
+				$productsCollection->where('visibilityPrice.priceVat > 0');
+			}
+		}
+
 		if ($category) {
 			$descendants = [$category->id];
 
