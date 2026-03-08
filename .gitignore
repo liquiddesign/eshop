@@ -16,3 +16,5 @@ temp/*
 /.claude_settings.json
 /.auto-claude/
 /.auto-claude-status
+# go-cache-warmup build artifacts (bin/cache-warmup is committed intentionally)
+go-cache-warmup/bin/
