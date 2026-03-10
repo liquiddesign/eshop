@@ -60,7 +60,7 @@ return new class extends Migration
 	{
 		// Obnoveni stare tabulky
 		if (!Schema::hasTable('eshop_discountcoupon_nxn_producer')) {
-			Schema::create('eshop_discountcoupon_nxn_producer', function ($table) {
+			Schema::create('eshop_discountcoupon_nxn_producer', function ($table): void {
 				$table->string('fk_discountcoupon', 36);
 				$table->string('fk_producer', 36);
 

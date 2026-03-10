@@ -338,9 +338,11 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 			foreach ($productsInCartObjects as $product) {
 				$producerPk = $product->getValue('producer');
 
-				if ($producerPk) {
-					$producersInCart[$producerPk] = $producerPk;
+				if (!$producerPk) {
+					continue;
 				}
+
+				$producersInCart[$producerPk] = $producerPk;
 			}
 
 			/** @var \Eshop\DB\DiscountConditionProducer $condition */

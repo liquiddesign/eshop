@@ -171,44 +171,48 @@ class DiscountCouponForm extends Control
 				}
 			}
 
-			if ($this->shopperUser->getDiscountConditions()['producers']) {
-				$producersConditionsContainer = $form->addContainer('producersConditionsContainer');
+			if (!$this->shopperUser->getDiscountConditions()['producers']) {
+				return;
+			}
 
-				for ($i = 0; $i < 3; $i++) {
-					$producersConditionsContainer->addSelect("cartCondition_$i", null, DiscountCondition::CART_CONDITIONS);
-					$producersConditionsContainer->addSelect("quantityCondition_$i", null, DiscountCondition::QUANTITY_CONDITIONS);
-					$producersConditionsContainer->addMultiSelect2("producers_$i", null, [], [
-						'ajax' => [
-							'url' => $presenter->link('getProducersForSelect2!'),
-						],
-						'placeholder' => 'Zvolte značky',
-					])->checkDefaultValue(false);
-				}
+			$producersConditionsContainer = $form->addContainer('producersConditionsContainer');
 
-				if ($discountCoupon) {
-					$conditions = $this->discountConditionProducerRepository->many()->where('fk_discountCoupon', $discountCoupon->getPK());
+			for ($i = 0; $i < 3; $i++) {
+				$producersConditionsContainer->addSelect("cartCondition_$i", null, DiscountCondition::CART_CONDITIONS);
+				$producersConditionsContainer->addSelect("quantityCondition_$i", null, DiscountCondition::QUANTITY_CONDITIONS);
+				$producersConditionsContainer->addMultiSelect2("producers_$i", null, [], [
+					'ajax' => [
+						'url' => $presenter->link('getProducersForSelect2!'),
+					],
+					'placeholder' => 'Zvolte značky',
+				])->checkDefaultValue(false);
+			}
 
-					$i = 0;
+			if (!$discountCoupon) {
+				return;
+			}
 
-					/** @var \Eshop\DB\DiscountConditionProducer $condition */
-					foreach ($conditions as $condition) {
-						/** @var \Nette\Forms\Controls\MultiSelectBox $producersInput */
-						$producersInput = $producersConditionsContainer["producers_$i"];
-						/** @var \Nette\Forms\Controls\SelectBox $cartConditionInput */
-						$cartConditionInput = $producersConditionsContainer["cartCondition_$i"];
-						/** @var \Nette\Forms\Controls\SelectBox $quantityConditionInput */
-						$quantityConditionInput = $producersConditionsContainer["quantityCondition_$i"];
+			$conditions = $this->discountConditionProducerRepository->many()->where('fk_discountCoupon', $discountCoupon->getPK());
 
-						$presenter->template->select2AjaxDefaults[$producersInput->getHtmlId()] = $condition->producers->toArrayOf('name');
-						$cartConditionInput->setDefaultValue($condition->cartCondition);
-						$quantityConditionInput->setDefaultValue($condition->quantityCondition);
+			$i = 0;
 
-						$i++;
+			/** @var \Eshop\DB\DiscountConditionProducer $condition */
+			foreach ($conditions as $condition) {
+				/** @var \Nette\Forms\Controls\MultiSelectBox $producersInput */
+				$producersInput = $producersConditionsContainer["producers_$i"];
+				/** @var \Nette\Forms\Controls\SelectBox $cartConditionInput */
+				$cartConditionInput = $producersConditionsContainer["cartCondition_$i"];
+				/** @var \Nette\Forms\Controls\SelectBox $quantityConditionInput */
+				$quantityConditionInput = $producersConditionsContainer["quantityCondition_$i"];
 
-						if ($i === 3) {
-							break;
-						}
-					}
+				$presenter->template->select2AjaxDefaults[$producersInput->getHtmlId()] = $condition->producers->toArrayOf('name');
+				$cartConditionInput->setDefaultValue($condition->cartCondition);
+				$quantityConditionInput->setDefaultValue($condition->quantityCondition);
+
+				$i++;
+
+				if ($i === 3) {
+					break;
 				}
 			}
 		});
