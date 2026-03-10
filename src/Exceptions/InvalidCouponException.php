@@ -17,4 +17,6 @@ class InvalidCouponException extends \Exception
 	public const INVALID_CURRENCY = 7;
 
 	public const INVALID_CONDITIONS_CATEGORY = 8;
+
+	public const INVALID_CONDITIONS_PRODUCER = 9;
 }

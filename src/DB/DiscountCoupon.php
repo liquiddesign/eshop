@@ -94,7 +94,25 @@ class DiscountCoupon extends \StORM\Entity
 	public string $conditionsType;
 
 	/**
-	 * Maximální objednávka
+	 * Pouze jednou na zákazníka
+	 * @column
+	 */
+	public bool $oneTimePerCustomer = false;
+
+	/**
+	 * Interní poznámka
+	 * @column{"type":"text"}
+	 */
+	public ?string $internalNote = null;
+
+	/**
+	 * Zdrojová kampaň/účel
+	 * @column
+	 */
+	public ?string $campaign = null;
+
+	/**
+	 * Export do Targito
 	 * @column
 	 */
 	public bool $targitoExport = false;

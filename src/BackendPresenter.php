@@ -8,6 +8,7 @@ use Admin\Controls\AdminGrid;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\CategoryRepository;
 use Eshop\DB\CustomerRepository;
+use Eshop\DB\ProducerRepository;
 use Eshop\DB\Product;
 use Eshop\DB\ProductRepository;
 use Nette\Application\Application;
@@ -30,6 +31,9 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 	#[Inject]
 	public CustomerRepository $customerRepository;
+
+	#[Inject]
+	public ProducerRepository $producerRepository;
 
 	#[Inject]
 	public Application $application;
@@ -129,6 +133,35 @@ abstract class BackendPresenter extends \Admin\BackendPresenter
 
 		$this->payload->results = $results;
 		$this->payload->pagination = ['more' => \count($categories) === 5];
+
+		$this->sendPayload();
+	}
+
+	public function handleGetProducersForSelect2(?string $q = null, ?int $page = null): void
+	{
+		if (!$q) {
+			$this->payload->results = [];
+			$this->sendPayload();
+		}
+
+		$suffix = $this->producerRepository->getConnection()->getMutationSuffix();
+
+		$producers = $this->producerRepository->getCollection(true)
+			->where("this.name$suffix LIKE :q", ['q' => "%$q%"])
+			->setPage($page ?? 1, 5)
+			->toArrayOf('name');
+
+		$results = [];
+
+		foreach ($producers as $pk => $name) {
+			$results[] = [
+				'id' => $pk,
+				'text' => $name,
+			];
+		}
+
+		$this->payload->results = $results;
+		$this->payload->pagination = ['more' => \count($producers) === 5];
 
 		$this->sendPayload();
 	}

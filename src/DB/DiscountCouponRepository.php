@@ -28,6 +28,7 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 		protected readonly CartItemRepository $cartItemRepository,
 		protected readonly DiscountConditionRepository $discountConditionRepository,
 		protected readonly DiscountConditionCategoryRepository $discountConditionCategoryRepository,
+		protected readonly DiscountConditionProducerRepository $discountConditionProducerRepository,
 		protected readonly CategoryRepository $categoryRepository,
 		protected readonly ProductRepository $productRepository,
 		protected readonly ShopsConfig $shopsConfig,
@@ -324,6 +325,104 @@ class DiscountCouponRepository extends \StORM\Repository implements IGeneralRepo
 
 		if (!$valid && $throw) {
 			throw new InvalidCouponException(code: InvalidCouponException::INVALID_CONDITIONS_CATEGORY);
+		}
+
+		if ($conditions = $this->discountConditionProducerRepository->many()->where('this.fk_discountCoupon', $coupon->getPK())->toArray()) {
+			/** @var array<\Eshop\DB\Product> $productsInCartObjects */
+			$productsInCartObjects = $this->productRepository->many()->join(['eshop_cartitem'], 'this.uuid = eshop_cartitem.fk_product')
+				->where('eshop_cartitem.fk_cart', $cart->getPK())
+				->toArray();
+
+			$producersInCart = [];
+
+			foreach ($productsInCartObjects as $product) {
+				$producerPk = $product->getValue('producer');
+
+				if ($producerPk) {
+					$producersInCart[$producerPk] = $producerPk;
+				}
+			}
+
+			/** @var \Eshop\DB\DiscountConditionProducer $condition */
+			foreach ($conditions as $condition) {
+				$conditionValid = true;
+
+				$required = \array_values($condition->producers->toArrayOf('uuid'));
+
+				if ($condition->cartCondition === 'isInCart') {
+					if ($condition->quantityCondition === 'all') {
+						foreach ($required as $requiredProducer) {
+							if (!isset($producersInCart[$requiredProducer])) {
+								$conditionValid = false;
+
+								break;
+							}
+						}
+					} elseif ($condition->quantityCondition === 'atLeastOne') {
+						$found = false;
+
+						foreach ($required as $requiredProducer) {
+							if (isset($producersInCart[$requiredProducer])) {
+								$found = true;
+
+								break;
+							}
+						}
+
+						if (!$found) {
+							$conditionValid = false;
+						}
+					}
+				} elseif ($condition->cartCondition === 'notInCart') {
+					if ($condition->quantityCondition === 'all') {
+						foreach ($required as $requiredProducer) {
+							if (isset($producersInCart[$requiredProducer])) {
+								$conditionValid = false;
+
+								break;
+							}
+						}
+					} elseif ($condition->quantityCondition === 'atLeastOne') {
+						$found = false;
+
+						foreach ($required as $requiredProducer) {
+							if (!isset($producersInCart[$requiredProducer])) {
+								$found = true;
+
+								break;
+							}
+						}
+
+						if (!$found) {
+							$conditionValid = false;
+						}
+					}
+				}
+
+				if (!$conditionValid && $conditionType === 'and') {
+					$valid = false;
+
+					break;
+				}
+
+				if ($conditionValid && $conditionType === 'or') {
+					$valid = true;
+
+					break;
+				}
+
+				if ($conditionType === 'and') {
+					$valid = $conditionValid;
+
+					continue;
+				}
+
+				$valid = $conditionValid;
+			}
+		}
+
+		if (!$valid && $throw) {
+			throw new InvalidCouponException(code: InvalidCouponException::INVALID_CONDITIONS_PRODUCER);
 		}
 
 		return $valid ? $coupon : null;

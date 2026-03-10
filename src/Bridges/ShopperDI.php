@@ -82,6 +82,7 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			'autoFixCart' => Expect::bool(true),
 			'discountConditions' => Expect::structure([
 				'categories' => Expect::bool(false),
+				'producers' => Expect::bool(false),
 			]),
 			'maxCustomerOrderPrice' => Expect::structure([
 				// Show inputs in admin customer detail

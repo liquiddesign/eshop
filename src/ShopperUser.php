@@ -267,7 +267,7 @@ class ShopperUser extends User
 	}
 
 	/**
-	 * @return array{categories: bool}
+	 * @return array{categories: bool, producers: bool}
 	 */
 	public function getDiscountConditions(): array
 	{

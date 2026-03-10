@@ -58,6 +58,7 @@ class CouponForm extends \Nette\Application\UI\Form
 					InvalidCouponException::HIGH_CART_PRICE => $translator->translate('couponFormICE.highPrice', 'Slevový kupón není platný'),
 					InvalidCouponException::INVALID_CURRENCY => $translator->translate('couponFormICE.invalidCurrency', 'Slevový kupón není platný'),
 					InvalidCouponException::INVALID_CONDITIONS_CATEGORY => $translator->translate('couponFormICE.invalidCondCat', 'Slevový kupón není platný'),
+					InvalidCouponException::INVALID_CONDITIONS_PRODUCER => $translator->translate('couponFormICE.invalidCondProd', 'Slevový kupón není platný'),
 					default => 'unknown',
 				// phpcs:ignore
 				};
