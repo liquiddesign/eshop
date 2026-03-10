@@ -69,7 +69,7 @@ class RejectByManager extends BaseAction
 	 */
 	private function notifyAuthor(Offer $offer, Merchant $rejectingManager, string $rejectionNote): void
 	{
-		$author = $offer->order->purchase->merchant;
+		$author = $offer->merchant;
 
 		if ($author === null || $author->email === '') {
 			return;

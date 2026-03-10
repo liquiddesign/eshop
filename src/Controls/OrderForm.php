@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Eshop\Controls;
 
 use Eshop\BuyException;
-use Eshop\DB\OfferRepository;
 use Eshop\ShopperUser;
 use Nette\Application\UI\Form;
 use Nette\Forms\Controls\SubmitButton;
@@ -41,7 +40,6 @@ class OrderForm extends \Nette\Application\UI\Form
 
 	public function __construct(
 		protected readonly ShopperUser $shopperUser,
-		protected readonly OfferRepository $offerRepository,
 	) {
 		parent::__construct();
 
@@ -77,15 +75,35 @@ class OrderForm extends \Nette\Application\UI\Form
 		/** @var \Nette\Forms\Controls\SubmitButton|true $submitter */
 		$submitter = $form->isSubmitted();
 
-		$createOffer = $submitter instanceof SubmitButton && $submitter->getName() === 'offerSubmit';
+		$isOfferSubmit = $submitter instanceof SubmitButton && $submitter->getName() === 'offerSubmit';
 
 		if (isset($form->getValues('array')['dontSendEmail'])) {
 			$dontSendEmail = (bool) $form->getValues('array')['dontSendEmail'];
 			$this->shopperUser->getCheckoutManager()->setSendNewOrderEmail(!$dontSendEmail);
 		}
 
+		if ($isOfferSubmit) {
+			try {
+				$offer = $this->shopperUser->getCheckoutManager()->createOffer();
+			} catch (BuyException $exception) {
+				$this->onBuyError($exception->getCode(), $exception);
+
+				if ($this->afterBuyError) {
+					\call_user_func($this->afterBuyError, $exception->getCode(), $exception);
+				}
+
+				return;
+			}
+
+			if ($this->afterOfferCreated) {
+				\call_user_func($this->afterOfferCreated, $offer);
+			}
+
+			return;
+		}
+
 		try {
-			$order = $this->shopperUser->getCheckoutManager()->createOrder(createOffer: $createOffer);
+			$order = $this->shopperUser->getCheckoutManager()->createOrder();
 		} catch (BuyException $exception) {
 			$this->onBuyError($exception->getCode(), $exception);
 
@@ -96,15 +114,8 @@ class OrderForm extends \Nette\Application\UI\Form
 			return;
 		}
 
-		if ($submitter instanceof SubmitButton && $submitter->getName() === 'offerSubmit' && $this->afterOfferCreated) {
-			$offer = $this->offerRepository->many()->where('fk_order', $order->getPK())->first();
-			\call_user_func($this->afterOfferCreated, $offer);
-		}
-
-		if (($submitter === true || ($submitter instanceof SubmitButton && $submitter->getName() === 'submit')) && $this->afterOrderCreated) {
+		if ($this->afterOrderCreated) {
 			\call_user_func($this->afterOrderCreated, $order);
 		}
-
-		return;
 	}
 }

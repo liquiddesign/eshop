@@ -35,7 +35,7 @@ class CompleteOffer extends BaseAction
 			$offer,
 			OfferLogItem::COMPLETED,
 			null,
-			$offer->order->purchase->merchant
+			$offer->merchant
 		);
 
 		$this->onOfferCompleted($offer);

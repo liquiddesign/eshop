@@ -46,7 +46,7 @@ class SendOffer extends BaseAction
 				$this->templateRepository->sendMessage(
 					'offers.create',
 					$this->offerService->getEmailVariables($offer),
-					$offer->order->purchase->accountEmail
+					$offer->accountEmail
 				);
 			}
 
@@ -54,7 +54,7 @@ class SendOffer extends BaseAction
 				$offer,
 				OfferLogItem::SENT,
 				$sendEmail ? null : 'Odesláno bez emailu',
-				$offer->order->purchase->merchant
+				$offer->merchant
 			);
 
 			$this->storm->getLink()->commit();

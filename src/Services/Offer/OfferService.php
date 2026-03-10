@@ -3,14 +3,16 @@
 namespace Eshop\Services\Offer;
 
 use Base\Bridges\AutoWireService;
+use Eshop\Actions\Offer\GetOfferEmailVariables;
 use Eshop\DB\Offer;
-use Eshop\DB\OrderRepository;
 use Nette\Application\LinkGenerator;
 
 readonly class OfferService implements AutoWireService
 {
-	public function __construct(private OrderRepository $orderRepository, private LinkGenerator $linkGenerator)
-	{
+	public function __construct(
+		private GetOfferEmailVariables $getOfferEmailVariables,
+		private LinkGenerator $linkGenerator,
+	) {
 	}
 
 	/**
@@ -30,7 +32,7 @@ readonly class OfferService implements AutoWireService
 				'print' => 1,
 			]),
 			'offerCode' => $offer->code,
-			'offer' => $offer->toJsonArray(),
-		] + $this->orderRepository->getEmailVariables($offer->order);
+			'offer' => $offer,
+		] + $this->getOfferEmailVariables->execute($offer);
 	}
 }

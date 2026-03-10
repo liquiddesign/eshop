@@ -68,7 +68,7 @@ class ApproveByManager extends BaseAction
 	 */
 	private function notifyAuthor(Offer $offer, Merchant $approvingManager): void
 	{
-		$author = $offer->order->purchase->merchant;
+		$author = $offer->merchant;
 
 		if ($author === null || $author->email === '') {
 			return;
