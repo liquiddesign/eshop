@@ -146,7 +146,7 @@ class Purchase extends \StORM\Entity
 
 	/**
 	 * Interní poznámka
-	 * @column
+	 * @column{"type":"text"}
 	 */
 	public ?string $internalNote;
 
