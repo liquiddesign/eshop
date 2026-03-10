@@ -2269,10 +2269,8 @@ class CheckoutManager
 		return $order;
 	}
 
-	public function createOffer(
-		?Purchase $purchase = null,
-		?string $cartId = self::ACTIVE_CART_ID,
-	): Offer {
+	public function createOffer(?Purchase $purchase = null, ?string $cartId = self::ACTIVE_CART_ID,): Offer
+	{
 		/** @var \Eshop\DB\Purchase $purchase */
 		$purchase = $purchase ?: $this->getPurchase(true, $cartId);
 

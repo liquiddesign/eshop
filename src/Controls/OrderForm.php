@@ -38,9 +38,8 @@ class OrderForm extends \Nette\Application\UI\Form
 	 */
 	public $afterBuyError = null;
 
-	public function __construct(
-		protected readonly ShopperUser $shopperUser,
-	) {
+	public function __construct(protected readonly ShopperUser $shopperUser,)
+	{
 		parent::__construct();
 
 		$this->addTextArea('deliveryNote')->setNullable();
@@ -114,8 +113,10 @@ class OrderForm extends \Nette\Application\UI\Form
 			return;
 		}
 
-		if ($this->afterOrderCreated) {
-			\call_user_func($this->afterOrderCreated, $order);
+		if (!$this->afterOrderCreated) {
+			return;
 		}
+
+		\call_user_func($this->afterOrderCreated, $order);
 	}
 }

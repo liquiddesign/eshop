@@ -43,7 +43,7 @@ class CreateOffer extends \Base\BaseAction
 			try {
 				$inTransaction = $this->connection->beginTransaction();
 
-				/** @var Offer $offer */
+				/** @var \Eshop\DB\Offer $offer */
 				$offer = $this->offerRepository->createOne([
 					'code' => $this->generateOfferCode->execute(),
 					'validFromTs' => Carbon::now()->toDateString(),
@@ -52,7 +52,7 @@ class CreateOffer extends \Base\BaseAction
 					'merchant' => $purchase->merchant?->getPK(),
 					'deliveringMerchant' => $purchase->getValue('deliveringMerchant'),
 					'account' => $purchase->getValue('account'),
-					'currency' => $cart->currency?->getPK(),
+					'currency' => $cart->currency->getPK(),
 					'billAddress' => $purchase->billAddress?->getPK(),
 					'deliveryAddress' => $purchase->deliveryAddress?->getPK(),
 					'deliveryType' => $purchase->getValue('deliveryType'),

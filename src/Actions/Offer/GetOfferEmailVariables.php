@@ -7,13 +7,11 @@ namespace Eshop\Actions\Offer;
 use Base\BaseAction;
 use Eshop\Actions\Customer\GetCurrentContextCatalogPermissionByCustomer;
 use Eshop\DB\Offer;
-use Eshop\DB\OfferItem;
 
 class GetOfferEmailVariables extends BaseAction
 {
-	public function __construct(
-		private readonly GetCurrentContextCatalogPermissionByCustomer $getEmailBlocksSetting,
-	) {
+	public function __construct(private readonly GetCurrentContextCatalogPermissionByCustomer $getEmailBlocksSetting)
+	{
 	}
 
 	/**
@@ -108,11 +106,7 @@ class GetOfferEmailVariables extends BaseAction
 				$values['totalDeliveryPricePref'] = $totalDeliveryPrice;
 				$values['paymentPricePref'] = $paymentPrice;
 
-				if ($currentContextCatalogPermissions->priorityPrice === 'withVat') {
-					$values['totalPricePref'] = $offer->getTotalPriceVat();
-				} else {
-					$values['totalPricePref'] = $offer->getTotalPrice();
-				}
+				$values['totalPricePref'] = $currentContextCatalogPermissions->priorityPrice === 'withVat' ? $offer->getTotalPriceVat() : $offer->getTotalPrice();
 
 				$values['withVat'] = true;
 				$values['withoutVat'] = true;
