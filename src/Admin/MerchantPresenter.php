@@ -406,11 +406,10 @@ class MerchantPresenter extends BackendPresenter
 		/** @var \Forms\Form $form */
 		$form = $this->getComponent('form');
 
-		$relations = ['pricelists'];
+		$relations = ['pricelists', 'visibilityLists'];
 
 		if ($this::CONFIGURATIONS['customers']) {
 			$relations[] = 'customers';
-			$relations[] = 'visibilityLists';
 		}
 
 		$form->setDefaults($merchant->toArray($relations));
