@@ -357,6 +357,12 @@ class Product extends \StORM\Entity
 	public float|null $productStockCostPrice = null;
 
 	/**
+	 * Manuálně zadaná skladová nákladová cena (vyšší priorita než productStockCostPrice)
+	 * @column
+	 */
+	public float|null $productStockCostPriceManual = null;
+
+	/**
 	 * Platnost manuální nákupní ceny (do data)
 	 * @column{"type":"date"}
 	 */
@@ -627,6 +633,14 @@ class Product extends \StORM\Entity
 		parent::__construct($vars, $parent, $mutations, $mutation);
 
 		$this->productRepository = $this->getConnection()->findRepository(Product::class);
+	}
+
+	/**
+	 * Vrátí efektivní skladovou nákladovou cenu (manual má vyšší prioritu).
+	 */
+	public function getProductStockCostPrice(): float|null
+	{
+		return $this->productStockCostPriceManual ?? $this->productStockCostPrice;
 	}
 
 	public function getName(string|null $mutation = null): string|null
