@@ -483,7 +483,9 @@ class CheckoutManager
 			return 0.0;
 		}
 
-		return $this->sumPrice[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'price');
+		$cacheKey = (string) $id;
+
+		return $this->sumPrice[$cacheKey] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'price');
 	}
 
 	public function getSumPriceVat(?string $id = self::ACTIVE_CART_ID): float
@@ -492,7 +494,9 @@ class CheckoutManager
 			return 0.0;
 		}
 
-		return $this->sumPriceVat[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'priceVat');
+		$cacheKey = (string) $id;
+
+		return $this->sumPriceVat[$cacheKey] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'priceVat');
 	}
 
 	public function getSumPriceBefore(?string $id = self::ACTIVE_CART_ID): float
@@ -501,7 +505,9 @@ class CheckoutManager
 			return 0.0;
 		}
 
-		return $this->sumPriceBefore[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'priceBefore');
+		$cacheKey = (string) $id;
+
+		return $this->sumPriceBefore[$cacheKey] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'priceBefore');
 	}
 
 	public function getSumPriceVatBefore(?string $id = self::ACTIVE_CART_ID): float
@@ -510,7 +516,9 @@ class CheckoutManager
 			return 0.0;
 		}
 
-		return $this->sumPriceVatBefore[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'priceVatBefore');
+		$cacheKey = (string) $id;
+
+		return $this->sumPriceVatBefore[$cacheKey] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'priceVatBefore');
 	}
 
 	public function getSumItems(?string $id = self::ACTIVE_CART_ID): int
@@ -519,7 +527,9 @@ class CheckoutManager
 			return 0;
 		}
 
-		return $this->sumAmount[$id] ??= $this->cartItemRepository->getSumItems($this->getCart($id));
+		$cacheKey = (string) $id;
+
+		return $this->sumAmount[$cacheKey] ??= $this->cartItemRepository->getSumItems($this->getCart($id));
 	}
 
 	public function getSumAmount(?string $id = self::ACTIVE_CART_ID): int
@@ -528,7 +538,9 @@ class CheckoutManager
 			return 0;
 		}
 
-		return $this->sumAmountTotal[$id] ??= (int) $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'amount');
+		$cacheKey = (string) $id;
+
+		return $this->sumAmountTotal[$cacheKey] ??= (int) $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'amount');
 	}
 
 	public function getSumWeight(?string $id = self::ACTIVE_CART_ID): float
@@ -537,7 +549,9 @@ class CheckoutManager
 			return 0.0;
 		}
 
-		return $this->sumWeight[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productWeight');
+		$cacheKey = (string) $id;
+
+		return $this->sumWeight[$cacheKey] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productWeight');
 	}
 
 	/**
@@ -549,7 +563,9 @@ class CheckoutManager
 			return 0.0;
 		}
 
-		return $this->sumDimension[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productDimension');
+		$cacheKey = (string) $id;
+
+		return $this->sumDimension[$cacheKey] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productDimension');
 	}
 
 	public function getSumLength(?string $id = self::ACTIVE_CART_ID): float
@@ -558,7 +574,9 @@ class CheckoutManager
 			return 0.0;
 		}
 
-		return $this->sumLength[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productLength');
+		$cacheKey = (string) $id;
+
+		return $this->sumLength[$cacheKey] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productLength');
 	}
 
 	public function getSumDepth(?string $id = self::ACTIVE_CART_ID): float
@@ -567,7 +585,9 @@ class CheckoutManager
 			return 0.0;
 		}
 
-		return $this->sumDepth[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productDepth');
+		$cacheKey = (string) $id;
+
+		return $this->sumDepth[$cacheKey] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productDepth');
 	}
 
 	public function getSumWidth(?string $id = self::ACTIVE_CART_ID): float
@@ -576,7 +596,9 @@ class CheckoutManager
 			return 0.0;
 		}
 
-		return $this->sumWidth[$id] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productWidth');
+		$cacheKey = (string) $id;
+
+		return $this->sumWidth[$cacheKey] ??= $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'productWidth');
 	}
 
 	public function getMaxWeight(?string $id = self::ACTIVE_CART_ID): float
@@ -585,7 +607,9 @@ class CheckoutManager
 			return 0.0;
 		}
 
-		return $this->maxWeight[$id] ??= $this->cartItemRepository->many()->where('fk_cart', $this->getCart($id)->getPK())->max('productWeight');
+		$cacheKey = (string) $id;
+
+		return $this->maxWeight[$cacheKey] ??= $this->cartItemRepository->many()->where('fk_cart', $this->getCart($id)->getPK())->max('productWeight');
 	}
 
 	public function getMaxDimension(?string $id = self::ACTIVE_CART_ID): int
@@ -594,7 +618,9 @@ class CheckoutManager
 			return 0;
 		}
 
-		return $this->maxDimension[$id] ??= (int) $this->cartItemRepository->many()->where('fk_cart', $this->getCart($id)->getPK())->max('GREATEST(productWidth,productLength,productDepth)');
+		$cacheKey = (string) $id;
+
+		return $this->maxDimension[$cacheKey] ??= (int) $this->cartItemRepository->many()->where('fk_cart', $this->getCart($id)->getPK())->max('GREATEST(productWidth,productLength,productDepth)');
 	}
 
 	public function getSumPoints(?string $id = self::ACTIVE_CART_ID): int
@@ -603,7 +629,9 @@ class CheckoutManager
 			return 0;
 		}
 
-		return $this->sumPoints[$id] ??= (int) $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'pts');
+		$cacheKey = (string) $id;
+
+		return $this->sumPoints[$cacheKey] ??= (int) $this->cartItemRepository->getSumProperty([$this->getCart($id)->getPK()], 'pts');
 	}
 
 	public function getCartCurrency(?string $id = self::ACTIVE_CART_ID): ?Currency
@@ -2416,16 +2444,17 @@ class CheckoutManager
 
 	private function refreshSumProperties(?string $cartId = self::ACTIVE_CART_ID): void
 	{
-		unset($this->sumPrice[$cartId]);
-		unset($this->sumPriceVat[$cartId]);
-		unset($this->sumAmountTotal[$cartId]);
-		unset($this->sumAmount[$cartId]);
-		unset($this->sumWeight[$cartId]);
-		unset($this->sumPoints[$cartId]);
-		unset($this->sumDimension[$cartId]);
-		unset($this->sumDepth[$cartId]);
-		unset($this->sumWidth[$cartId]);
-		unset($this->sumLength[$cartId]);
+		$cacheKey = (string) $cartId;
+		unset($this->sumPrice[$cacheKey]);
+		unset($this->sumPriceVat[$cacheKey]);
+		unset($this->sumAmountTotal[$cacheKey]);
+		unset($this->sumAmount[$cacheKey]);
+		unset($this->sumWeight[$cacheKey]);
+		unset($this->sumPoints[$cacheKey]);
+		unset($this->sumDimension[$cacheKey]);
+		unset($this->sumDepth[$cacheKey]);
+		unset($this->sumWidth[$cacheKey]);
+		unset($this->sumLength[$cacheKey]);
 	}
 
 	/**
