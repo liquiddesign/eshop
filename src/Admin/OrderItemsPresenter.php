@@ -74,7 +74,7 @@ class OrderItemsPresenter extends \Eshop\BackendPresenter
 		});
 
 		$grid->addColumn('Produkt', function (CartItem $cartItem): string {
-			$name = $cartItem->getProduct() ? $cartItem->getProduct()->name : $cartItem->productName;
+			$name = $cartItem->productName ?: ($cartItem->getProduct()?->name);
 			$link = $cartItem->getProduct() && $this->admin->isAllowed(':Eshop:Admin:Product:edit') ? $this->link(':Eshop:Admin:Product:edit', $cartItem->getProduct()) : null;
 
 			return $link ? "<a href='$link'><i class='fa fa-external-link-alt fa-sm'></i>&nbsp;$name</a>" : $name;
