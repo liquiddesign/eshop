@@ -56,6 +56,11 @@ class SupplierProductRepository extends \StORM\Repository
 	 */
 	public function syncProducts(Supplier $supplier, string $mutation, string $country, bool $overwrite, bool $importImages = false): array
 	{
+		// Re-load supplier from DB to ensure all properties are populated correctly
+		// (syncOne-created entities may have PHP defaults instead of actual DB values)
+		$supplierRepository = $this->getConnection()->findRepository(Supplier::class);
+		$supplier = $supplierRepository->oneOrFail($supplier->getPK());
+
 		$result = [
 			'updated' => 0,
 			'locked' => 0,
