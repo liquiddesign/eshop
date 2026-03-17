@@ -59,7 +59,7 @@ class SupplierProductRepository extends \StORM\Repository
 		// Re-load supplier from DB to ensure all properties are populated correctly
 		// (syncOne-created entities may have PHP defaults instead of actual DB values)
 		$supplierRepository = $this->getConnection()->findRepository(Supplier::class);
-		$supplier = $supplierRepository->one($supplier->getPK()) ?? $supplier;
+		$supplier = $supplierRepository->oneOrFail($supplier->getPK());
 
 		$result = [
 			'updated' => 0,
