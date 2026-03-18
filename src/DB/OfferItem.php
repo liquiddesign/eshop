@@ -132,6 +132,18 @@ class OfferItem extends Entity implements IPackageItem
 	 */
 	public bool $dropShipping = false;
 
+	/**
+	 * Plovoucí cena (aktualizovatelná podle aktuálního katalogu)
+	 * @column{"type":"tinyint","default":"0"}
+	 */
+	public bool $floatingPrice = false;
+
+	/**
+	 * Skrýt v CKP ceníku
+	 * @column{"type":"tinyint","default":"0"}
+	 */
+	public bool $hideInPricelist = false;
+
 	public function getFullCode(): string|null
 	{
 		return $this->productSubCode !== null ? $this->productCode . '.' . $this->productSubCode : $this->productCode;

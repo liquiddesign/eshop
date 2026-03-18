@@ -68,6 +68,18 @@ class Offer extends Entity
 	public string|null $managerApprovedTs = null;
 
 	/**
+	 * CKP nabídka (bez časového omezení, generuje CKP ceník)
+	 * @column{"type":"tinyint","default":"0"}
+	 */
+	public bool $isCkp = false;
+
+	/**
+	 * Sdílená s dalšími zákazníky
+	 * @column{"type":"tinyint","default":"0"}
+	 */
+	public bool $isShared = false;
+
+	/**
 	 * Poznámka
 	 * @column{"type":"text"}
 	 */
@@ -232,6 +244,13 @@ class Offer extends Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\OfferItem>
 	 */
 	public RelationCollection $offerItems;
+
+	/**
+	 * Sdílení zákazníci (NxN)
+	 * @relationNxN
+	 * @var \StORM\RelationCollection<\Eshop\DB\Customer>
+	 */
+	public RelationCollection $sharedCustomers;
 
 	public function isExpired(Carbon $now): bool
 	{
