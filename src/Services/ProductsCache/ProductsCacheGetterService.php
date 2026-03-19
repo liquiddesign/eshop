@@ -352,6 +352,7 @@ class ProductsCacheGetterService
 			'masterProduct' => 'this.masterProduct',
 			'ribbons' => 'this.ribbons',
 			'internalRibbons' => 'this.internalRibbons',
+			'projectName' => 'this.projectName',
 		]);
 
 		/** @var array<int, \Eshop\DB\Attribute> $allAttributes */
