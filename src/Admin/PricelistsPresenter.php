@@ -661,6 +661,22 @@ class PricelistsPresenter extends BackendPresenter
 			$source->where('products.unavailable', (bool) $value);
 		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			if ($value === 'master') {
+				$source->where('products.fk_masterProduct IS NULL');
+			} elseif ($value === 'slave') {
+				$source->where('products.fk_masterProduct IS NOT NULL');
+			}
+		}, '', 'merged', null, ['master' => 'Pouze master', 'slave' => 'Pouze slave'])->setPrompt('- Sloučení -');
+
+		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
+			if ($value === '1') {
+				$source->where('products.deletedTs IS NOT NULL');
+			} else {
+				$source->where('products.deletedTs IS NULL');
+			}
+		}, '', 'deleted', null, ['1' => 'Vyřazené', '0' => 'Aktivní'])->setPrompt('- Vyřazení -');
+
 		if (!$isReadonly) {
 			$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
