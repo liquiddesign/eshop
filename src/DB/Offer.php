@@ -68,10 +68,10 @@ class Offer extends Entity
 	public string|null $managerApprovedTs = null;
 
 	/**
-	 * CKP nabídka (bez časového omezení, generuje CKP ceník)
-	 * @column{"type":"tinyint","default":"0"}
+	 * Typ nabídky (normal/ckp)
+	 * @column{"type":"enum","length":"'normal','ckp'","default":"'normal'"}
 	 */
-	public bool $isCkp = false;
+	public string $offerType = 'normal';
 
 	/**
 	 * Sdílená s dalšími zákazníky
@@ -251,6 +251,16 @@ class Offer extends Entity
 	 * @var \StORM\RelationCollection<\Eshop\DB\Customer>
 	 */
 	public RelationCollection $sharedCustomers;
+
+	public function getOfferType(): OfferType
+	{
+		return OfferType::from($this->offerType);
+	}
+
+	public function isCkp(): bool
+	{
+		return $this->offerType === OfferType::Ckp->value;
+	}
 
 	public function isExpired(Carbon $now): bool
 	{

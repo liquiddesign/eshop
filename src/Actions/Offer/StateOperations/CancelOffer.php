@@ -8,11 +8,14 @@ use Carbon\Carbon;
 use Eshop\Actions\Offer\GetOfferState;
 use Eshop\DB\Offer;
 use Eshop\DB\OfferState;
+use Eshop\Services\Offer\OfferTypeStrategyResolver;
 
 class CancelOffer extends \Base\BaseAction
 {
-	public function __construct(private readonly GetOfferState $getOfferState)
-	{
+	public function __construct(
+		private readonly GetOfferState $getOfferState,
+		private readonly OfferTypeStrategyResolver $strategyResolver,
+	) {
 	}
 
 	/**
@@ -46,6 +49,6 @@ class CancelOffer extends \Base\BaseAction
 
 	protected function onOfferCanceled(Offer $offer): void
 	{
-		unset($offer);
+		$this->strategyResolver->resolve($offer)->onCanceled($offer);
 	}
 }

@@ -12,7 +12,9 @@ use Eshop\DB\OfferLogItem;
 use Eshop\DB\OfferLogItemRepository;
 use Eshop\DB\OfferState;
 use Eshop\Services\Offer\OfferService;
+use Eshop\Services\Offer\OfferTypeStrategyResolver;
 use Messages\DB\TemplateRepository;
+use Nette\Utils\Arrays;
 use StORM\DIConnection;
 use Tracy\Debugger;
 
@@ -24,6 +26,7 @@ class SendOffer extends BaseAction
 		private readonly TemplateRepository $templateRepository,
 		private readonly OfferService $offerService,
 		private readonly OfferLogItemRepository $offerLogItemRepository,
+		private readonly OfferTypeStrategyResolver $strategyResolver,
 	) {
 	}
 
@@ -74,9 +77,10 @@ class SendOffer extends BaseAction
 	public function canSendOffer(Offer $offer): void
 	{
 		$state = $this->getOfferState->execute($offer);
+		$strategy = $this->strategyResolver->resolve($offer);
+		$allowedTransitions = $strategy->getAllowedTransitions($state);
 
-		// Can send from Created (if validated) or ManagerApproved state
-		if ($state === OfferState::Created || $state === OfferState::ManagerApproved) {
+		if (Arrays::contains($allowedTransitions, OfferState::Sent)) {
 			return;
 		}
 
