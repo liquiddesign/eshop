@@ -291,6 +291,12 @@ class Product extends \StORM\Entity
 	public ?string $published;
 
 	/**
+	 * Název projektu - pokud vyplněn, produkt se zobrazí jen zákazníkům s cenou v oblíbeném ceníku
+	 * @column
+	 */
+	public string|null $projectName = null;
+
+	/**
 	 * Hodnota v % na upsell produktu
 	 * @column
 	 */

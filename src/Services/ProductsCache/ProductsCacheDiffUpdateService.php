@@ -309,6 +309,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				'internalRibbons' => 'GROUP_CONCAT(DISTINCT eshop_internalribbon.uuid SEPARATOR ",")',
 				'published' => 'this.published',
 				'buyCount' => 'this.buyCount',
+				'projectName' => 'this.projectName',
 			])
 			->setTake(1000000)
 			->setGroupBy(['this.id']);
@@ -345,6 +346,7 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				'internalRibbons' => $product->internalRibbons ?: null,
 				'published' => $product->published ?: null,
 				'buyCount' => $product->buyCount ?: null,
+				'projectName' => $product->projectName ?: null,
 			];
 
 			$primaryCategories = isset($productPrimaryCategories[$product->id]) ? \explode(',', $productPrimaryCategories[$product->id]->groupedValues) : [];
@@ -1433,7 +1435,7 @@ CREATE TABLE IF NOT EXISTS `$productsCacheTableName` (
 			FROM INFORMATION_SCHEMA.COLUMNS 
 			WHERE TABLE_SCHEMA = DATABASE() 
 			AND TABLE_NAME = '$productsCacheTableName' 
-			AND COLUMN_NAME IN ('ribbons', 'internalRibbons', 'published', 'buyCount')
+			AND COLUMN_NAME IN ('ribbons', 'internalRibbons', 'published', 'buyCount', 'projectName')
 		");
 
 		$columns = $query->fetchAll(\PDO::FETCH_ASSOC);
@@ -1453,6 +1455,10 @@ CREATE TABLE IF NOT EXISTS `$productsCacheTableName` (
 
 		if (!isset($columns['buyCount'])) {
 			$this->getConnection()->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `buyCount` INT");
+		}
+
+		if (!isset($columns['projectName'])) {
+			$this->getConnection()->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `projectName` VARCHAR(255)");
 		}
 
 		return;
