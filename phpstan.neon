@@ -29,4 +29,9 @@ parameters:
 		- src/DB/PipedriveLogRepository.php
 		- src/DB/NpBillingOverride.php
 		- src/DB/NpBillingOverrideRepository.php
+		- src/DB/OfferItem.php
+		- src/DB/OfferItemRepository.php
 		- src/Admin/PipedriveLogPresenter.php
+		- src/DB/OfferType.php
+		- src/Services/Offer/OfferTypeStrategy.php
+		- src/Services/Offer/OfferTypeStrategyResolver.php

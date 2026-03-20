@@ -9,11 +9,14 @@ use Carbon\Carbon;
 use Eshop\Actions\Offer\GetOfferState;
 use Eshop\DB\Offer;
 use Eshop\DB\OfferState;
+use Eshop\Services\Offer\OfferTypeStrategyResolver;
 
 class ApproveOffer extends BaseAction
 {
-	public function __construct(private readonly GetOfferState $getOfferState)
-	{
+	public function __construct(
+		private readonly GetOfferState $getOfferState,
+		private readonly OfferTypeStrategyResolver $strategyResolver,
+	) {
 	}
 
 	/**
@@ -45,6 +48,6 @@ class ApproveOffer extends BaseAction
 
 	protected function onOfferApproved(Offer $offer): void
 	{
-		unset($offer);
+		$this->strategyResolver->resolve($offer)->onApproved($offer);
 	}
 }
