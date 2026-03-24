@@ -149,7 +149,8 @@ class ProductForm extends Control
 
 		$form->addText('deletedTs', 'Čas smazání')
 			->setHtmlAttribute('data-info', 'Čas vyřazení produktu. Vyplňuje se automaticky.')
-			->setNullable();
+			->setNullable()
+			->setDisabled();
 		$form->addSelect('vatRate', 'Úroveň DPH (%)', $vatRateRepository->getDefaultVatRates());
 
 		/** @var array<\Eshop\DB\CategoryType> $categoryTypes */
@@ -397,7 +398,8 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		$form->addText('lastInStockTs', 'Čas posledního naskladnění')
 			->setHtmlAttribute('data-info', 'Čas posledního naskladnění u jakéhokoliv dodavatele. Vyplňuje se automaticky.')
-			->setNullable();
+			->setNullable()
+			->setDisabled();
 
 		// Relations - nyní spravováno Alpine.js komponentou v productRelations.latte
 		// Inicializace relatedTypes pro template
