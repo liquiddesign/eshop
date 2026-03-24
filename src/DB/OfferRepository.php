@@ -62,4 +62,13 @@ class OfferRepository extends Repository
 				->where('this.canceledTs IS NOT NULL'),
 		};
 	}
+
+	public function findOfferByCkpPriceList(Pricelist $pricelist): ?Offer
+	{
+		return $this->many()
+			->join(['nxn' => 'eshop_customer_nxn_eshop_pricelist'], 'nxn.fk_customer = this.fk_customer')
+			->where('nxn.fk_pricelist', $pricelist->getPK())
+			->where('this.offerType', OfferType::Ckp->value)
+			->first();
+	}
 }
