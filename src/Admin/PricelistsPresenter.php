@@ -150,7 +150,11 @@ class PricelistsPresenter extends BackendPresenter
 				$ribbons .= "<div class=\"badge\" style=\"font-weight: normal; font-style: italic; background-color: $ribbon->backgroundColor; color: $ribbon->color\">$ribbon->name</div> ";
 			}
 
-			return [$pricelist->name, $ribbons];
+			$readonlyBadge = $pricelist->isReadonly
+				? '<span class="badge badge-secondary"><i class="fas fa-lock"></i> Readonly</span> '
+				: '';
+
+			return [$pricelist->name, $readonlyBadge . $ribbons];
 		}, '%s&nbsp;%s', 'name');
 		$grid->addColumnText('Popis', 'description', '%s');
 		$grid->addColumn('Slevy', function (Pricelist $object) {
@@ -268,7 +272,11 @@ class PricelistsPresenter extends BackendPresenter
 				$ribbons .= "<div class=\"badge\" style=\"font-weight: normal; font-style: italic; background-color: $ribbon->backgroundColor; color: $ribbon->color\">$ribbon->name</div> ";
 			}
 
-			return [$price->pricelist->code, $price->pricelist->name, $ribbons];
+			$readonlyBadge = $price->pricelist->isReadonly
+				? '<span class="badge badge-secondary"><i class="fas fa-lock"></i> Readonly</span> '
+				: '';
+
+			return [$price->pricelist->code, $price->pricelist->name, $readonlyBadge . $ribbons];
 		}, '%s<br>%s<br>%s');
 		$grid->addColumnText('Kód', 'product.code', '%s', null, ['class' => 'fit']);
 
@@ -339,12 +347,17 @@ class PricelistsPresenter extends BackendPresenter
 		/** @var null|string $autoPriceConfig */
 		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
-		$grid->addButtonSaveAll(onRowUpdate: function (string $id, array &$prices, Price $price) use ($autoPriceConfig): void {
+		$grid->addButtonSaveAll(onRowUpdate: function (string $id, array &$prices, Price $price) use ($autoPriceConfig): bool {
+			// Přeskočit readonly ceníky
+			if ($price->pricelist->isReadonly) {
+				return false;
+			}
+
 			if (
 				(!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && !isset($prices['price']) ||
 				($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT && !isset($prices['priceVat']))
 			) {
-				return;
+				return false;
 			}
 
 			$vatPct = $price->product->getVatPctByCountry($price->pricelist->country);
@@ -370,8 +383,12 @@ class PricelistsPresenter extends BackendPresenter
 
 				$prices[$priceKey] = null;
 			}
+
+			return true;
 		}, diff: false);
-		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
+		$grid->addButtonDeleteSelected(null, false, function (Price|null $price): bool {
+			return $price !== null && !$price->pricelist->isReadonly;
+		}, 'this.uuid');
 
 		$grid->addFilterDataMultiSelect(function (ICollection $source, $value): void {
 			$source->where('this.fk_pricelist', $value);
@@ -535,77 +552,82 @@ class PricelistsPresenter extends BackendPresenter
 
 		/** @var null|string $autoPriceConfig */
 		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
+		$isReadonly = $pricelist->isReadonly;
 
-		if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
+		if ($isReadonly || $autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
 			$grid->addColumnText('Cena', 'price', '%s');
 		} else {
 			$grid->addColumnInputPrice('Cena', 'price');
 		}
 
 		if ($this->shopperUser->getShowVat()) {
-			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
+			if ($isReadonly || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
 				$grid->addColumnText('Cena s DPH', 'priceVat', '%s');
 			} else {
 				$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
 			}
 		}
 
-		if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
+		if ($isReadonly || $autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
 			$grid->addColumnText('Cena před slevou', 'priceBefore', '%s');
 		} else {
 			$grid->addColumnInputPrice('Cena před slevou', 'priceBefore');
 		}
 
 		if ($this->shopperUser->getShowVat()) {
-			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
+			if ($isReadonly || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
 				$grid->addColumnText('Cena s DPH před slevou', 'priceVatBefore', '%s');
 			} else {
 				$grid->addColumnInputPrice('Cena s DPH před slevou', 'priceVatBefore');
 			}
 		}
 
-		if ($this::SHOW_PRICE_HIDDEN) {
+		if ($this::SHOW_PRICE_HIDDEN && !$isReadonly) {
 			$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', orderExpression: 'hidden');
 		}
 
-		$grid->addColumnActionDelete();
+		if (!$isReadonly) {
+			$grid->addColumnActionDelete();
+		}
 
 		/** @var null|string $autoPriceConfig */
 		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
-		$grid->addButtonSaveAll(onRowUpdate: function (string $id, array &$prices, Price $price) use ($autoPriceConfig): void {
-			if (
-				(!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && !isset($prices['price']) ||
-				($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT && !isset($prices['priceVat']))
-			) {
-				return;
-			}
-
-			$vatPct = $price->product->getVatPctByCountry($price->pricelist->country);
-
-			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
-				$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $vatPct), ShopperUser::PRICE_PRECISSION);
-				$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
-					\round($prices['priceVatBefore'] * \fdiv(100, 100 + $vatPct), ShopperUser::PRICE_PRECISSION) :
-					null;
-			}
-
-			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
-				$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $vatPct, 100), ShopperUser::PRICE_PRECISSION);
-				$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
-					\round($prices['priceBefore'] * \fdiv(100 + $vatPct, 100), ShopperUser::PRICE_PRECISSION) :
-					null;
-			}
-
-			foreach (['price', 'priceVat', 'priceBefore', 'priceVatBefore'] as $priceKey) {
-				if (isset($prices[$priceKey])) {
-					continue;
+		if (!$isReadonly) {
+			$grid->addButtonSaveAll(onRowUpdate: function (string $id, array &$prices, Price $price) use ($autoPriceConfig): void {
+				if (
+					(!$autoPriceConfig || $autoPriceConfig === ProductFormAutoPriceConfig::NONE || $autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) && !isset($prices['price']) ||
+					($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT && !isset($prices['priceVat']))
+				) {
+					return;
 				}
 
-				$prices[$priceKey] = null;
-			}
-		}, diff: false);
-		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
+				$vatPct = $price->product->getVatPctByCountry($price->pricelist->country);
+
+				if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
+					$prices['price'] = \round($prices['priceVat'] * \fdiv(100, 100 + $vatPct), ShopperUser::PRICE_PRECISSION);
+					$prices['priceBefore'] = isset($prices['priceVatBefore']) ?
+						\round($prices['priceVatBefore'] * \fdiv(100, 100 + $vatPct), ShopperUser::PRICE_PRECISSION) :
+						null;
+				}
+
+				if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
+					$prices['priceVat'] = \round($prices['price'] * \fdiv(100 + $vatPct, 100), ShopperUser::PRICE_PRECISSION);
+					$prices['priceVatBefore'] = isset($prices['priceBefore']) ?
+						\round($prices['priceBefore'] * \fdiv(100 + $vatPct, 100), ShopperUser::PRICE_PRECISSION) :
+						null;
+				}
+
+				foreach (['price', 'priceVat', 'priceBefore', 'priceVatBefore'] as $priceKey) {
+					if (isset($prices[$priceKey])) {
+						continue;
+					}
+
+					$prices[$priceKey] = null;
+				}
+			}, diff: false);
+			$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
+		}
 
 		$grid->addFilterButtons(['priceListItems', $this->getParameter('pricelist')]);
 
@@ -641,11 +663,13 @@ class PricelistsPresenter extends BackendPresenter
 			$source->where('products.unavailable', (bool) $value);
 		}, '', 'unavailable', null, ['1' => 'Neprodejné', '0' => 'Prodejné'])->setPrompt('- Prodejnost -');
 
-		$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+		if (!$isReadonly) {
+			$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-		$submit->onClick[] = function ($button) use ($grid): void {
-			$grid->getPresenter()->redirect('copyToPricelist', [$grid->getSelectedIds(), $this->getParameter('pricelist'), 'standard']);
-		};
+			$submit->onClick[] = function ($button) use ($grid): void {
+				$grid->getPresenter()->redirect('copyToPricelist', [$grid->getSelectedIds(), $this->getParameter('pricelist'), 'standard']);
+			};
+		}
 
 		return $grid;
 	}
@@ -685,33 +709,51 @@ class PricelistsPresenter extends BackendPresenter
 			return '<a href="' . $link . '">' . $price->product->name . '</a>';
 		}, '%s');
 
-		$grid->addColumnInputPrice('Cena', 'price');
+		$isReadonly = $pricelist->isReadonly;
+
+		if ($isReadonly) {
+			$grid->addColumnText('Cena', 'price', '%s');
+		} else {
+			$grid->addColumnInputPrice('Cena', 'price');
+		}
 
 		$processTypes = [
 			'price' => 'float',
 		];
 
 		if ($this->shopperUser->getShowVat()) {
-			$grid->addColumnInputPrice('Cena s daní', 'priceVat');
+			if ($isReadonly) {
+				$grid->addColumnText('Cena s daní', 'priceVat', '%s');
+			} else {
+				$grid->addColumnInputPrice('Cena s daní', 'priceVat');
+			}
 
 			$processTypes += ['priceVat' => 'float'];
 		}
 
-		$grid->addColumnInputInteger('Od jakého množství je cena', 'validFrom', '', '', 'validFrom', []);
+		if ($isReadonly) {
+			$grid->addColumnText('Od jakého množství je cena', 'validFrom', '%s');
+		} else {
+			$grid->addColumnInputInteger('Od jakého množství je cena', 'validFrom', '', '', 'validFrom', []);
+		}
 
-		$grid->addColumnActionDelete();
+		if (!$isReadonly) {
+			$grid->addColumnActionDelete();
 
-		$grid->addButtonSaveAll($this->shopperUser->getShowVat() ? ['priceVat', 'validFrom'] : ['validFrom'], $processTypes, null, false, null, null, false);
-		$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
+			$grid->addButtonSaveAll($this->shopperUser->getShowVat() ? ['priceVat', 'validFrom'] : ['validFrom'], $processTypes, null, false, null, null, false);
+			$grid->addButtonDeleteSelected(null, false, null, 'this.uuid');
+		}
 
 		$grid->addFilterTextInput('search', ['product.code', 'product.name_cs'], null, 'Kód, název');
 		$grid->addFilterButtons(['quantityPrices', $this->getParameter('pricelist')]);
 
-		$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
+		if (!$isReadonly) {
+			$submit = $grid->getForm()->addSubmit('copyTo', 'Kopírovat do ...')->setHtmlAttribute('class', 'btn btn-outline-primary btn-sm');
 
-		$submit->onClick[] = function ($button) use ($grid): void {
-			$grid->getPresenter()->redirect('copyToPricelist', [$grid->getSelectedIds(), $this->getParameter('pricelist'), 'quantity']);
-		};
+			$submit->onClick[] = function ($button) use ($grid): void {
+				$grid->getPresenter()->redirect('copyToPricelist', [$grid->getSelectedIds(), $this->getParameter('pricelist'), 'quantity']);
+			};
+		}
 
 		return $grid;
 	}
@@ -744,6 +786,8 @@ Pokud je povoleno, aplikuje zmíněnou procentuální slevu na ceny v tomto cen�
 				'Pokud je povoleno, aplikuje zmíněnou marži na všechny ceny v tomto ceníku.<br>Výsledná cena = %cena produktu% / (1 - (%marže% / 100)) * ((100 - %sleva%) / 100) <br>',
 			);
 		$form->addCheckbox('isActive', 'Aktivní');
+		$form->addCheckbox('isReadonly', 'Pouze pro čtení')
+			->setHtmlAttribute('data-info', 'Pokud je zaškrtnuto, ceny v tomto ceníku nelze editovat, mazat ani importovat.');
 
 		if (isset($this::CONFIGURATION['customLabel']) && $this::CONFIGURATION['customLabel']) {
 			$form->addText('customLabel', 'Vlastní štítek')
@@ -848,7 +892,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		];
 		$this->template->displayButtons = [
 			$this->createBackButton('default'),
-			$this->createButtonWithClass(
+			$pricelist->isReadonly ? null : $this->createButtonWithClass(
 				'importPriceList',
 				'<i class="fas fa-file-import"></i> Import',
 				'btn btn-outline-primary btn-sm',
@@ -877,6 +921,11 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 	public function renderImportPriceList(Pricelist $pricelist, string $type = 'standard'): void
 	{
+		if ($pricelist->isReadonly) {
+			$this->flashMessage('Ceník je pouze pro čtení, import cen není povolen.', 'error');
+			$this->redirect($type === 'standard' ? 'priceListItems' : 'quantityPrices', $pricelist);
+		}
+
 		$this->template->headerLabel = 'Importovat ceny';
 		$this->template->headerTree = [
 			['Ceníky', 'default'],
@@ -930,8 +979,8 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		];
 		$this->template->displayButtons = [
 			$this->createBackButton('default'),
-			$this->createNewItemButton('quantityPricesNew', [$pricelist]),
-			$this->createButtonWithClass(
+			$pricelist->isReadonly ? null : $this->createNewItemButton('quantityPricesNew', [$pricelist]),
+			$pricelist->isReadonly ? null : $this->createButtonWithClass(
 				'importPriceList',
 				'<i class="fas fa-file-import"></i> Import',
 				'btn btn-outline-primary btn-sm',
@@ -952,6 +1001,11 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 
 	public function renderQuantityPricesNew(Pricelist $pricelist): void
 	{
+		if ($pricelist->isReadonly) {
+			$this->flashMessage('Ceník je pouze pro čtení, nelze přidávat nové množstevní ceny.', 'error');
+			$this->redirect('quantityPrices', $pricelist);
+		}
+
 		$this->template->headerLabel = 'Nová množstevní cena - ' . $pricelist->name . ' (' . $pricelist->currency->code . ')';
 
 		$this->template->headerTree = [
@@ -1032,6 +1086,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		$pricelists = $this->priceListRepository->many()
 			->whereNot('uuid', $originalPricelist->getPK())
 			->where('fk_currency', $originalPricelist->currency->getPK())
+			->where('isReadonly', false)
 			->toArrayOf('name');
 
 		$form->addDataSelect('targetPricelist', 'Cílový ceník', $pricelists)->setRequired();

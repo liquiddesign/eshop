@@ -350,6 +350,11 @@ class ProductPresenter extends BackendPresenter
 
 	public function deletePrice(Pricelist $pricelist): void
 	{
+		if ($pricelist->isReadonly) {
+			$this->flashMessage('Ceník je pouze pro čtení, nelze mazat ceny.', 'error');
+			$this->redirect('this');
+		}
+
 		$this->priceRepository->getPricesByPriceList($pricelist)->where('fk_product', $this->getParameter('product'))->delete();
 	}
 

@@ -1067,6 +1067,13 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 	public function handleClearPrice(string $productPK, string $pricelistPK): void
 	{
+		$pricelist = $this->pricelistRepository->one($pricelistPK);
+
+		if ($pricelist !== null && $pricelist->isReadonly) {
+			$this->getPresenter()->flashMessage('Ceník je pouze pro čtení', 'error');
+			$this->getPresenter()->redirect('this');
+		}
+
 		$this->priceRepository->many()
 			->where('this.fk_product', $productPK)
 			->where('this.fk_pricelist', $pricelistPK)
