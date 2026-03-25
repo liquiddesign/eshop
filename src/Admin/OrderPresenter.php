@@ -75,6 +75,7 @@ use Nette\IOException;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
+use Nette\Utils\Json;
 use StORM\Collection;
 use StORM\DIConnection;
 use Throwable;
@@ -404,6 +405,46 @@ class OrderPresenter extends BackendPresenter
 		$form->addGroup('Stav');
 		$form->addPolyfillDatetime('shippedTs', 'Expedováno')->setNullable(true);
 
+		$form->addGroup('Výdejní místo');
+
+		$pickupPointsByType = [];
+
+		foreach ($this->deliveryTypeRepository->many()->where('fk_pickupPointType IS NOT NULL') as $dt) {
+			$points = $this->pickupPointRepository->many()
+				->where('fk_pickupPointType', $dt->getValue('pickupPointType'))
+				->where('hidden', false)
+				->toArrayOf('name');
+
+			if (\count($points) <= 0) {
+				continue;
+			}
+
+			$pickupPointsByType[$dt->getPK()] = $points;
+		}
+
+		$allPoints = [];
+
+		foreach ($pickupPointsByType as $points) {
+			$allPoints += $points;
+		}
+
+		$form->addDataSelect('pickupPoint', 'Vlastní výdejní místo', $allPoints)->setPrompt('-- Žádné --');
+		$form->addText('pickupPointId', 'ID výdejního místa')->setNullable(true);
+		$form->addText('pickupPointName', 'Název výdejního místa')->setNullable(true);
+
+		$deliveryTypesWithPickup = $this->deliveryTypeRepository->many()
+			->where('fk_pickupPointType IS NOT NULL')
+			->toArrayOf('code');
+
+		$form->getElementPrototype()->setAttribute(
+			'data-pickup-config',
+			Json::encode([
+				'typesWithPickup' => \array_keys($deliveryTypesWithPickup),
+				'typesCodes' => $deliveryTypesWithPickup,
+				'pointsByType' => $pickupPointsByType,
+			]),
+		);
+
 		$form->addHidden('order', (string) $order);
 
 		$form->addSubmits(!$this->getParameter('delivery'));
@@ -417,7 +458,36 @@ class OrderPresenter extends BackendPresenter
 			$this->deliveryRepository->updateDeliveryType($delivery, $type);
 
 			if ($order) {
-				$order->purchase->update(['deliveryType' => $values['type']]);
+				$purchaseUpdate = ['deliveryType' => $values['type']];
+
+				if ($type->getValue('pickupPointType') !== null) {
+					if ($values['pickupPoint'] !== null && $values['pickupPoint'] !== '') {
+						/** @var \Eshop\DB\PickupPoint $pickupPoint */
+						$pickupPoint = $this->pickupPointRepository->one($values['pickupPoint'], true);
+
+						$purchaseUpdate['pickupPointId'] = $pickupPoint->code;
+						$purchaseUpdate['pickupPointName'] = $pickupPoint->name;
+						$purchaseUpdate['pickupPoint'] = $pickupPoint->getPK();
+						$purchaseUpdate['zasilkovnaId'] = null;
+					} elseif ($type->code === 'zasilkovna') {
+						$purchaseUpdate['zasilkovnaId'] = $values['pickupPointId'] ?: null;
+						$purchaseUpdate['pickupPointId'] = null;
+						$purchaseUpdate['pickupPointName'] = $values['pickupPointName'] ?: null;
+						$purchaseUpdate['pickupPoint'] = null;
+					} else {
+						$purchaseUpdate['pickupPointId'] = $values['pickupPointId'] ?: null;
+						$purchaseUpdate['pickupPointName'] = $values['pickupPointName'] ?: null;
+						$purchaseUpdate['zasilkovnaId'] = null;
+						$purchaseUpdate['pickupPoint'] = null;
+					}
+				} else {
+					$purchaseUpdate['zasilkovnaId'] = null;
+					$purchaseUpdate['pickupPointId'] = null;
+					$purchaseUpdate['pickupPointName'] = null;
+					$purchaseUpdate['pickupPoint'] = null;
+				}
+
+				$order->purchase->update($purchaseUpdate);
 			}
 
 			/** @var \Admin\DB\Administrator|null $admin */
@@ -625,6 +695,7 @@ class OrderPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('delivery', [$delivery->order])];
 		$this->template->displayControls = [$this->getComponent('deliveryForm')];
+		$this->template->setFile(__DIR__ . '/templates/Order.detailDelivery.latte');
 	}
 
 	public function actionDetailDelivery(Delivery $delivery): void
@@ -633,6 +704,14 @@ class OrderPresenter extends BackendPresenter
 		$form = $this->getComponent('deliveryForm');
 
 		$form->setDefaults($delivery->toArray());
+
+		$purchase = $delivery->order->purchase;
+
+		$form->setDefaults([
+			'pickupPoint' => $purchase->getValue('pickupPoint'),
+			'pickupPointId' => $purchase->pickupPointId ?? $purchase->zasilkovnaId,
+			'pickupPointName' => $purchase->pickupPointName,
+		]);
 	}
 
 	public function renderDelivery(Order $order): void

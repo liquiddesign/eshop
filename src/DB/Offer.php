@@ -288,6 +288,9 @@ class Offer extends Entity
 		return $validUntil && $now->gte($validUntil);
 	}
 
+	/**
+	 * @return \StORM\RelationCollection<\Eshop\DB\OfferItem>
+	 */
 	public function getItems(): RelationCollection
 	{
 		return $this->offerItems;
