@@ -432,6 +432,19 @@ class OrderPresenter extends BackendPresenter
 		$form->addText('pickupPointId', 'ID výdejního místa')->setNullable(true);
 		$form->addText('pickupPointName', 'Název výdejního místa')->setNullable(true);
 
+		$deliveryTypesWithPickup = $this->deliveryTypeRepository->many()
+			->where('fk_pickupPointType IS NOT NULL')
+			->toArrayOf('code');
+
+		$form->getElementPrototype()->setAttribute(
+			'data-pickup-config',
+			Json::encode([
+				'typesWithPickup' => \array_keys($deliveryTypesWithPickup),
+				'typesCodes' => $deliveryTypesWithPickup,
+				'pointsByType' => $pickupPointsByType,
+			]),
+		);
+
 		$form->addHidden('order', (string) $order);
 
 		$form->addSubmits(!$this->getParameter('delivery'));
@@ -455,23 +468,30 @@ class OrderPresenter extends BackendPresenter
 			if ($order) {
 				$purchaseUpdate = ['deliveryType' => $values['type']];
 
-				if ($pickupValues['pickupPoint'] !== null && $pickupValues['pickupPoint'] !== '') {
-					/** @var \Eshop\DB\PickupPoint $pickupPoint */
-					$pickupPoint = $this->pickupPointRepository->one($pickupValues['pickupPoint'], true);
+				if ($type->getValue('pickupPointType') !== null) {
+					if ($values['pickupPoint'] !== null && $values['pickupPoint'] !== '') {
+						/** @var \Eshop\DB\PickupPoint $pickupPoint */
+						$pickupPoint = $this->pickupPointRepository->one($values['pickupPoint'], true);
 
-					$purchaseUpdate['pickupPointId'] = $pickupPoint->code;
-					$purchaseUpdate['pickupPointName'] = $pickupPoint->name;
-					$purchaseUpdate['pickupPoint'] = $pickupPoint->getPK();
-					$purchaseUpdate['zasilkovnaId'] = null;
-				} elseif ($type->code === 'zasilkovna') {
-					$purchaseUpdate['zasilkovnaId'] = $pickupValues['pickupPointId'] ?: null;
-					$purchaseUpdate['pickupPointId'] = null;
-					$purchaseUpdate['pickupPointName'] = $pickupValues['pickupPointName'] ?: null;
-					$purchaseUpdate['pickupPoint'] = null;
+						$purchaseUpdate['pickupPointId'] = $pickupPoint->code;
+						$purchaseUpdate['pickupPointName'] = $pickupPoint->name;
+						$purchaseUpdate['pickupPoint'] = $pickupPoint->getPK();
+						$purchaseUpdate['zasilkovnaId'] = null;
+					} elseif ($type->code === 'zasilkovna') {
+						$purchaseUpdate['zasilkovnaId'] = $values['pickupPointId'] ?: null;
+						$purchaseUpdate['pickupPointId'] = null;
+						$purchaseUpdate['pickupPointName'] = $values['pickupPointName'] ?: null;
+						$purchaseUpdate['pickupPoint'] = null;
+					} else {
+						$purchaseUpdate['pickupPointId'] = $values['pickupPointId'] ?: null;
+						$purchaseUpdate['pickupPointName'] = $values['pickupPointName'] ?: null;
+						$purchaseUpdate['zasilkovnaId'] = null;
+						$purchaseUpdate['pickupPoint'] = null;
+					}
 				} else {
-					$purchaseUpdate['pickupPointId'] = $pickupValues['pickupPointId'] ?: null;
-					$purchaseUpdate['pickupPointName'] = $pickupValues['pickupPointName'] ?: null;
 					$purchaseUpdate['zasilkovnaId'] = null;
+					$purchaseUpdate['pickupPointId'] = null;
+					$purchaseUpdate['pickupPointName'] = null;
 					$purchaseUpdate['pickupPoint'] = null;
 				}
 
