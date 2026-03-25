@@ -252,6 +252,20 @@ class Offer extends Entity
 	 */
 	public RelationCollection $sharedCustomers;
 
+	/**
+	 * Sdílení dle IČ (NxN)
+	 * @relationNxN{"via":"abel_offer_nxn_shared_by_ic","sourceViaKey":"fk_offer","targetViaKey":"fk_customer"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Customer>
+	 */
+	public RelationCollection $sharedByIcCustomers;
+
+	/**
+	 * Sdílení dle CKP (NxN)
+	 * @relationNxN{"via":"abel_offer_nxn_shared_by_ckp","sourceViaKey":"fk_offer","targetViaKey":"fk_customer"}
+	 * @var \StORM\RelationCollection<\Eshop\DB\Customer>
+	 */
+	public RelationCollection $sharedByCkpCustomers;
+
 	public function getOfferType(): OfferType
 	{
 		return OfferType::from($this->offerType);
