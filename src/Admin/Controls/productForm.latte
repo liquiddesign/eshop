@@ -632,6 +632,12 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                 {$renderer->renderPair($form['storageDate'])|noescape}
                 {$renderer->renderPair($form['lastInStockTs'])|noescape}
                 {$renderer->renderPair($form['deletedTs'])|noescape}
+                {if isset($form['customContainer']['unavailableTs'])}
+                    {$renderer->renderPair($form['customContainer']['unavailableTs'])|noescape}
+                {/if}
+                {if isset($form['customContainer']['manuallyDeleted'])}
+                    {$renderer->renderPair($form['customContainer']['manuallyDeleted'])|noescape}
+                {/if}
                 </table>
 
                 <legend>Rozměry</legend>
@@ -711,7 +717,9 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".</span>
                 {if isset($form['customContainer'])}
                     <legend>Ostatní</legend>
                     <table class="mt-2 mb-1" style="width: auto;" n:foreach="$form['customContainer']->getControls() as $input">
-                        {$renderer->renderPair($input)|noescape}
+                        {if !in_array($input->getName(), ['unavailableTs', 'manuallyDeleted'])}
+                            {$renderer->renderPair($input)|noescape}
+                        {/if}
                     </table>
                 {/if}
             </fieldset>
