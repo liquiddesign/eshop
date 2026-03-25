@@ -75,6 +75,7 @@ use Nette\IOException;
 use Nette\Mail\Mailer;
 use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
+use Nette\Utils\Json;
 use StORM\Collection;
 use StORM\DIConnection;
 use Throwable;
@@ -686,6 +687,7 @@ class OrderPresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('delivery', [$delivery->order])];
 		$this->template->displayControls = [$this->getComponent('deliveryForm')];
+		$this->template->setFile(__DIR__ . '/templates/Order.detailDelivery.latte');
 	}
 
 	public function actionDetailDelivery(Delivery $delivery): void
