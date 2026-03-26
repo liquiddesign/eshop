@@ -6,12 +6,16 @@ namespace Eshop\Actions\OrderEdit;
 
 use Eshop\DB\CartItem;
 use Eshop\DB\CartItemRepository;
+use Eshop\DB\OrderRepository;
 use Eshop\DB\RelatedCartItemRepository;
 
 class ChangeCartItemPrice extends \Base\BaseAction
 {
-	public function __construct(private readonly RelatedCartItemRepository $relatedCartItemRepository, private readonly CartItemRepository $cartItemRepository)
-	{
+	public function __construct(
+		private readonly RelatedCartItemRepository $relatedCartItemRepository,
+		private readonly CartItemRepository $cartItemRepository,
+		private readonly OrderRepository $orderRepository,
+	) {
 	}
 
 	public function execute(CartItem $cartItem, float $price, float $vatPct, float|null $priceBefore = null,): CartItem
@@ -65,6 +69,16 @@ class ChangeCartItemPrice extends \Base\BaseAction
 				]);
 			}
 		}
+
+		// Invalidate computed total price on the order
+		/** @var \Eshop\DB\Order|null $order */
+		$order = $this->orderRepository->many()
+			->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+			->join(['cart' => 'eshop_cart'], 'cart.fk_purchase = purchase.uuid')
+			->where('cart.uuid', $cartItem->getValue('cart'))
+			->first();
+
+		$order?->invalidateComputedTotalPrice();
 
 		return $cartItem;
 	}

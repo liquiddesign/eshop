@@ -327,6 +327,8 @@ readonly class OrderEditService implements AutoWireService
 			]);
 		}
 
+		$order->invalidateComputedTotalPrice();
+
 		return [$packageItem, $cartItem];
 	}
 
@@ -346,6 +348,8 @@ readonly class OrderEditService implements AutoWireService
 
 		$packageItem->update(['amount' => $amount]);
 		$cartItemClone->update(['amount' => $amount]);
+
+		$packageItem->package->order->invalidateComputedTotalPrice();
 	}
 
 	public function removePackageItem(PackageItem|string $packageItem): void
@@ -353,6 +357,8 @@ readonly class OrderEditService implements AutoWireService
 		if (!$packageItem instanceof PackageItem) {
 			$packageItem = $this->packageItemRepository->one($packageItem, true);
 		}
+
+		$order = $packageItem->package->order;
 
 		$relatedCartItemsToDelete = [];
 
@@ -368,6 +374,8 @@ readonly class OrderEditService implements AutoWireService
 		$packageItem->delete();
 
 		$this->cartItemRepository->many()->where('this.uuid', $cartItemToDelete)->delete();
+
+		$order->invalidateComputedTotalPrice();
 	}
 
 	public function removeCartItem(CartItem|string $cartItem): void
@@ -376,8 +384,17 @@ readonly class OrderEditService implements AutoWireService
 			$cartItem = $this->cartItemRepository->one($cartItem, true);
 		}
 
+		/** @var \Eshop\DB\Order|null $order */
+		$order = $this->orderRepository->many()
+			->join(['purchase' => 'eshop_purchase'], 'this.fk_purchase = purchase.uuid')
+			->join(['cart' => 'eshop_cart'], 'cart.fk_purchase = purchase.uuid')
+			->where('cart.uuid', $cartItem->getValue('cart'))
+			->first();
+
 		$cartItem->getPackageItems()->delete();
 		$cartItem->delete();
+
+		$order?->invalidateComputedTotalPrice();
 	}
 
 	/**

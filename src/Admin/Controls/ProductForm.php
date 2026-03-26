@@ -47,6 +47,7 @@ use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use StORM\DIConnection;
 use StORM\ICollection;
+use StORM\Literal;
 use Tracy\Debugger;
 use Web\DB\PageRepository;
 use Web\DB\SettingRepository;
@@ -644,6 +645,10 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		/** @var \Eshop\DB\Product $product */
 		$product = $this->productRepository->syncOne($values, null, true);
+
+		if (isset($values['manuallyDeleted'])) {
+			$product->update(['deletedTs' => $values['manuallyDeleted'] ? new Literal('NOW()') : null]);
+		}
 
 		$product->categories->unrelateAll();
 

@@ -499,6 +499,8 @@ class OrderPresenter extends BackendPresenter
 
 			Arrays::invoke($this->orderRepository->onOrderDeliveryChanged, $order, $delivery);
 
+			$order->invalidateComputedTotalPrice();
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detailDelivery', 'delivery', [$delivery], [$order]);
 		};
@@ -626,6 +628,8 @@ class OrderPresenter extends BackendPresenter
 			}
 
 			Arrays::invoke($this->orderRepository->onOrderPaymentChanged, $order, $payment);
+
+			$order->invalidateComputedTotalPrice();
 
 			$this->flashMessage('Uloženo', 'success');
 
@@ -877,6 +881,8 @@ class OrderPresenter extends BackendPresenter
 				}
 
 				$this->orderLogItemRepository->createLog($order, OrderLogItem::SPLIT, $oldPackageItem->cartItem->productName, $admin);
+
+				$order->invalidateComputedTotalPrice();
 
 				$this->flashMessage('Provedeno', 'success');
 				$this->redirect('this');
