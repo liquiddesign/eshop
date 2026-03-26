@@ -558,4 +558,30 @@ class Order extends ShopEntity
 
 		return $firstOrder?->getPK() === $this->getPK();
 	}
+
+	/**
+	 * Invalidate cached computed total price — must be called whenever order items, delivery, or payment change
+	 */
+	public function invalidateComputedTotalPrice(): void
+	{
+		$this->update([
+			'totalPriceComputed' => null,
+			'totalPriceVatComputed' => null,
+			'totalPriceComputedTs' => null,
+		]);
+	}
+
+	/**
+	 * Compute and persist total price from current cart items, delivery, and payment
+	 */
+	public function computeAndPersistTotalPrice(): void
+	{
+		$now = new \DateTimeImmutable();
+
+		$this->update([
+			'totalPriceComputed' => $this->getTotalPrice(),
+			'totalPriceVatComputed' => $this->getTotalPriceVat(),
+			'totalPriceComputedTs' => $now->format('Y-m-d H:i:s'),
+		]);
+	}
 }

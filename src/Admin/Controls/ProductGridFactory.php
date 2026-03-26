@@ -376,6 +376,10 @@ class ProductGridFactory
 					]);
 				}
 
+				if (isset($values['values']['manuallyDeleted'])) {
+					$values['values']['deletedTs'] = $values['values']['manuallyDeleted'] ? \Carbon\Carbon::now()->format('Y-m-d H:i:s') : null;
+				}
+
 				return [$values, $relations];
 			},
 			[],
