@@ -310,6 +310,8 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				'published' => 'this.published',
 				'buyCount' => 'this.buyCount',
 				'projectName' => 'this.projectName',
+				'isProjectProduct' => 'this.isProjectProduct',
+				'projectIc' => 'this.projectIc',
 			])
 			->setTake(1000000)
 			->setGroupBy(['this.id']);
@@ -347,6 +349,8 @@ CREATE TABLE IF NOT EXISTS `$categoriesTableName` (
 				'published' => $product->published ?: null,
 				'buyCount' => $product->buyCount ?: null,
 				'projectName' => $product->projectName ?: null,
+				'isProjectProduct' => (bool) ($product->isProjectProduct ?? false),
+				'projectIc' => $product->projectIc ?: null,
 			];
 
 			$primaryCategories = isset($productPrimaryCategories[$product->id]) ? \explode(',', $productPrimaryCategories[$product->id]->groupedValues) : [];
@@ -1435,7 +1439,7 @@ CREATE TABLE IF NOT EXISTS `$productsCacheTableName` (
 			FROM INFORMATION_SCHEMA.COLUMNS 
 			WHERE TABLE_SCHEMA = DATABASE() 
 			AND TABLE_NAME = '$productsCacheTableName' 
-			AND COLUMN_NAME IN ('ribbons', 'internalRibbons', 'published', 'buyCount', 'projectName')
+			AND COLUMN_NAME IN ('ribbons', 'internalRibbons', 'published', 'buyCount', 'projectName', 'isProjectProduct', 'projectIc')
 		");
 
 		$columns = $query->fetchAll(\PDO::FETCH_ASSOC);
@@ -1459,6 +1463,14 @@ CREATE TABLE IF NOT EXISTS `$productsCacheTableName` (
 
 		if (!isset($columns['projectName'])) {
 			$this->getConnection()->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `projectName` VARCHAR(255)");
+		}
+
+		if (!isset($columns['isProjectProduct'])) {
+			$this->getConnection()->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `isProjectProduct` TINYINT(1) DEFAULT 0");
+		}
+
+		if (!isset($columns['projectIc'])) {
+			$this->getConnection()->exec("ALTER TABLE `$productsCacheTableName` ADD COLUMN `projectIc` VARCHAR(255)");
 		}
 
 		return;

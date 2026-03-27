@@ -291,10 +291,34 @@ class Product extends \StORM\Entity
 	public ?string $published;
 
 	/**
-	 * Název projektu - pokud vyplněn, produkt se zobrazí jen zákazníkům s cenou v oblíbeném ceníku
+	 * Název projektu
 	 * @column
 	 */
 	public string|null $projectName = null;
+
+	/**
+	 * Projektová tiskárna - pokud true, produkt je označen jako projektová tiskárna
+	 * @column
+	 */
+	public bool $isProjectProduct = false;
+
+	/**
+	 * Platí pouze pro IČ - pokud vyplněno, produkt je dostupný jen zákazníkům s tímto IČ
+	 * @column
+	 */
+	public string|null $projectIc = null;
+
+	/**
+	 * Interní číslo projektu
+	 * @column
+	 */
+	public string|null $projectNumber = null;
+
+	/**
+	 * Doplňkové info - pokyny pro obchodníky, zobrazuje se v Rozhraní
+	 * @column{"type":"longtext"}
+	 */
+	public string|null $projectInfo = null;
 
 	/**
 	 * Hodnota v % na upsell produktu
