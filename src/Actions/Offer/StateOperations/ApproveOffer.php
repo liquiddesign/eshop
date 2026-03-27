@@ -8,6 +8,8 @@ use Base\BaseAction;
 use Carbon\Carbon;
 use Eshop\Actions\Offer\GetOfferState;
 use Eshop\DB\Offer;
+use Eshop\DB\OfferLogItem;
+use Eshop\DB\OfferLogItemRepository;
 use Eshop\DB\OfferState;
 use Eshop\Services\Offer\OfferTypeStrategyResolver;
 
@@ -16,6 +18,7 @@ class ApproveOffer extends BaseAction
 	public function __construct(
 		private readonly GetOfferState $getOfferState,
 		private readonly OfferTypeStrategyResolver $strategyResolver,
+		private readonly OfferLogItemRepository $offerLogItemRepository,
 	) {
 	}
 
@@ -28,6 +31,13 @@ class ApproveOffer extends BaseAction
 
 		$offer->update(['approvedTs' => Carbon::now()->toDateTimeString()]);
 		$offer->update(['canceledTs' => null]);
+
+		$this->offerLogItemRepository->createLog(
+			$offer,
+			OfferLogItem::APPROVED,
+			null,
+			$offer->merchant,
+		);
 
 		$this->onOfferApproved($offer);
 	}
