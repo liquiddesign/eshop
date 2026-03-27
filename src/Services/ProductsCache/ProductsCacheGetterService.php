@@ -353,6 +353,8 @@ class ProductsCacheGetterService
 			'ribbons' => 'this.ribbons',
 			'internalRibbons' => 'this.internalRibbons',
 			'projectName' => 'this.projectName',
+			'isProjectProduct' => 'this.isProjectProduct',
+			'projectIc' => 'this.projectIc',
 		]);
 
 		/** @var array<int, \Eshop\DB\Attribute> $allAttributes */
