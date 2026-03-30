@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use StORM\Collection;
 use StORM\ICollection;
 
 /**
@@ -11,7 +12,8 @@ use StORM\ICollection;
  */
 class PriceRepository extends \StORM\Repository
 {
-	public function getPricesByPriceList(Pricelist $priceList): ICollection
+	/** @return \StORM\Collection<\Eshop\DB\Price> */
+	public function getPricesByPriceList(Pricelist $priceList): Collection
 	{
 		return $this->many()
 			->select(['rate' => 'rates.rate'])
