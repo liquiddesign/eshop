@@ -79,6 +79,12 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 	 */
 	public string|null $productEan;
 
+	/** @column */
+	public string|null $productProjectName = null;
+
+	/** @column */
+	public string|null $productProjectNumber = null;
+
 	/**
 	 * Název varianty
 	 * @column{"mutations":true}
