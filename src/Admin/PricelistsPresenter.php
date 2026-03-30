@@ -41,6 +41,7 @@ use Nette\Application\Responses\FileResponse;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
 use Nette\DI\Attributes\Inject;
+use Nette\Utils\Html;
 use StORM\Collection;
 use StORM\Connection;
 use StORM\Expression;
@@ -310,39 +311,71 @@ class PricelistsPresenter extends BackendPresenter
 		/** @var null|string $autoPriceConfig */
 		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
 
+		$readonlyPriceCallback = static function (Html $td, Price $price): void {
+			if (!$price->pricelist->isReadonly) {
+				return;
+			}
+
+			$html = (string) $td;
+			$html = \str_replace('<input ', '<input readonly disabled ', $html);
+			$td->setHtml(\preg_replace('/^<td[^>]*>(.*)<\/td>$/s', '$1', $html));
+		};
+
 		if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
 			$grid->addColumnText('Cena', 'price', '%s');
 		} else {
-			$grid->addColumnInputPrice('Cena', 'price');
+			$column = $grid->addColumnInputPrice('Cena', 'price');
+			$column->onRenderCell[] = $readonlyPriceCallback;
 		}
 
 		if ($this->shopperUser->getShowVat()) {
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
 				$grid->addColumnText('Cena s DPH', 'priceVat', '%s');
 			} else {
-				$grid->addColumnInputPrice('Cena s DPH', 'priceVat');
+				$column = $grid->addColumnInputPrice('Cena s DPH', 'priceVat');
+				$column->onRenderCell[] = $readonlyPriceCallback;
 			}
 		}
 
 		if ($autoPriceConfig === ProductFormAutoPriceConfig::WITHOUT_VAT) {
 			$grid->addColumnText('Cena před slevou', 'priceBefore', '%s');
 		} else {
-			$grid->addColumnInputPrice('Cena před slevou', 'priceBefore');
+			$column = $grid->addColumnInputPrice('Cena před slevou', 'priceBefore');
+			$column->onRenderCell[] = $readonlyPriceCallback;
 		}
 
 		if ($this->shopperUser->getShowVat()) {
 			if ($autoPriceConfig === ProductFormAutoPriceConfig::WITH_VAT) {
 				$grid->addColumnText('Cena s DPH před slevou', 'priceVatBefore', '%s');
 			} else {
-				$grid->addColumnInputPrice('Cena s DPH před slevou', 'priceVatBefore');
+				$column = $grid->addColumnInputPrice('Cena s DPH před slevou', 'priceVatBefore');
+				$column->onRenderCell[] = $readonlyPriceCallback;
 			}
 		}
 
 		if ($this::SHOW_PRICE_HIDDEN) {
-			$grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', orderExpression: 'hidden');
+			$column = $grid->addColumnInputCheckbox('<i title="Skryto" class="far fa-eye-slash"></i>', 'hidden', orderExpression: 'hidden');
+			$column->onRenderCell[] = static function (Html $td, Price $price): void {
+				if (!$price->pricelist->isReadonly) {
+					return;
+				}
+
+				$html = (string) $td;
+				$html = \str_replace('<input ', '<input disabled ', $html);
+				$td->setHtml(\preg_replace('/^<td[^>]*>(.*)<\/td>$/s', '$1', $html));
+			};
 		}
 
-		$grid->addColumnActionDelete();
+		$deleteColumn = $grid->addColumnActionDelete(condition: static function (Price $price): bool {
+			return !$price->pricelist->isReadonly;
+		});
+		$deleteColumn->onRenderCell[] = static function (Html $td, Price $price): void {
+			if (!$price->pricelist->isReadonly) {
+				return;
+			}
+
+			$td->setHtml('');
+		};
 
 		/** @var null|string $autoPriceConfig */
 		$autoPriceConfig = $this::CONFIGURATION[ProductFormConfig::class][ProductFormAutoPriceConfig::class] ?? null;
@@ -843,14 +876,14 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 			try {
 				$this->priceListRepository->csvImport(
 					$pricelist,
-					Reader::fromString($file->getContents()),
+					Reader::fromString((string) $file->getContents()),
 					$quantity,
 					$values['delimiter'],
 				);
 
 				$this->priceListRepository->getConnection()->getLink()->commit();
 
-				$form->getPresenter()->flashMessage('Uloženo', 'success');
+				$this->flashMessage('Uloženo', 'success');
 			} catch (\Throwable $e) {
 				Debugger::log($e, ILogger::WARNING);
 				$this->priceListRepository->getConnection()->getLink()->rollBack();
@@ -858,7 +891,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 				$this->flashMessage($e->getMessage() !== '' ? $e->getMessage() : 'Import dat se nezdařil!', 'error');
 			}
 
-			$form->getPresenter()->redirect('priceListItems', $this->getParameter('pricelist'));
+			$this->redirect('priceListItems', $this->getParameter('pricelist'));
 		};
 
 		return $form;
@@ -960,7 +993,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 		$tempFilename = \tempnam($this->tempDir, 'csv');
 
 		$this->priceListRepository->csvExport(
-			$this->priceListRepository->one($pricelistId),
+			$this->priceListRepository->one($pricelistId, true),
 			Writer::from($tempFilename, 'w+'),
 			$type === 'quantity',
 			$this->shopperUser->getShowVat(),
@@ -1148,6 +1181,9 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 		return $form;
 	}
 
+	/**
+	 * @param array<string> $ids
+	 */
 	public function renderCopyToPricelist(array $ids, Pricelist $pricelist, string $type): void
 	{
 		unset($ids);
@@ -1164,6 +1200,9 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 		$this->template->displayControls = [$this->getComponent('copyToPricelistForm')];
 	}
 
+	/**
+	 * @param array<string> $ids
+	 */
 	public function actionCopyToPricelist(array $ids, Pricelist $pricelist, string $type): void
 	{
 		unset($ids);
@@ -1184,11 +1223,17 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 		//      $form->setDefaults(['products' => $products]);
 	}
 
+	/**
+	 * @param array<string> $ids
+	 */
 	public function actionAggregate(array $ids): void
 	{
 		unset($ids);
 	}
 
+	/**
+	 * @param array<string> $ids
+	 */
 	public function renderAggregate(array $ids): void
 	{
 		unset($ids);
@@ -1211,7 +1256,9 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 		$totalNo = $grid->getFilteredSource()->enum();
 		$selectedNo = \count($ids);
 
+		/** @var array<\Eshop\DB\Pricelist> $idsPricelists */
 		$idsPricelists = $this->priceListRepository->many()->where('this.uuid', $ids)->toArray();
+		/** @var array<\Eshop\DB\Pricelist> $collectionPricelists */
 		$collectionPricelists = $grid->getFilteredSource()->toArray();
 
 		$idsPricelistsCurrency = $this->priceListRepository->checkSameCurrency($idsPricelists);
@@ -1271,14 +1318,13 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 
 			$values = $form->getValues('array');
 
-			/** @var \Eshop\DB\Pricelist $targetPricelist */
-			$targetPricelist = $this->priceListRepository->one($values['targetPricelist']);
+			$targetPricelist = $this->priceListRepository->one($values['targetPricelist'], true);
 
 			if ($values['bulkType'] === 'selected') {
-				if ($targetPricelist->currency->getPK() !== $idsPricelistsCurrency->getPK()) {
+				if ($targetPricelist->currency->getPK() !== $idsPricelistsCurrency?->getPK()) {
 					$targetPricelistInput->addError('Ceník nemá stejnou měnu jako vybrané ceníky!');
 				}
-			} elseif ($targetPricelist->currency->getPK() !== $collectionPricelistsCurrency->getPK()) {
+			} elseif ($targetPricelist->currency->getPK() !== $collectionPricelistsCurrency?->getPK()) {
 				$targetPricelistInput->addError('Ceník nemá stejnou měnu jako vybrané ceníky!');
 			}
 		};
@@ -1288,7 +1334,7 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 
 			$this->priceListRepository->aggregatePricelists(
 				$values['bulkType'] === 'selected' ? $idsPricelists : $collectionPricelists,
-				$this->priceListRepository->one($values['targetPricelist']),
+				$this->priceListRepository->one($values['targetPricelist'], true),
 				$values['aggregateFunction'],
 				$values['percentageChange'],
 				$values['roundingAccuracy'],
