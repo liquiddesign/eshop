@@ -117,13 +117,17 @@ class DeliveryPaymentForm extends Nette\Application\UI\Form
 			$boxesCount = 1;
 		}
 
+		$hasPickupPoints = $deliveryType->pickupPointType !== null
+			|| $deliveryType->code === 'zasilkovna'
+			|| $deliveryType->code === 'balikovna';
+
 		$newValues = [
 			'deliveryType' => $values['deliveries'],
 			'deliveryPackagesNo' => $boxesCount,
 			'paymentType' => $values['payments'],
 			'zasilkovnaId' => $deliveryType->code === 'zasilkovna' ? $values['zasilkovnaId'] : null,
-			'pickupPointId' => $deliveryType->code !== 'zasilkovna' ? $values['pickupPointId'] : null,
-			'pickupPointName' => $deliveryType->code === 'zasilkovna' || isset($values['pickupPointId']) ? $values['pickupPointName'] : null,
+			'pickupPointId' => $hasPickupPoints && $deliveryType->code !== 'zasilkovna' ? $values['pickupPointId'] : null,
+			'pickupPointName' => $hasPickupPoints ? $values['pickupPointName'] : null,
 		];
 
 		if (isset($values['pickupPoint']) && !isset($values['pickupPointId'])) {
