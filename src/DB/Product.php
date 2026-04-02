@@ -513,6 +513,9 @@ class Product extends \StORM\Entity
 	 */
 	public string|null $deletedTs;
 
+	/** @column */
+	public string|null $deletedReason = null;
+
 	/**
 	 * @column{"type":"datetime"}
 	 */

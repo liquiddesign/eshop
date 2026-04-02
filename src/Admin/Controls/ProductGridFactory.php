@@ -378,6 +378,7 @@ class ProductGridFactory
 
 				if (isset($values['values']['manuallyDeleted'])) {
 					$values['values']['deletedTs'] = $values['values']['manuallyDeleted'] ? \Carbon\Carbon::now()->format('Y-m-d H:i:s') : null;
+					$values['values']['deletedReason'] = $values['values']['manuallyDeleted'] ? 'Manuální vyřazení' : null;
 				}
 
 				return [$values, $relations];
