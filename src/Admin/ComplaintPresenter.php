@@ -84,7 +84,8 @@ class ComplaintPresenter extends BackendPresenter
 
 			$result = [];
 
-			$result[] = $customer && $link ? "<a href='$link' target='_blank'>$customer->fullname</a>" : $complaint->customerFullName;
+			$displayName = $customer !== null ? $customer->getName() : $complaint->customerFullName;
+			$result[] = $customer !== null && $link !== null ? "<a href='$link' target='_blank'>" . \htmlspecialchars($displayName) . '</a>' : \htmlspecialchars((string) $displayName);
 			$result[] = $customer ? $customer->email : $complaint->customerEmail;
 			$result[] = $customer ? $customer->phone : $complaint->customerPhone;
 
