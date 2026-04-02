@@ -16,6 +16,7 @@ use StORM\RelationCollection;
  * @method \StORM\RelationCollection<\Eshop\DB\Pricelist> getPricelists()
  * @method \StORM\RelationCollection<\Eshop\DB\CustomerGroup> getCustomerGroups()
  * @method \StORM\RelationCollection<\Security\DB\Account> getAccounts()
+ * @property-read string $fullName
  * @table
  */
 class Merchant extends ShopEntity implements IIdentity, IUser
@@ -212,5 +213,14 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	public function getPurchasePricePermissionLevel(): PurchasePricePermissionLevel
 	{
 		return PurchasePricePermissionLevel::from($this->viewPurchasePricePermission);
+	}
+
+	public function __get(string $name): mixed
+	{
+		if ($name === 'fullName') {
+			return $this->fullname;
+		}
+
+		return parent::__get($name);
 	}
 }
