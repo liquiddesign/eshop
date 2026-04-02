@@ -29,7 +29,7 @@ class BuyForm extends Form
 		$checkoutManager = $shopperUser->getCheckoutManager();
 
 		$defaultBuyCount = $product->defaultBuyCount;
-		$minCount = $product->minBuyCount ?? CheckoutManager::DEFAULT_MIN_BUY_COUNT;
+		$minCount = $product->minBuyCount;
 		$maxCount = $product->maxBuyCount ?? CheckoutManager::DEFAULT_MAX_BUY_COUNT;
 
 		$countInput = $this->addInteger('amount', 'Počet zboží:')
