@@ -150,6 +150,9 @@ class ProductForm extends Control
 
 		$form->addText('deletedTs', 'Čas smazání')
 			->setHtmlAttribute('data-info', 'Čas vyřazení produktu. Vyplňuje se automaticky.')
+			->setNullable();
+		$form->addText('deletedReason', 'Důvod vyřazení')
+			->setHtmlAttribute('data-info', 'Nastavuje se automaticky.')
 			->setNullable()
 			->setDisabled();
 		$form->addSelect('vatRate', 'Úroveň DPH (%)', $vatRateRepository->getDefaultVatRates());
@@ -647,7 +650,10 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		$product = $this->productRepository->syncOne($values, null, true);
 
 		if (isset($values['manuallyDeleted'])) {
-			$product->update(['deletedTs' => $values['manuallyDeleted'] ? new Literal('NOW()') : null]);
+			$product->update([
+				'deletedTs' => $values['manuallyDeleted'] ? new Literal('NOW()') : null,
+				'deletedReason' => $values['manuallyDeleted'] ? 'Manuální vyřazení' : null,
+			]);
 		}
 
 		$product->categories->unrelateAll();
