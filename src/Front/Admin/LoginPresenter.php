@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Eshop\Front\Admin;
 
 use Admin\Administrator;
+use Admin\Controls\GoogleOAuthLoginTrait;
 use Admin\Controls\ILoginFormFactory;
 use Admin\Controls\LoginForm;
 
 abstract class LoginPresenter extends \Eshop\Front\FrontendPresenter
 {
+	use GoogleOAuthLoginTrait;
+
 	public Administrator $admin;
 
 	/**
@@ -24,11 +27,20 @@ abstract class LoginPresenter extends \Eshop\Front\FrontendPresenter
 
 	public function actionDefault(): void
 	{
-		if ($this->admin->isLoggedIn() && $this->admin->isAllowed($this->admin->getDefaultLink())) {
-			$this->redirect($this->admin->getDefaultLink());
+		if ($this->processGoogleOAuth()) {
+			return;
 		}
 
-		return;
+		if (!$this->admin->isLoggedIn() || !$this->admin->isAllowed($this->admin->getDefaultLink())) {
+			return;
+		}
+
+		$this->redirect($this->admin->getDefaultLink());
+	}
+
+	public function renderDefault(): void
+	{
+		$this->setupGoogleOAuthTemplate();
 	}
 
 	public function createComponentLoginForm(): LoginForm
