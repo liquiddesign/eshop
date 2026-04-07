@@ -402,8 +402,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 
 		$form->addText('lastInStockTs', 'Čas posledního naskladnění')
 			->setHtmlAttribute('data-info', 'Čas posledního naskladnění u jakéhokoliv dodavatele. Vyplňuje se automaticky.')
-			->setNullable()
-			->setDisabled();
+			->setNullable();
 
 		// Relations - nyní spravováno Alpine.js komponentou v productRelations.latte
 		// Inicializace relatedTypes pro template
