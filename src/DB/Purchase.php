@@ -253,6 +253,18 @@ class Purchase extends \StORM\Entity
 	public Currency $currency;
 
 	/**
+	 * Účetní kurz (z QI AccountingExchangeRate, pro přepočet cizí měny na CZK)
+	 * @column
+	 */
+	public float|null $exchangeRate = null;
+
+	/**
+	 * Koeficient účetního kurzu (z QI AccountingRateCoefficient)
+	 * @column
+	 */
+	public int|null $exchangeRateCoefficient = null;
+
+	/**
 	 * Sleva zákazníka
 	 * @column
 	 */
