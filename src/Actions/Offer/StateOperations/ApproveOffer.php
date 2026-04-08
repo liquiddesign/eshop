@@ -12,6 +12,7 @@ use Eshop\DB\OfferLogItem;
 use Eshop\DB\OfferLogItemRepository;
 use Eshop\DB\OfferState;
 use Eshop\Services\Offer\OfferTypeStrategyResolver;
+use Nette\Utils\Arrays;
 
 class ApproveOffer extends BaseAction
 {
@@ -48,8 +49,10 @@ class ApproveOffer extends BaseAction
 	public function canApproveOffer(Offer $offer): void
 	{
 		$state = $this->getOfferState->execute($offer);
+		$strategy = $this->strategyResolver->resolve($offer);
+		$allowedTransitions = $strategy->getAllowedTransitions($state);
 
-		if ($state === OfferState::Sent) {
+		if (Arrays::contains($allowedTransitions, OfferState::Approved)) {
 			return;
 		}
 

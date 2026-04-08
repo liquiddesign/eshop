@@ -139,6 +139,12 @@ class OfferItem extends Entity implements IPackageItem
 	public bool $floatingPrice = false;
 
 	/**
+	 * Cílová marže pro plovoucí cenu (v procentech)
+	 * @column
+	 */
+	public float|null $targetMarginPct = null;
+
+	/**
 	 * Skrýt v CKP ceníku
 	 * @column{"type":"tinyint","default":"0"}
 	 */
