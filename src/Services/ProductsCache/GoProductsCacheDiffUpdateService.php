@@ -28,7 +28,7 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 			throw new \RuntimeException(\sprintf('Go cache-warmup binary not found or not executable: %s', self::GO_BINARY_PATH));
 		}
 
-		$args = $this->buildGoArgs($customers, $customerGroups, $merchants);
+		$config = $this->buildGoArgs($customers, $customerGroups, $merchants);
 
 		Debugger::log(\sprintf(
 			'Go cache-warmup starting... | binary=%s | customers=%d customerGroups=%d merchants=%d dedup=true workers=4',
@@ -39,7 +39,7 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 		), $this->logName);
 
 		$startTime = \microtime(true);
-		$result = $this->executeGoBinary($args);
+		$result = $this->executeGoBinary($config['args'], $config['stdinData']);
 		$elapsed = \round(\microtime(true) - $startTime, 1);
 
 		Debugger::log(\sprintf('Go cache-warmup finished in %ss | result: %s', $elapsed, \json_encode($result)), $this->logName);
@@ -54,7 +54,7 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 	 * @param array<string|\Eshop\DB\Customer> $customers
 	 * @param array<string|int> $customerGroups
 	 * @param array<string|int> $merchants
-	 * @return array<string>
+	 * @return array{args: array<string>, stdinData: string|null}
 	 */
 	private function buildGoArgs(array $customers, array $customerGroups, array $merchants): array
 	{
@@ -90,6 +90,13 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 			$args[] = \implode(',', $unregisteredGroups);
 		}
 
+		$args[] = '--workers';
+		$args[] = '4';
+		$args[] = '--verbose';
+
+		// Build filter lists for stdin to avoid ARG_MAX limit
+		$stdinPayload = [];
+
 		// Resolve Customer objects to PKs
 		$customerPKs = [];
 
@@ -97,26 +104,25 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 			$customerPKs[] = $customer instanceof Customer ? $customer->getPK() : (string) $customer;
 		}
 
-		if ($customerPKs) {
-			$args[] = '--customers';
-			$args[] = \implode(',', $customerPKs);
+		if ($customerPKs !== []) {
+			$stdinPayload['customers'] = $customerPKs;
 		}
 
-		if ($customerGroups) {
-			$args[] = '--customer-groups';
-			$args[] = \implode(',', $customerGroups);
+		if ($customerGroups !== []) {
+			$stdinPayload['customer_groups'] = \array_map('strval', $customerGroups);
 		}
 
-		if ($merchants) {
-			$args[] = '--merchants';
-			$args[] = \implode(',', $merchants);
+		if ($merchants !== []) {
+			$stdinPayload['merchants'] = \array_map('strval', $merchants);
 		}
 
-		$args[] = '--workers';
-		$args[] = '4';
-		$args[] = '--verbose';
+		if ($stdinPayload !== []) {
+			$args[] = '--stdin-lists';
 
-		return $args;
+			return ['args' => $args, 'stdinData' => \json_encode($stdinPayload, \JSON_THROW_ON_ERROR)];
+		}
+
+		return ['args' => $args, 'stdinData' => null];
 	}
 
 	/**
@@ -145,7 +151,7 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 	 * @param array<string> $args
 	 * @return array<string, mixed>
 	 */
-	private function executeGoBinary(array $args): array
+	private function executeGoBinary(array $args, string|null $stdinData = null): array
 	{
 		$cmd = self::GO_BINARY_PATH;
 
@@ -169,7 +175,11 @@ class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 			throw new \RuntimeException('Failed to start Go binary');
 		}
 
-		// Close stdin
+		// Write stdin data if provided, then close stdin
+		if ($stdinData !== null) {
+			\fwrite($pipes[0], $stdinData);
+		}
+
 		\fclose($pipes[0]);
 
 		// Stream stderr line-by-line in real-time
