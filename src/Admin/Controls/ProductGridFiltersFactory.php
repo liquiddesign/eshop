@@ -193,7 +193,6 @@ class ProductGridFiltersFactory
 			}, '', 'supplierLock', null, ['unlocked' => 'Odemknuté', 'locked' => 'Zamknuté'])->setPrompt('- Zámek -');
 		}
 
-
 		$grid->setFilterGroup('labels', 'Štítky');
 
 		if ($ribbons = $this->ribbonRepository->getArrayForSelect()) {
@@ -209,7 +208,6 @@ class ProductGridFiltersFactory
 				$source->filter(['internalRibbon' => Helpers::replaceArrayValue($value, '0', null)]);
 			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
 		}
-
 
 		$grid->addFilterText(function (Collection $collection, $value) use ($grid): void {
 			if (!\is_string($value) || !\preg_match('/^([^;]+;)*[^;]+$/', $value)) {
@@ -359,7 +357,6 @@ class ProductGridFiltersFactory
 				}
 			}, '', 'supplierContent', null, $locks)->setPrompt('- Přebírání obsahu -');
 		}
-
 
 		$grid->setFilterGroup('status', 'Stav');
 
