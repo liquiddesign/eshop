@@ -78,6 +78,9 @@ class ProductGridFiltersFactory
 		$grid->addFilterTextInput('mpn', ['this.mpn'], null, 'P/N', '', likeFormat: '%s');
 		$grid->addFilterTextInput('name', $nameColumns, null, 'Název', '', likeFormat: '%s');
 
+
+		$grid->setFilterGroup('catalog', 'Katalog');
+
 		if ($shops = $this->shopsConfig->getAvailableShops()) {
 			$categoryTypes = [];
 
@@ -188,6 +191,9 @@ class ProductGridFiltersFactory
 			}, '', 'supplierLock', null, ['unlocked' => 'Odemknuté', 'locked' => 'Zamknuté'])->setPrompt('- Zámek -');
 		}
 
+
+		$grid->setFilterGroup('labels', 'Štítky');
+
 		if ($ribbons = $this->ribbonRepository->getArrayForSelect()) {
 			$ribbons += ['0' => 'X - bez štítků'];
 			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
@@ -201,6 +207,7 @@ class ProductGridFiltersFactory
 				$source->filter(['internalRibbon' => Helpers::replaceArrayValue($value, '0', null)]);
 			}, '', 'internalRibbon', null, $ribbons, ['placeholder' => '- Int. štítky -']);
 		}
+
 
 		$grid->addFilterText(function (Collection $collection, $value) use ($grid): void {
 			if (!\is_string($value) || !\preg_match('/^([^;]+;)*[^;]+$/', $value)) {
@@ -227,6 +234,8 @@ class ProductGridFiltersFactory
 		}, null, 'pricelists')
 			->setHtmlAttribute('class', 'form-control form-control-sm')
 			->setHtmlAttribute('placeholder', 'Ceníky (kódy oddělené ;)');
+
+		$grid->setFilterGroup('content', 'Obsah');
 
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 			if ($value === 'mainImage') {
@@ -289,13 +298,6 @@ class ProductGridFiltersFactory
 			'fixcontent' => 'Chybný text',
 		])->setPrompt('- Obsah -');
 
-		if ($displayAmounts = $this->displayAmountRepository->getArrayForSelect()) {
-			$displayAmounts += ['0' => 'X - nepřiřazená'];
-			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
-				$source->filter(['displayAmount' => Helpers::replaceArrayValue($value, '0', null)]);
-			}, '', 'displayAmount', null, $displayAmounts, ['placeholder' => '- Dostupnost -']);
-		}
-
 //		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 //			$source->where('hidden', (bool) $value);
 //		}, '', 'hidden', null, ['1' => 'Skryté', '0' => 'Viditelné'])->setPrompt('- Viditelnost -');
@@ -356,6 +358,16 @@ class ProductGridFiltersFactory
 			}, '', 'supplierContent', null, $locks)->setPrompt('- Přebírání obsahu -');
 		}
 
+
+		$grid->setFilterGroup('status', 'Stav');
+
+		if ($displayAmounts = $this->displayAmountRepository->getArrayForSelect()) {
+			$displayAmounts += ['0' => 'X - nepřiřazená'];
+			$grid->addFilterDataMultiSelect(function (Collection $source, $value): void {
+				$source->filter(['displayAmount' => Helpers::replaceArrayValue($value, '0', null)]);
+			}, '', 'displayAmount', null, $displayAmounts, ['placeholder' => '- Dostupnost -']);
+		}
+
 		$grid->addFilterDataSelect(function (ICollection $source, $value): void {
 			if ($value === 'master') {
 				$source->where('this.fk_masterProduct IS NULL');
@@ -375,6 +387,9 @@ class ProductGridFiltersFactory
 		}, '', 'deleted', null, ['yes' => 'Ano', 'no' => 'Ne'])
 			->setPrompt('- Vyřazení -')
 			->setDefaultValue('no');
+
+
+		$grid->setFilterGroup(null);
 
 		Arrays::invoke($this->onAddFilters, $grid);
 	}
