@@ -168,7 +168,7 @@ class OrderGridFactory
 		$properties = [];
 
 		if ($this->shopperUser->getShowWithoutVat() && $this->shopperUser->getShowVat()) {
-			$properties = ['getTotalPrice|price:currency.code', 'getTotalPriceVat|price:currency.code'];
+			$properties = ['getTotalPrice|price:purchase.currency.code', 'getTotalPriceVat|price:purchase.currency.code'];
 
 			$smallVatText = 's DPH';
 
@@ -179,11 +179,11 @@ class OrderGridFactory
 
 			$grid->addColumnText('Cena', $properties, "%s<br><small>%s $smallVatText</small>", null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		} elseif ($this->shopperUser->getShowWithoutVat()) {
-			$properties[] = 'getTotalPrice|price:currency.code';
+			$properties[] = 'getTotalPrice|price:purchase.currency.code';
 
 			$grid->addColumnText('Cena', $properties, '%s', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		} elseif ($this->shopperUser->getShowVat()) {
-			$properties[] = 'getTotalPriceVat|price:currency.code';
+			$properties[] = 'getTotalPriceVat|price:purchase.currency.code';
 
 			$grid->addColumnText('Cena', $properties, '%s', null, ['class' => 'text-right fit'])->onRenderCell[] = [$grid, 'decoratorNumber'];
 		}
