@@ -72,6 +72,8 @@ class ProductGridFiltersFactory
 			$nameColumns[] = 'this.name' . $mutationSuffix;
 		}
 
+		$grid->setFilterGroup('search', 'Vyhledávání');
+
 		$grid->addFilterTextInput('full', $columns, null, 'Název, EAN, kód, P/N', '', likeFormat: '%s');
 		$grid->addFilterTextInput('code', ['this.code', 'this.externalCode', 'this.supplierCode',], null, 'Kód', '', likeFormat: '%s');
 		$grid->addFilterTextInput('ean', ['this.ean', 'this.secondaryEan',], null, 'EAN', '', likeFormat: '%s');
