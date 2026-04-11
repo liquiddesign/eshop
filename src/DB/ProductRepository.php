@@ -1564,9 +1564,14 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	{
 		$collection = $this->getSlaveProductsByRelationAndMaster($relatedType, $product);
 
-		return $collection ? $this->getSlaveProductsByRelationAndMaster($relatedType, $product)
-			->where('this.hidden', 0)
-			->where('related.hidden', 0)->orderBy(['this.priority']) : null;
+		if ($collection === null) {
+			return null;
+		}
+
+		$this->filterHidden(false, $collection);
+		$collection->orderBy(['related.priority']);
+
+		return $collection;
 	}
 
 	/**
