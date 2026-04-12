@@ -399,8 +399,7 @@ class RelatedPresenter extends BackendPresenter
 				->toggle($input->getHtmlId() . '-toogle')
 				->endCondition();
 
-			$input->setHtmlAttribute('data-info', 'Pokud nevyplníte tak nebude na této straně vazba zobrazena.<br>Lze použít tyto proměnné:<br>
-{$productName} - Název produktu<br>');
+			$input->setHtmlAttribute('data-info', 'Lze použít tyto proměnné:<br>{$productName} - Název produktu<br>');
 		});
 
 		$form->addLocaleText('frontSlaveName', 'Název pro eshop (slave)')->forAll(function (TextInput $input) use ($form, $detailCheckbox): void {
@@ -410,8 +409,7 @@ class RelatedPresenter extends BackendPresenter
 				->toggle($input->getHtmlId() . '-toogle')
 				->endCondition();
 
-			$input->setHtmlAttribute('data-info', 'Pokud nevyplníte tak nebude na této straně vazba zobrazena.<br>Lze použít tyto proměnné:<br>
-{$productName} - Název produktu<br>');
+			$input->setHtmlAttribute('data-info', 'Lze použít tyto proměnné:<br>{$productName} - Název produktu<br>');
 		});
 
 		$form->addCheckbox('showAsSet', 'Zobrazit jako set')->setHtmlAttribute('data-info', 'Zobrazí v detailu produktu odkazy na produkty setu.');
