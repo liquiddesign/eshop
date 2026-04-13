@@ -524,7 +524,7 @@ class Product extends \StORM\Entity
 	/**
 	 * Tagy pro matching souvisejících produktů (čárkou oddělené hodnoty)
 	 * Porovnávají se se slaveName v Related záznamech pro tonerForPrinter
-	 * @column{"type":"varchar","length":765}
+	 * @column{"type":"text"}
 	 */
 	public string|null $relatedTags = null;
 
