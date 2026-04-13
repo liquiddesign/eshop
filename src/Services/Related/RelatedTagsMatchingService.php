@@ -65,39 +65,57 @@ class RelatedTagsMatchingService implements AutoWireService
 			return [];
 		}
 
-		$orConditions = [];
-		$params = [];
+		// Step 1: Lightweight scan — fetch ALL products with non-empty relatedTags.
+		// Avoids OR-LIKE full table scan; small candidate set is filtered in PHP.
+		/** @var array<string, string|null> $candidatesPKToTags */
+		$candidatesPKToTags = $this->productRepository->many()
+			->where('this.relatedTags IS NOT NULL')
+			->where("this.relatedTags != ''")
+			->toArrayOf('relatedTags', [], true);
 
-		foreach ($normalizedTags as $i => $tag) {
-			$exact = "tagExact$i";
-			$start = "tagStart$i";
-			$end = "tagEnd$i";
-			$middle = "tagMiddle$i";
-			$orConditions[] = "(LOWER(this.relatedTags) = :$exact OR LOWER(this.relatedTags) LIKE :$start OR LOWER(this.relatedTags) LIKE :$end OR LOWER(this.relatedTags) LIKE :$middle)";
-			$params[$exact] = $tag;
-			$params[$start] = $tag . ',%';
-			$params[$end] = '%,' . $tag;
-			$params[$middle] = '%,' . $tag . ',%';
+		if ($candidatesPKToTags === []) {
+			return \array_fill_keys(\array_values($normalizedTags), []);
 		}
 
-		/** @var array<string, \Eshop\DB\Product> $matchedProducts */
-		$matchedProducts = $this->productRepository->getProducts()
-			->where('(' . \implode(' OR ', $orConditions) . ')', $params)
-			->toArray();
+		// PHP-side filtering: PK -> [normalizedTag, ...] for tags that match our wanted set
+		$tagToPKs = \array_fill_keys(\array_values($normalizedTags), []);
+		$matchedPKs = [];
 
-		$result = \array_fill_keys(\array_values($normalizedTags), []);
-
-		foreach ($matchedProducts as $product) {
-			$productTags = $this->parseRelatedTags($product->relatedTags);
+		foreach ($candidatesPKToTags as $pk => $tagsString) {
+			$productTags = $this->parseRelatedTags($tagsString);
 
 			foreach ($productTags as $pt) {
 				$normalized = \mb_strtolower($pt);
 
-				if (!isset($result[$normalized])) {
+				if (!isset($tagToPKs[$normalized])) {
 					continue;
 				}
 
-				$result[$normalized][(string) $product->getPK()] = $product;
+				$tagToPKs[$normalized][(string) $pk] = (string) $pk;
+				$matchedPKs[(string) $pk] = true;
+			}
+		}
+
+		if ($matchedPKs === []) {
+			return \array_fill_keys(\array_values($normalizedTags), []);
+		}
+
+		// Step 2: Full Product entity load only for matched PKs (indexed PK lookup)
+		/** @var array<string, \Eshop\DB\Product> $matchedProducts */
+		$matchedProducts = $this->productRepository->getProducts()
+			->where('this.uuid', \array_keys($matchedPKs))
+			->toArray();
+
+		// Build final result: tag => [PK => Product]
+		$result = \array_fill_keys(\array_values($normalizedTags), []);
+
+		foreach ($tagToPKs as $tag => $pks) {
+			foreach ($pks as $pk) {
+				if (!isset($matchedProducts[$pk])) {
+					continue;
+				}
+
+				$result[$tag][$pk] = $matchedProducts[$pk];
 			}
 		}
 
