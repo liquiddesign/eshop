@@ -17,6 +17,7 @@ use Messages\DB\TemplateRepository;
 use Nette\Utils\Arrays;
 use StORM\DIConnection;
 use Tracy\Debugger;
+use Tracy\ILogger;
 
 class SendOffer extends BaseAction
 {
@@ -46,11 +47,20 @@ class SendOffer extends BaseAction
 			]);
 
 			if ($sendEmail) {
-				$this->templateRepository->sendMessage(
-					'offers.create',
-					$this->offerService->getEmailVariables($offer),
-					$offer->accountEmail
-				);
+				$recipientEmail = $offer->accountEmail ?? $offer->email;
+
+				if ($recipientEmail !== null) {
+					$this->templateRepository->sendMessage(
+						'offers.create',
+						$this->offerService->getEmailVariables($offer),
+						$recipientEmail
+					);
+				} else {
+					Debugger::log(
+						'Cannot send offer email: no recipient email for offer ' . $offer->code,
+						ILogger::WARNING,
+					);
+				}
 			}
 
 			$this->offerLogItemRepository->createLog(
