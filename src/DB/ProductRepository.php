@@ -43,6 +43,9 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 	private Cache $cache;
 
+	/** @var array<string, array<array<string, array<\Eshop\DB\AttributeValue>|\StORM\Entity>>> */
+	private array $activeAttributesCache = [];
+
 	public function __construct(
 		DIConnection $connection,
 		SchemaManager $schemaManager,
@@ -1506,16 +1509,19 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}
 		}
 
+		$cacheKey = $product->getPK() . '|' . ($showAll ? '1' : '0') . '|' . ($showOnlyRecommendedAttributes ? '1' : '0');
+
+		if (isset($this->activeAttributesCache[$cacheKey])) {
+			return $this->activeAttributesCache[$cacheKey];
+		}
+
 		/** @var \Eshop\DB\AttributeRepository $attributeRepository */
 		$attributeRepository = $this->getConnection()->findRepository(Attribute::class);
-
-		/** @var \Eshop\DB\AttributeValueRepository $attributeValueRepository */
-		$attributeValueRepository = $this->getConnection()->findRepository(AttributeValue::class);
 
 		$productCategory = $product->getPrimaryCategory();
 
 		if (!$productCategory) {
-			return [];
+			return $this->activeAttributesCache[$cacheKey] = [];
 		}
 
 		$attributes = $attributeRepository->getAttributesByCategory($productCategory->path, $showAll);
@@ -1526,38 +1532,68 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 
 		$attributes = $attributes->toArray();
 
+		if ($attributes === []) {
+			return $this->activeAttributesCache[$cacheKey] = [];
+		}
+
+		$collection = $this->attributeValueRepository->many()
+			->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value')
+			->join(['attribute' => 'eshop_attribute'], 'attribute.uuid = this.fk_attribute')
+			->where('this.fk_attribute', \array_keys($attributes))
+			->where('assign.fk_product', $product->getPK());
+
+		if (!$showAll) {
+			$collection->where('attribute.showProduct', true);
+		}
+
+		/** @var array<\Eshop\DB\AttributeValue> $allAttributeValues */
+		$allAttributeValues = $collection->toArray();
+
+		if ($allAttributeValues !== []) {
+			$queryToAvPk = [];
+
+			foreach ($allAttributeValues as $av) {
+				$queryToAvPk['attributeValue=' . $av->getPK() . '&'] = $av->getPK();
+			}
+
+			$pages = $this->pageRepository->many()
+				->where('type', 'product_list')
+				->where('params', \array_keys($queryToAvPk))
+				->toArray();
+
+			$pagesByAvPk = [];
+
+			foreach ($pages as $page) {
+				if (isset($queryToAvPk[$page->params])) {
+					$pagesByAvPk[$queryToAvPk[$page->params]] = $page;
+				}
+			}
+
+			foreach ($allAttributeValues as $av) {
+				$av->setValue('page', $pagesByAvPk[$av->getPK()] ?? null);
+			}
+		}
+
+		$valuesByAttribute = [];
+
+		foreach ($allAttributeValues as $av) {
+			$valuesByAttribute[$av->getValue('attribute')][$av->getPK()] = $av;
+		}
+
 		$attributesList = [];
 
 		foreach ($attributes as $attributeKey => $attribute) {
-			$attributeArray = ['attribute' => $attribute];
-
-			$collection = $attributeValueRepository->many()
-				->join(['assign' => 'eshop_attributeassign'], 'this.uuid = assign.fk_value')
-				->join(['attribute' => 'eshop_attribute'], 'attribute.uuid = this.fk_attribute')
-				->where('this.fk_attribute', $attributeKey)
-				->where('assign.fk_product', $product->getPK());
-
-			if (!$showAll) {
-				$collection->where('attribute.showProduct', true);
-			}
-
-			/** @var array<\Eshop\DB\AttributeValue> $attributeValues */
-			$attributeValues = $collection->toArray();
-
-			$attributeArray['values'] = $attributeValues;
-
-			if (\count($attributeArray['values']) === 0) {
+			if (!isset($valuesByAttribute[$attributeKey])) {
 				continue;
 			}
 
-			foreach ($attributeArray['values'] as $attributeValueKey => $attributeValue) {
-				$attributeArray['values'][$attributeValueKey]->setValue('page', $this->pageRepository->getPageByTypeAndParams('product_list', null, ['attributeValue' => $attributeValue->getPK()]));
-			}
-
-			$attributesList[$attributeKey] = $attributeArray;
+			$attributesList[$attributeKey] = [
+				'attribute' => $attribute,
+				'values' => $valuesByAttribute[$attributeKey],
+			];
 		}
 
-		return $attributesList;
+		return $this->activeAttributesCache[$cacheKey] = $attributesList;
 	}
 
 	public function isProductInCategory(Product|string $product, Category|string $category): bool

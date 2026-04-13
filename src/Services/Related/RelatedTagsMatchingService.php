@@ -49,6 +49,62 @@ class RelatedTagsMatchingService implements AutoWireService
 	}
 
 	/**
+	 * Find all products where one of their relatedTags matches (case-insensitive) any of the given tags.
+	 * Batch variant of findProductsByTag() — 1 SQL query for multiple tags.
+	 * @param array<string> $tags
+	 * @return array<string, array<string, \Eshop\DB\Product>> mapping normalized tag => [productPK => Product]
+	 */
+	public function findProductsByTags(array $tags): array
+	{
+		$normalizedTags = \array_unique(\array_filter(\array_map(
+			static fn(string $t): string => \mb_strtolower(Strings::trim($t)),
+			$tags,
+		), static fn(string $t): bool => $t !== ''));
+
+		if ($normalizedTags === []) {
+			return [];
+		}
+
+		$orConditions = [];
+		$params = [];
+
+		foreach ($normalizedTags as $i => $tag) {
+			$exact = "tagExact$i";
+			$start = "tagStart$i";
+			$end = "tagEnd$i";
+			$middle = "tagMiddle$i";
+			$orConditions[] = "(LOWER(this.relatedTags) = :$exact OR LOWER(this.relatedTags) LIKE :$start OR LOWER(this.relatedTags) LIKE :$end OR LOWER(this.relatedTags) LIKE :$middle)";
+			$params[$exact] = $tag;
+			$params[$start] = $tag . ',%';
+			$params[$end] = '%,' . $tag;
+			$params[$middle] = '%,' . $tag . ',%';
+		}
+
+		/** @var array<string, \Eshop\DB\Product> $matchedProducts */
+		$matchedProducts = $this->productRepository->getProducts()
+			->where('(' . \implode(' OR ', $orConditions) . ')', $params)
+			->toArray();
+
+		$result = \array_fill_keys(\array_values($normalizedTags), []);
+
+		foreach ($matchedProducts as $product) {
+			$productTags = $this->parseRelatedTags($product->relatedTags);
+
+			foreach ($productTags as $pt) {
+				$normalized = \mb_strtolower($pt);
+
+				if (!isset($result[$normalized])) {
+					continue;
+				}
+
+				$result[$normalized][(string) $product->getPK()] = $product;
+			}
+		}
+
+		return $result;
+	}
+
+	/**
 	 * Find all products where one of their relatedTags exactly matches (case-insensitive) the given tag.
 	 * @return array<\Eshop\DB\Product>
 	 */
@@ -60,20 +116,9 @@ class RelatedTagsMatchingService implements AutoWireService
 			return [];
 		}
 
-		return $this->productRepository->getProducts()
-			->where(
-				'LOWER(this.relatedTags) = :exactTag OR ' .
-				'LOWER(this.relatedTags) LIKE :startTag OR ' .
-				'LOWER(this.relatedTags) LIKE :endTag OR ' .
-				'LOWER(this.relatedTags) LIKE :middleTag',
-				[
-					'exactTag' => $normalizedTag,
-					'startTag' => $normalizedTag . ',%',
-					'endTag' => '%,' . $normalizedTag,
-					'middleTag' => '%,' . $normalizedTag . ',%',
-				],
-			)
-			->toArray();
+		$result = $this->findProductsByTags([$tag]);
+
+		return $result[$normalizedTag] ?? [];
 	}
 
 	/**
@@ -108,19 +153,26 @@ class RelatedTagsMatchingService implements AutoWireService
 			->where('this.hidden', false)
 			->toArray();
 
-		/** @var array<\Eshop\DB\Product> $tagMatchedProducts */
-		$tagMatchedProducts = [];
+		// Collect all slaveNames for batch query
+		$slaveNames = [];
 
 		foreach ($nameOnlyRelations as $related) {
-			if ($related->slaveName === null || $related->slaveName === '') {
-				continue;
+			if ($related->slaveName !== null && $related->slaveName !== '') {
+				$slaveNames[] = $related->slaveName;
 			}
+		}
 
-			$matched = $this->findProductsByTag($related->slaveName);
+		/** @var array<string, \Eshop\DB\Product> $tagMatchedProducts */
+		$tagMatchedProducts = [];
 
-			foreach ($matched as $product) {
-				if (!isset($directSlaveArray[$product->getPK()]) && !isset($tagMatchedProducts[$product->getPK()])) {
-					$tagMatchedProducts[$product->getPK()] = $product;
+		if ($slaveNames !== []) {
+			$matchedByTag = $this->findProductsByTags($slaveNames);
+
+			foreach ($matchedByTag as $products) {
+				foreach ($products as $pk => $product) {
+					if (!isset($directSlaveArray[$pk]) && !isset($tagMatchedProducts[$pk])) {
+						$tagMatchedProducts[$pk] = $product;
+					}
 				}
 			}
 		}
