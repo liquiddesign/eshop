@@ -2119,6 +2119,53 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	}
 
 	/**
+	 * Generuje SQL výraz pro jeden sloupec ceny v daném pricelistu s aplikací discount level a surcharge level.
+	 * Používáno v `getProducts()` i `LiveProductsProvider` pro konzistentní SQL pricing logiku.
+	 * @param list<string> $generalPricelistIds Pricelist UUIDs, které povolují discount level
+	 */
+	public function sqlHandlePrice(
+		string $alias,
+		string $priceExp,
+		int|null $levelDiscountPct,
+		int $maxDiscountPct,
+		array $generalPricelistIds,
+		int $prec,
+		float|null $rate,
+		float $surchargePct,
+	): string {
+		$expression = $rate === null ? "$alias.$priceExp" : "ROUND($alias.$priceExp * $rate,$prec)";
+
+		$levelDiscountPct ??= 0;
+
+		if ($generalPricelistIds) {
+			$pricelists = \implode(',', \array_map(function ($value) {
+				return "'$value'";
+			}, $generalPricelistIds));
+
+			$surchargeExpression = $surchargePct > 0 ? ' / ' . (1 - ($surchargePct / 100)) : '';
+
+			$expression = "IF(
+				$alias.fk_pricelist IN ($pricelists),
+				ROUND(
+					$expression$surchargeExpression *
+					((100 - IF(LEAST(this.discountLevelPct, $maxDiscountPct) > $levelDiscountPct,LEAST(this.discountLevelPct, $maxDiscountPct),$levelDiscountPct)) / 100),$prec),
+				$expression$surchargeExpression
+			)";
+		}
+
+		return $expression;
+	}
+
+	/**
+	 * SQL helper: extrahuje pozici `$position` (1-based) z CONCAT_WS-sestaveného výrazu.
+	 */
+	public function sqlExplode(string $expression, string $delimiter, int $position): string
+	{
+		return "REPLACE(SUBSTRING(SUBSTRING_INDEX($expression, '$delimiter', $position),
+	   LENGTH(SUBSTRING_INDEX($expression, '$delimiter', " . ($position - 1) . ")) + 1), '$delimiter', '')";
+	}
+
+	/**
 	 * @deprecated Use DIConnection::generateUuid()
 	 */
 	public static function generateUuid(?string $ean, ?string $fullCode): string
@@ -2256,36 +2303,5 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		foreach ($product->slaveProducts as $mergedProduct) {
 			$this->doGetProductTree($mergedProduct, $result, $depth + 1);
 		}
-	}
-
-	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, int $maxDiscountPct, array $generalPricelistIds, int $prec, ?float $rate, float $surchargePct): string
-	{
-		$expression = $rate === null ? "$alias.$priceExp" : "ROUND($alias.$priceExp * $rate,$prec)";
-
-		$levelDiscountPct ??= 0;
-
-		if ($generalPricelistIds) {
-			$pricelists = \implode(',', \array_map(function ($value) {
-				return "'$value'";
-			}, $generalPricelistIds));
-
-			$surchargeExpression = $surchargePct > 0 ? ' / ' . (1 - ($surchargePct / 100)) : '';
-
-			$expression = "IF(
-				$alias.fk_pricelist IN ($pricelists),
-				ROUND(
-					$expression$surchargeExpression *
-					((100 - IF(LEAST(this.discountLevelPct, $maxDiscountPct) > $levelDiscountPct,LEAST(this.discountLevelPct, $maxDiscountPct),$levelDiscountPct)) / 100),$prec),
-				$expression$surchargeExpression
-			)";
-		}
-
-		return $expression;
-	}
-
-	private function sqlExplode(string $expression, string $delimiter, int $position): string
-	{
-		return "REPLACE(SUBSTRING(SUBSTRING_INDEX($expression, '$delimiter', $position),
-       LENGTH(SUBSTRING_INDEX($expression, '$delimiter', " . ($position - 1) . ")) + 1), '$delimiter', '')";
 	}
 }

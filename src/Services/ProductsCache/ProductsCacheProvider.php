@@ -238,6 +238,14 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 		$this->productsCacheDiffUpdateService->updatePricesTableDiff($customers, $customerGroups, $merchants);
 	}
 
+	public function hasInternalCategoryCountCache(): bool
+	{
+		// Cache-based provider spoléhá na externí Nette Cache v `CategoryRepository::getCounts`
+		// pro cross-request caching — getProductsFromCacheTable(countCategories: true) se při chybějícím
+		// Nette Cache entry musí znovu provést. Per-request memoizace zde je jen jako mikro-optimalizace.
+		return false;
+	}
+
 	/**
 	 * @inheritDoc
 	 */

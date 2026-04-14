@@ -650,6 +650,21 @@ class Product extends \StORM\Entity
 	public RelationCollection $primaryCategories;
 
 	/**
+	 * Denormalizované UUIDy hodnot atributů (CSV). Používá LiveProductsProvider pro rychlé facet počty a filtraci atributů bez JOINu na eshop_attributeassign.
+	 * Aktualizováno periodicky cronem (rebuildProductDenormalization v SandboxPresenter).
+	 * @column{"type":"text"}
+	 */
+	public string|null $denormalizedAttributeValues = null;
+
+	/**
+	 * Denormalizované UUIDy kategorií (CSV) včetně descendants/ancestors, kde to umožňuje category.showDescendantProducts / showProductsInAncestors.
+	 * Používá LiveProductsProvider pro filtrování/počty kategorií bez JOINu přes eshop_product_nxn_eshop_category.
+	 * Aktualizováno periodicky cronem (rebuildProductDenormalization v SandboxPresenter).
+	 * @column{"type":"text"}
+	 */
+	public string|null $denormalizedCategories = null;
+
+	/**
 	 * Vytvořen
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */

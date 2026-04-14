@@ -67,6 +67,14 @@ interface GeneralProductsCacheProvider
 		bool $debug = false,
 	): int|null;
 
+	/**
+	 * Vrací true, pokud provider `getCategoryCount` interně memoizuje volání v rámci requestu —
+	 * pak je externí Nette Cache wrapper v `CategoryRepository::getCounts` kontraproduktivní,
+	 * protože přidává ~50ms/volání na DDEV overlayfs a při ~500 voláních v menu templatech
+	 * způsobuje desítky sekund zpoždění. Cache-based provider nemá per-request memo, vrací false.
+	 */
+	public function hasInternalCategoryCountCache(): bool;
+
 	public function getIndexByCustomer(Customer|Merchant $customerMerchant): string;
 
 	public function addCollectionOrderExpression(string $name, callable $callback): void;

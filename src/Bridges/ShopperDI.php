@@ -9,6 +9,7 @@ use Eshop\Common\Services\ProductImporter;
 use Eshop\Common\Services\ProductTester;
 use Eshop\CompareManager;
 use Eshop\Services\Comgate;
+use Eshop\Services\ProductsCache\LiveProductsProvider;
 use Eshop\Services\ProductsCache\ProductsCacheProvider;
 use Eshop\ShopperUser;
 use Nette\Schema\Expect;
@@ -89,6 +90,10 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 				// False - only warning, True - can't order @TODO condition is not implemented!
 				'restrict' => Expect::bool(false),
 			]),
+			// Which products provider implementation to use as GeneralProductsCacheProvider:
+			//   'cache' (default) = ProductsCacheProvider — oddělená cache DB obnovovaná Go programem
+			//   'live'            = LiveProductsProvider — čtení přímo z produkční DB + denormalizované sloupce
+			'productsProvider' => Expect::anyOf('cache', 'live')->firstIsDefault(),
 		]);
 	}
 
@@ -108,7 +113,8 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$builder->addDefinition($this->prefix('compareManager'))->setType(CompareManager::class);
 		$builder->addDefinition($this->prefix('productExporter'))->setType(ProductExporter::class);
 		$builder->addDefinition($this->prefix('productImporter'))->setType(ProductImporter::class);
-		$builder->addDefinition($this->prefix('productsProvider'))->setType(ProductsCacheProvider::class);
+		$productsProviderClass = ($config['productsProvider'] ?? 'cache') === 'live' ? LiveProductsProvider::class : ProductsCacheProvider::class;
+		$builder->addDefinition($this->prefix('productsProvider'))->setType($productsProviderClass);
 		$builder->addDefinition($this->prefix('productTester'))->setType(ProductTester::class);
 
 		/** @var \Nette\DI\Definitions\ServiceDefinition $latteDefinition */

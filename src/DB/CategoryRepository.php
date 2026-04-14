@@ -104,6 +104,28 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 		$priceLists = $priceLists ?: $this->shopperUser->getPriceListsCached();
 		$visibilityLists = $visibilityLists ?: $this->shopperUser->getVisibilityLists();
 
+		// Pokud má provider interní per-request memoizaci (např. LiveProductsProvider),
+		// obejdeme externí Nette Cache — každé `$this->cache->load` by na DDEV overlayfs
+		// stálo ~50ms I/O, a v menu templatech se `getCounts` volá stovkykrát. Provider si
+		// zajišťuje jak per-request memo, tak (volitelně) cross-request caching sám.
+		if ($productsProvider->hasInternalCategoryCountCache()) {
+			try {
+				$filters['hidden'] = false;
+
+				$result = $productsProvider->getCategoryCount(
+					$filters,
+					priceLists: $priceLists,
+					visibilityLists: $visibilityLists,
+				);
+
+				return $result ?? 0;
+			} catch (\Throwable $e) {
+				Debugger::log($e, ILogger::EXCEPTION);
+
+				return 0;
+			}
+		}
+
 		$cacheIndex = \serialize($filters) . \serialize(\array_keys($priceLists)) . \serialize(\array_keys($visibilityLists)) . $path;
 
 		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($productsProvider, $filters, $priceLists, $visibilityLists, $productRepository) {
