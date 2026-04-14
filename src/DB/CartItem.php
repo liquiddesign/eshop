@@ -155,7 +155,7 @@ class CartItem extends \StORM\Entity implements BoxPacker\Item
 
 	/**
 	 * Typ dárkové položky
-	 * @column{"type":"enum","length":"'gift','gift_discount'"}
+	 * @column{"type":"enum","length":"'gift','gift_discount','birthday_discount'"}
 	 */
 	public string|null $giftType = null;
 
