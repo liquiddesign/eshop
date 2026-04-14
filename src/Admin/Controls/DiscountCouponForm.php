@@ -14,6 +14,7 @@ use Eshop\DB\DiscountConditionCategoryRepository;
 use Eshop\DB\DiscountConditionRepository;
 use Eshop\DB\DiscountCoupon;
 use Eshop\DB\DiscountCouponRepository;
+use Eshop\DB\Product;
 use Eshop\FormValidators;
 use Eshop\ShopperUser;
 use Nette\Application\UI\Control;
@@ -58,6 +59,17 @@ class DiscountCouponForm extends Control
 
 			$presenter->template->select2AjaxDefaults[$exclusiveCustomerInput->getHtmlId()][$discountCoupon->exclusiveCustomer->getPK()] =
 				$discountCoupon->exclusiveCustomer->fullname . ' (' . $discountCoupon->exclusiveCustomer->email . ')';
+		});
+
+		$this->monitor(Presenter::class, function ($presenter) use ($form, $discountCoupon): void {
+			$birthdayProductInput = $form->addSelectAjax('birthdayProduct', 'Narozeninový produkt', placeholder: 'Žádný', className: Product::class);
+
+			if (!$discountCoupon || !$discountCoupon->birthdayProduct) {
+				return;
+			}
+
+			$presenter->template->select2AjaxDefaults[$birthdayProductInput->getHtmlId()][$discountCoupon->birthdayProduct->getPK()] =
+				$discountCoupon->birthdayProduct->name;
 		});
 		$form->addText('discountPct', 'Sleva (%)')->addRule($form::FLOAT)->addRule([FormValidators::class, 'isPercent'], 'Hodnota není platné procento!');
 		$form->addInteger('usageLimit', 'Maximální počet použití')->setNullable()->addCondition($form::FILLED)->toggle('frm-couponsForm-usagesCount-toogle');

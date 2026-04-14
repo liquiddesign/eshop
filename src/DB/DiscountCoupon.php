@@ -100,6 +100,13 @@ class DiscountCoupon extends \StORM\Entity
 	public bool $targitoExport = false;
 
 	/**
+	 * Narozeninový produkt (pokud nastaven, kód funguje jako birthday voucher)
+	 * @relation
+	 * @constraint{"onUpdate":"CASCADE","onDelete":"SET NULL"}
+	 */
+	public Product|null $birthdayProduct = null;
+
+	/**
 	 * Exkluzivně pro zákazníka
 	 * @constraint{"onUpdate":"CASCADE","onDelete":"CASCADE"}
 	 * @relation
