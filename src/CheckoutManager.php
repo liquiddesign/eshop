@@ -2052,6 +2052,11 @@ class CheckoutManager
 					continue;
 				}
 
+				/* Skip items without linked product (e.g. gift discount compensation, deleted products) */
+				if ($cartItem->product === null) {
+					continue;
+				}
+
 				/** @var array<mixed> $relatedCartItems */
 				$relatedCartItems = [];
 
