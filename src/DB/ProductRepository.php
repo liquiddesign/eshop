@@ -1441,10 +1441,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}
 		}
 
-		$visibilityLists = \implode(',', \array_map(function ($val) {
-			return "'$val'";
-		}, $visibilityLists));
-
 		/** @var array<array<mixed>> $joins */
 		$joins = $collection->getModifiers()['JOIN'];
 
@@ -1461,6 +1457,23 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		if ($visibilityListItemJoined) {
 			return;
 		}
+
+		// Fast path: při právě jednom visibility listu není potřeba correlated subquery pro priority-based výběr.
+		// Dependent subquery se v původní podobě spouštěl pro každý kandidátský produkt (v LP flow 131k×),
+		// rovnostní filtr umožňuje optimizeru využít covering index `visibilitylistitem_product_list_hidden` naplno.
+		if ($visibilityLists && \count($visibilityLists) === 1) {
+			$collection->join(
+				['visibilityListItem' => 'eshop_visibilitylistitem'],
+				'visibilityListItem.fk_product = this.uuid AND visibilityListItem.fk_visibilityList = :__vliSingleList',
+				['__vliSingleList' => (string) \reset($visibilityLists)],
+			);
+
+			return;
+		}
+
+		$visibilityLists = \implode(',', \array_map(function ($val) {
+			return "'$val'";
+		}, $visibilityLists));
 
 		$collection->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid AND visibilityListItem.fk_visibilityList = (
             SELECT fk_visibilityList

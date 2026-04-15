@@ -8,6 +8,7 @@ use StORM\Entity;
  * Stav dopravy objednávky
  * @table
  * @index{"name":"visibilitylistitem_product_unique","unique":true,"columns":["fk_product", "fk_visibilityList"]}
+ * @index{"name":"visibilitylistitem_product_list_hidden","columns":["fk_product", "fk_visibilityList", "hidden", "hiddenInMenu"]}
  */
 class VisibilityListItem extends Entity
 {
