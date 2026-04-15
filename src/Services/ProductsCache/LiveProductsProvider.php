@@ -111,6 +111,12 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 
 	protected readonly Cache $cache;
 
+	/**
+	 * DEBUG: dočasný bypass všech 3 cache vrstev (per-customer, baseline, pricelistMembership)
+	 * pro testování cold-path performance. Před commitem nastavit zpět na false.
+	 */
+	private static bool $debugBypassCache = false;
+
 	public function __construct(
 		protected readonly ProductRepository $productRepository,
 		protected readonly CategoryRepository $categoryRepository,
@@ -219,8 +225,13 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		// Per-request memoizace — klíč sestavený ze zbylých filtrů + pricelists + visibility.
 		// Stejný pattern jako ProductsCacheProvider::getCategoryCount: první volání pro daný filter-set
 		// spočítá counts pro všechny kategorie (jedním odlehčeným dotazem), další volání vrací z paměti.
+		//
+		// `pricelist` filter se v `fetchAllCategoryCountsDirect` neaplikuje (SQL používá kompletní $priceLists
+		// z parametru, filter ve `$filters['pricelist']` je silent no-op). Stripujeme ho z memo-klíče, jinak
+		// by volání se stejným výsledkem (např. Menu.latte s/bez `['pricelist' => ...]`) generovalo duplicitní
+		// DB hity.
 		$filtersForCache = $filters;
-		unset($filtersForCache['category']);
+		unset($filtersForCache['category'], $filtersForCache['pricelist']);
 
 		$cacheIndex = \md5(
 			\serialize($filtersForCache)
@@ -254,7 +265,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		$cacheKey = 'categoryCounts_' . \md5(\serialize($filters) . '|' . \serialize($visibilityListPKs) . '|' . \serialize($priceListPKs));
 
 		/** @var array<string, int>|null $cached */
-		$cached = $this->cache->load($cacheKey);
+		$cached = self::$debugBypassCache ? null : $this->cache->load($cacheKey);
 
 		if ($cached !== null) {
 			return $cached;
@@ -354,10 +365,12 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 			}
 		}
 
-		$this->cache->save($cacheKey, $counts, [
-			Cache::Expire => '1 hour',
-			Cache::Tags => ['products', 'categories'],
-		]);
+		if (!self::$debugBypassCache) {
+			$this->cache->save($cacheKey, $counts, [
+				Cache::Expire => '1 hour',
+				Cache::Tags => ['products', 'categories'],
+			]);
+		}
 
 		return $counts;
 	}
@@ -434,7 +447,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		 *     priceVatMax: float,
 		 * }|null $cached
 		 */
-		$cached = $bypassAllCaches ? null : $this->cache->load($cacheKey);
+		$cached = self::$debugBypassCache ? null : $this->cache->load($cacheKey);
 
 		if ($cached !== null) {
 			Debugger::barDump(Debugger::timer('liveProductsProvider.total'), 'liveProductsProvider.total (cache hit)');
@@ -444,7 +457,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 
 		$output = $this->computeProviderOutput($filters, $visibilityLists, $priceLists, $pricelistPKs, $orderByName, $orderByDirection);
 
-		if (!$bypassAllCaches && \count($output['productPKs']) <= $cacheWriteGuardLimit) {
+		if (!self::$debugBypassCache && \count($output['productPKs']) <= $cacheWriteGuardLimit) {
 			$this->cache->save($cacheKey, $output, [
 				Cache::Tags => ['products', 'pricelists', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 				Cache::Expire => '5 minutes',
@@ -494,7 +507,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		);
 
 		/** @var array{candidates: list<\stdClass>, categoryUuids: list<string>|null}|null $baseline */
-		$baseline = $this->cache->load($baselineKey);
+		$baseline = self::$debugBypassCache ? null : $this->cache->load($baselineKey);
 
 		if ($baseline === null) {
 			Debugger::timer('LP.fetch');
@@ -517,7 +530,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 			// Guard: pro enormní baseline (např. /produkty bez filtrů ~131k) se serializace přes FileStorage
 			// vyplatí — je to typicky jednou za 5 min a payload ~20 MB. Přes 200k raději necachovat (overhead
 			// serializace překročí úsporu).
-			if (\count($baselineCandidates) <= 200000) {
+			if (!self::$debugBypassCache && \count($baselineCandidates) <= 200000) {
 				$this->cache->save($baselineKey, $baseline, [
 					Cache::Tags => ['products', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 					Cache::Expire => '5 minutes',
@@ -535,24 +548,20 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		}
 
 		// Per-customer pricelist filter — produkty musí mít cenu v alespoň jednom z customer pricelistů.
-		// Pricelist membership je shared cache (fetchPricelistMembership), takže PHP intersect je rychlý.
+		// `fetchCustomerProductSet` vrací flat set PKs přes covering index (~50ms cold), PHP filter
+		// je jednoduchý O(1) isset lookup.
 		Debugger::timer('LP.custFilter');
-		$pricelistMembership = $this->fetchPricelistMembership();
-		$pricelistPKsFlipped = \array_flip($pricelistPKs);
+		$customerProductSet = $this->fetchCustomerProductSet($pricelistPKs);
 		$filteredProducts = [];
 		$productUuids = [];
 
+		// Žádné clone — baseline cache je FileStorage (re-deserializuje z disku každý request), takže mutace
+		// v `computeEffectivePrices` na stdClass objektech nemohou pollutovat disk. Request má vždy jeden
+		// customer set, takže in-request pollution neexistuje. Clone 47k objektů stál ~235ms navíc.
 		foreach ($fetchedProducts as $product) {
-			$productPricelists = $pricelistMembership[$product->uuid] ?? [];
-
-			foreach ($productPricelists as $plPK) {
-				if (isset($pricelistPKsFlipped[$plPK])) {
-					// Clone zajistí, že per-customer mutace (price, priceList) neovlivní sdílenou baseline cache.
-					$filteredProducts[] = clone $product;
-					$productUuids[] = $product->uuid;
-
-					break;
-				}
+			if (isset($customerProductSet[$product->uuid])) {
+				$filteredProducts[] = $product;
+				$productUuids[] = $product->uuid;
 			}
 		}
 
@@ -597,40 +606,46 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 	}
 
 	/**
-	 * Shared cache: pro každý produkt množina pricelist PKs, ve kterých má nezavřenou platnou cenu (>0).
+	 * Per-customer: množina produktů, které mají platnou cenu (>0, nezavřenou) v alespoň jednom
+	 * z customer pricelistů.
 	 *
-	 * Jeden GROUP_CONCAT dotaz přes celou `eshop_price`, výsledek cachován 5 min přes `pricelists` tag.
-	 * Invalidace při změně cen se děje automaticky. Umožňuje per-customer pricelist filter v PHP (intersect
-	 * mapa × customer pricelists) bez potřeby customer-specific EXISTS v hlavním dotazu.
-	 * @return array<string, list<string>> fk_product → list of pricelist PKs
+	 * Jeden `SELECT DISTINCT fk_product FROM eshop_price WHERE fk_pricelist IN (...)` — díky covering
+	 * indexu `price_pricelist_hidden_price_pricevat_product` je to ~50ms na 1.6M řádků (běžné je 7 PLs,
+	 * vrací ~55k PKs). Dřívější shared varianta GROUP_CONCAT přes celou tabulku trvala 300–1000ms a
+	 * vyžadovala těžkou PHP intersect smyčku (nested foreach přes všechny pricelists na každý produkt);
+	 * per-customer výstup je flat set a PHP filter je O(1) isset lookup.
+	 * @param list<string> $pricelistPKs
+	 * @return array<string, bool> fk_product → true (pro O(1) isset check)
 	 */
-	protected function fetchPricelistMembership(): array
+	protected function fetchCustomerProductSet(array $pricelistPKs): array
 	{
-		$cacheKey = 'lpPricelistMembership_v1';
-		$cached = $this->cache->load($cacheKey);
-
-		if ($cached !== null) {
-			return $cached;
+		if ($pricelistPKs === []) {
+			return [];
 		}
 
-		/** @var array<string, list<string>> $membership */
-		$membership = [];
+		$placeholders = [];
+		$params = [];
 
-		$statement = $this->connection->query(
-			'SELECT fk_product, GROUP_CONCAT(DISTINCT fk_pricelist) AS pls '
-			. 'FROM eshop_price WHERE hidden = 0 AND price > 0 GROUP BY fk_product',
-		);
-
-		foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-			$membership[$row['fk_product']] = \explode(',', $row['pls']);
+		foreach ($pricelistPKs as $i => $pk) {
+			$key = 'pl' . $i;
+			$placeholders[] = ':' . $key;
+			$params[$key] = $pk;
 		}
 
-		$this->cache->save($cacheKey, $membership, [
-			Cache::Tags => ['pricelists', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
-			Cache::Expire => '5 minutes',
-		]);
+		$sql = 'SELECT DISTINCT fk_product FROM eshop_price '
+			. 'WHERE fk_pricelist IN (' . \implode(',', $placeholders) . ') '
+			. 'AND hidden = 0 AND price > 0';
 
-		return $membership;
+		$statement = $this->connection->query($sql, $params);
+
+		/** @var array<string, bool> $set */
+		$set = [];
+
+		foreach ($statement->fetchAll(\PDO::FETCH_COLUMN) as $uuid) {
+			$set[$uuid] = true;
+		}
+
+		return $set;
 	}
 
 	/**
@@ -695,7 +710,15 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		// je shared mezi customery. Dřívější EXISTS prefilter tady naopak zpomaloval (optimizer si vynutil semijoin
 		// s Start/End temporary), takže kandidátský dotaz je teď generic (customer-independent) a cachovatelný
 		// shared mezi všemi asistent/eshop requesty.
+		//
+		// Sledujeme počet joinů před/po applyCollectionFilters. Custom filter expressions (např. attribute,
+		// ribbon, contract) mohou přidat NxN joiny které duplicují produkt řádky → v tom případě potřebujeme
+		// GROUP BY this.uuid. Pokud žádný filter join nepřidal (nejčastější případ na /obchodnici/vytvorit-objednavku
+		// a category browsing — jen WHERE column filters), GROUP BY dropneme. MariaDB se vyhne filesort/temp table
+		// pro 131k řádků, query zrychlí ~2.4× (456ms → 190ms v profilu).
+		$joinsBefore = \count($collection->getModifiers()['JOIN'] ?? []);
 		$this->applyCollectionFilters($collection, $filters, $visibilityLists, $priceLists);
+		$joinsAfter = \count($collection->getModifiers()['JOIN'] ?? []);
 
 		// Řazení priority/name lze aplikovat v SQL, price se řeší v PHP po výpočtu ceny.
 		if ($orderByName === 'priority') {
@@ -704,7 +727,9 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 			$collection->orderBy(['this.name' . $this->connection->getMutationSuffix() => $orderByDirection]);
 		}
 
-		$collection->setGroupBy(['this.uuid']);
+		if ($joinsAfter > $joinsBefore) {
+			$collection->setGroupBy(['this.uuid']);
+		}
 
 		$fetched = [];
 

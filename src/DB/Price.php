@@ -9,6 +9,8 @@ namespace Eshop\DB;
  * @table
  * @index{"name":"product_pricelist","unique":true,"columns":["fk_product","fk_pricelist"]}
  * @index{"name":"price_createdts","unique":false,"columns":["createdTs"]}
+ * @index{"name":"price_product_hidden_price_pricelist","columns":["fk_product","hidden","price","fk_pricelist"]}
+ * @index{"name":"price_pricelist_hidden_price_pricevat_product","columns":["fk_pricelist","hidden","price","priceVat","fk_product"]}
  */
 class Price extends \StORM\Entity
 {
