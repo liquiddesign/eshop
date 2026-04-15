@@ -299,17 +299,10 @@ class SupplierProductRepository extends \StORM\Repository
 				$values['mergadoAllowRepricingRT'] = $supplier->defaultMergadoRepricingRt ?? true;
 			}
 
-			$importImage = true;
-
-			if (!$importImages ||
-				!$supplier->importImages ||
-				!isset($productsMap[$uuid])
-			) {
-				$importImage = false;
-			}
+			$importImage = $importImages && $supplier->importImages;
 
 			// NOVÁ KONTROLA: pokud je importSupplierImages = false, NEIMPORTOVAT
-			if ($importImage && $productsMap[$uuid]->importImages === false) {
+			if ($importImage && isset($productsMap[$uuid]) && $productsMap[$uuid]->importImages === false) {
 				$importImage = false;
 			}
 
@@ -467,7 +460,7 @@ class SupplierProductRepository extends \StORM\Repository
 			}
 
 			// Nastavit primární obrázek (imageFileName), pokud ještě není vyplněný
-			if (!isset($productsMap[$uuid]->imageFileName) || !$productsMap[$uuid]->imageFileName) {
+			if (!isset($productsMap[$uuid]) || !$productsMap[$uuid]->imageFileName) {
 				$firstPhoto = Arrays::first($supplierProductPhotos);
 
 				if ($firstPhoto instanceof \Eshop\DB\SupplierProductPhoto) {
