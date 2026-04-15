@@ -420,8 +420,21 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 
 		$cacheWriteGuardLimit = 100000;
 
-		/** @var array|null $cached */
-		$cached = $this->cache->load($cacheKey);
+		/**
+		 * @var array{
+		 *     productPKs: list<string>,
+		 *     attributeValuesCounts: array<string|int, int>,
+		 *     displayAmountsCounts: array<string|int, int>,
+		 *     displayDeliveriesCounts: array<string|int, int>,
+		 *     producersCounts: array<string|int, int>,
+		 *     categoriesCounts?: array<string|int, int>,
+		 *     priceMin: float,
+		 *     priceMax: float,
+		 *     priceVatMin: float,
+		 *     priceVatMax: float,
+		 * }|null $cached
+		 */
+		$cached = $bypassAllCaches ? null : $this->cache->load($cacheKey);
 
 		if ($cached !== null) {
 			Debugger::barDump(Debugger::timer('liveProductsProvider.total'), 'liveProductsProvider.total (cache hit)');
@@ -431,7 +444,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 
 		$output = $this->computeProviderOutput($filters, $visibilityLists, $priceLists, $pricelistPKs, $orderByName, $orderByDirection);
 
-		if (\count($output['productPKs']) <= $cacheWriteGuardLimit) {
+		if (!$bypassAllCaches && \count($output['productPKs']) <= $cacheWriteGuardLimit) {
 			$this->cache->save($cacheKey, $output, [
 				Cache::Tags => ['products', 'pricelists', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 				Cache::Expire => '5 minutes',
@@ -467,32 +480,98 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		string|null $orderByName,
 		string $orderByDirection,
 	): array {
-		Debugger::timer('LP.fetch');
-		$categoryUuids = null;
-		$fetchedProducts = $this->fetchCandidateProducts($filters, $visibilityLists, $priceLists, $orderByName, $orderByDirection, $categoryUuids);
-		$tFetch = \round((float) Debugger::timer('LP.fetch') * 1000, 1);
+		// Baseline (customer-independent): fetchCandidateProducts + mergeRibbons. Shared mezi customery — pro asistenty,
+		// kteří často přepínají zákazníky, dramaticky zrychluje cold cache per-customer. Klíč: visibility + non-customer
+		// filtry + orderBy (priority/name řazení je customer-independent; price ordering se aplikuje až per-customer).
+		$visibilityListPKsSorted = \array_map(static fn($vl) => (string) $vl->getPK(), \array_values($visibilityLists));
+		\sort($visibilityListPKsSorted);
+
+		$baselineKey = 'lpBase_' . \md5(
+			\serialize($filters)
+			. '|' . \implode(',', $visibilityListPKsSorted)
+			. '|' . ($orderByName ?? 'NONE')
+			. '|' . $orderByDirection,
+		);
+
+		/** @var array{candidates: list<\stdClass>, categoryUuids: list<string>|null}|null $baseline */
+		$baseline = $this->cache->load($baselineKey);
+
+		if ($baseline === null) {
+			Debugger::timer('LP.fetch');
+			$categoryUuids = null;
+			$baselineCandidates = $this->fetchCandidateProducts($filters, $visibilityLists, $priceLists, $orderByName, $orderByDirection, $categoryUuids);
+			$tFetch = \round((float) Debugger::timer('LP.fetch') * 1000, 1);
+
+			if ($baselineCandidates !== []) {
+				$baselineUuids = [];
+
+				foreach ($baselineCandidates as $product) {
+					$baselineUuids[] = $product->uuid;
+				}
+
+				$this->mergeRibbons($baselineCandidates, $baselineUuids);
+			}
+
+			$baseline = ['candidates' => $baselineCandidates, 'categoryUuids' => $categoryUuids];
+
+			// Guard: pro enormní baseline (např. /produkty bez filtrů ~131k) se serializace přes FileStorage
+			// vyplatí — je to typicky jednou za 5 min a payload ~20 MB. Přes 200k raději necachovat (overhead
+			// serializace překročí úsporu).
+			if (\count($baselineCandidates) <= 200000) {
+				$this->cache->save($baselineKey, $baseline, [
+					Cache::Tags => ['products', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
+					Cache::Expire => '5 minutes',
+				]);
+			}
+
+			Debugger::log(\sprintf('LP baseline MISS count=%d fetch+ribbons=%sms', \count($baselineCandidates), $tFetch), 'liveprovider');
+		}
+
+		$fetchedProducts = $baseline['candidates'];
+		$categoryUuids = $baseline['categoryUuids'];
 
 		if ($fetchedProducts === []) {
 			return $this->emptyResult();
 		}
 
+		// Per-customer pricelist filter — produkty musí mít cenu v alespoň jednom z customer pricelistů.
+		// Pricelist membership je shared cache (fetchPricelistMembership), takže PHP intersect je rychlý.
+		Debugger::timer('LP.custFilter');
+		$pricelistMembership = $this->fetchPricelistMembership();
+		$pricelistPKsFlipped = \array_flip($pricelistPKs);
+		$filteredProducts = [];
 		$productUuids = [];
 
 		foreach ($fetchedProducts as $product) {
-			$productUuids[] = $product->uuid;
+			$productPricelists = $pricelistMembership[$product->uuid] ?? [];
+
+			foreach ($productPricelists as $plPK) {
+				if (isset($pricelistPKsFlipped[$plPK])) {
+					// Clone zajistí, že per-customer mutace (price, priceList) neovlivní sdílenou baseline cache.
+					$filteredProducts[] = clone $product;
+					$productUuids[] = $product->uuid;
+
+					break;
+				}
+			}
+		}
+
+		$tCustFilter = \round((float) Debugger::timer('LP.custFilter') * 1000, 1);
+
+		if ($filteredProducts === []) {
+			return $this->emptyResult();
 		}
 
 		Debugger::timer('LP.prices');
 		$pricesByProduct = $this->fetchPricesByProduct($productUuids, $pricelistPKs, $categoryUuids, $visibilityLists);
-		$this->computeEffectivePrices($fetchedProducts, $pricesByProduct, $priceLists);
-		$this->mergeRibbons($fetchedProducts, $productUuids);
+		$this->computeEffectivePrices($filteredProducts, $pricesByProduct, $priceLists);
 		$tPrices = \round((float) Debugger::timer('LP.prices') * 1000, 1);
 
 		[$dynamicFiltersAttributes, $dynamicFilters, $allAttributes] = $this->resolveDynamicFilters($filters);
 
 		Debugger::timer('LP.filter');
 		$result = $this->filterAndCount(
-			$fetchedProducts,
+			$filteredProducts,
 			$dynamicFiltersAttributes,
 			$dynamicFilters,
 			$allAttributes,
@@ -505,15 +584,53 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		$tFilter = \round((float) Debugger::timer('LP.filter') * 1000, 1);
 
 		Debugger::log(\sprintf(
-			'LP count=%d fetch=%sms prices=%sms filter=%sms filters=%s',
+			'LP per-cust baseline=%d filtered=%d custFilter=%sms prices=%sms filter=%sms filters=%s',
 			\count($fetchedProducts),
-			$tFetch,
+			\count($filteredProducts),
+			$tCustFilter,
 			$tPrices,
 			$tFilter,
 			\json_encode(\array_keys($filters)),
 		), 'liveprovider');
 
 		return $output;
+	}
+
+	/**
+	 * Shared cache: pro každý produkt množina pricelist PKs, ve kterých má nezavřenou platnou cenu (>0).
+	 *
+	 * Jeden GROUP_CONCAT dotaz přes celou `eshop_price`, výsledek cachován 5 min přes `pricelists` tag.
+	 * Invalidace při změně cen se děje automaticky. Umožňuje per-customer pricelist filter v PHP (intersect
+	 * mapa × customer pricelists) bez potřeby customer-specific EXISTS v hlavním dotazu.
+	 * @return array<string, list<string>> fk_product → list of pricelist PKs
+	 */
+	protected function fetchPricelistMembership(): array
+	{
+		$cacheKey = 'lpPricelistMembership_v1';
+		$cached = $this->cache->load($cacheKey);
+
+		if ($cached !== null) {
+			return $cached;
+		}
+
+		/** @var array<string, list<string>> $membership */
+		$membership = [];
+
+		$statement = $this->connection->query(
+			'SELECT fk_product, GROUP_CONCAT(DISTINCT fk_pricelist) AS pls '
+			. 'FROM eshop_price WHERE hidden = 0 AND price > 0 GROUP BY fk_product',
+		);
+
+		foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+			$membership[$row['fk_product']] = \explode(',', $row['pls']);
+		}
+
+		$this->cache->save($cacheKey, $membership, [
+			Cache::Tags => ['pricelists', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
+			Cache::Expire => '5 minutes',
+		]);
+
+		return $membership;
 	}
 
 	/**
@@ -574,29 +691,10 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		$this->applyCategoryFilter($collection, $filters, $categoryUuidsOut);
 		unset($filters['category']);
 
-		// Pricelist EXISTS prefilter — odstraní produkty, které nemají žádnou platnou cenu v ceníkách zákazníka.
-		// Semanticky ekvivalentní s následnou PHP filtrací (`computeEffectivePrices` + `priceGt`/`priceFrom` dynamic
-		// filtrem), ale odfiltruje se v SQL → mnohem menší candidate set pro visibility join i navazující fetchPricesByProduct.
-		// Optimizer rozpozná semijoin a dokáže začít od `eshop_price` přes index `product_pricelist`, což zkracuje
-		// hlavní dotaz typicky o 30–50 % (např. 131k → 47k kandidátů pro merchant create-order).
-		if ($priceLists !== []) {
-			$pricelistPlaceholders = [];
-			$pricelistVars = [];
-
-			foreach ($priceLists as $i => $pl) {
-				$name = "__lpPricelistExists$i";
-				$pricelistPlaceholders[] = ":$name";
-				$pricelistVars[$name] = (string) $pl->getPK();
-			}
-
-			$collection->where(
-				'EXISTS (SELECT 1 FROM eshop_price AS lpPriceExists WHERE lpPriceExists.fk_product = this.uuid '
-				. 'AND lpPriceExists.fk_pricelist IN (' . \implode(',', $pricelistPlaceholders) . ') '
-				. 'AND lpPriceExists.hidden = 0 AND lpPriceExists.price > 0)',
-				$pricelistVars,
-			);
-		}
-
+		// Pricelist filtrace se řeší mimo SQL — per-customer PHP-side přes `fetchPricelistMembership()` map, která
+		// je shared mezi customery. Dřívější EXISTS prefilter tady naopak zpomaloval (optimizer si vynutil semijoin
+		// s Start/End temporary), takže kandidátský dotaz je teď generic (customer-independent) a cachovatelný
+		// shared mezi všemi asistent/eshop requesty.
 		$this->applyCollectionFilters($collection, $filters, $visibilityLists, $priceLists);
 
 		// Řazení priority/name lze aplikovat v SQL, price se řeší v PHP po výpočtu ceny.
@@ -1604,9 +1702,15 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 
 			$sortDir = $orderByDirection === 'DESC' ? \SORT_DESC : \SORT_ASC;
 			\array_multisort(
-				$priorities, $sortDir, \SORT_NUMERIC,
-				$availabilities, $sortDir, \SORT_NUMERIC,
-				$prices, $sortDir, \SORT_NUMERIC,
+				$priorities,
+				$sortDir,
+				\SORT_NUMERIC,
+				$availabilities,
+				$sortDir,
+				\SORT_NUMERIC,
+				$prices,
+				$sortDir,
+				\SORT_NUMERIC,
 				$products,
 			);
 
