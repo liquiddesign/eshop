@@ -398,22 +398,17 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		$pricelistPKs = \array_map(static fn($pricelist) => (string) $pricelist->getPK(), $priceLists);
 		$visibilityListPKs = \array_map(static fn($vl) => (string) $vl->getPK(), \array_values($visibilityLists));
 
-		// Cache přeskakujeme pro unbounded dotazy (bez category filtru) — např. /produkty vrátí 131k+ produktů,
-		// serializace takového výsledku přes Nette FileStorage (v DDEV přes pomalý overlayfs) trvá desítky sekund.
-		// S category filtrem je výsledek řádově menší (Tonery ~11k, běžné kategorie <1k) a serializace je levná.
-		$skipCache = !isset($filters['category']);
-
-		if ($skipCache) {
-			$output = $this->computeProviderOutput($filters, $visibilityLists, $priceLists, $pricelistPKs, $orderByName, $orderByDirection);
-
-			Debugger::barDump(Debugger::timer('liveProductsProvider.total'), 'liveProductsProvider.total');
-
-			return $output;
-		}
-
-		// Cross-request cache — zásadní pro asistent workflow (rychlé přepínání mezi customery se stejným pricelist-setem).
-		// Klíč: filters + pricelisty + visibility listy + orderBy. TTL 5 minut, invalidace přes tagy 'products'/'pricelists'
-		// (ty už cache provider invaliduje při změnách; sdílíme stejný signál).
+		// Cross-request cache — zásadní pro asistent workflow (rychlé přepínání mezi customery se stejným pricelist-setem)
+		// i běžný eshop (opakovaná navigace mezi stránkami se stejnými filtry). Klíč: filters + pricelisty + visibility
+		// listy + orderBy. TTL 5 minut, invalidace přes tagy 'products'/'pricelists' (ty už cache provider invaliduje
+		// při změnách; sdílíme stejný signál).
+		//
+		// Pro unbounded dotazy (bez category filtru) po aplikaci pricelist EXISTS prefiltru v `fetchCandidateProducts`
+		// klesla velikost candidate setu o 50–65 %, takže serializace přes FileStorage je zvládnutelná. Pojistka
+		// `$cacheWriteGuardLimit` níže zapíše výsledek jen když candidate set nepřekročí bezpečný prah
+		// (default 100k PKs ≈ ~3 MB serialized). Používáme explicitní load + save místo `cache->load($key, $generator)`,
+		// protože generator-variant pro Nette cache nepodporuje conditional skip-write (null dependencies tam
+		// neznamená "neukládat", jen completeDependencies dodá defaulty).
 		$cacheKey = 'lpResult_' . \md5(
 			\serialize($filters)
 			. '|' . \implode(',', $pricelistPKs)
@@ -423,12 +418,25 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 			. '|' . ($countCategories ? '1' : '0'),
 		);
 
-		$output = $this->cache->load($cacheKey, function (&$dependencies) use ($filters, $visibilityLists, $priceLists, $pricelistPKs, $orderByName, $orderByDirection) {
-			$dependencies[Cache::Tags] = ['products', 'pricelists', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG];
-			$dependencies[Cache::Expire] = '5 minutes';
+		$cacheWriteGuardLimit = 100000;
 
-			return $this->computeProviderOutput($filters, $visibilityLists, $priceLists, $pricelistPKs, $orderByName, $orderByDirection);
-		});
+		/** @var array|null $cached */
+		$cached = $this->cache->load($cacheKey);
+
+		if ($cached !== null) {
+			Debugger::barDump(Debugger::timer('liveProductsProvider.total'), 'liveProductsProvider.total (cache hit)');
+
+			return $cached;
+		}
+
+		$output = $this->computeProviderOutput($filters, $visibilityLists, $priceLists, $pricelistPKs, $orderByName, $orderByDirection);
+
+		if (\count($output['productPKs']) <= $cacheWriteGuardLimit) {
+			$this->cache->save($cacheKey, $output, [
+				Cache::Tags => ['products', 'pricelists', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
+				Cache::Expire => '5 minutes',
+			]);
+		}
 
 		Debugger::barDump(Debugger::timer('liveProductsProvider.total'), 'liveProductsProvider.total');
 
@@ -838,6 +846,20 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		$prec = $currency->calculationPrecision;
 		$convertRatio = $currency->isConversionEnabled() ? $currency->convertRatio : null;
 
+		// Precompute pricelist PKs a flags jednou před outer loopem — původní kód volal
+		// $pricelist->getPK() v inner loopu pro každý produkt, což na produktovém výpisu s 47k
+		// produkty a ~11 pricelistech generovalo půl milionu volání StORM\Entity::getPK
+		// (reflection-based) a zbytečný CPU čas (~0.9 s self v xhprof).
+		$pricelistMeta = [];
+
+		foreach ($priceLists as $pricelist) {
+			$pricelistMeta[] = [
+				'pk' => $pricelist->getPK(),
+				'allowSurchargeLevel' => $pricelist->allowSurchargeLevel,
+				'allowDiscountLevel' => $pricelist->allowDiscountLevel,
+			];
+		}
+
 		foreach ($products as $product) {
 			/** @var list<\stdClass> $productPrices */
 			$productPrices = $pricesByProduct[$product->uuid] ?? [];
@@ -852,6 +874,13 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 				continue;
 			}
 
+			// Index cen podle pricelist PK — inner loop pak dělá O(1) lookup místo linear scan (11×11 = 121 porovnání/produkt).
+			$pricesByPricelist = [];
+
+			foreach ($productPrices as $row) {
+				$pricesByPricelist[$row->fk_pricelist] = $row;
+			}
+
 			$effectiveDiscount = \max(\min((int) ($product->discountLevelPct ?? 0), $maxProductDiscountLevel), $discountLevelPct);
 			$best = null;
 
@@ -859,17 +888,9 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 			// a vezmeme cenu z PRVNÍHO pricelistu, kde produkt má platnou cenu. Nevybíráme MIN(price) napříč.
 			// Tím respektujeme, že customer-specific ceník přebije obecný, i když má vyšší cenu.
 			// Odpovídá SQL LEAST(IF(price IS NULL,'X',CONCAT_WS('|',priority,...))) v ProductRepository::getProducts().
-			foreach ($priceLists as $pricelist) {
-				$pricelistPK = $pricelist->getPK();
-				$priceRow = null;
-
-				foreach ($productPrices as $row) {
-					if ($row->fk_pricelist === $pricelistPK) {
-						$priceRow = $row;
-
-						break;
-					}
-				}
+			foreach ($pricelistMeta as $meta) {
+				$pricelistPK = $meta['pk'];
+				$priceRow = $pricesByPricelist[$pricelistPK] ?? null;
 
 				if ($priceRow === null || $priceRow->price === null) {
 					continue;
@@ -886,7 +907,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 					? 0.0
 					: ($convertRatio === null ? (float) $priceRow->priceVatBefore : \round(((float) $priceRow->priceVatBefore) * $convertRatio, $prec));
 
-				if ($surchargeLevelPct > 0 && $pricelist->allowSurchargeLevel) {
+				if ($surchargeLevelPct > 0 && $meta['allowSurchargeLevel']) {
 					$surchargeDivisor = 1 - ($surchargeLevelPct / 100);
 
 					if ($surchargeDivisor > 0) {
@@ -895,7 +916,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 					}
 				}
 
-				if ($pricelist->allowDiscountLevel && $effectiveDiscount > 0) {
+				if ($meta['allowDiscountLevel'] && $effectiveDiscount > 0) {
 					$discountFactor = (100 - $effectiveDiscount) / 100;
 					$price = \round($price * $discountFactor, $prec);
 					$priceVat = \round($priceVat * $discountFactor, $prec);
@@ -1564,36 +1585,30 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		// Default ordering "Doporučujeme": priority → availability → price.
 		// Odpovídá cache-side expression 'priorityAvailabilityPrice' v ProductsCacheGetterService.
 		if ($orderByName === 'priorityAvailabilityPrice') {
-			\usort($products, static function (\stdClass $a, \stdClass $b) use ($dir): int {
-				$priorityDiff = ($a->priority ?? \PHP_INT_MAX) <=> ($b->priority ?? \PHP_INT_MAX);
+			// array_multisort jede nativně v C a je násobně rychlejší než usort s PHP closure comparator
+			// (xhprof na 47k produktech: usort-based verze ~1 s self+closure, array_multisort redukuje pod 100 ms).
+			// Availability weight: 0 = in stock, 2 = unknown, 1 = sold out (odpovídá původnímu match expression).
+			$priorities = [];
+			$availabilities = [];
+			$prices = [];
 
-				if ($priorityDiff !== 0) {
-					return $dir * $priorityDiff;
-				}
-
-				// Availability weight: 0 = in stock (nejlepší), 2 = unknown, 1 = sold out (nejhorší).
-				$aAvailability = match ((int) ($a->displayAmount_isSold ?? 2)) {
+			foreach ($products as $product) {
+				$priorities[] = $product->priority ?? \PHP_INT_MAX;
+				$availabilities[] = match ((int) ($product->displayAmount_isSold ?? 2)) {
 					0 => 0,
 					2 => 1,
 					default => 2,
 				};
-				$bAvailability = match ((int) ($b->displayAmount_isSold ?? 2)) {
-					0 => 0,
-					2 => 1,
-					default => 2,
-				};
+				$prices[] = $product->price ?? \PHP_FLOAT_MAX;
+			}
 
-				$availabilityDiff = $aAvailability <=> $bAvailability;
-
-				if ($availabilityDiff !== 0) {
-					return $dir * $availabilityDiff;
-				}
-
-				$aPrice = $a->price ?? \PHP_FLOAT_MAX;
-				$bPrice = $b->price ?? \PHP_FLOAT_MAX;
-
-				return $dir * ($aPrice <=> $bPrice);
-			});
+			$sortDir = $orderByDirection === 'DESC' ? \SORT_DESC : \SORT_ASC;
+			\array_multisort(
+				$priorities, $sortDir, \SORT_NUMERIC,
+				$availabilities, $sortDir, \SORT_NUMERIC,
+				$prices, $sortDir, \SORT_NUMERIC,
+				$products,
+			);
 
 			return;
 		}
