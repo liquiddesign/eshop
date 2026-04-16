@@ -334,9 +334,26 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 				: 'this.fk_masterProduct IS NOT NULL';
 		}
 
-		// Price filter SKIP: category counts slouží pro menu navigaci — nepřesnost v řádu ~10% je přijatelná.
-		// Přeskočení IN subquery na eshop_price (1.6M rows) šetří ~200ms per volání.
-		// Products bez ceny se stejně nezobrazí v list view, takže menu count je jen orientační.
+		// Price filter: count jen produkty, které mají platnou cenu v uživatelských ceníkách.
+		// Bez tohoto filtru menu zobrazí kategorie s produkty, na které uživatel nemá cenu → klik vrátí 0 produktů.
+		// IN subquery místo EXISTS — MariaDB semi-join materializace je rychlejší pro 200k+ produktů.
+		$priceConditions = ['fk_pricelist IN (' . \implode(',', $priceListPlaceholders) . ')'];
+
+		if (!$this->shopperUser->canViewHiddenPrices()) {
+			$priceConditions[] = 'hidden = 0';
+		}
+
+		if (!$this->shopperUser->getShowZeroPrices()) {
+			if ($this->shopperUser->getShowVat()) {
+				$priceConditions[] = 'priceVat > 0';
+			}
+
+			if ($this->shopperUser->getShowWithoutVat()) {
+				$priceConditions[] = 'price > 0';
+			}
+		}
+
+		$whereClauses[] = 'this.uuid IN (SELECT fk_product FROM eshop_price WHERE ' . \implode(' AND ', $priceConditions) . ')';
 
 		$sql = 'SELECT this.denormalizedCategories AS categories
 			FROM eshop_product AS this
