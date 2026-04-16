@@ -51,6 +51,13 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 	protected array $cachedCategoryCounts = [];
 
 	/**
+	 * Per-request cache pro attribute value metadata (range-typed aggregation v buildOutput).
+	 * Atributy se mění zřídka — stačí načíst jednou per request.
+	 * @var array<string, \stdClass>|null
+	 */
+	protected array|null $cachedAttributeValueMeta = null;
+
+	/**
 	 * Collection filters — SQL WHERE aplikované na hlavní dotaz fáze 1.
 	 * @var array<string, string>
 	 */
@@ -115,7 +122,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 	 * DEBUG: dočasný bypass všech 3 cache vrstev (per-customer, baseline, pricelistMembership)
 	 * pro testování cold-path performance. Před commitem nastavit zpět na false.
 	 */
-	private static bool $debugBypassCache = false;
+	private static bool $debugBypassCache = true;
 
 	public function __construct(
 		protected readonly ProductRepository $productRepository,
@@ -493,9 +500,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		string|null $orderByName,
 		string $orderByDirection,
 	): array {
-		// Baseline (customer-independent): fetchCandidateProducts + mergeRibbons. Shared mezi customery — pro asistenty,
-		// kteří často přepínají zákazníky, dramaticky zrychluje cold cache per-customer. Klíč: visibility + non-customer
-		// filtry + orderBy (priority/name řazení je customer-independent; price ordering se aplikuje až per-customer).
+		// Baseline (customer-independent): fetchCandidateProducts + mergeRibbons.
 		$visibilityListPKsSorted = \array_map(static fn($vl) => (string) $vl->getPK(), \array_values($visibilityLists));
 		\sort($visibilityListPKsSorted);
 
@@ -527,9 +532,6 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 
 			$baseline = ['candidates' => $baselineCandidates, 'categoryUuids' => $categoryUuids];
 
-			// Guard: pro enormní baseline (např. /produkty bez filtrů ~131k) se serializace přes FileStorage
-			// vyplatí — je to typicky jednou za 5 min a payload ~20 MB. Přes 200k raději necachovat (overhead
-			// serializace překročí úsporu).
 			if (!self::$debugBypassCache && \count($baselineCandidates) <= 200000) {
 				$this->cache->save($baselineKey, $baseline, [
 					Cache::Tags => ['products', GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
@@ -541,38 +543,30 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		}
 
 		$fetchedProducts = $baseline['candidates'];
-		$categoryUuids = $baseline['categoryUuids'];
 
 		if ($fetchedProducts === []) {
 			return $this->emptyResult();
 		}
 
-		// Per-customer pricelist filter — produkty musí mít cenu v alespoň jednom z customer pricelistů.
-		// `fetchCustomerProductSet` vrací flat set PKs přes covering index (~50ms cold), PHP filter
-		// je jednoduchý O(1) isset lookup.
-		Debugger::timer('LP.custFilter');
-		$customerProductSet = $this->fetchCustomerProductSet($pricelistPKs);
-		$filteredProducts = [];
-		$productUuids = [];
+		// Merged customer-filter + price-fetch: jeden průchod eshop_price místo dvou.
+		// fetchPricesByProduct vrátí ceny jen pro produkty s platnou cenou v customer pricelistech —
+		// výsledná mapa slouží zároveň jako customer filter (produkty bez ceny = bez záznamu v mapě).
+		Debugger::timer('LP.prices');
+		$allBaselineUuids = \array_column($fetchedProducts, 'uuid');
+		$pricesByProduct = $this->fetchPricesByProduct($allBaselineUuids, $pricelistPKs);
 
-		// Žádné clone — baseline cache je FileStorage (re-deserializuje z disku každý request), takže mutace
-		// v `computeEffectivePrices` na stdClass objektech nemohou pollutovat disk. Request má vždy jeden
-		// customer set, takže in-request pollution neexistuje. Clone 47k objektů stál ~235ms navíc.
+		$filteredProducts = [];
+
 		foreach ($fetchedProducts as $product) {
-			if (isset($customerProductSet[$product->uuid])) {
+			if (isset($pricesByProduct[$product->uuid])) {
 				$filteredProducts[] = $product;
-				$productUuids[] = $product->uuid;
 			}
 		}
-
-		$tCustFilter = \round((float) Debugger::timer('LP.custFilter') * 1000, 1);
 
 		if ($filteredProducts === []) {
 			return $this->emptyResult();
 		}
 
-		Debugger::timer('LP.prices');
-		$pricesByProduct = $this->fetchPricesByProduct($productUuids, $pricelistPKs, $categoryUuids, $visibilityLists);
 		$this->computeEffectivePrices($filteredProducts, $pricesByProduct, $priceLists);
 		$tPrices = \round((float) Debugger::timer('LP.prices') * 1000, 1);
 
@@ -593,10 +587,9 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		$tFilter = \round((float) Debugger::timer('LP.filter') * 1000, 1);
 
 		Debugger::log(\sprintf(
-			'LP per-cust baseline=%d filtered=%d custFilter=%sms prices=%sms filter=%sms filters=%s',
+			'LP per-cust baseline=%d filtered=%d prices=%sms filter=%sms filters=%s',
 			\count($fetchedProducts),
 			\count($filteredProducts),
-			$tCustFilter,
 			$tPrices,
 			$tFilter,
 			\json_encode(\array_keys($filters)),
@@ -606,14 +599,42 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 	}
 
 	/**
-	 * Per-customer: množina produktů, které mají platnou cenu (>0, nezavřenou) v alespoň jednom
-	 * z customer pricelistů.
+	 * Naplní MEMORY temp tabulku `__lp_price_uuids` UUIDy produktů s platnou cenou v customer pricelistech.
+	 * Tabulka se reusuje v:
+	 *   1. fetchCandidateProducts (JOIN → baseline vrací rovnou jen produkty s cenou)
+	 *   2. fetchBestPricesByTempTable (ROW_NUMBER JOIN → best-price bez EXISTS)
 	 *
-	 * Jeden `SELECT DISTINCT fk_product FROM eshop_price WHERE fk_pricelist IN (...)` — díky covering
-	 * indexu `price_pricelist_hidden_price_pricevat_product` je to ~50ms na 1.6M řádků (běžné je 7 PLs,
-	 * vrací ~55k PKs). Dřívější shared varianta GROUP_CONCAT přes celou tabulku trvala 300–1000ms a
-	 * vyžadovala těžkou PHP intersect smyčku (nested foreach přes všechny pricelists na každý produkt);
-	 * per-customer výstup je flat set a PHP filter je O(1) isset lookup.
+	 * Covering index `price_pricelist_hidden_price_pricevat_product` → ~50ms na 1.6M řádků.
+	 * @param list<string> $pricelistPKs
+	 */
+	protected function populateCustomerProductTempTable(array $pricelistPKs): void
+	{
+		$this->connection->query('CREATE TEMPORARY TABLE IF NOT EXISTS __lp_price_uuids (uuid VARCHAR(32) PRIMARY KEY) ENGINE=MEMORY');
+		$this->connection->query('TRUNCATE TABLE __lp_price_uuids');
+
+		if ($pricelistPKs === []) {
+			return;
+		}
+
+		$placeholders = [];
+		$params = [];
+
+		foreach ($pricelistPKs as $i => $pk) {
+			$key = 'pl' . $i;
+			$placeholders[] = ':' . $key;
+			$params[$key] = $pk;
+		}
+
+		$sql = 'INSERT INTO __lp_price_uuids (uuid) '
+			. 'SELECT DISTINCT fk_product FROM eshop_price '
+			. 'WHERE fk_pricelist IN (' . \implode(',', $placeholders) . ') '
+			. 'AND hidden = 0 AND price > 0';
+
+		$this->connection->query($sql, $params);
+	}
+
+	/**
+	 * @deprecated Nahrazeno populateCustomerProductTempTable + JOIN v fetchCandidateProducts.
 	 * @param list<string> $pricelistPKs
 	 * @return array<string, bool> fk_product → true (pro O(1) isset check)
 	 */
@@ -685,7 +706,6 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 			'producer' => 'this.fk_producer',
 			'displayAmount' => 'this.fk_displayAmount',
 			'displayDelivery' => 'this.fk_displayDelivery',
-			'masterProduct' => 'this.fk_masterProduct',
 			'attributeValues' => 'this.denormalizedAttributeValues',
 			'displayAmount_isSold' => 'displayAmount.isSold',
 			'discountLevelPct' => 'this.discountLevelPct',
@@ -706,11 +726,6 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		$this->applyCategoryFilter($collection, $filters, $categoryUuidsOut);
 		unset($filters['category']);
 
-		// Pricelist filtrace se řeší mimo SQL — per-customer PHP-side přes `fetchPricelistMembership()` map, která
-		// je shared mezi customery. Dřívější EXISTS prefilter tady naopak zpomaloval (optimizer si vynutil semijoin
-		// s Start/End temporary), takže kandidátský dotaz je teď generic (customer-independent) a cachovatelný
-		// shared mezi všemi asistent/eshop requesty.
-		//
 		// Sledujeme počet joinů před/po applyCollectionFilters. Custom filter expressions (např. attribute,
 		// ribbon, contract) mohou přidat NxN joiny které duplicují produkt řádky → v tom případě potřebujeme
 		// GROUP BY this.uuid. Pokud žádný filter join nepřidal (nejčastější případ na /obchodnici/vytvorit-objednavku
@@ -747,25 +762,29 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 	 * SQL string pak není 400 KB + 11k PDO bindings, ale pár stovek bytů a několik parametrů.
 	 * @param list<string> $productUuids UUIDy nalezených produktů (pro small sets nebo když není category context).
 	 * @param list<string> $pricelistPKs Seznam povolených pricelist PKs.
-	 * @param list<string>|null $categoryUuids Pokud byl category filter, expanded category UUIDs — dovoluje server-side EXISTS.
-	 * @param array<string|int, \Eshop\DB\VisibilityList> $visibilityLists Pro server-side visibility filtr.
 	 * @return array<string, list<\stdClass>> product UUID => list of price rows
 	 */
-	protected function fetchPricesByProduct(array $productUuids, array $pricelistPKs, array|null $categoryUuids = null, array $visibilityLists = []): array
+	protected function fetchPricesByProduct(array $productUuids, array $pricelistPKs): array
 	{
 		if (!$productUuids || !$pricelistPKs) {
 			return [];
 		}
 
-		$includeHiddenPrices = $this->shopperUser->canViewHiddenPrices();
+		// Pro velké product sety: temp table s known UUIDs + ROW_NUMBER(). Eliminuje correlated EXISTS.
+		if (\count($productUuids) > 1000) {
+			$bestPrices = $this->fetchBestPricesByTempTable($productUuids, $pricelistPKs);
 
-		// Pro velké product sety vždy preferujeme server-side filter (EXISTS visibility + volitelně category) —
-		// i bez category filtru (např. /produkty) by IN(205k UUIDs) MariaDB nezvládla.
-		$useServerSideFilter = $visibilityLists !== [] && \count($productUuids) > 1000;
+			/** @var array<string, list<\stdClass>> $byProduct */
+			$byProduct = [];
 
-		if ($useServerSideFilter) {
-			return $this->fetchPricesByServerSideFilter($pricelistPKs, $categoryUuids ?? [], $visibilityLists, $includeHiddenPrices);
+			foreach ($bestPrices as $uuid => $row) {
+				$byProduct[$uuid] = [$row];
+			}
+
+			return $byProduct;
 		}
+
+		$includeHiddenPrices = $this->shopperUser->canViewHiddenPrices();
 
 		$pricesQuery = $this->priceRepository->many()
 			->setSelect([
@@ -858,6 +877,67 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 			. '     ROW_NUMBER() OVER (PARTITION BY pr.fk_product ORDER BY FIELD(pr.fk_pricelist, ' . $plInClause . ')) AS rn'
 			. '   FROM eshop_price pr'
 			. '   WHERE pr.fk_pricelist IN (' . $plInClause . ') AND pr.price IS NOT NULL' . $hiddenCondition . $catExists . $vlExists
+			. ' ) AS ranked'
+			. ' WHERE ranked.rn = 1';
+
+		$statement = $this->connection->query($sql, $params);
+
+		/** @var array<string, \stdClass> $byProduct */
+		$byProduct = [];
+
+		foreach ($statement->fetchAll(\PDO::FETCH_OBJ) as $row) {
+			$byProduct[$row->fk_product] = $row;
+		}
+
+		return $byProduct;
+	}
+
+	/**
+	 * Best-price per produkt přes temp table — eliminuje correlated EXISTS (category + visibility) z price query.
+	 * Known product UUIDs se insertují do MEMORY temp table, price query pak JOINuje přímo.
+	 * Benchmark: 302ms (EXISTS) → 200ms (temp table) na IT a elektronika (22k produktů).
+	 * @param list<string> $productUuids Known product UUIDs z baseline + customer filter.
+	 * @param list<string> $pricelistPKs Seřazené podle priority ASC.
+	 * @return array<string, \stdClass> fk_product → price row
+	 */
+	protected function fetchBestPricesByTempTable(array $productUuids, array $pricelistPKs): array
+	{
+		if ($productUuids === [] || $pricelistPKs === []) {
+			return [];
+		}
+
+		$includeHiddenPrices = $this->shopperUser->canViewHiddenPrices();
+
+		// MEMORY temp tabulka s known product UUIDs — batch INSERT z PHP array.
+		$this->connection->query('CREATE TEMPORARY TABLE IF NOT EXISTS __lp_price_uuids (uuid VARCHAR(32) PRIMARY KEY) ENGINE=MEMORY');
+		$this->connection->query('TRUNCATE TABLE __lp_price_uuids');
+
+		$pdo = $this->connection->getLink();
+
+		foreach (\array_chunk($productUuids, 1000) as $chunk) {
+			$values = \implode(',', \array_map(static fn(string $uuid) => '(' . $pdo->quote($uuid) . ')', $chunk));
+			$this->connection->query('INSERT INTO __lp_price_uuids VALUES ' . $values);
+		}
+
+		$params = [];
+		$plQuoted = [];
+
+		foreach ($pricelistPKs as $i => $pk) {
+			$key = 'pl' . $i;
+			$plQuoted[] = ':' . $key;
+			$params[$key] = $pk;
+		}
+
+		$plInClause = \implode(',', $plQuoted);
+		$hiddenCondition = $includeHiddenPrices ? '' : ' AND pr.hidden = 0';
+
+		$sql = 'SELECT ranked.fk_product, ranked.price, ranked.priceVat, ranked.priceBefore, ranked.priceVatBefore, ranked.fk_pricelist'
+			. ' FROM ('
+			. '   SELECT pr.fk_product, pr.price, pr.priceVat, pr.priceBefore, pr.priceVatBefore, pr.fk_pricelist,'
+			. '     ROW_NUMBER() OVER (PARTITION BY pr.fk_product ORDER BY FIELD(pr.fk_pricelist, ' . $plInClause . ')) AS rn'
+			. '   FROM eshop_price pr'
+			. '   JOIN __lp_price_uuids t ON t.uuid = pr.fk_product'
+			. '   WHERE pr.fk_pricelist IN (' . $plInClause . ') AND pr.price IS NOT NULL' . $hiddenCondition
 			. ' ) AS ranked'
 			. ' WHERE ranked.rn = 1';
 
@@ -1190,6 +1270,16 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 			return;
 		}
 
+		// denormalizedCategories na eshop_product obsahuje CSV všech kategorií, ve kterých se produkt
+		// zobrazí (direct + applicable ancestors). FIND_IN_SET na root kategorii nahrazuje correlated
+		// EXISTS přes NxN tabulku s 290+ parametry (386ms → 205ms v benchmarku na IT a elektronika).
+		// Fallback na EXISTS pro případ, že denormalizace ještě neproběhla (denormalizedCategories IS NULL).
+		$collection->where(
+			'FIND_IN_SET(:__catFilterUuid, this.denormalizedCategories)',
+			['__catFilterUuid' => $category->getPK()],
+		);
+
+		// categoryUuidsOut stále potřebujeme pro fetchBestPricesByProduct (category EXISTS v price query).
 		$categoryUuids = [$category->getPK()];
 
 		if ($category->showDescendantProducts) {
@@ -1201,25 +1291,6 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 				$categoryUuids[] = $uuid;
 			}
 		}
-
-		// EXISTS přes NxN tabulku — používá indexy `fk_product` i `fk_category`, O(1) per produkt.
-		// Oproti dřívějšímu `FIND_IN_SET(...) OR ...` (30× neindexovatelné podmínky na 205k řádků = ~1s)
-		// je to řádově rychlejší.
-		// Ancestor resolution: `$categoryUuids` obsahuje direct + descendants, takže produkty přiřazené
-		// k libovolnému z nich (přes admin/import) matchnou — `denormalizedCategories` v SQL tu nepotřebujeme.
-		$params = [];
-		$placeholders = [];
-
-		foreach ($categoryUuids as $i => $uuid) {
-			$key = 'catUuid' . $i;
-			$placeholders[] = ':' . $key;
-			$params[$key] = $uuid;
-		}
-
-		$collection->where(
-			'EXISTS (SELECT 1 FROM eshop_product_nxn_eshop_category AS pnc WHERE pnc.fk_product = this.uuid AND pnc.fk_category IN (' . \implode(',', $placeholders) . '))',
-			$params,
-		);
 
 		$categoryUuidsOut = $categoryUuids;
 	}
@@ -1796,21 +1867,34 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		$attributeValuesCounts = $result['attributeValuesCounts'];
 
 		if ($attributeValuesCounts) {
-			$attributeValueMeta = $this->attributeValueRepository->many()
-				->setSelect([
-					'uuid' => 'this.uuid',
-					'rangePK' => 'this.fk_attributevaluerange',
-					'showRange' => 'attribute.showRange',
-				])
-				->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
-				->where('this.uuid', \array_keys($attributeValuesCounts))
-				->fetchArray(\stdClass::class);
+			// Per-request memoizace — attribute metadata se nemění během requestu.
+			// Načteme VŠECHNY attribute values s range info jednou, další volání buildOutput reusují.
+			if ($this->cachedAttributeValueMeta === null) {
+				$this->cachedAttributeValueMeta = [];
 
-			foreach ($attributeValueMeta as $meta) {
-				if ($meta->showRange && $meta->rangePK !== null) {
-					$attributeValuesCounts[$meta->rangePK] = ($attributeValuesCounts[$meta->rangePK] ?? 0) + $attributeValuesCounts[$meta->uuid];
-					unset($attributeValuesCounts[$meta->uuid]);
+				foreach ($this->attributeValueRepository->many()
+					->setSelect([
+						'uuid' => 'this.uuid',
+						'rangePK' => 'this.fk_attributevaluerange',
+						'showRange' => 'attribute.showRange',
+					])
+					->join(['attribute' => 'eshop_attribute'], 'this.fk_attribute = attribute.uuid')
+					->where('attribute.showRange', true)
+					->where('this.fk_attributevaluerange IS NOT NULL')
+					->fetchArray(\stdClass::class) as $meta) {
+					$this->cachedAttributeValueMeta[$meta->uuid] = $meta;
 				}
+			}
+
+			foreach (\array_keys($attributeValuesCounts) as $uuid) {
+				$meta = $this->cachedAttributeValueMeta[$uuid] ?? null;
+
+				if ($meta === null) {
+					continue;
+				}
+
+				$attributeValuesCounts[$meta->rangePK] = ($attributeValuesCounts[$meta->rangePK] ?? 0) + $attributeValuesCounts[$uuid];
+				unset($attributeValuesCounts[$uuid]);
 			}
 		}
 
@@ -1996,16 +2080,12 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 			throw new \InvalidArgumentException("Filter 'notInternalRibbon': Input must be string or array!");
 		};
 
-		$this->allowedDynamicFilterExpressions['masterProduct'] = static function (\stdClass $product, mixed $value): bool {
+		$this->allowedCollectionFilterExpressions['masterProduct'] = static function (ICollection $collection, mixed $value): void {
 			if ($value === true) {
-				return $product->masterProduct === null;
+				$collection->where('this.fk_masterProduct IS NULL');
+			} elseif ($value === false) {
+				$collection->where('this.fk_masterProduct IS NOT NULL');
 			}
-
-			if ($value === false) {
-				return $product->masterProduct !== null;
-			}
-
-			return true;
 		};
 	}
 }
