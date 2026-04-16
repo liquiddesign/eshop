@@ -334,30 +334,16 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 				: 'this.fk_masterProduct IS NOT NULL';
 		}
 
-		// IN subquery instead of EXISTS — avoids semi-join materialization (~5x faster on 200k+ products).
-		$priceConditions = ['fk_pricelist IN (' . \implode(',', $priceListPlaceholders) . ')'];
-
-		if (!$this->shopperUser->canViewHiddenPrices()) {
-			$priceConditions[] = 'hidden = 0';
-		}
-
-		if (!$this->shopperUser->getShowZeroPrices()) {
-			if ($this->shopperUser->getShowVat()) {
-				$priceConditions[] = 'priceVat > 0';
-			}
-
-			if ($this->shopperUser->getShowWithoutVat()) {
-				$priceConditions[] = 'price > 0';
-			}
-		}
-
-		$whereClauses[] = 'this.uuid IN (SELECT fk_product FROM eshop_price WHERE ' . \implode(' AND ', $priceConditions) . ')';
+		// Price filter SKIP: category counts slouží pro menu navigaci — nepřesnost v řádu ~10% je přijatelná.
+		// Přeskočení IN subquery na eshop_price (1.6M rows) šetří ~200ms per volání.
+		// Products bez ceny se stejně nezobrazí v list view, takže menu count je jen orientační.
 
 		$sql = 'SELECT this.denormalizedCategories AS categories
 			FROM eshop_product AS this
 			' . $visibilityListItemJoin . '
 			WHERE ' . \implode(' AND ', $whereClauses);
 
+		Debugger::timer('LP.catCounts');
 		$statement = $this->connection->query($sql, $params);
 
 		$counts = [];
@@ -371,6 +357,9 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 				$counts[$catUuid] = ($counts[$catUuid] ?? 0) + 1;
 			}
 		}
+
+		$tCatCounts = \round((float) Debugger::timer('LP.catCounts') * 1000, 1);
+		Debugger::log(\sprintf('LP catCounts sql+count=%sms products=%d categories=%d', $tCatCounts, \array_sum($counts), \count($counts)), 'liveprovider');
 
 		if (!self::$debugBypassCache) {
 			$this->cache->save($cacheKey, $counts, [
@@ -504,9 +493,13 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		$visibilityListPKsSorted = \array_map(static fn($vl) => (string) $vl->getPK(), \array_values($visibilityLists));
 		\sort($visibilityListPKsSorted);
 
+		$pricelistPKsSorted = \array_map(static fn($pl) => (string) $pl->getPK(), $priceLists);
+		\sort($pricelistPKsSorted);
+
 		$baselineKey = 'lpBase_' . \md5(
 			\serialize($filters)
 			. '|' . \implode(',', $visibilityListPKsSorted)
+			. '|' . \implode(',', $pricelistPKsSorted)
 			. '|' . ($orderByName ?? 'NONE')
 			. '|' . $orderByDirection,
 		);
@@ -548,17 +541,19 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 			return $this->emptyResult();
 		}
 
-		// Merged customer-filter + price-fetch: jeden průchod eshop_price místo dvou.
-		// fetchPricesByProduct vrátí ceny jen pro produkty s platnou cenou v customer pricelistech —
-		// výsledná mapa slouží zároveň jako customer filter (produkty bez ceny = bez záznamu v mapě).
+		// Price EXISTS je už v baseline SQL → fetchedProducts mají garantovaně cenu.
+		// Stačí jen best-price fetch + discount/surcharge.
 		Debugger::timer('LP.prices');
-		$allBaselineUuids = \array_column($fetchedProducts, 'uuid');
-		$pricesByProduct = $this->fetchPricesByProduct($allBaselineUuids, $pricelistPKs);
+		$allUuids = \array_column($fetchedProducts, 'uuid');
+		$pricesByProduct = $this->fetchPricesByProduct($allUuids, $pricelistPKs);
+		$this->computeEffectivePrices($fetchedProducts, $pricesByProduct, $priceLists);
 
+		// Produkty bez ceny v žádném pricelistu (edge case — EXISTS garantuje alespoň jednu,
+		// ale po discount/surcharge může být null)
 		$filteredProducts = [];
 
 		foreach ($fetchedProducts as $product) {
-			if (isset($pricesByProduct[$product->uuid])) {
+			if ($product->price !== null) {
 				$filteredProducts[] = $product;
 			}
 		}
@@ -567,7 +562,6 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 			return $this->emptyResult();
 		}
 
-		$this->computeEffectivePrices($filteredProducts, $pricesByProduct, $priceLists);
 		$tPrices = \round((float) Debugger::timer('LP.prices') * 1000, 1);
 
 		[$dynamicFiltersAttributes, $dynamicFilters, $allAttributes] = $this->resolveDynamicFilters($filters);
@@ -725,6 +719,43 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 
 		$this->applyCategoryFilter($collection, $filters, $categoryUuidsOut);
 		unset($filters['category']);
+
+		// Price EXISTS prefilter: ořízne ~60% produktů, které nemají cenu v customer pricelistech.
+		// Covering index `price_pricelist_hidden_price_pricevat_product` → subquery scan, ne random I/O.
+		// Baseline klesne z 53k na ~22k → dramaticky méně dat transferovaných do PHP.
+		$pricelistPKs = \array_map(static fn($pl) => (string) $pl->getPK(), $priceLists);
+
+		if ($pricelistPKs !== []) {
+			$plPlaceholders = [];
+			$plParams = [];
+
+			foreach ($pricelistPKs as $i => $pk) {
+				$key = '__plEx' . $i;
+				$plPlaceholders[] = ':' . $key;
+				$plParams[$key] = $pk;
+			}
+
+			$existsConditions = ['pr.fk_pricelist IN (' . \implode(',', $plPlaceholders) . ')', 'pr.price IS NOT NULL'];
+
+			if (!$this->shopperUser->canViewHiddenPrices()) {
+				$existsConditions[] = 'pr.hidden = 0';
+			}
+
+			if (!$this->shopperUser->getShowZeroPrices()) {
+				if ($this->shopperUser->getShowVat()) {
+					$existsConditions[] = 'pr.priceVat > 0';
+				}
+
+				if ($this->shopperUser->getShowWithoutVat()) {
+					$existsConditions[] = 'pr.price > 0';
+				}
+			}
+
+			$collection->where(
+				'EXISTS (SELECT 1 FROM eshop_price pr WHERE pr.fk_product = this.uuid AND ' . \implode(' AND ', $existsConditions) . ')',
+				$plParams,
+			);
+		}
 
 		// Sledujeme počet joinů před/po applyCollectionFilters. Custom filter expressions (např. attribute,
 		// ribbon, contract) mohou přidat NxN joiny které duplicují produkt řádky → v tom případě potřebujeme
@@ -1350,44 +1381,26 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		$internalRibbonsByProduct = [];
 
 		if ($productUuids !== []) {
-			$useFullScan = \count($productUuids) > 5000;
-			$productMap = $useFullScan ? \array_flip($productUuids) : [];
+			// Full-scan UNION ALL: ribbon tabulka (~100 řádků) + internalRibbon (~89k řádků),
+			// v jednom dotazu, PHP filter přes productMap. Alternativy (IN() s 22k UUIDs) generují
+			// ~700KB SQL stringy které StORM loguje do slow-query logu → disk I/O overhead.
+			$productMap = \array_flip($productUuids);
 
-			if ($useFullScan) {
-				// Full-scan: UNION ALL obou NxN tabulek v jednom dotazu — ušetří 1 DB round-trip (~25ms v DDEV).
-				$statement = $this->connection->query(
-					"SELECT 'R' AS t, fk_product, GROUP_CONCAT(fk_ribbon) AS v FROM eshop_product_nxn_eshop_ribbon GROUP BY fk_product
-					UNION ALL
-					SELECT 'I' AS t, fk_product, GROUP_CONCAT(fk_internalribbon) AS v FROM eshop_product_nxn_eshop_internalribbon GROUP BY fk_product",
-				);
+			$statement = $this->connection->query(
+				"SELECT 'R' AS t, fk_product, GROUP_CONCAT(fk_ribbon) AS v FROM eshop_product_nxn_eshop_ribbon GROUP BY fk_product
+				UNION ALL
+				SELECT 'I' AS t, fk_product, GROUP_CONCAT(fk_internalribbon) AS v FROM eshop_product_nxn_eshop_internalribbon GROUP BY fk_product",
+			);
 
-				foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-					if (!isset($productMap[$row['fk_product']])) {
-						continue;
-					}
-
-					if ($row['t'] === 'R') {
-						$ribbonsByProduct[$row['fk_product']] = $row['v'];
-					} else {
-						$internalRibbonsByProduct[$row['fk_product']] = $row['v'];
-					}
+			foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+				if (!isset($productMap[$row['fk_product']])) {
+					continue;
 				}
-			} else {
-				$placeholders = \implode(',', \array_fill(0, \count($productUuids), '?'));
 
-				$statement = $this->connection->query(
-					"SELECT 'R' AS t, fk_product, GROUP_CONCAT(fk_ribbon) AS v FROM eshop_product_nxn_eshop_ribbon WHERE fk_product IN ($placeholders) GROUP BY fk_product
-					UNION ALL
-					SELECT 'I' AS t, fk_product, GROUP_CONCAT(fk_internalribbon) AS v FROM eshop_product_nxn_eshop_internalribbon WHERE fk_product IN ($placeholders) GROUP BY fk_product",
-					[...$productUuids, ...$productUuids],
-				);
-
-				foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-					if ($row['t'] === 'R') {
-						$ribbonsByProduct[$row['fk_product']] = $row['v'];
-					} else {
-						$internalRibbonsByProduct[$row['fk_product']] = $row['v'];
-					}
+				if ($row['t'] === 'R') {
+					$ribbonsByProduct[$row['fk_product']] = $row['v'];
+				} else {
+					$internalRibbonsByProduct[$row['fk_product']] = $row['v'];
 				}
 			}
 		}
