@@ -122,7 +122,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 	 * DEBUG: dočasný bypass všech 3 cache vrstev (per-customer, baseline, pricelistMembership)
 	 * pro testování cold-path performance. Před commitem nastavit zpět na false.
 	 */
-	private static bool $debugBypassCache = true;
+	private static bool $debugBypassCache = false;
 
 	public function __construct(
 		protected readonly ProductRepository $productRepository,
