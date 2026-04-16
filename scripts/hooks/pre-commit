@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # pre-commit hook — runs composer update + check-code before allowing commit.
+# On failure, runs Claude Code to auto-fix errors.
 # Install: git config core.hooksPath scripts/hooks
 
 set -e
@@ -36,7 +37,26 @@ echo "=== Pre-commit: composer update ==="
 composer update --no-interaction --quiet
 
 echo "=== Pre-commit: composer check-code ==="
-composer check-code
+if composer check-code; then
+	echo ""
+	echo "=== Pre-commit: all checks passed ==="
+	exit 0
+fi
+
+# check-code failed — try Claude Code auto-fix
+echo ""
+echo "=== Pre-commit: check-code failed, running Claude Code auto-fix ==="
+
+claude -p "Run 'composer check-code' in $(pwd), fix all reported errors (phpcs, phpstan, lattelint). Use 'composer phpcsfix' for code style auto-fix first, then fix remaining errors manually. Do NOT commit." --allowedTools "Bash,Read,Edit,Write,Glob,Grep"
 
 echo ""
-echo "=== Pre-commit: all checks passed ==="
+echo "=== Pre-commit: re-checking after auto-fix ==="
+if composer check-code; then
+	echo ""
+	echo "=== Pre-commit: all checks passed after auto-fix ==="
+	exit 0
+fi
+
+echo ""
+echo "ERROR: check-code still failing after auto-fix. Fix manually and retry."
+exit 1
