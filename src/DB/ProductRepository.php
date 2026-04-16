@@ -67,6 +67,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		protected readonly VisibilityListRepository $visibilityListRepository,
 		protected readonly ShopsConfig $shopsConfig,
 		protected readonly PricelistRepository $pricelistRepository,
+		protected readonly ProductContentRepository $productContentRepository,
+		protected readonly ProductPrimaryCategoryRepository $productPrimaryCategoryRepository,
 	) {
 		parent::__construct($connection, $schemaManager);
 
@@ -1993,7 +1995,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'subCode' => $supplierProduct->productSubCode,
 				'supplierCode' => $supplierProduct->code,
 				'name' => [$mutation => $supplierProduct->name],
-				'content' => [$mutation => $supplierProduct->content],
 				'producer' => $supplierProduct->producer?->getValue('producer') ?: null,
 				'unit' => $supplierProduct->unit,
 //				'unavailable' => $supplierProduct->unavailable,
@@ -2011,6 +2012,22 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'supplierSource' => $supplier,
 				'categories' => [$category->getPK(),],
 			]);
+
+			$this->productPrimaryCategoryRepository->syncOne([
+				'product' => $product->getPK(),
+				'category' => $category->getPK(),
+				'categoryType' => $category->type->getPK(),
+			], []);
+
+			if ($supplierProduct->content !== null) {
+				foreach ($this->shopsConfig->getAvailableShops() as $shop) {
+					$this->productContentRepository->syncOne([
+						'product' => $product->getPK(),
+						'shop' => $shop->getPK(),
+						'content' => [$mutation => $supplierProduct->content],
+					], []);
+				}
+			}
 
 			Arrays::invoke($this->onDummyProductCreated, $product, $supplierProduct);
 
