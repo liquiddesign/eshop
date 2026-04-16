@@ -30,8 +30,11 @@ class ApproveOffer extends BaseAction
 	{
 		$this->canApproveOffer($offer);
 
-		$offer->update(['approvedTs' => Carbon::now()->toDateTimeString()]);
-		$offer->update(['canceledTs' => null]);
+		$offer->update([
+			'approvedTs' => Carbon::now()->toDateTimeString(),
+			'sentTs' => $offer->sentTs ?? Carbon::now()->toDateTimeString(),
+			'canceledTs' => null,
+		]);
 
 		$this->offerLogItemRepository->createLog(
 			$offer,

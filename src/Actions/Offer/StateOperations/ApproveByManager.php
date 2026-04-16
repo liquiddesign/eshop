@@ -40,9 +40,10 @@ class ApproveByManager extends BaseAction
 			throw new \Exception('Schválit lze pouze nabídku čekající na schválení');
 		}
 
-		// Set timestamp
+		// Set timestamp + backfill preceding timestamps
 		$offer->update([
 			'managerApprovedTs' => Carbon::now()->toDateTimeString(),
+			'managerApprovalRequestedTs' => $offer->managerApprovalRequestedTs ?? Carbon::now()->toDateTimeString(),
 		]);
 
 		// Send notification to offer author

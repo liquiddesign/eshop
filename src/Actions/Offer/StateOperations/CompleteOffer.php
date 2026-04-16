@@ -31,9 +31,11 @@ class CompleteOffer extends BaseAction
 
 		$date = Carbon::now()->toDateTimeString();
 
-		if ($offer->approvedTs === null) {
-			$offer->update(['approvedTs' => $date]);
-		}
+		$offer->update([
+			'completedTs' => $date,
+			'approvedTs' => $offer->approvedTs ?? $date,
+			'sentTs' => $offer->sentTs ?? $date,
+		]);
 
 		$this->offerLogItemRepository->createLog(
 			$offer,
