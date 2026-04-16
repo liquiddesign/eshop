@@ -11,7 +11,9 @@ use Eshop\ShopperUser;
 use Nette\Utils\Arrays;
 
 /**
- * Main service to work with a cache of products. If possible, always use this service.
+ * Cache-based products provider — reads from a separate cache DB renewed by a Go program.
+ * @deprecated Use LiveProductsProvider instead. This provider relies on an external cache database
+ *             and will be removed in a future version.
  */
 class ProductsCacheProvider implements GeneralProductsCacheProvider
 {

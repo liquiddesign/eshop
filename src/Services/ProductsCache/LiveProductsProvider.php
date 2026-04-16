@@ -459,7 +459,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 
 		if (!self::$debugBypassCache && \count($output['productPKs']) <= $cacheWriteGuardLimit) {
 			$this->cache->save($cacheKey, $output, [
-				Cache::Tags => ['products', 'pricelists', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
+				Cache::Tags => ['products', 'pricelists', GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 				Cache::Expire => '5 minutes',
 			]);
 		}
@@ -532,7 +532,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 			// serializace překročí úsporu).
 			if (!self::$debugBypassCache && \count($baselineCandidates) <= 200000) {
 				$this->cache->save($baselineKey, $baseline, [
-					Cache::Tags => ['products', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
+					Cache::Tags => ['products', GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 					Cache::Expire => '5 minutes',
 				]);
 			}

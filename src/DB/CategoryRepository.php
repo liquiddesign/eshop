@@ -11,7 +11,6 @@ use Eshop\Admin\ScriptsPresenter;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
 use Eshop\Services\ProductsCache\ProductsCacheNotReadyException;
-use Eshop\Services\ProductsCache\ProductsCacheProvider;
 use Eshop\ShopperUser;
 use Latte\Loaders\StringLoader;
 use Latte\Sandbox\SecurityPolicy;
@@ -82,7 +81,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		$mainCategoryType = $this->cache->load(self::class . '::mainCategoryType', function (&$dependencies) {
 			$dependencies = [
-				Cache::Tags => [ScriptsPresenter::CATEGORIES_CACHE_TAG, ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
+				Cache::Tags => [ScriptsPresenter::CATEGORIES_CACHE_TAG, GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 				Cache::Expire => '1 day',
 			];
 
@@ -130,7 +129,7 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 
 		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($productsProvider, $filters, $priceLists, $visibilityLists, $productRepository) {
 			$dependencies = [
-				Cache::Tags => ['categories', 'products', 'pricelists', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
+				Cache::Tags => ['categories', 'products', 'pricelists', GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 			];
 
 			try {

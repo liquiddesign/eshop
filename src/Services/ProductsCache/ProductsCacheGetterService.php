@@ -483,7 +483,7 @@ class ProductsCacheGetterService
 				continue;
 			}
 
-			throw new \Exception("Filter '$filter' is not supported by ProductsCacheProvider! You can add it manually with 'addAllowedFilterColumn' or 'addFilterExpression' functions.");
+			throw new \Exception("Filter '$filter' is not supported by products cache provider! You can add it manually with 'addAllowedFilterColumn' or 'addFilterExpression' functions.");
 		}
 
 		if ($orderByName) {
@@ -492,7 +492,7 @@ class ProductsCacheGetterService
 			} elseif (isset($this->allowedCollectionOrderExpressions[$orderByName])) {
 				$this->allowedCollectionOrderExpressions[$orderByName]($productsCollection, $orderByDirection, $visibilityLists, $priceLists);
 			} else {
-				throw new \Exception("Order '$orderByName' is not supported by ProductsCacheProvider! You can add it manually with 'addAllowedOrderColumn' or 'addOrderExpression' function.");
+				throw new \Exception("Order '$orderByName' is not supported by products cache provider! You can add it manually with 'addAllowedOrderColumn' or 'addOrderExpression' function.");
 			}
 		}
 
