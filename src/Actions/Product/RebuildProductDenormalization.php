@@ -42,12 +42,16 @@ readonly class RebuildProductDenormalization implements AutoWireAction
 
 		$attributesUpdated = $this->rebuildAttributeValues($batchSize);
 		$categoriesUpdated = $this->rebuildCategories($batchSize);
+		$ribbonsUpdated = $this->rebuildRibbons($batchSize);
+		$internalRibbonsUpdated = $this->rebuildInternalRibbons($batchSize);
 
 		$timeMs = (float) Debugger::timer('rebuildProductDenormalization') * 1000;
 
 		return [
 			'attributesUpdated' => $attributesUpdated,
 			'categoriesUpdated' => $categoriesUpdated,
+			'ribbonsUpdated' => $ribbonsUpdated,
+			'internalRibbonsUpdated' => $internalRibbonsUpdated,
 			'timeMs' => $timeMs,
 		];
 	}
@@ -230,5 +234,81 @@ readonly class RebuildProductDenormalization implements AutoWireAction
 		}
 
 		return $expansion;
+	}
+
+	/**
+	 * Spočítá CSV UUIDů ribbonů per produkt a uloží do denormalizedRibbons.
+	 */
+	private function rebuildRibbons(int $batchSize): int
+	{
+		return $this->rebuildNxnDenormalization(
+			'eshop_product_nxn_eshop_ribbon',
+			'fk_ribbon',
+			'denormalizedRibbons',
+			$batchSize,
+		);
+	}
+
+	/**
+	 * Spočítá CSV UUIDů interních ribbonů per produkt a uloží do denormalizedInternalRibbons.
+	 */
+	private function rebuildInternalRibbons(int $batchSize): int
+	{
+		return $this->rebuildNxnDenormalization(
+			'eshop_product_nxn_eshop_internalribbon',
+			'fk_internalribbon',
+			'denormalizedInternalRibbons',
+			$batchSize,
+		);
+	}
+
+	/**
+	 * Generická metoda pro denormalizaci NxN tabulky do CSV sloupce na produktu.
+	 */
+	private function rebuildNxnDenormalization(string $nxnTable, string $fkColumn, string $productColumn, int $batchSize): int
+	{
+		$rows = $this->connection->rows([$nxnTable])
+			->setSelect([
+				'product' => 'fk_product',
+				'csv' => 'GROUP_CONCAT(' . $fkColumn . ')',
+			])
+			->setGroupBy(['fk_product'])
+			->fetchArray(\stdClass::class);
+
+		$newValues = [];
+
+		foreach ($rows as $row) {
+			$newValues[$row->product] = $row->csv;
+		}
+
+		$currentValues = $this->productRepository->many()
+			->setSelect(['this.uuid', 'this.' . $productColumn])
+			->setIndex('this.uuid')
+			->toArrayOf($productColumn);
+
+		$updated = 0;
+
+		foreach (\array_chunk(\array_keys($currentValues + $newValues), \max($batchSize, 1)) as $chunk) {
+			$this->connection->beginTransaction();
+
+			foreach ($chunk as $productPK) {
+				$newCsv = $newValues[$productPK] ?? null;
+				$oldCsv = $currentValues[$productPK] ?? null;
+
+				if ($newCsv === $oldCsv) {
+					continue;
+				}
+
+				$this->productRepository->many()
+					->where('this.uuid', $productPK)
+					->update([$productColumn => $newCsv]);
+
+				$updated++;
+			}
+
+			$this->connection->commit();
+		}
+
+		return $updated;
 	}
 }

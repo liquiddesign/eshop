@@ -513,16 +513,6 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 			$baselineCandidates = $this->fetchCandidateProducts($filters, $visibilityLists, $priceLists, $orderByName, $orderByDirection, $categoryUuids);
 			$tFetch = \round((float) Debugger::timer('LP.fetch') * 1000, 1);
 
-			if ($baselineCandidates !== []) {
-				$baselineUuids = [];
-
-				foreach ($baselineCandidates as $product) {
-					$baselineUuids[] = $product->uuid;
-				}
-
-				$this->mergeRibbons($baselineCandidates, $baselineUuids);
-			}
-
 			$baseline = ['candidates' => $baselineCandidates, 'categoryUuids' => $categoryUuids];
 
 			if (!self::$debugBypassCache && \count($baselineCandidates) <= 200000) {
@@ -532,7 +522,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 				]);
 			}
 
-			Debugger::log(\sprintf('LP baseline MISS count=%d fetch+ribbons=%sms', \count($baselineCandidates), $tFetch), 'liveprovider');
+			Debugger::log(\sprintf('LP baseline MISS count=%d fetch=%sms', \count($baselineCandidates), $tFetch), 'liveprovider');
 		}
 
 		$fetchedProducts = $baseline['candidates'];
@@ -701,6 +691,8 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 			'displayAmount' => 'this.fk_displayAmount',
 			'displayDelivery' => 'this.fk_displayDelivery',
 			'attributeValues' => 'this.denormalizedAttributeValues',
+			'ribbons' => 'this.denormalizedRibbons',
+			'internalRibbons' => 'this.denormalizedInternalRibbons',
 			'displayAmount_isSold' => 'displayAmount.isSold',
 			'discountLevelPct' => 'this.discountLevelPct',
 			'isProjectProduct' => 'this.isProjectProduct',

@@ -665,6 +665,21 @@ class Product extends \StORM\Entity
 	public string|null $denormalizedCategories = null;
 
 	/**
+	 * Denormalizované UUIDy ribbonů (CSV). Používá LiveProductsProvider pro ribbon/notRibbon dynamické filtry.
+	 * Aktualizováno periodicky cronem (rebuildProductDenormalization).
+	 * @column{"type":"text","nullable":true}
+	 */
+	public string|null $denormalizedRibbons = null;
+
+	/**
+	 * Denormalizované UUIDy interních ribbonů (CSV). Používá LiveProductsProvider pro contract filter
+	 * a internalRibbon/notInternalRibbon dynamické filtry.
+	 * Aktualizováno periodicky cronem (rebuildProductDenormalization).
+	 * @column{"type":"text","nullable":true}
+	 */
+	public string|null $denormalizedInternalRibbons = null;
+
+	/**
 	 * Vytvořen
 	 * @column{"type":"timestamp","default":"CURRENT_TIMESTAMP"}
 	 */
