@@ -2,6 +2,8 @@
 # commit-msg hook — validates Conventional Commits format with required scope.
 # Install: git config core.hooksPath scripts/hooks
 
+export LC_ALL=C.UTF-8
+
 commit_msg=$(head -1 "$1")
 
 # Allow merge commits and reverts

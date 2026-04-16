@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# pre-commit hook — runs composer update + check-code before allowing commit.
+# Install: git config core.hooksPath scripts/hooks
+
+set -e
+
+export LC_ALL=C.UTF-8
+
+# Git hooks don't inherit shell profile — initialize node version manager
+# Priority: fnm → nvm → native PATH
+node_ready=false
+
+# Try fnm
+for fnm_path in "$HOME/.local/share/fnm/fnm" "$HOME/.fnm/fnm"; do
+	if [ -x "$fnm_path" ]; then
+		eval "$("$fnm_path" env --shell bash)"
+		node_ready=true
+		break
+	fi
+done
+
+# Try nvm
+if ! $node_ready && [ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; then
+	source "${NVM_DIR:-$HOME/.nvm}/nvm.sh"
+	node_ready=true
+fi
+
+# Fallback: native PATH
+if ! $node_ready && ! command -v npx &>/dev/null; then
+	echo "ERROR: npx not found. Install Node.js via fnm or nvm."
+	exit 1
+fi
+
+echo ""
+echo "=== Pre-commit: composer update ==="
+composer update --no-interaction --quiet
+
+echo "=== Pre-commit: composer check-code ==="
+composer check-code
+
+echo ""
+echo "=== Pre-commit: all checks passed ==="
