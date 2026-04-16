@@ -47,16 +47,13 @@ fi
 echo ""
 echo "=== Pre-commit: check-code failed, running Claude Code auto-fix ==="
 
-claude -p "Run 'composer check-code' in $(pwd), fix all reported errors (phpcs, phpstan, lattelint). Use 'composer phpcsfix' for code style auto-fix first, then fix remaining errors manually. Do NOT commit." --allowedTools "Bash,Read,Edit,Write,Glob,Grep"
+claude -p "Run 'composer check-code' in $(pwd), fix all reported errors (phpcs, phpstan, lattelint). Use 'composer phpcsfix' for code style auto-fix first, then fix remaining errors manually. Do NOT commit. At the end, print a summary of all changes you made." --allowedTools "Bash,Read,Edit,Write,Glob,Grep"
 
 echo ""
-echo "=== Pre-commit: re-checking after auto-fix ==="
-if composer check-code; then
-	echo ""
-	echo "=== Pre-commit: all checks passed after auto-fix ==="
-	exit 0
-fi
-
+echo "=== Pre-commit: Claude auto-fix done. Review changes before committing. ==="
 echo ""
-echo "ERROR: check-code still failing after auto-fix. Fix manually and retry."
+echo "Changed files after auto-fix:"
+git diff --name-only
+echo ""
+echo "Run 'git diff' to inspect changes, then 'git commit' again to retry."
 exit 1
