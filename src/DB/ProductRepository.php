@@ -1998,6 +1998,11 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	{
 		$products = [];
 		$mutation = Arrays::first(\array_keys($this->getConnection()->getAvailableMutations()));
+		$priceRepository = $this->getConnection()->findRepository(Price::class);
+
+		$supplierPricelists = $this->pricelistRepository->many()
+			->where('fk_supplier', $supplier->getPK())
+			->toArray();
 
 		/** @var \Eshop\DB\SupplierProduct $supplierProduct */
 		foreach ($supplierProducts->where('this.fk_product IS NULL') as $supplierProduct) {
@@ -2008,10 +2013,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'subCode' => $supplierProduct->productSubCode,
 				'supplierCode' => $supplierProduct->code,
 				'name' => [$mutation => $supplierProduct->name],
-				'producer' => $supplierProduct->producer?->getValue('producer') ?: null,
+				'producer' => $supplierProduct->producer?->producer?->getPK() ?: null,
 				'unit' => $supplierProduct->unit,
-//				'unavailable' => $supplierProduct->unavailable,
-//				'hidden' => $supplier->defaultHiddenProduct,
 				'storageDate' => $supplierProduct->storageDate,
 				'defaultBuyCount' => $supplierProduct->defaultBuyCount,
 				'minBuyCount' => $supplierProduct->minBuyCount,
@@ -2020,7 +2023,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'inCarton' => $supplierProduct->inCarton,
 				'inPalett' => $supplierProduct->inPalett,
 				'weight' => $supplierProduct->weight,
-//				'primaryCategory' => $category->getPK(),
 				'supplierLock' => $supplier->importPriority,
 				'supplierSource' => $supplier,
 				'categories' => [$category->getPK(),],
@@ -2032,15 +2034,34 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'categoryType' => $category->type->getPK(),
 			], []);
 
-			if ($supplierProduct->content !== null) {
+			if ($supplierProduct->content !== null || $supplierProduct->perex !== null) {
+				$contentPayload = [];
+
+				if ($supplierProduct->content !== null) {
+					$contentPayload['content'] = [$mutation => $supplierProduct->content];
+				}
+
+				if ($supplierProduct->perex !== null) {
+					$contentPayload['perex'] = [$mutation => $supplierProduct->perex];
+				}
+
 				foreach ($this->shopsConfig->getAvailableShops() as $shop) {
 					$this->productContentRepository->syncOne([
 						'product' => $product->getPK(),
 						'shop' => $shop->getPK(),
-						'content' => [$mutation => $supplierProduct->content],
-					], []);
+					] + $contentPayload, []);
 				}
 			}
+
+			if ($supplier->importImages) {
+				$this->supplierProductRepository->syncPhotosForProduct(
+					$product,
+					$supplierProduct,
+					$supplier->getPK(),
+				);
+			}
+
+			$this->syncDummyProductPrices($product, $supplierProduct, $supplier, $supplierPricelists, $priceRepository);
 
 			Arrays::invoke($this->onDummyProductCreated, $product, $supplierProduct);
 
@@ -2214,7 +2235,105 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		throw new InvalidArgumentException('There is no unique parameter');
 	}
 
-//	protected function getProductsWithPrices(): array
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\Pricelist> $collection
+	 * @return \StORM\Collection<\Eshop\DB\Pricelist>
+	 */
+	protected function getValidPricelists(Collection $collection): Collection
+	{
+		return $this->pricelistRepository->getPricelists(
+			$collection->toArrayOf('uuid'),
+			$this->shopperUser->getCurrency(),
+			$this->shopperUser->getCountry(),
+			$this->shopperUser->getCheckoutManager()->getDiscountCoupon(),
+		);
+	}
+
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\VisibilityList> $collection
+	 * @return \StORM\Collection<\Eshop\DB\VisibilityList>
+	 */
+	protected function getValidVisibilityLists(Collection $collection): Collection
+	{
+		return $collection->where('this.hidden', false);
+	}
+
+	/**
+	 * Vytvoří cenové záznamy pro nově vytvořený dummy produkt v existujících supplier pricelistech.
+	 * Pokud supplier má vyplněné ABEL/RT ratio, hledá shop-scoped pricelisty (fk_shop = abel/rt);
+	 * jinak hledá shop-independent pricelisty.
+	 * @param array<string, \Eshop\DB\Pricelist> $supplierPricelists
+	 */
+	private function syncDummyProductPrices(
+		Product $product,
+		SupplierProduct $supplierProduct,
+		Supplier $supplier,
+		array $supplierPricelists,
+		\StORM\Repository $priceRepository,
+	): void {
+		if ($supplierProduct->price === null) {
+			return;
+		}
+
+		$hasAbelRt = $supplier->importPriceRatioAbel !== null || $supplier->importPriceRatioRt !== null;
+		$availabilityKey = $supplier->splitPricelists
+			? ($supplierProduct->amount === null || $supplierProduct->amount > 0 ? '2' : '1')
+			: '0';
+		$fallbackPrice = $supplierProduct->priceVat ?? $supplierProduct->price;
+
+		if ($hasAbelRt) {
+			$ratioAbel = $supplier->importPriceRatioAbel ?? $supplier->importPriceRatio;
+			$ratioRt = $supplier->importPriceRatioRt ?? $supplier->importPriceRatio;
+			$targets = [
+				'abel' => [
+					'price' => $supplierProduct->priceAbel ?? \round($supplierProduct->price * $ratioAbel / 100, 2),
+					'priceVat' => $supplierProduct->priceAbelVat ?? \round($fallbackPrice * $ratioAbel / 100, 2),
+				],
+				'rt' => [
+					'price' => $supplierProduct->priceRt ?? \round($supplierProduct->price * $ratioRt / 100, 2),
+					'priceVat' => $supplierProduct->priceRtVat ?? \round($fallbackPrice * $ratioRt / 100, 2),
+				],
+			];
+		} else {
+			$ratio = $supplier->importPriceRatio;
+			$targets = [
+				'' => [
+					'price' => \round($supplierProduct->price * $ratio / 100, 2),
+					'priceVat' => \round($fallbackPrice * $ratio / 100, 2),
+				],
+			];
+		}
+
+		foreach ($targets as $shopCode => $prices) {
+			$pricelistKey = $shopCode === ''
+				? "$supplier->code-$availabilityKey"
+				: "$supplier->code-$shopCode-$availabilityKey";
+
+			$pricelist = null;
+
+			foreach ($supplierPricelists as $candidate) {
+				if ($candidate->code !== $pricelistKey) {
+					continue;
+				}
+
+				$pricelist = $candidate;
+
+				break;
+			}
+
+			if ($pricelist === null) {
+				continue;
+			}
+
+			$priceRepository->syncOne([
+				'product' => $product->getPK(),
+				'pricelist' => $pricelist->getPK(),
+				'price' => $prices['price'],
+				'priceVat' => $prices['priceVat'],
+			]);
+		}
+	}
+	// protected function getProductsWithPrices(): array
 //	{
 //		return $this->cache->load('main_productsWithPrices', function (&$dependencies): array {
 //			$dependencies = [
@@ -2280,28 +2399,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 //		return [];
 //	}
 
-	/**
-	 * @param \StORM\Collection<\Eshop\DB\Pricelist> $collection
-	 * @return \StORM\Collection<\Eshop\DB\Pricelist>
-	 */
-	protected function getValidPricelists(Collection $collection): Collection
-	{
-		return $this->pricelistRepository->getPricelists(
-			$collection->toArrayOf('uuid'),
-			$this->shopperUser->getCurrency(),
-			$this->shopperUser->getCountry(),
-			$this->shopperUser->getCheckoutManager()->getDiscountCoupon(),
-		);
-	}
-
-	/**
-	 * @param \StORM\Collection<\Eshop\DB\VisibilityList> $collection
-	 * @return \StORM\Collection<\Eshop\DB\VisibilityList>
-	 */
-	protected function getValidVisibilityLists(Collection $collection): Collection
-	{
-		return $collection->where('this.hidden', false);
-	}
 
 	/**
 	 * @param array $products

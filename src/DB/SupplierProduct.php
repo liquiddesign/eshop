@@ -87,6 +87,30 @@ class SupplierProduct extends \StORM\Entity
 	public ?float $priceVat;
 
 	/**
+	 * Prodejní cena pro ABEL bez DPH (vypočítaná z price * importPriceRatioAbel / 100)
+	 * @column
+	 */
+	public float|null $priceAbel = null;
+
+	/**
+	 * Prodejní cena pro ABEL s DPH
+	 * @column
+	 */
+	public float|null $priceAbelVat = null;
+
+	/**
+	 * Prodejní cena pro RT bez DPH (vypočítaná z price * importPriceRatioRt / 100)
+	 * @column
+	 */
+	public float|null $priceRt = null;
+
+	/**
+	 * Prodejní cena pro RT s DPH
+	 * @column
+	 */
+	public float|null $priceRtVat = null;
+
+	/**
 	 * Nákupní cena
 	 * @column
 	 */

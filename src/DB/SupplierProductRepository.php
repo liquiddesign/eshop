@@ -89,7 +89,6 @@ class SupplierProductRepository extends \StORM\Repository
 		$supplierId = $supplier->getPK();
 		$attributeAssignRepository = $this->getConnection()->findRepository(AttributeAssign::class);
 		$supplierAttributeValueAssignRepository = $this->getConnection()->findRepository(SupplierAttributeValueAssign::class);
-		$photoRepository = $this->getConnection()->findRepository(Photo::class);
 		$mutationSuffix = $this->getConnection()->getAvailableMutations()[$mutation];
 		$riboonId = 'novy_import';
 
@@ -365,7 +364,7 @@ class SupplierProductRepository extends \StORM\Repository
 				], []);
 			}
 
-			if ($draft->content) {
+			if ($draft->content || $draft->perex) {
 				$productContents = $existingProductContents[$product->getPK()] ?? null;
 
 				if ($this->shopsConfig->getAvailableShops()) {
@@ -374,20 +373,36 @@ class SupplierProductRepository extends \StORM\Repository
 							continue;
 						}
 
-						$productContentsToSync[] = [
+						$payload = [
 							'product' => $product->getPK(),
 							'shop' => $shop->getPK(),
-							'content' => [$mutation => $draft->content],
 						];
+
+						if ($draft->content) {
+							$payload['content'] = [$mutation => $draft->content];
+						}
+
+						if ($draft->perex) {
+							$payload['perex'] = [$mutation => $draft->perex];
+						}
+
+						$productContentsToSync[] = $payload;
 					}
 				} else {
 					$productContent = Arrays::first($productContents);
 
 					if (!$productContent || !$productContent->content) {
-						$productContentsToSync[] = [
-							'product' => $product->getPK(),
-							'content' => [$mutation => $draft->content],
-						];
+						$payload = ['product' => $product->getPK()];
+
+						if ($draft->content) {
+							$payload['content'] = [$mutation => $draft->content];
+						}
+
+						if ($draft->perex) {
+							$payload['perex'] = [$mutation => $draft->perex];
+						}
+
+						$productContentsToSync[] = $payload;
 					}
 				}
 			}
@@ -448,184 +463,7 @@ class SupplierProductRepository extends \StORM\Repository
 				continue;
 			}
 
-			// Načíst všechny SupplierProductPhoto pro tento dodavatelský produkt
-			/** @var array<\Eshop\DB\SupplierProductPhoto> $supplierProductPhotos */
-			$supplierProductPhotos = $this->supplierProductPhotoRepository->many()
-				->where('fk_supplierProduct', $draft->getPK())
-				->orderBy(['priority' => 'ASC'])
-				->toArray();
-
-			if (!$supplierProductPhotos) {
-				continue;
-			}
-
-			// Nastavit primární obrázek (imageFileName), pokud ještě není vyplněný
-			if (!isset($productsMap[$uuid]) || !$productsMap[$uuid]->imageFileName) {
-				$firstPhoto = Arrays::first($supplierProductPhotos);
-
-				if ($firstPhoto instanceof \Eshop\DB\SupplierProductPhoto) {
-					$product->update(['imageFileName' => $firstPhoto->fileName]);
-				}
-			}
-
-			// Najít existující Photo od dodavatele (starý systém - 1 SupplierProduct = 1 Photo)
-			$existingPhotos = $photoRepository->many()
-				->where('fk_product', $product->getPK())
-				->where('fk_supplier', $supplierId)
-				->orderBy(['priority' => 'ASC', 'uuid' => 'ASC'])
-				->toArray();
-
-			$firstExistingPhoto = Arrays::first($existingPhotos);
-			$first = true;
-
-			// Pro každou dodavatelskou fotku vytvořit Photo entitu
-			foreach ($supplierProductPhotos as $supplierPhoto) {
-				$sourceFile = $sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName;
-
-				if (!\is_file($sourceFile) || \filesize($sourceFile) === 0) {
-					if (\is_file($sourceFile) && \filesize($sourceFile) === 0) {
-						Debugger::log("Skipping empty supplier image file: $sourceFile", ILogger::INFO);
-					}
-
-					continue;
-				}
-
-				// PRVNÍ fotka: Propojit s existující starým Photo (zachovat SEO a fileName)
-				if ($firstExistingPhoto && $first) {
-					$firstExistingPhoto->update([
-						'supplierProductPhoto' => $supplierPhoto->getPK(),
-						'priority' => $supplierPhoto->priority,
-					]);
-
-					// Zkontrolovat existenci souborů v galerii a nakopírovat chybějící
-					$sourceOrigin = $sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName;
-					$targetOrigin = $galleryImageDirectory . $sep . 'origin' . $sep . $firstExistingPhoto->fileName;
-
-					// Origin - prostě zkopírovat
-					if (\is_file($sourceOrigin) && !\is_file($targetOrigin)) {
-						FileSystem::copy($sourceOrigin, $targetOrigin);
-					}
-
-					// Detail (600px) - zkopírovat nebo vytvořit z origin
-					$targetDetail = $galleryImageDirectory . $sep . 'detail' . $sep . $firstExistingPhoto->fileName;
-
-					if (!\is_file($targetDetail)) {
-						$sourceDetail = $sourceImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName;
-
-						if (\is_file($sourceDetail)) {
-							FileSystem::copy($sourceDetail, $targetDetail);
-						} elseif (\is_file($sourceOrigin)) {
-							try {
-								// phpcs:ignore
-								$image = @Image::fromFile($sourceOrigin);
-								$image->resize(600, null);
-								// Normalize problematic extensions to .jpg for Nette Image compatibility
-								$targetDetailNormalized = \preg_replace('/\.asp\?.*$/i', '.jpg', $targetDetail);
-								$targetDetailNormalized = \preg_replace('/\.jfif$/i', '.jpg', $targetDetailNormalized);
-								$image->save($targetDetailNormalized, 100);
-							} catch (\Throwable $e) {
-								Debugger::log($e, ILogger::WARNING);
-							}
-						}
-					}
-
-					// Thumb (300px) - zkopírovat nebo vytvořit z origin
-					$targetThumb = $galleryImageDirectory . $sep . 'thumb' . $sep . $firstExistingPhoto->fileName;
-
-					if (!\is_file($targetThumb)) {
-						$sourceThumb = $sourceImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName;
-
-						if (\is_file($sourceThumb)) {
-							FileSystem::copy($sourceThumb, $targetThumb);
-						} elseif (\is_file($sourceOrigin)) {
-							try {
-								// phpcs:ignore
-								$image = @Image::fromFile($sourceOrigin);
-								$image->resize(300, null);
-								// Normalize problematic extensions to .jpg for Nette Image compatibility
-								$targetThumbNormalized = \preg_replace('/\.asp\?.*$/i', '.jpg', $targetThumb);
-								$targetThumbNormalized = \preg_replace('/\.jfif$/i', '.jpg', $targetThumbNormalized);
-								$image->save($targetThumbNormalized, 100);
-							} catch (\Throwable $e) {
-								Debugger::log($e, ILogger::WARNING);
-							}
-						}
-					}
-
-					$first = false;
-
-					// NEPŘIDÁVAT nové Photo pro první obrázek
-					continue;
-				}
-
-				// DALŠÍ fotky nebo NOVÝ produkt: Vytvořit nové Photo entity
-				$photoRepository->syncOne([
-					'uuid' => $supplierPhoto->getPK(),
-					'product' => $product->getPK(),
-					'supplier' => $supplierId,
-					'fileName' => $supplierPhoto->fileName,
-					'priority' => $supplierPhoto->priority,
-					'supplierProductPhoto' => $supplierPhoto->getPK(),
-				]);
-
-				// Zkontrolovat, jestli kopírovat soubory
-				// phpcs:ignore
-				$mtime = @\filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
-
-				// phpcs:ignore
-				$copyImage = !(!$overwrite || !$supplierPhoto->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName));
-
-				if (!$copyImage) {
-					continue;
-				}
-
-				try {
-					// Kopírovat origin
-					FileSystem::copy(
-						$sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName,
-						$galleryImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName
-					);
-					\touch($galleryImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName, $mtime);
-
-					// Vytvořit/zkopírovat detail (600px)
-					if (\is_file($sourceImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName)) {
-						FileSystem::copy(
-							$sourceImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName,
-							$galleryImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName
-						);
-					} else {
-						// phpcs:ignore
-						$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
-						$image->resize(600, null);
-						// Normalize problematic extensions to .jpg for Nette Image compatibility
-						$detailFileName = \preg_replace('/\.asp\?.*$/i', '.jpg', $supplierPhoto->fileName);
-						$detailFileName = \preg_replace('/\.jfif$/i', '.jpg', $detailFileName);
-						$image->save($galleryImageDirectory . $sep . 'detail' . $sep . $detailFileName, 100);
-					}
-
-					// Vytvořit/zkopírovat thumb (300px)
-					if (\is_file($sourceImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName)) {
-						FileSystem::copy(
-							$sourceImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName,
-							$galleryImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName
-						);
-					} else {
-						// phpcs:ignore
-						$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
-						$image->resize(300, null);
-						// Normalize problematic extensions to .jpg for Nette Image compatibility
-						$thumbFileName = \preg_replace('/\.asp\?.*$/i', '.jpg', $supplierPhoto->fileName);
-						$thumbFileName = \preg_replace('/\.jfif$/i', '.jpg', $thumbFileName);
-						$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $thumbFileName, 100);
-					}
-				} catch (\Throwable $e) {
-					if ($e instanceof InvalidArgumentException && \str_starts_with($e->getMessage(), 'Unsupported file extension')) {
-						Debugger::log($e, ILogger::INFO);
-					} else {
-						Debugger::log($e, ILogger::WARNING);
-					}
-				}
-			}
+			$this->syncPhotosForProduct($product, $draft, $supplierId, $sourceImageDirectory, $galleryImageDirectory, $overwrite);
 		}
 
 		$productsToFetch = [];
@@ -658,11 +496,21 @@ class SupplierProductRepository extends \StORM\Repository
             if ( $product->supplierContentLock === 0 ||
 				($product->supplierLock >= $supplier->importPriority && $product->supplierContentMode === 'priority')
 			) {
-				$productContentRepository->syncOne([
-					'product' => $product->uuid,
-					'shop' => $item['shop'],
-					'content' => $item['content'],
-				]);
+				$payload = ['product' => $product->uuid];
+
+				if (isset($item['shop'])) {
+					$payload['shop'] = $item['shop'];
+				}
+
+				if (isset($item['content'])) {
+					$payload['content'] = $item['content'];
+				}
+
+				if (isset($item['perex'])) {
+					$payload['perex'] = $item['perex'];
+				}
+
+				$productContentRepository->syncOne($payload);
 
 				$contentLocksToUpdate[] = $product->uuid;
 			}
@@ -673,6 +521,189 @@ class SupplierProductRepository extends \StORM\Repository
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Propíše fotky ze `SupplierProductPhoto` do `Photo` entity a fyzicky zkopíruje soubory
+	 * do product_gallery_images (origin/detail/thumb). Sdílená logika pro noční `syncProducts()`
+	 * i ruční `ProductRepository::createDummyProducts()`.
+	 */
+	public function syncPhotosForProduct(
+		Product $product,
+		SupplierProduct $supplierProduct,
+		string $supplierId,
+		string|null $sourceImageDirectory = null,
+		string|null $galleryImageDirectory = null,
+		bool $overwrite = false,
+	): void {
+		$sep = \DIRECTORY_SEPARATOR;
+		$photoRepository = $this->getConnection()->findRepository(Photo::class);
+		$sourceImageDirectory ??= $this->container->parameters['wwwDir'] . $sep . 'userfiles' . $sep . 'supplier_images';
+		$galleryImageDirectory ??= $this->container->parameters['wwwDir'] . $sep . 'userfiles' . $sep . 'product_gallery_images';
+
+		FileSystem::createDir($galleryImageDirectory . $sep . 'origin');
+		FileSystem::createDir($galleryImageDirectory . $sep . 'detail');
+		FileSystem::createDir($galleryImageDirectory . $sep . 'thumb');
+
+		/** @var array<\Eshop\DB\SupplierProductPhoto> $supplierProductPhotos */
+		$supplierProductPhotos = $this->supplierProductPhotoRepository->many()
+			->where('fk_supplierProduct', $supplierProduct->getPK())
+			->orderBy(['priority' => 'ASC'])
+			->toArray();
+
+		if (\count($supplierProductPhotos) === 0) {
+			return;
+		}
+
+		if ($product->imageFileName === null || $product->imageFileName === '') {
+			$firstPhoto = Arrays::first($supplierProductPhotos);
+
+			if ($firstPhoto instanceof SupplierProductPhoto) {
+				$product->update(['imageFileName' => $firstPhoto->fileName]);
+			}
+		}
+
+		$existingPhotos = $photoRepository->many()
+			->where('fk_product', $product->getPK())
+			->where('fk_supplier', $supplierId)
+			->orderBy(['priority' => 'ASC', 'uuid' => 'ASC'])
+			->toArray();
+
+		$firstExistingPhoto = Arrays::first($existingPhotos);
+		$first = true;
+
+		foreach ($supplierProductPhotos as $supplierPhoto) {
+			$sourceFile = $sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName;
+
+			if (!\is_file($sourceFile) || \filesize($sourceFile) === 0) {
+				if (\is_file($sourceFile) && \filesize($sourceFile) === 0) {
+					Debugger::log("Skipping empty supplier image file: $sourceFile", ILogger::INFO);
+				}
+
+				continue;
+			}
+
+			if ($firstExistingPhoto instanceof Photo && $first) {
+				$firstExistingPhoto->update([
+					'supplierProductPhoto' => $supplierPhoto->getPK(),
+					'priority' => $supplierPhoto->priority,
+				]);
+
+				$sourceOrigin = $sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName;
+				$targetOrigin = $galleryImageDirectory . $sep . 'origin' . $sep . $firstExistingPhoto->fileName;
+
+				if (\is_file($sourceOrigin) && !\is_file($targetOrigin)) {
+					FileSystem::copy($sourceOrigin, $targetOrigin);
+				}
+
+				$targetDetail = $galleryImageDirectory . $sep . 'detail' . $sep . $firstExistingPhoto->fileName;
+
+				if (!\is_file($targetDetail)) {
+					$sourceDetail = $sourceImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName;
+
+					if (\is_file($sourceDetail)) {
+						FileSystem::copy($sourceDetail, $targetDetail);
+					} elseif (\is_file($sourceOrigin)) {
+						try {
+							// phpcs:ignore
+							$image = @Image::fromFile($sourceOrigin);
+							$image->resize(600, null);
+							$targetDetailNormalized = \preg_replace('/\.asp\?.*$/i', '.jpg', $targetDetail);
+							$targetDetailNormalized = \preg_replace('/\.jfif$/i', '.jpg', $targetDetailNormalized);
+							$image->save($targetDetailNormalized, 100);
+						} catch (\Throwable $e) {
+							Debugger::log($e, ILogger::WARNING);
+						}
+					}
+				}
+
+				$targetThumb = $galleryImageDirectory . $sep . 'thumb' . $sep . $firstExistingPhoto->fileName;
+
+				if (!\is_file($targetThumb)) {
+					$sourceThumb = $sourceImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName;
+
+					if (\is_file($sourceThumb)) {
+						FileSystem::copy($sourceThumb, $targetThumb);
+					} elseif (\is_file($sourceOrigin)) {
+						try {
+							// phpcs:ignore
+							$image = @Image::fromFile($sourceOrigin);
+							$image->resize(300, null);
+							$targetThumbNormalized = \preg_replace('/\.asp\?.*$/i', '.jpg', $targetThumb);
+							$targetThumbNormalized = \preg_replace('/\.jfif$/i', '.jpg', $targetThumbNormalized);
+							$image->save($targetThumbNormalized, 100);
+						} catch (\Throwable $e) {
+							Debugger::log($e, ILogger::WARNING);
+						}
+					}
+				}
+
+				$first = false;
+
+				continue;
+			}
+
+			$photoRepository->syncOne([
+				'uuid' => $supplierPhoto->getPK(),
+				'product' => $product->getPK(),
+				'supplier' => $supplierId,
+				'fileName' => $supplierPhoto->fileName,
+				'priority' => $supplierPhoto->priority,
+				'supplierProductPhoto' => $supplierPhoto->getPK(),
+			]);
+
+			// phpcs:ignore
+			$mtime = @\filemtime($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
+
+			// phpcs:ignore
+			$copyImage = !(!$overwrite || !$supplierPhoto->fileName || $mtime === @\filemtime($galleryImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName));
+
+			if (!$copyImage) {
+				continue;
+			}
+
+			try {
+				FileSystem::copy(
+					$sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName,
+					$galleryImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName,
+				);
+				\touch($galleryImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName, $mtime);
+
+				if (\is_file($sourceImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName)) {
+					FileSystem::copy(
+						$sourceImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName,
+						$galleryImageDirectory . $sep . 'detail' . $sep . $supplierPhoto->fileName,
+					);
+				} else {
+					// phpcs:ignore
+					$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
+					$image->resize(600, null);
+					$detailFileName = \preg_replace('/\.asp\?.*$/i', '.jpg', $supplierPhoto->fileName);
+					$detailFileName = \preg_replace('/\.jfif$/i', '.jpg', $detailFileName);
+					$image->save($galleryImageDirectory . $sep . 'detail' . $sep . $detailFileName, 100);
+				}
+
+				if (\is_file($sourceImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName)) {
+					FileSystem::copy(
+						$sourceImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName,
+						$galleryImageDirectory . $sep . 'thumb' . $sep . $supplierPhoto->fileName,
+					);
+				} else {
+					// phpcs:ignore
+					$image = @Image::fromFile($sourceImageDirectory . $sep . 'origin' . $sep . $supplierPhoto->fileName);
+					$image->resize(300, null);
+					$thumbFileName = \preg_replace('/\.asp\?.*$/i', '.jpg', $supplierPhoto->fileName);
+					$thumbFileName = \preg_replace('/\.jfif$/i', '.jpg', $thumbFileName);
+					$image->save($galleryImageDirectory . $sep . 'thumb' . $sep . $thumbFileName, 100);
+				}
+			} catch (\Throwable $e) {
+				if ($e instanceof InvalidArgumentException && \str_starts_with($e->getMessage(), 'Unsupported file extension')) {
+					Debugger::log($e, ILogger::INFO);
+				} else {
+					Debugger::log($e, ILogger::WARNING);
+				}
+			}
+		}
 	}
 
 	public function syncLogisticsData(Supplier $supplier): void
@@ -705,12 +736,19 @@ class SupplierProductRepository extends \StORM\Repository
 	/**
 	 * @throws \StORM\Exception\NotFoundException
 	 */
-	public function syncPrices(Collection $products, Supplier $supplier, Pricelist $pricelist, string $property = 'price', int $precision = 2): int
-	{
+	public function syncPrices(
+		Collection $products,
+		Supplier $supplier,
+		Pricelist $pricelist,
+		string $property = 'price',
+		int $precision = 2,
+		int|null $ratioOverride = null,
+	): int {
 		$priceRepository = $this->getConnection()->findRepository(Price::class);
 
 		$price = $property;
 		$priceVat = $property . 'Vat';
+		$ratio = $ratioOverride ?? $supplier->importPriceRatio;
 
 		$products->setBufferedQuery(false);
 		$array = [];
@@ -723,8 +761,8 @@ class SupplierProductRepository extends \StORM\Repository
 			$array[] = [
 				'product' => $draft->getValue('product'),
 				'pricelist' => $pricelist->getPK(),
-				'price' => \round($draft->$price * $supplier->importPriceRatio / 100, $precision),
-				'priceVat' => \round($draft->$priceVat * $supplier->importPriceRatio / 100, $precision),
+				'price' => \round($draft->$price * $ratio / 100, $precision),
+				'priceVat' => \round($draft->$priceVat * $ratio / 100, $precision),
 			];
 		}
 

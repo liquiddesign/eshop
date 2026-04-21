@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Eshop\DB;
 
+use Base\DB\Shop;
 use Common\DB\IGeneralRepository;
 use StORM\Collection;
 use StORM\DIConnection;
@@ -64,21 +65,14 @@ class SupplierRepository extends Repository implements IGeneralRepository
 			->where('pricelist.fk_supplier', $supplier)
 			->delete();
 
-		$availablePriceCount = null;
-		$unavailablePriceCount = null;
-
-		if ($supplier->splitPricelists) {
-			$pricelist = $this->syncPricelist($supplier, $currency, $country, '2', 3, true);
-			$availablePriceCount = $this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)
-				->where('amount IS NULL OR amount > 0'), $supplier, $pricelist);
-
-			$pricelist = $this->syncPricelist($supplier, $currency, $country, '1', 4, true, 'Nedostupné');
-			$unavailablePriceCount = $this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier)
-				->where('amount = 0'), $supplier, $pricelist);
-		} else {
-			$pricelist = $this->syncPricelist($supplier, $currency, $country, '0', 3, true);
-			$this->supplierProductRepository->syncPrices($this->supplierProductRepository->many()->where('fk_supplier', $supplier), $supplier, $pricelist);
-		}
+		$counts = $this->syncPricelistsAndPricesForRange(
+			$supplier,
+			$currency,
+			$country,
+			fn (Collection $c): Collection => $c->where('fk_supplier', $supplier),
+		);
+		$availablePriceCount = $counts['availablePriceCount'];
+		$unavailablePriceCount = $counts['unavailablePriceCount'];
 
 		if (!$this->supplierProductRepository->many()->where('fk_supplier', $supplier)->where('purchasePrice IS NOT NULL')->isEmpty()) {
 			$pricelist = $this->syncPricelist($supplier, $currency, $country, '3', 3, false, 'Nákupní');
@@ -119,6 +113,7 @@ class SupplierRepository extends Repository implements IGeneralRepository
 			'currency' => $currency,
 			'country' => $country,
 			'supplier' => $supplier,
+			'shop' => $shop,
 			'priority' => $priority,
 		], ['currency', 'country']);
 	}
