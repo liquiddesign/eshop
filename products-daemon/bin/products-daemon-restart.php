@@ -48,13 +48,13 @@ if (\file_exists($pidFile)) {
 	$oldPid = (int) \file_get_contents($pidFile);
 }
 
-if ($oldPid <= 0 || !\posix_kill($oldPid, 0)) {
+if ($oldPid <= 0 || !isProcessAlive($oldPid)) {
 	// pidfile chybí nebo ukazuje na mrtvý proces; zkusíme pgrep jako fallback.
 	$pgrepOut = \shell_exec('pgrep -f abel-products-daemon 2>/dev/null');
 	$candidates = $pgrepOut !== null ? \array_filter(\array_map('intval', \explode("\n", \trim($pgrepOut)))) : [];
 
 	foreach ($candidates as $candidate) {
-		if (\posix_kill($candidate, 0)) {
+		if (isProcessAlive($candidate)) {
 			$oldPid = $candidate;
 
 			break;
@@ -65,13 +65,13 @@ if ($oldPid <= 0 || !\posix_kill($oldPid, 0)) {
 // --- 2. SIGTERM + drain --------------------------------------------------------------------
 if ($oldPid > 0) {
 	\fwrite(\STDOUT, "[daemon-restart] posílám SIGTERM PID {$oldPid} (drain timeout {$drainTimeout}s)\n");
-	\posix_kill($oldPid, \SIGTERM);
+	sendSignal($oldPid, 'TERM');
 
 	$deadline = \microtime(true) + $drainTimeout;
 	$exited = false;
 
 	while (\microtime(true) < $deadline) {
-		if (!\posix_kill($oldPid, 0)) {
+		if (!isProcessAlive($oldPid)) {
 			$exited = true;
 
 			break;
@@ -82,7 +82,7 @@ if ($oldPid > 0) {
 
 	if (!$exited) {
 		\fwrite(\STDERR, "[daemon-restart] daemon nereagoval na SIGTERM do {$drainTimeout}s, posílám SIGKILL\n");
-		\posix_kill($oldPid, \SIGKILL);
+		sendSignal($oldPid, 'KILL');
 		\usleep(500_000);
 	}
 } else {
@@ -116,3 +116,49 @@ $cmd = 'php ' . \escapeshellarg($watchScript)
 \passthru($cmd, $exitCode);
 
 exit($exitCode);
+
+// --- Helpers -----------------------------------------------------------------------------
+
+/**
+ * Non-destructive "is process alive" probe. Preferuje `posix_kill($pid, 0)` pokud je posix
+ * extension dostupná; jinak fallback na shell `kill -0 $pid`, který funguje bez extension.
+ */
+function isProcessAlive(int $pid): bool
+{
+	if ($pid <= 0) {
+		return false;
+	}
+
+	if (\function_exists('posix_kill')) {
+		return \posix_kill($pid, 0);
+	}
+
+	$result = 0;
+	// phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged
+	@\exec('kill -0 ' . \escapeshellarg((string) $pid) . ' 2>/dev/null', $_output, $result);
+
+	return $result === 0;
+}
+
+/**
+ * Pošle signál procesu. Preferuje `posix_kill`, jinak shell `kill -s SIGNAL $pid`.
+ * Signal musí být textový ('TERM', 'KILL', atd.) pro kompatibilitu se shell variantou.
+ */
+function sendSignal(int $pid, string $signal): bool
+{
+	if ($pid <= 0) {
+		return false;
+	}
+
+	if (\function_exists('posix_kill')) {
+		$signalConst = \defined('SIG' . $signal) ? \constant('SIG' . $signal) : 15;
+
+		return \posix_kill($pid, $signalConst);
+	}
+
+	$result = 0;
+	// phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged
+	@\exec('kill -s ' . \escapeshellarg($signal) . ' ' . \escapeshellarg((string) $pid) . ' 2>/dev/null', $_output, $result);
+
+	return $result === 0;
+}

@@ -58,7 +58,7 @@ if (\file_exists($pidFile)) {
 
 	if ($oldPid > 0 && isProcessAlive($oldPid)) {
 		\fwrite(\STDERR, "[daemon-watch] socket mrtvý, proces {$oldPid} stále žije — posílám SIGTERM\n");
-		\posix_kill($oldPid, \SIGTERM);
+		sendSignal($oldPid, 'TERM');
 
 		$deadline = \microtime(true) + 2.0;
 
@@ -68,7 +68,7 @@ if (\file_exists($pidFile)) {
 
 		if (isProcessAlive($oldPid)) {
 			\fwrite(\STDERR, "[daemon-watch] proces {$oldPid} neodpovídá na SIGTERM, SIGKILL\n");
-			\posix_kill($oldPid, \SIGKILL);
+			sendSignal($oldPid, 'KILL');
 		}
 	}
 
@@ -180,7 +180,7 @@ function pingDaemon(string $socketPath, float $timeoutSec): bool
 }
 
 /**
- * Non-destructive check — signal 0 probe.
+ * Non-destructive check — preferuje posix_kill signal 0, jinak shell `kill -0` (funguje bez posix extension).
  */
 function isProcessAlive(int $pid): bool
 {
@@ -188,5 +188,35 @@ function isProcessAlive(int $pid): bool
 		return false;
 	}
 
-	return \posix_kill($pid, 0);
+	if (\function_exists('posix_kill')) {
+		return \posix_kill($pid, 0);
+	}
+
+	$result = 0;
+	// phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged
+	@\exec('kill -0 ' . \escapeshellarg((string) $pid) . ' 2>/dev/null', $_output, $result);
+
+	return $result === 0;
+}
+
+/**
+ * Pošle signál procesu. Preferuje posix_kill, jinak shell `kill -s SIGNAL $pid`.
+ */
+function sendSignal(int $pid, string $signal): bool
+{
+	if ($pid <= 0) {
+		return false;
+	}
+
+	if (\function_exists('posix_kill')) {
+		$signalConst = \defined('SIG' . $signal) ? \constant('SIG' . $signal) : 15;
+
+		return \posix_kill($pid, $signalConst);
+	}
+
+	$result = 0;
+	// phpcs:ignore Generic.PHP.NoSilencedErrors.Discouraged
+	@\exec('kill -s ' . \escapeshellarg($signal) . ' ' . \escapeshellarg((string) $pid) . ' 2>/dev/null', $_output, $result);
+
+	return $result === 0;
 }
