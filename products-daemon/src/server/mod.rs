@@ -21,12 +21,21 @@ pub struct Server {
 
 impl Server {
 	/// Bind to `socket_path`, removing a stale socket file if one exists.
+	///
+	/// Post-bind the socket is chmod'd to 0666 so any local user can connect — required because
+	/// PHP-FPM workers typically run under a different user/group than the daemon. Socket content
+	/// is catalog metadata (public pricing), not secret, so world-accessible is acceptable.
 	pub async fn bind(socket_path: &Path, catalog: Arc<ArcSwap<CatalogSnapshot>>) -> Result<Self, DaemonError> {
 		// Clear a stale socket left behind by a crashed previous run.
 		if socket_path.exists() {
 			std::fs::remove_file(socket_path).map_err(DaemonError::Io)?;
 		}
 		let listener = UnixListener::bind(socket_path).map_err(DaemonError::Io)?;
+
+		use std::os::unix::fs::PermissionsExt as _;
+		let perms = std::fs::Permissions::from_mode(0o666);
+		std::fs::set_permissions(socket_path, perms).map_err(DaemonError::Io)?;
+
 		info!(path = %socket_path.display(), "socket listening");
 		Ok(Self { listener, catalog })
 	}
