@@ -191,6 +191,13 @@ pub struct CategoryNode {
 	pub path: smol_str::SmolStr,
 	/// Precomputed descendant set (inclusive) for fast category-filter expansion.
 	pub descendants: RoaringBitmap,
+	/// `eshop_category.showDescendantProducts` — ovládá ancestor-bump v
+	/// `all_category_counts`: přímý člen descendant-kategorie se počítá i sem, pokud je flag true.
+	pub show_descendant_products: bool,
+	/// `eshop_category.showProductsInAncestors` — ovládá descendant-bump v
+	/// `all_category_counts`: přímý člen této kategorie se počítá i do descendant-uzlu, pokud
+	/// ten má flag true.
+	pub show_products_in_ancestors: bool,
 }
 
 /// The full in-memory catalog, produced by `SnapshotBuilder::build()` and swapped in via `ArcSwap`.
@@ -214,6 +221,11 @@ pub struct CatalogSnapshot {
 	/// Inverted indexes for bitmap AND filtering.
 	pub attr_value_bitmaps: BitmapIndex,
 	pub category_bitmaps: BitmapIndex,
+	/// Přímá junction `eshop_product_nxn_eshop_category` — bitmapa produktů, které patří přímo
+	/// do dané kategorie (bez ancestor denormalizace). Používá `all_category_counts` — mirror
+	/// `ProductsCacheGetterService.php:734`, kde se iterace dělá nad GROUP_CONCATem přímých
+	/// kategorií (ne nad denormalizedCategories).
+	pub direct_category_bitmaps: BitmapIndex,
 	pub producer_bitmaps: BitmapIndex,
 	pub display_amount_bitmaps: BitmapIndex,
 	pub display_delivery_bitmaps: BitmapIndex,
@@ -238,6 +250,14 @@ pub struct CatalogSnapshot {
 	pub visibility_items: Vec<VisibilityItem>,
 	pub visibility_by_product: AHashMap<ProductIdx, SmallVec<[u32; 4]>>,
 	pub categories: Vec<CategoryNode>,
+
+	/// Per-direct-category precomputed fanout: `direct_idx → [direct_idx, flagged_descendants,
+	/// flagged_ancestors]`. Hot path `all_category_counts` iteruje `direct_category_bitmaps`
+	/// a pro každý direct_idx přičte `n` do všech cílů v bump setu — mirror per-product walk
+	/// v `ProductsCacheGetterService.php:734` (descendants s `show_products_in_ancestors=true`,
+	/// ancestors s `show_descendant_products=true`). Precomputed at snapshot build — O(C²) v
+	/// nejhorším, typicky zanedbatelné při 2-3 k kategoriích.
+	pub category_bump_sets: AHashMap<CategoryIdx, SmallVec<[CategoryIdx; 8]>>,
 
 	/// Attribute intern pool — every `AttrValIdx` has a parent `AttributeIdx` via
 	/// `attribute_of_value`. Required for per-attribute leave-one-out facet counting.
@@ -343,6 +363,7 @@ impl CatalogSnapshot {
 			prices_by_product: Vec::new(),
 			attr_value_bitmaps: BitmapIndex::new(),
 			category_bitmaps: BitmapIndex::new(),
+			direct_category_bitmaps: BitmapIndex::new(),
 			producer_bitmaps: BitmapIndex::new(),
 			display_amount_bitmaps: BitmapIndex::new(),
 			display_delivery_bitmaps: BitmapIndex::new(),
@@ -355,6 +376,7 @@ impl CatalogSnapshot {
 			visibility_items: Vec::new(),
 			visibility_by_product: AHashMap::new(),
 			categories: Vec::new(),
+			category_bump_sets: AHashMap::new(),
 			attribute_pool: InternPool::new("attribute", 0),
 			attribute_of_value: AHashMap::new(),
 			ribbon_pool: InternPool::new("ribbon", 0),

@@ -111,6 +111,47 @@ final class RustDaemonClient
 	}
 
 	/**
+	 * Batched varianta — jedním round-tripem vrátí `categoryUuid → count` pro celý snapshot.
+	 * Daemon iteruje `direct_category_bitmaps` (přímé produkt↔kategorie) a propaguje do
+	 * flagged ancestors/descendants (mirror `ProductsCacheGetterService.php:734`).
+	 *
+	 * Caller vynechá `filters.categoryUuids` aby dostal counts pro celý katalog; při předání
+	 * se mask ořízne na subtree.
+	 * @param array<mixed> $params
+	 * @return array<string, int> UUID kategorie → count produktů
+	 * @throws \Eshop\Services\ProductsCache\RustDaemonException
+	 */
+	public function getAllCategoryCounts(array $params): array
+	{
+		$resp = $this->request([
+			'method' => 'getAllCategoryCounts',
+			'params' => $params,
+		]);
+
+		if (($resp['type'] ?? null) === 'fallbackRequired') {
+			throw new RustDaemonFallbackRequiredException((string) ($resp['reason'] ?? 'daemon requested fallback'));
+		}
+
+		if (($resp['type'] ?? null) !== 'allCategoryCounts') {
+			throw new RustDaemonProtocolException('unexpected response type: ' . \json_encode($resp['type'] ?? null));
+		}
+
+		$raw = $resp['counts'] ?? [];
+
+		if (!\is_array($raw)) {
+			throw new RustDaemonProtocolException('allCategoryCounts.counts is not a map');
+		}
+
+		$out = [];
+
+		foreach ($raw as $uuid => $count) {
+			$out[(string) $uuid] = (int) $count;
+		}
+
+		return $out;
+	}
+
+	/**
 	 * Send one request envelope, parse response.
 	 * @param array<mixed> $envelope
 	 * @return array<string, mixed>

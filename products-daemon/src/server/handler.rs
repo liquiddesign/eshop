@@ -83,6 +83,11 @@ async fn dispatch(
 			let count = query::count(&snap, req)?;
 			Ok(ResponseBody::CategoryCount { count })
 		}
+		RequestEnvelope::GetAllCategoryCounts(req) => {
+			let snap = catalog.load_full();
+			let counts = query::all_category_counts(&snap, req)?;
+			Ok(ResponseBody::AllCategoryCounts { counts })
+		}
 	}
 }
 

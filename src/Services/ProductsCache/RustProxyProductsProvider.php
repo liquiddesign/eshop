@@ -70,16 +70,22 @@ final class RustProxyProductsProvider implements GeneralProductsCacheProvider
 	 * {@see LiveProductsProvider::fetchAllCategoryCountsDirect} cache vrstvy. Tagy
 	 * `['products', 'categories']` jsou identické, takže existující cache-clear flow
 	 * (po product/category změně) invaliduje obě najednou.
+	 *
+	 * Hodnota pod klíčem je celá mapa `categoryUuid → count` pro daný filter-set (bez
+	 * `category` klíče). Jedno cache-hit stačí pro všech ~100 getCategoryCount volání
+	 * v rámci menu strom renderu. Namespace `rustProxyCategoryCounts` (plural) aby se
+	 * nekolidovalo se starým per-category int cachem.
 	 */
 	private readonly Cache $categoryCountCache;
 
 	/**
-	 * Per-request memoizace `getCategoryCount` — drží výsledky pro aktuální HTTP request,
-	 * mirror `LiveProductsProvider::$cachedCategoryCounts`. Zamezuje opakovanému lookup
-	 * do Nette cache pro stejný filter-set v rámci jedné stránky (menu strom ~100 volání).
-	 * @var array<string, int>
+	 * Per-request memoizace `getCategoryCount` — celá mapa `categoryUuid → count` na filter-set.
+	 * Menu strom volá getCategoryCount stovky × za request; první cold volání (daemon batch) si
+	 * stáhne plnou mapu, ostatní volání jen indexují. Mirror
+	 * {@see ProductsCacheProvider::getCategoryCount} pattern (řádky 254–285).
+	 * @var array<string, array<string, int>>
 	 */
-	private array $cachedCategoryCounts = [];
+	private array $cachedCategoryCountsMap = [];
 
 	/** @var list<string>|null Per-request memoizace favourite pricelist UUIDů zákazníka. */
 	private array|null $favouritePricelistUuidsCache = null;
@@ -104,7 +110,7 @@ final class RustProxyProductsProvider implements GeneralProductsCacheProvider
 		private readonly AttributeValueRepository $attributeValueRepository,
 		Storage $storage,
 	) {
-		$this->categoryCountCache = new Cache($storage, 'rustProxyCategoryCount');
+		$this->categoryCountCache = new Cache($storage, 'rustProxyCategoryCounts');
 	}
 
 	public function warmUpCacheTable(array $customers = [], array $customerGroups = [], array $merchants = []): void
@@ -205,62 +211,78 @@ final class RustProxyProductsProvider implements GeneralProductsCacheProvider
 			[$priceLists, $visibilityLists] = $this->resolveListsFromShopperUser($priceLists, $visibilityLists, $filters);
 			unset($filters['pricelist']);
 
+			// Strip `category` z filtrů — cache key i daemon request jsou per filter-set (bez
+			// konkrétní kategorie), takže menu strom s volaním per-category sdílí jeden daemon
+			// round-trip. Mirror `ProductsCacheProvider::getCategoryCount` (řádky 256–284)
+			// a `LiveProductsProvider::getCategoryCount` (řádky 240–253).
+			$categoryPath = isset($filters['category']) && $filters['category'] !== null
+				? (string) $filters['category']
+				: null;
+			$filtersForBatch = $filters;
+			unset($filtersForBatch['category']);
+
+			if ($categoryPath === null) {
+				// Bez category filtru nemáme, k čemu count vztáhnout. LP + cache provider vrací 0.
+				return 0;
+			}
+
+			$categoryUuid = $this->resolveCategoryPathToUuid($categoryPath);
+
+			if ($categoryUuid === null) {
+				return 0;
+			}
+
 			$priceListPKs = \array_values(\array_map(static fn (Pricelist $p): string => (string) $p->getPK(), $priceLists));
 			$visibilityListPKs = \array_values(\array_map(static fn (VisibilityList $v): string => (string) $v->getPK(), $visibilityLists));
-
-			// Cache key obsahuje celý request shape (filters + pricelists + visibility lists + price visibility
-			// flags), protože kterýkoliv z nich mění count. `category` zůstává v klíči (na rozdíl od LP memo,
-			// které batch-fetchuje všechny kategorie) — proxy volá daemon per-kategorie.
 			$priceVisibility = [
 				'showZeroPrices' => $this->shopperUser->getShowZeroPrices(),
 				'showVat' => $this->shopperUser->getShowVat(),
 				'showWithoutVat' => $this->shopperUser->getShowWithoutVat(),
 				'includeHiddenPrices' => $this->shopperUser->canViewHiddenPrices(),
 			];
-			$cacheKey = \md5(\serialize([$filters, $priceListPKs, $visibilityListPKs, $priceVisibility]));
+			$batchCacheKey = \md5(\serialize([$filtersForBatch, $priceListPKs, $visibilityListPKs, $priceVisibility]));
 
-			// 1) Per-request memo — menu strom volá getCategoryCount ~100× za request, memo ušetří
-			//    opakovaný Nette cache round-trip (serialize + FileStorage read na DDEV overlayfs ~50μs).
-			if (isset($this->cachedCategoryCounts[$cacheKey])) {
+			// 1) Per-request memo plné mapy — po prvním daemon volání jsou všechny další
+			//    getCategoryCount volání se stejným filter-setem jen indexace do pole.
+			if (isset($this->cachedCategoryCountsMap[$batchCacheKey])) {
 				self::recordCall('getCategoryCount', 'daemon', 'memo_hit', (\hrtime(true) - $startNs) / 1000000);
 
-				return $this->cachedCategoryCounts[$cacheKey];
+				return $this->cachedCategoryCountsMap[$batchCacheKey][$categoryUuid] ?? 0;
 			}
 
-			// 2) Perzistentní Nette cache (1h Expire, tagy ['products', 'categories']) — identický
-			//    pattern jako LiveProvider, takže stejná invalidace po product/category změně.
-			/** @var int|null $cached */
-			$cached = $this->categoryCountCache->load($cacheKey);
+			// 2) Perzistentní Nette cache (1h Expire, tagy ['products', 'categories']).
+			/** @var array<string, int>|null $cached */
+			$cached = $this->categoryCountCache->load($batchCacheKey);
 
-			if ($cached !== null) {
-				$this->cachedCategoryCounts[$cacheKey] = $cached;
+			if ($cached !== null && \is_array($cached)) {
+				$this->cachedCategoryCountsMap[$batchCacheKey] = $cached;
 				self::recordCall('getCategoryCount', 'daemon', 'cache_hit', (\hrtime(true) - $startNs) / 1000000);
 
-				return $cached;
+				return $cached[$categoryUuid] ?? 0;
 			}
 
-			// 3) Cache miss → daemon call.
+			// 3) Cache miss → jedno batched daemon volání pro celý filter-set.
 			$request = [
 				'pricelistPks' => $priceListPKs,
 				'visibilityListPks' => $visibilityListPKs,
-				'filters' => $this->mapFilters($filters),
-				'dynamicFilterAttributes' => isset($filters['attributeValue']) && \is_array($filters['attributeValue'])
-					? $filters['attributeValue']
+				'filters' => $this->mapFilters($filtersForBatch),
+				'dynamicFilterAttributes' => isset($filtersForBatch['attributeValue']) && \is_array($filtersForBatch['attributeValue'])
+					? $filtersForBatch['attributeValue']
 					: null,
 				'priceVisibility' => $priceVisibility,
 			];
 
-			$result = $this->client->getCategoryCount($request);
+			$map = $this->client->getAllCategoryCounts($request);
 
-			$this->cachedCategoryCounts[$cacheKey] = $result;
-			$this->categoryCountCache->save($cacheKey, $result, [
+			$this->cachedCategoryCountsMap[$batchCacheKey] = $map;
+			$this->categoryCountCache->save($batchCacheKey, $map, [
 				Cache::Expire => '1 hour',
 				Cache::Tags => ['products', 'categories'],
 			]);
 
 			self::recordCall('getCategoryCount', 'daemon', '', (\hrtime(true) - $startNs) / 1000000);
 
-			return $result;
+			return $map[$categoryUuid] ?? 0;
 		} catch (RustDaemonException $e) {
 			$reason = $e instanceof RustDaemonFallbackRequiredException
 				? 'fallback_required: ' . $e->getMessage()
@@ -351,6 +373,22 @@ final class RustProxyProductsProvider implements GeneralProductsCacheProvider
 		}
 
 		self::$callLog[$key]['maxMs'] = $durationMs;
+	}
+
+	/**
+	 * Resolvuje `eshop_category.path` na UUID přes per-request cache. Reuse `$this->categoryPathToUuidCache`,
+	 * který vrstvu už drží (populovaný přes `resolveCategoryPathsToUuids` — menu rendering typicky stejnou
+	 * cestu natáhne během `getProductsFromCacheTable`).
+	 */
+	private function resolveCategoryPathToUuid(string $path): string|null
+	{
+		if (\array_key_exists($path, $this->categoryPathToUuidCache)) {
+			return $this->categoryPathToUuidCache[$path];
+		}
+
+		$uuids = $this->resolveCategoryPathsToUuids([$path]);
+
+		return $uuids === [] ? null : $uuids[0];
 	}
 
 	/**

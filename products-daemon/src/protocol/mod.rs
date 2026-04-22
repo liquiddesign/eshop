@@ -22,6 +22,13 @@ pub enum RequestEnvelope {
 	GetProducts(GetProductsRequest),
 	/// Category count query — mirrors `GeneralProductsCacheProvider::getCategoryCount`.
 	GetCategoryCount(GetCategoryCountRequest),
+	/// Batched count — jedním dotazem vrátí `categoryUuid → count` pro celý snapshot se
+	/// stejnou filter logikou jako `GetCategoryCount`, ale navíc propaguje direct kategorie
+	/// na ancestors/descendants dle `show_descendant_products` / `show_products_in_ancestors`
+	/// flagů — mirror `ProductsCacheGetterService::…` line 734 (walk ancestors + descendants
+	/// per direct category). Caller má vynechat `filters.category_uuids`; pokud pošle, daemon
+	/// omezí mask na subtree té kategorie (užitečné pro menu-stromek pod aktuální kategorií).
+	GetAllCategoryCounts(GetAllCategoryCountsRequest),
 }
 
 /// Server response envelope. Always includes `fallback_required`; PHP treats `true` as
@@ -55,6 +62,12 @@ pub enum ResponseBody {
 	Products(Box<GetProductsResponse>),
 	CategoryCount {
 		count: u64,
+	},
+	/// Mapa `categoryUuid → count` po aplikaci filtrů (bez ordering / pricing pipeline).
+	/// Propagace direct → ancestors/descendants se řídí flagy per kategorie (viz
+	/// `CategoryNode::show_descendant_products` / `show_products_in_ancestors`).
+	AllCategoryCounts {
+		counts: HashMap<String, u64>,
 	},
 	/// Explicit "PHP please fall back" response. No business payload — PHP proxy calls
 	/// `LiveProductsProvider` and returns its result instead.
@@ -383,6 +396,23 @@ pub struct GetCategoryCountRequest {
 	/// Mirror of `GetProductsRequest::price_visibility`. Ovlivňuje `has_any_price_mask`
 	/// (zero-price / VAT / hidden routing) — bez něj by count pro B2B session byl spočtený
 	/// s B2C defaulty a lišil se od PHP `LiveProductsProvider::fetchAllCategoryCountsDirect`.
+	#[serde(default)]
+	pub price_visibility: PriceVisibility,
+}
+
+// -------- Get all category counts (batched) --------
+
+/// Batched mirror of `GetCategoryCountRequest`. Sémanticky identická filter sada —
+/// caller typicky vynechá `filters.category_uuids`, aby dostal counts pro všechny
+/// kategorie naráz; pokud ho pošle, daemon omezí mask na subtree té kategorie.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetAllCategoryCountsRequest {
+	pub pricelist_pks: Vec<String>,
+	pub visibility_list_pks: Vec<String>,
+	pub filters: FilterPayload,
+	#[serde(default)]
+	pub dynamic_filter_attributes: Option<HashMap<String, Vec<String>>>,
 	#[serde(default)]
 	pub price_visibility: PriceVisibility,
 }

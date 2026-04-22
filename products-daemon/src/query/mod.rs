@@ -23,10 +23,12 @@ use std::sync::Arc;
 
 use roaring::RoaringBitmap;
 
+use std::collections::HashMap;
+
 use crate::{
 	error::{RequestError, Result},
-	protocol::{GetCategoryCountRequest, GetProductsRequest, GetProductsResponse},
-	snapshot::{CatalogSnapshot, PricelistIdx, ProductIdx},
+	protocol::{GetAllCategoryCountsRequest, GetCategoryCountRequest, GetProductsRequest, GetProductsResponse},
+	snapshot::{CatalogSnapshot, CategoryIdx, PricelistIdx, ProductIdx},
 };
 
 /// Entry point used by the server handler. Orchestrates the whole pipeline.
@@ -119,6 +121,58 @@ pub fn count(snap: &Arc<CatalogSnapshot>, req: &GetCategoryCountRequest) -> Resu
 	mask &= has_price_mask;
 
 	Ok(mask.len())
+}
+
+/// Batched category counts — jeden průchod vrátí mapu `categoryUuid → count` pro celý snapshot.
+///
+/// Mirroruje `ProductsCacheGetterService.php:734`: iteruje `direct_category_bitmaps` (přímé
+/// členství produkt↔kategorie) a pro každou direct kategorii přičte `|surviving ∩ direct_bitmap|`
+/// do všech targetů v precomputed `category_bump_sets[direct_idx]` — self, flagged descendants
+/// i flagged ancestors. Žádné ordering, žádné pricing pipeline, žádné restrictive filters;
+/// stejná sémantika jako per-request memoizace v cache getteru.
+///
+/// Caller typicky vynechá `filters.category_uuids` (pak vrací counts pro celý katalog). Pokud
+/// ho pošle, `apply_bitmap_filters` ořízne mask na subtree té kategorie.
+pub fn all_category_counts(
+	snap: &Arc<CatalogSnapshot>,
+	req: &GetAllCategoryCountsRequest,
+) -> Result<HashMap<String, u64>> {
+	let base_mask = filter::base_mask(snap, &req.visibility_list_pks)?;
+	let pseudo = GetProductsRequest {
+		filters: req.filters.clone(),
+		dynamic_filter_attributes: req.dynamic_filter_attributes.clone(),
+		..GetProductsRequest::default()
+	};
+	let mut mask = filter::apply_bitmap_filters(snap, base_mask, &pseudo)?;
+	let pricelist_idxs = resolve_pricelists(snap, &req.pricelist_pks)?;
+	let has_price_mask = filter::has_any_price_mask(snap, &pricelist_idxs, req.price_visibility);
+	mask &= has_price_mask;
+
+	// Agregace per CategoryIdx (u64, ať se vejdou součty nad celým snapshotem); UUID string
+	// materializujeme až na výstupu, abychom v hot smyčce nealokovali do HashMapu stringové klíče.
+	let mut counts_by_idx: ahash::AHashMap<CategoryIdx, u64> =
+		ahash::AHashMap::with_capacity(snap.categories.len());
+	for (direct_idx, direct_bitmap) in snap.direct_category_bitmaps.iter() {
+		let n = mask.intersection_len(direct_bitmap);
+		if n == 0 {
+			continue;
+		}
+		let Some(bumps) = snap.category_bump_sets.get(&direct_idx) else {
+			// Drift pojistka: snapshot build garantuje bump set pro každý direct_idx, ale pokud
+			// by refresher swapnul inconsistent snapshot (race), necháme aspoň self-count přežít.
+			*counts_by_idx.entry(direct_idx).or_insert(0) += n;
+			continue;
+		};
+		for &bump_idx in bumps {
+			*counts_by_idx.entry(bump_idx).or_insert(0) += n;
+		}
+	}
+
+	let out = counts_by_idx
+		.into_iter()
+		.filter_map(|(idx, count)| snap.category_pool.get(idx).map(|uuid| (uuid.to_owned(), count)))
+		.collect();
+	Ok(out)
 }
 
 fn resolve_pricelists(snap: &CatalogSnapshot, pks: &[String]) -> Result<Vec<PricelistIdx>> {

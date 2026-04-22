@@ -693,12 +693,16 @@ fn cross_sell_filter_matches_path_chunks_and_excludes_self() {
 			parent: None,
 			path: SmolStr::new("AABB"),
 			descendants: roaring::RoaringBitmap::new(),
+			show_descendant_products: true,
+			show_products_in_ancestors: true,
 		},
 		CategoryNode {
 			idx: cat_b,
 			parent: None,
 			path: SmolStr::new("AABBCCDD"),
 			descendants: roaring::RoaringBitmap::new(),
+			show_descendant_products: true,
+			show_products_in_ancestors: true,
 		},
 	];
 	// Suffix index: "AABB" → [cat_a, cat_b? no — cat_b suffix is "CCDD"]; "CCDD" → [cat_b].

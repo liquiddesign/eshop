@@ -54,6 +54,9 @@ pub struct RawCatalog {
 	pub related_rows: Vec<RawRelated>,
 	/// `eshop_productprimarycategory` rows — for `related` filter per `main_category_type_pk`.
 	pub product_primary_categories: Vec<RawProductPrimaryCategory>,
+	/// `eshop_product_nxn_eshop_category` direct junction — pouze přímé (nedenormalizované)
+	/// členství produkt↔kategorie. Používá `direct_category_bitmaps` pro `all_category_counts`.
+	pub product_categories: Vec<RawProductCategory>,
 	pub drift: DriftSignals,
 }
 
@@ -158,6 +161,22 @@ pub struct RawCategory {
 	pub uuid: String,
 	pub parent_uuid: Option<String>,
 	pub path: String,
+	/// `eshop_category.showDescendantProducts` — "zobrazit produkty v podkategoriích". Používá
+	/// ancestor-walk v `all_category_counts`: produkt přímý v D se počítá i do každého předka A,
+	/// kde `A.show_descendant_products = true`.
+	pub show_descendant_products: bool,
+	/// `eshop_category.showProductsInAncestors` — "zobrazit produkty v nadřazených kategoriích".
+	/// Používá descendant propagace v `all_category_counts`: produkt přímý v D se počítá i do
+	/// každého potomka P v podstromě D, kde `P.show_products_in_ancestors = true`.
+	pub show_products_in_ancestors: bool,
+}
+
+/// Raw junction row `eshop_product_nxn_eshop_category` — přímá (nedenormalizovaná) vazba
+/// produkt ↔ kategorie. Used to build direct category bitmaps for `all_category_counts`.
+#[derive(Debug)]
+pub struct RawProductCategory {
+	pub product_uuid: String,
+	pub category_uuid: String,
 }
 
 /// Cheap-query signals the refresher polls to detect whether the snapshot is stale.
@@ -190,6 +209,7 @@ pub async fn load_catalog_raw(pool: &Pool) -> Result<RawCatalog, SnapshotBuildEr
 		internal_ribbons,
 		related_rows,
 		product_primary_categories,
+		product_categories,
 		drift,
 	) = tokio::try_join!(
 		load_products(pool),
@@ -204,6 +224,7 @@ pub async fn load_catalog_raw(pool: &Pool) -> Result<RawCatalog, SnapshotBuildEr
 		load_internal_ribbons(pool),
 		load_related(pool),
 		load_product_primary_categories(pool),
+		load_product_categories(pool),
 		load_drift(pool),
 	)?;
 
@@ -220,6 +241,7 @@ pub async fn load_catalog_raw(pool: &Pool) -> Result<RawCatalog, SnapshotBuildEr
 		internal_ribbons,
 		related_rows,
 		product_primary_categories,
+		product_categories,
 		drift,
 	})
 }
@@ -606,14 +628,18 @@ async fn load_categories(pool: &Pool) -> Result<Vec<RawCategory>, SnapshotBuildE
 	let sql = r#"
 		SELECT
 			uuid,
-			fk_ancestor AS parent_uuid,
-			path
+			fk_ancestor                                AS parent_uuid,
+			path,
+			COALESCE(showDescendantProducts, 1)        AS show_descendant_products,
+			COALESCE(showProductsInAncestors, 1)       AS show_products_in_ancestors
 		FROM eshop_category
 	"#;
 	let stream = conn.query_stream::<Row, _>(sql).await?;
 	stream
 		.map_err(SnapshotBuildError::from)
 		.and_then(|mut row| async move {
+			let show_descendant_products: u8 = row.take("show_descendant_products").unwrap_or(1);
+			let show_products_in_ancestors: u8 = row.take("show_products_in_ancestors").unwrap_or(1);
 			Ok(RawCategory {
 				uuid: row.take("uuid").ok_or(SnapshotBuildError::Decode {
 					field: "category.uuid",
@@ -621,6 +647,41 @@ async fn load_categories(pool: &Pool) -> Result<Vec<RawCategory>, SnapshotBuildE
 				})?,
 				parent_uuid: row.take::<Option<String>, _>("parent_uuid").flatten(),
 				path: row.take("path").unwrap_or_default(),
+				show_descendant_products: show_descendant_products != 0,
+				show_products_in_ancestors: show_products_in_ancestors != 0,
+			})
+		})
+		.try_collect::<Vec<_>>()
+		.await
+}
+
+/// Load direct `eshop_product_nxn_eshop_category` junction rows. Jedna řádka = produkt
+/// přímo přiřazený do kategorie (bez denormalizace). Používá se na build
+/// `direct_category_bitmaps` pro `all_category_counts` endpoint — cache getter službu
+/// `ProductsCacheGetterService.php:734` mirrorujeme nad touto přímou vazbou, nad
+/// `denormalizedCategories` by propagace byla na části cest zdvojená.
+async fn load_product_categories(pool: &Pool) -> Result<Vec<RawProductCategory>, SnapshotBuildError> {
+	let mut conn = pool.conn().await?;
+	let sql = r#"
+		SELECT
+			fk_product  AS product_uuid,
+			fk_category AS category_uuid
+		FROM eshop_product_nxn_eshop_category
+		WHERE fk_product IS NOT NULL AND fk_category IS NOT NULL
+	"#;
+	let stream = conn.query_stream::<Row, _>(sql).await?;
+	stream
+		.map_err(SnapshotBuildError::from)
+		.and_then(|mut row| async move {
+			Ok(RawProductCategory {
+				product_uuid: row.take("product_uuid").ok_or(SnapshotBuildError::Decode {
+					field: "product_category.product_uuid",
+					reason: "missing".into(),
+				})?,
+				category_uuid: row.take("category_uuid").ok_or(SnapshotBuildError::Decode {
+					field: "product_category.category_uuid",
+					reason: "missing".into(),
+				})?,
 			})
 		})
 		.try_collect::<Vec<_>>()

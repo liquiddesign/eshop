@@ -338,9 +338,67 @@ impl<'a> SnapshotBuilder<'a> {
 				parent: c.parent_uuid.as_deref().and_then(|u| category_pool.lookup(u)),
 				path: SmolStr::new(&c.path),
 				descendants: RoaringBitmap::new(),
+				show_descendant_products: c.show_descendant_products,
+				show_products_in_ancestors: c.show_products_in_ancestors,
 			})
 			.collect();
 		build_category_descendants(&mut categories, &category_bitmaps);
+
+		// --- direct_category_bitmaps (eshop_product_nxn_eshop_category) ---
+		// Nedenormalizovaná vazba produkt → kategorie. Na rozdíl od `category_bitmaps` (plněných
+		// z `denormalizedCategories`) tady mapa obsahuje jen přímé členství. `all_category_counts`
+		// iteruje tuhle mapu a per-direct-cat rozdělí n do `category_bump_sets[direct_idx]`.
+		let mut direct_category_bitmaps = BitmapIndex::new();
+		for row in &raw.product_categories {
+			let Some(product_idx) = product_pool.lookup(&row.product_uuid) else {
+				continue;
+			};
+			let Some(cat_idx) = category_pool.lookup(&row.category_uuid) else {
+				continue;
+			};
+			direct_category_bitmaps.insert(cat_idx, product_idx);
+		}
+		direct_category_bitmaps.shrink_to_fit();
+
+		// --- category_bump_sets ---
+		// Pro každý direct_idx vrátíme [direct_idx]
+		//   ∪ {descendants, kde desc.show_products_in_ancestors = true}
+		//   ∪ {ancestors walked, kde anc.show_descendant_products = true}
+		// Mirror `ProductsCacheGetterService::…` line 734 (walk per direct cat). Index po CategoryIdx
+		// pro O(1) lookup u CategoryNode flagů.
+		let categories_by_idx: AHashMap<CategoryIdx, &CategoryNode> = categories
+			.iter()
+			.filter(|c| c.idx != u32::MAX)
+			.map(|c| (c.idx, c))
+			.collect();
+		let mut category_bump_sets: AHashMap<CategoryIdx, SmallVec<[CategoryIdx; 8]>> =
+			AHashMap::with_capacity(categories.len());
+		for direct_node in categories.iter().filter(|c| c.idx != u32::MAX) {
+			let mut bumps: SmallVec<[CategoryIdx; 8]> = SmallVec::new();
+			bumps.push(direct_node.idx);
+			// Descendants s `show_products_in_ancestors = true`. `descendants` obsahuje inklusivně
+			// sebe — filtrujeme self a neexistující CategoryIdx.
+			for desc_idx in &direct_node.descendants {
+				if desc_idx == direct_node.idx {
+					continue;
+				}
+				let Some(desc) = categories_by_idx.get(&desc_idx) else { continue };
+				if desc.show_products_in_ancestors {
+					bumps.push(desc_idx);
+				}
+			}
+			// Walk ancestors přes `parent`. Cache getter (ProductsCacheGetterService.php:754-762)
+			// gating NEkontroluje `direct_node.show_products_in_ancestors` — jenom flag ancestra.
+			let mut cursor = direct_node.parent;
+			while let Some(anc_idx) = cursor {
+				let Some(anc) = categories_by_idx.get(&anc_idx) else { break };
+				if anc.show_descendant_products {
+					bumps.push(anc_idx);
+				}
+				cursor = anc.parent;
+			}
+			category_bump_sets.insert(direct_node.idx, bumps);
+		}
 
 		// --- primary_category_by_type_cat (for `related` filter) ---
 		// Klíč: (category_type_uuid, category_uuid) → bitmap produktů, které ji mají jako primární.
@@ -415,6 +473,7 @@ impl<'a> SnapshotBuilder<'a> {
 			prices_by_product,
 			attr_value_bitmaps,
 			category_bitmaps,
+			direct_category_bitmaps,
 			producer_bitmaps,
 			display_amount_bitmaps,
 			display_delivery_bitmaps,
@@ -427,6 +486,7 @@ impl<'a> SnapshotBuilder<'a> {
 			visibility_items,
 			visibility_by_product,
 			categories,
+			category_bump_sets,
 			attribute_pool,
 			attribute_of_value,
 			ribbon_pool,
@@ -534,6 +594,7 @@ pub fn fixture_snapshot(product_count: usize, pricelist_count: usize) -> Catalog
 		prices_by_product: Vec::new(),
 		attr_value_bitmaps: BitmapIndex::new(),
 		category_bitmaps: BitmapIndex::new(),
+		direct_category_bitmaps: BitmapIndex::new(),
 		producer_bitmaps: BitmapIndex::new(),
 		display_amount_bitmaps: BitmapIndex::new(),
 		display_delivery_bitmaps: BitmapIndex::new(),
@@ -546,6 +607,7 @@ pub fn fixture_snapshot(product_count: usize, pricelist_count: usize) -> Catalog
 		visibility_items: Vec::new(),
 		visibility_by_product: ahash::AHashMap::new(),
 		categories: Vec::new(),
+		category_bump_sets: ahash::AHashMap::new(),
 		attribute_pool: InternPool::new("attribute", 0),
 		attribute_of_value: ahash::AHashMap::new(),
 		ribbon_pool: InternPool::new("ribbon", 0),
