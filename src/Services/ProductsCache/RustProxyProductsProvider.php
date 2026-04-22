@@ -87,6 +87,17 @@ final class RustProxyProductsProvider implements GeneralProductsCacheProvider
 	 */
 	private array $cachedCategoryCountsMap = [];
 
+	/**
+	 * Per-request memoizace resolvovaného batch state (`batchCacheKey`, `priceListPKs`,
+	 * `visibilityListPKs`, `priceVisibility`, `filtersForBatch`) pod lightweight fingerprintem
+	 * vstupů. Menu rendering volá `getCategoryCount` per-category (100+ ×) se stále stejnými
+	 * filters + lists — každé volání jinak znovu provádí `resolveListsFromShopperUser`,
+	 * `array_map` PK extrakci, ShopperUser flag lookups a `md5(serialize(...))` přes celý
+	 * filter-set. S touto cache se celý resolve provede jen jednou per filter-set.
+	 * @var array<string, array{batchCacheKey: string, priceListPKs: list<string>, visibilityListPKs: list<string>, priceVisibility: array<string, bool>, filtersForBatch: array<mixed>}>
+	 */
+	private array $resolvedBatchStateCache = [];
+
 	/** @var list<string>|null Per-request memoizace favourite pricelist UUIDů zákazníka. */
 	private array|null $favouritePricelistUuidsCache = null;
 
@@ -208,9 +219,6 @@ final class RustProxyProductsProvider implements GeneralProductsCacheProvider
 		$startNs = \hrtime(true);
 
 		try {
-			[$priceLists, $visibilityLists] = $this->resolveListsFromShopperUser($priceLists, $visibilityLists, $filters);
-			unset($filters['pricelist']);
-
 			// Strip `category` z filtrů — cache key i daemon request jsou per filter-set (bez
 			// konkrétní kategorie), takže menu strom s volaním per-category sdílí jeden daemon
 			// round-trip. Mirror `ProductsCacheProvider::getCategoryCount` (řádky 256–284)
@@ -218,29 +226,57 @@ final class RustProxyProductsProvider implements GeneralProductsCacheProvider
 			$categoryPath = isset($filters['category']) && $filters['category'] !== null
 				? (string) $filters['category']
 				: null;
-			$filtersForBatch = $filters;
-			unset($filtersForBatch['category']);
 
 			if ($categoryPath === null) {
 				// Bez category filtru nemáme, k čemu count vztáhnout. LP + cache provider vrací 0.
 				return 0;
 			}
 
+			$filtersForBatch = $filters;
+			unset($filtersForBatch['category'], $filtersForBatch['pricelist']);
+
+			// Lightweight fingerprint inputs — bez resolve ShopperUser state, bez array_map
+			// PK extrakce, bez md5(serialize). `spl_object_id` je O(1) intrinsic nad object
+			// headerem, `serialize` nad malým filters polem je rychlejší než md5+serialize
+			// celého state. V menu rendering loopu (100+ volání se stejným filter-setem) vede
+			// k jednomu cold resolve a zbytku přímých lookupů.
+			$stateFingerprint = \serialize($filtersForBatch)
+				. '|' . ($priceLists === [] ? '*' : \implode(',', \array_map(\spl_object_id(...), $priceLists)))
+				. '|' . ($visibilityLists === [] ? '*' : \implode(',', \array_map(\spl_object_id(...), $visibilityLists)));
+
+			if (isset($this->resolvedBatchStateCache[$stateFingerprint])) {
+				$state = $this->resolvedBatchStateCache[$stateFingerprint];
+			} else {
+				[$priceLists, $visibilityLists] = $this->resolveListsFromShopperUser($priceLists, $visibilityLists, $filters);
+
+				$priceListPKs = \array_values(\array_map(static fn (Pricelist $p): string => (string) $p->getPK(), $priceLists));
+				$visibilityListPKs = \array_values(\array_map(static fn (VisibilityList $v): string => (string) $v->getPK(), $visibilityLists));
+				$priceVisibility = [
+					'showZeroPrices' => $this->shopperUser->getShowZeroPrices(),
+					'showVat' => $this->shopperUser->getShowVat(),
+					'showWithoutVat' => $this->shopperUser->getShowWithoutVat(),
+					'includeHiddenPrices' => $this->shopperUser->canViewHiddenPrices(),
+				];
+				$batchCacheKey = \md5(\serialize([$filtersForBatch, $priceListPKs, $visibilityListPKs, $priceVisibility]));
+
+				$state = [
+					'batchCacheKey' => $batchCacheKey,
+					'priceListPKs' => $priceListPKs,
+					'visibilityListPKs' => $visibilityListPKs,
+					'priceVisibility' => $priceVisibility,
+					'filtersForBatch' => $filtersForBatch,
+				];
+
+				$this->resolvedBatchStateCache[$stateFingerprint] = $state;
+			}
+
+			$batchCacheKey = $state['batchCacheKey'];
+
 			$categoryUuid = $this->resolveCategoryPathToUuid($categoryPath);
 
 			if ($categoryUuid === null) {
 				return 0;
 			}
-
-			$priceListPKs = \array_values(\array_map(static fn (Pricelist $p): string => (string) $p->getPK(), $priceLists));
-			$visibilityListPKs = \array_values(\array_map(static fn (VisibilityList $v): string => (string) $v->getPK(), $visibilityLists));
-			$priceVisibility = [
-				'showZeroPrices' => $this->shopperUser->getShowZeroPrices(),
-				'showVat' => $this->shopperUser->getShowVat(),
-				'showWithoutVat' => $this->shopperUser->getShowWithoutVat(),
-				'includeHiddenPrices' => $this->shopperUser->canViewHiddenPrices(),
-			];
-			$batchCacheKey = \md5(\serialize([$filtersForBatch, $priceListPKs, $visibilityListPKs, $priceVisibility]));
 
 			// 1) Per-request memo plné mapy — po prvním daemon volání jsou všechny další
 			//    getCategoryCount volání se stejným filter-setem jen indexace do pole.
@@ -263,13 +299,13 @@ final class RustProxyProductsProvider implements GeneralProductsCacheProvider
 
 			// 3) Cache miss → jedno batched daemon volání pro celý filter-set.
 			$request = [
-				'pricelistPks' => $priceListPKs,
-				'visibilityListPks' => $visibilityListPKs,
-				'filters' => $this->mapFilters($filtersForBatch),
-				'dynamicFilterAttributes' => isset($filtersForBatch['attributeValue']) && \is_array($filtersForBatch['attributeValue'])
-					? $filtersForBatch['attributeValue']
+				'pricelistPks' => $state['priceListPKs'],
+				'visibilityListPks' => $state['visibilityListPKs'],
+				'filters' => $this->mapFilters($state['filtersForBatch']),
+				'dynamicFilterAttributes' => isset($state['filtersForBatch']['attributeValue']) && \is_array($state['filtersForBatch']['attributeValue'])
+					? $state['filtersForBatch']['attributeValue']
 					: null,
-				'priceVisibility' => $priceVisibility,
+				'priceVisibility' => $state['priceVisibility'],
 			];
 
 			$map = $this->client->getAllCategoryCounts($request);
