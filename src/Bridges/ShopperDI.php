@@ -11,6 +11,8 @@ use Eshop\CompareManager;
 use Eshop\Services\Comgate;
 use Eshop\Services\ProductsCache\LiveProductsProvider;
 use Eshop\Services\ProductsCache\ProductsCacheProvider;
+use Eshop\Services\ProductsCache\RustDaemonClient;
+use Eshop\Services\ProductsCache\RustProxyProductsProvider;
 use Eshop\ShopperUser;
 use Nette\Schema\Expect;
 use Nette\Schema\Schema;
@@ -93,7 +95,20 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			// Which products provider implementation to use as GeneralProductsCacheProvider:
 			//   'cache' (default) = ProductsCacheProvider — oddělená cache DB obnovovaná Go programem
 			//   'live'            = LiveProductsProvider — čtení přímo z produkční DB + denormalizované sloupce
-			'productsProvider' => Expect::anyOf('cache', 'live')->firstIsDefault(),
+			//   'rust'            = RustProxyProductsProvider — abel-products-daemon s fallback na LiveProductsProvider
+			'productsProvider' => Expect::anyOf('cache', 'live', 'rust')->firstIsDefault(),
+			'rustDaemon' => Expect::structure([
+				// Unix socket path must match SOCKET_PATH in products-daemon/.env.
+				'socketPath' => Expect::string('/tmp/abel-products-daemon.sock'),
+				// Absolute path to the compiled daemon binary — used for spawn-on-demand.
+				'binaryPath' => Expect::string()->nullable(),
+				// Absolute path to the daemon's .env file — passed via --env-file on spawn.
+				'envPath' => Expect::string()->nullable(),
+				// Connect + read timeout in milliseconds. Keep tight so a sick daemon can't stall requests.
+				'timeoutMs' => Expect::int(500),
+				// Attempt to spawn the binary when the socket is unreachable.
+				'spawnOnDemand' => Expect::bool(true),
+			])->castTo('array'),
 		]);
 	}
 
@@ -113,8 +128,44 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 		$builder->addDefinition($this->prefix('compareManager'))->setType(CompareManager::class);
 		$builder->addDefinition($this->prefix('productExporter'))->setType(ProductExporter::class);
 		$builder->addDefinition($this->prefix('productImporter'))->setType(ProductImporter::class);
-		$productsProviderClass = ($config['productsProvider'] ?? 'cache') === 'live' ? LiveProductsProvider::class : ProductsCacheProvider::class;
-		$builder->addDefinition($this->prefix('productsProvider'))->setType($productsProviderClass);
+		$productsProviderOption = $config['productsProvider'] ?? 'cache';
+		$rustDaemonConfig = (array) ($config['rustDaemon'] ?? []);
+
+		if ($productsProviderOption === 'rust') {
+			// Fallback provider — registered as a separate service so PHP can still use it directly.
+			$fallbackServiceName = $this->prefix('productsProviderLiveFallback');
+			$builder
+				->addDefinition($fallbackServiceName)
+				->setType(LiveProductsProvider::class)
+				->setAutowired(false);
+
+			$clientServiceName = $this->prefix('rustDaemonClient');
+			$builder
+				->addDefinition($clientServiceName)
+				->setType(RustDaemonClient::class)
+				->setArguments([
+					'socketPath' => $rustDaemonConfig['socketPath'] ?? '/tmp/abel-products-daemon.sock',
+					'binaryPath' => $rustDaemonConfig['binaryPath'] ?? null,
+					'envPath' => $rustDaemonConfig['envPath'] ?? null,
+					'timeoutSec' => (int) ($rustDaemonConfig['timeoutMs'] ?? 500) / 1000.0,
+					'spawnOnDemand' => (bool) ($rustDaemonConfig['spawnOnDemand'] ?? true),
+				])
+				->setAutowired(false);
+
+			// shopperUser + productRepository are resolved by Nette DI autowire from their types —
+			// ShopperUser is registered as `@security.user` above, ProductRepository is autowired
+			// by StORM. Explicit wiring is only needed for the two non-autowired services (fallback + client).
+			$builder->addDefinition($this->prefix('productsProvider'))
+				->setType(RustProxyProductsProvider::class)
+				->setArguments([
+					'fallback' => '@' . $fallbackServiceName,
+					'client' => '@' . $clientServiceName,
+				]);
+		} else {
+			$productsProviderClass = $productsProviderOption === 'live' ? LiveProductsProvider::class : ProductsCacheProvider::class;
+			$builder->addDefinition($this->prefix('productsProvider'))->setType($productsProviderClass);
+		}
+
 		$builder->addDefinition($this->prefix('productTester'))->setType(ProductTester::class);
 
 		/** @var \Nette\DI\Definitions\ServiceDefinition $latteDefinition */
@@ -124,5 +175,17 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 
 		$shopperUser->addSetup('setRegistrationConfiguration', [(array) $config['registration']]);
 		$shopperUser->addSetup('setConfig', [$config]);
+	}
+
+	public function afterCompile(\Nette\PhpGenerator\ClassType $class): void
+	{
+		$config = (array) $this->getConfig();
+
+		if (($config['productsProvider'] ?? 'cache') !== 'rust') {
+			return;
+		}
+
+		$class->getMethod('initialize')
+			->addBody('\\Tracy\\Debugger::getBar()->addPanel(new \\Eshop\\Services\\ProductsCache\\RustDaemonBarPanel());');
 	}
 }

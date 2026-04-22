@@ -1,0 +1,12 @@
+target/
+.env
+*.sock
+*.pid
+.DS_Store
+
+# Criterion benchmark reports
+/benches/criterion/
+
+# flamegraph output
+flamegraph.svg
+perf.data*
