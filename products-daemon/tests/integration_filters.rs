@@ -105,6 +105,7 @@ fn build_test_snapshot() -> Arc<CatalogSnapshot> {
 		allow_discount_level: false,
 		allow_surcharge: false,
 		is_active: true,
+		has_customer_binding: true,
 	});
 	// Prices vary so `price_gt` filter has spread: 50, 100, 150, 200, 250, 300.
 	snap.prices = (0..6u32)
@@ -368,6 +369,7 @@ fn mini_price_snapshot(price: f64, price_vat: f64) -> Arc<CatalogSnapshot> {
 		allow_discount_level: false,
 		allow_surcharge: false,
 		is_active: true,
+		has_customer_binding: true,
 	});
 	snap.products.push(ProductRow {
 		uuid_idx: 0,

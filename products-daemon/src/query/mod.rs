@@ -175,6 +175,62 @@ pub fn all_category_counts(
 	Ok(out)
 }
 
+/// Vrátí UUID produktů, které jsou prodejné — tj. zároveň:
+/// - mají nenulovou cenu (`price > 0 OR price_vat > 0`) v aspoň jednom aktivním ceníku, který má
+///   vazbu na customer group / customer / favourite / merchant (`has_customer_binding`), a
+/// - jsou přiřazené k aspoň jednomu visibility listu přes `eshop_visibilitylistitem` s
+///   `hidden = 0`, kde visibility list je aktivní (`hidden = 0` na `eshop_visibilitylist`) a
+///   zároveň má customer vazbu.
+///
+/// In-memory O(P) scan — žádný DB dotaz, daemon má celý snapshot v RAM.
+///
+/// Sémanticky cílí na paritu s DISTINCT product ze všech `prices_*` / `cache_prices_*` tabulek,
+/// které generuje `ProductsCacheDiffUpdateService`. Cache plní pouze kombinace (customer group ×
+/// customer × merchant) → subset aktivních ceníků + visibility listů s vazbou. Orphan ceníky
+/// (admin-only, nepoužívané) do cache nepadají, takže je vylučuje i daemon.
+///
+/// V produkčním snapshot (DDEV kopie): 7558 aktivních ceníků, ~60k prodejných produktů.
+/// Bez filtrů: ~160k (price > 0 jakýkoliv ceník), jen is_active: ~124k.
+pub fn sellable_product_pks(snap: &CatalogSnapshot) -> Vec<String> {
+	// 1. Produkty s nenulovou cenou v aktivním customer-bound ceníku.
+	let mut has_active_price = RoaringBitmap::new();
+	for price in &snap.prices {
+		let pl_meta = &snap.pricelists[usize::from(price.pricelist)];
+		if !pl_meta.is_active || !pl_meta.has_customer_binding {
+			continue;
+		}
+		if price.price <= 0.0 && price.price_vat <= 0.0 {
+			continue;
+		}
+		has_active_price.insert(price.product);
+	}
+
+	// 2. Produkty s aspoň jedním non-hidden visibility item na aktivním customer-bound VL.
+	let mut has_visible_list = RoaringBitmap::new();
+	for item in &snap.visibility_items {
+		if item.hidden {
+			continue;
+		}
+		// `visibility_lists[idx]` je plněno v SnapshotBuilderu před items, takže idx vždy sedí.
+		// `get()` jako pojistka proti driftu — raději vynechat item než panikařit v hot path.
+		let Some(vl_meta) = snap.visibility_lists.get(usize::from(item.visibility_list)) else {
+			continue;
+		};
+		if !vl_meta.is_active || !vl_meta.has_customer_binding {
+			continue;
+		}
+		has_visible_list.insert(item.product);
+	}
+
+	// 3. Intersect: prodejný = má customer-bound cenu AND je na customer-bound visibility listu.
+	let sellable = has_active_price & has_visible_list;
+
+	sellable
+		.iter()
+		.filter_map(|idx| snap.product_pool.get(idx).map(str::to_owned))
+		.collect()
+}
+
 fn resolve_pricelists(snap: &CatalogSnapshot, pks: &[String]) -> Result<Vec<PricelistIdx>> {
 	let mut out = Vec::with_capacity(pks.len());
 	for pk in pks {

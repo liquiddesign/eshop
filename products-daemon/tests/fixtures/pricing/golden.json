@@ -1,5 +1,5 @@
 {
-    "generatedAt": "2026-04-21T18:20:31Z",
+    "generatedAt": "2026-04-23T14:33:11Z",
     "phpVersion": "8.5.5",
     "referenceFile": "tests/scripts/pricing_reference.php (mirror of LiveProductsProvider.php lines 1128-1180)",
     "scenarios": [
@@ -907,9 +907,9 @@
                 }
             },
             "expected": {
-                "price": 42.1,
+                "price": 42.11,
                 "priceVat": 50.95,
-                "priceBefore": 105.25,
+                "priceBefore": 105.28,
                 "priceVatBefore": 127.38
             }
         },
@@ -933,7 +933,7 @@
                 }
             },
             "expected": {
-                "price": 42.1,
+                "price": 42.11,
                 "priceVat": 50.95,
                 "priceBefore": 150,
                 "priceVatBefore": 181.5
@@ -959,9 +959,9 @@
                 }
             },
             "expected": {
-                "price": 94.73,
+                "price": 94.74,
                 "priceVat": 114.63,
-                "priceBefore": 105.26,
+                "priceBefore": 105.27,
                 "priceVatBefore": 127.37
             }
         },
@@ -985,7 +985,7 @@
                 }
             },
             "expected": {
-                "price": 94.73,
+                "price": 94.74,
                 "priceVat": 114.63,
                 "priceBefore": 150,
                 "priceVatBefore": 181.5
@@ -1011,9 +1011,9 @@
                 }
             },
             "expected": {
-                "price": 94.73,
+                "price": 94.74,
                 "priceVat": 114.63,
-                "priceBefore": 105.26,
+                "priceBefore": 105.27,
                 "priceVatBefore": 127.37
             }
         },
@@ -1037,7 +1037,7 @@
                 }
             },
             "expected": {
-                "price": 94.73,
+                "price": 94.74,
                 "priceVat": 114.63,
                 "priceBefore": 150,
                 "priceVatBefore": 181.5
@@ -1219,9 +1219,9 @@
                 }
             },
             "expected": {
-                "price": 42.1,
+                "price": 42.11,
                 "priceVat": 50.95,
-                "priceBefore": 105.25,
+                "priceBefore": 105.28,
                 "priceVatBefore": 127.38
             }
         },
@@ -1245,7 +1245,7 @@
                 }
             },
             "expected": {
-                "price": 42.1,
+                "price": 42.11,
                 "priceVat": 50.95,
                 "priceBefore": 150,
                 "priceVatBefore": 181.5
@@ -8448,9 +8448,9 @@
             },
             "expected": {
                 "price": 75.79,
-                "priceVat": 91.7,
+                "priceVat": 91.71,
                 "priceBefore": 84.21,
-                "priceVatBefore": 101.89
+                "priceVatBefore": 101.9
             }
         },
         {
@@ -8474,7 +8474,7 @@
             },
             "expected": {
                 "price": 75.79,
-                "priceVat": 91.7,
+                "priceVat": 91.71,
                 "priceBefore": 120,
                 "priceVatBefore": 145.2
             }
@@ -8500,9 +8500,9 @@
             },
             "expected": {
                 "price": 75.79,
-                "priceVat": 91.7,
+                "priceVat": 91.71,
                 "priceBefore": 84.21,
-                "priceVatBefore": 101.89
+                "priceVatBefore": 101.9
             }
         },
         {
@@ -8526,7 +8526,7 @@
             },
             "expected": {
                 "price": 75.79,
-                "priceVat": 91.7,
+                "priceVat": 91.71,
                 "priceBefore": 120,
                 "priceVatBefore": 145.2
             }
@@ -15935,9 +15935,9 @@
                 }
             },
             "expected": {
-                "price": 142.1,
+                "price": 142.11,
                 "priceVat": 171.95,
-                "priceBefore": 157.89,
+                "priceBefore": 157.9,
                 "priceVatBefore": 191.06
             }
         },
@@ -15961,7 +15961,7 @@
                 }
             },
             "expected": {
-                "price": 142.1,
+                "price": 142.11,
                 "priceVat": 171.95,
                 "priceBefore": 225,
                 "priceVatBefore": 272.25
@@ -15987,9 +15987,9 @@
                 }
             },
             "expected": {
-                "price": 142.1,
+                "price": 142.11,
                 "priceVat": 171.95,
-                "priceBefore": 157.89,
+                "priceBefore": 157.9,
                 "priceVatBefore": 191.06
             }
         },
@@ -16013,7 +16013,7 @@
                 }
             },
             "expected": {
-                "price": 142.1,
+                "price": 142.11,
                 "priceVat": 171.95,
                 "priceBefore": 225,
                 "priceVatBefore": 272.25
@@ -16352,9 +16352,9 @@
             },
             "expected": {
                 "price": 159.38,
-                "priceVat": 192.85,
+                "priceVat": 192.84,
                 "priceBefore": 187.51,
-                "priceVatBefore": 226.88
+                "priceVatBefore": 226.87
             }
         },
         {
@@ -16378,7 +16378,7 @@
             },
             "expected": {
                 "price": 159.38,
-                "priceVat": 192.85,
+                "priceVat": 192.84,
                 "priceBefore": 225,
                 "priceVatBefore": 272.25
             }
@@ -16404,9 +16404,9 @@
             },
             "expected": {
                 "price": 159.38,
-                "priceVat": 192.85,
+                "priceVat": 192.84,
                 "priceBefore": 187.51,
-                "priceVatBefore": 226.88
+                "priceVatBefore": 226.87
             }
         },
         {
@@ -16430,7 +16430,7 @@
             },
             "expected": {
                 "price": 159.38,
-                "priceVat": 192.85,
+                "priceVat": 192.84,
                 "priceBefore": 225,
                 "priceVatBefore": 272.25
             }
@@ -16664,9 +16664,9 @@
             },
             "expected": {
                 "price": 159.38,
-                "priceVat": 192.85,
+                "priceVat": 192.84,
                 "priceBefore": 187.51,
-                "priceVatBefore": 226.88
+                "priceVatBefore": 226.87
             }
         },
         {
@@ -16690,7 +16690,7 @@
             },
             "expected": {
                 "price": 159.38,
-                "priceVat": 192.85,
+                "priceVat": 192.84,
                 "priceBefore": 225,
                 "priceVatBefore": 272.25
             }
@@ -16716,9 +16716,9 @@
             },
             "expected": {
                 "price": 159.38,
-                "priceVat": 192.85,
+                "priceVat": 192.84,
                 "priceBefore": 187.51,
-                "priceVatBefore": 226.88
+                "priceVatBefore": 226.87
             }
         },
         {
@@ -16742,7 +16742,7 @@
             },
             "expected": {
                 "price": 159.38,
-                "priceVat": 192.85,
+                "priceVat": 192.84,
                 "priceBefore": 225,
                 "priceVatBefore": 272.25
             }
@@ -22565,9 +22565,9 @@
                 }
             },
             "expected": {
-                "price": 13.7592,
+                "price": 13.7591,
                 "priceVat": 16.6509,
-                "priceBefore": 14.7948,
+                "priceBefore": 14.7947,
                 "priceVatBefore": 17.9042
             }
         },

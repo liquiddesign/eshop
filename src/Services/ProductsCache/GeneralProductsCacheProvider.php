@@ -26,6 +26,17 @@ interface GeneralProductsCacheProvider
 	public function updatePricesCacheTable(array $customers = [], array $customerGroups = [], array $merchants = []): void;
 
 	/**
+	 * Vrací seznam PKs produktů, kteří jsou alespoň pro jednu existující kombinaci
+	 * (customer × pricelist × visibilityList × merchant) prodejní — tedy mají platnou
+	 * cenu v nějaké aktivní cenové hladině, která se na někoho vztahuje.
+	 *
+	 * Určeno pro externí exportéry (Algolia, feed generátory), které musí vyloučit
+	 * produkty, za které by zbytečně platili poplatky za indexaci.
+	 * @return list<string> PKs produktů v `eshop_product.uuid`
+	 */
+	public function getSellableProductPKs(): array;
+
+	/**
 	 * @param array<mixed> $filters
 	 * @param string|null $orderByName
 	 * @param 'ASC'|'DESC' $orderByDirection Works only if $orderByName is not null
@@ -66,14 +77,6 @@ interface GeneralProductsCacheProvider
 		array $visibilityLists = [],
 		bool $debug = false,
 	): int|null;
-
-	/**
-	 * Vrací true, pokud provider `getCategoryCount` interně memoizuje volání v rámci requestu —
-	 * pak je externí Nette Cache wrapper v `CategoryRepository::getCounts` kontraproduktivní,
-	 * protože přidává ~50ms/volání na DDEV overlayfs a při ~500 voláních v menu templatech
-	 * způsobuje desítky sekund zpoždění. Cache-based provider nemá per-request memo, vrací false.
-	 */
-	public function hasInternalCategoryCountCache(): bool;
 
 	public function getIndexByCustomer(Customer|Merchant $customerMerchant): string;
 

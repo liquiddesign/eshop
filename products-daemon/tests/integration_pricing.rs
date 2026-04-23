@@ -144,6 +144,7 @@ fn compute_price_from_scenario(scenario: &Scenario) -> PricedProduct {
 		allow_discount_level: input.pricelist_allow_discount_level,
 		allow_surcharge: input.pricelist_allow_surcharge,
 		is_active: true,
+		has_customer_binding: true,
 	};
 	let modifiers = PriceModifiers {
 		discount_level_pct: input.modifiers.discount_level_pct,
@@ -191,6 +192,7 @@ fn mini_snapshot() -> Arc<CatalogSnapshot> {
 			allow_discount_level: false,
 			allow_surcharge: false,
 			is_active: true,
+			has_customer_binding: true,
 		},
 		PricelistMeta {
 			idx: 1,
@@ -199,6 +201,7 @@ fn mini_snapshot() -> Arc<CatalogSnapshot> {
 			allow_discount_level: false,
 			allow_surcharge: false,
 			is_active: true,
+			has_customer_binding: true,
 		},
 		PricelistMeta {
 			idx: 2,
@@ -207,6 +210,7 @@ fn mini_snapshot() -> Arc<CatalogSnapshot> {
 			allow_discount_level: false,
 			allow_surcharge: false,
 			is_active: true,
+			has_customer_binding: true,
 		},
 	];
 

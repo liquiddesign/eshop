@@ -60,26 +60,35 @@ function computeEffectivePriceReference(
 		? 0.0
 		: ($convertRatio === null ? (float) $priceRow['priceVatBefore'] : \round(((float) $priceRow['priceVatBefore']) * $convertRatio, $prec));
 
-	// PHP lines 1153-1160: surcharge divisor.
+	// Surcharge divisor — no intermediate round (matches SQL inline `$expression$surchargeExpression`
+	// in `ProductRepository::sqlHandlePrice`, which is just a raw divide with the outer ROUND/CAST
+	// applying final precision).
 	if ($surchargeLevelPct > 0 && $pricelistMeta['allowSurchargeLevel']) {
 		$surchargeDivisor = 1 - ($surchargeLevelPct / 100);
 
 		if ($surchargeDivisor > 0) {
-			$price = \round($price / $surchargeDivisor, $prec);
-			$priceVat = \round($priceVat / $surchargeDivisor, $prec);
+			$price = $price / $surchargeDivisor;
+			$priceVat = $priceVat / $surchargeDivisor;
 		}
 	}
 
-	// PHP lines 1162-1171: discount factor + reverse-engineer priceBefore when absent.
+	// Discount — single round on combined expression matches SQL
+	// `ROUND($expression$surchargeExpression * ((100 - effDisc)/100), $prec)` in sqlHandlePrice.
+	// Integer-first `* divisor / 100` namísto `* discount_factor` — lepší f64 přesnost
+	// a symetrie s reverse-engineering tvarem (`* 100 / divisor`).
+	// Bez discountu: final round mirrors the outer `CAST(x AS DECIMAL(n, prec))` in CONCAT_WS.
 	if ($pricelistMeta['allowDiscountLevel'] && $effectiveDiscount > 0) {
-		$discountFactor = (100 - $effectiveDiscount) / 100;
-		$price = \round($price * $discountFactor, $prec);
-		$priceVat = \round($priceVat * $discountFactor, $prec);
+		$discountDivisor = 100 - $effectiveDiscount;
+		$price = \round($price * $discountDivisor / 100, $prec);
+		$priceVat = \round($priceVat * $discountDivisor / 100, $prec);
 
 		if ($priceBeforeRaw === 0.0) {
-			$priceBeforeRaw = \round($price / $discountFactor, $prec);
-			$priceVatBeforeRaw = \round($priceVat / $discountFactor, $prec);
+			$priceBeforeRaw = \round($price * 100 / $discountDivisor, $prec);
+			$priceVatBeforeRaw = \round($priceVat * 100 / $discountDivisor, $prec);
 		}
+	} else {
+		$price = \round($price, $prec);
+		$priceVat = \round($priceVat, $prec);
 	}
 
 	return [

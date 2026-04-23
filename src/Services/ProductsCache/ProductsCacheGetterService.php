@@ -33,6 +33,11 @@ use Tracy\Debugger;
 use Tracy\ILogger;
 use Web\DB\SettingRepository;
 
+/**
+ * @internal Not a part of the public API — use {@see GeneralProductsCacheProvider} instead.
+ *           Direct injection of this class bypasses the provider abstraction and breaks
+ *           the 'cache' / 'live' / 'rust' provider switch.
+ */
 class ProductsCacheGetterService
 {
 	public bool $debug = false;

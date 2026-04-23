@@ -9,6 +9,11 @@ use Nette\Utils\Strings;
 use StORM\DIConnection;
 use Tracy\Debugger;
 
+/**
+ * @internal Not a part of the public API — use {@see GeneralProductsCacheProvider} instead.
+ *           Direct injection of this class bypasses the provider abstraction and breaks
+ *           the 'cache' / 'live' / 'rust' provider switch.
+ */
 class GoProductsCacheDiffUpdateService extends ProductsCacheDiffUpdateService
 {
 	private const GO_BINARY_PATH = __DIR__ . '/../../../bin/cache-warmup';

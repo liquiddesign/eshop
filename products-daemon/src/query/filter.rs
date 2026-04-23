@@ -8,34 +8,89 @@ use roaring::RoaringBitmap;
 use crate::{
 	error::{RequestError, Result},
 	protocol::{FilterPayload, GetProductsRequest, PriceVisibility},
-	snapshot::{CatalogSnapshot, PricelistIdx},
+	snapshot::{CatalogSnapshot, PricelistIdx, VisibilityItem},
 };
 
-/// Start from the full active-product mask and AND-in visibility-list membership.
+/// Start from the full active-product mask and AND-in visibility-list membership using
+/// priority-first selection (mirrors SQL `ProductRepository::joinVisibilityListItemToProductCollection`).
 ///
-/// If `visibility_list_pks` is empty we treat "no visibility filter" as "everything active"
-/// — mirrors PHP default that skips the VL join when no list is supplied.
+/// For each product we pick the single effective `VisibilityItem` across the customer's allowed
+/// visibility lists: lowest `eshop_visibilitylist.priority` wins, with the list's UUID ASC as the
+/// deterministic tie-break (matches the SQL `ORDER BY priority ASC, uuid ASC LIMIT 1`). The
+/// product enters the mask only when that winner has `hidden = 0`. A product whose winner is
+/// hidden drops out — this differs from the previous UNION-based implementation, which would
+/// have kept any product whose *any* allowed list entry was `hidden = 0` and caused false
+/// positives when a higher-priority list marked the product hidden.
+///
+/// If `visibility_list_pks` is empty we treat "no visibility filter" as "everything active" —
+/// mirrors PHP default that skips the VL join when no list is supplied.
 pub fn base_mask(snap: &CatalogSnapshot, visibility_list_pks: &[String]) -> Result<RoaringBitmap> {
-	let mut mask = snap.all_products_mask.clone();
-
 	if visibility_list_pks.is_empty() {
-		return Ok(mask);
+		return Ok(snap.all_products_mask.clone());
 	}
 
-	let mut visibility_mask = RoaringBitmap::new();
+	// Resolve allowed visibility list idxs once (error out on unknowns — fallback path catches that).
+	let mut allowed_vl_idxs: ahash::AHashSet<u32> = ahash::AHashSet::with_capacity(visibility_list_pks.len());
 	for vl_pk in visibility_list_pks {
 		let Some(vl_idx_u32) = snap.visibility_list_pool.lookup(vl_pk) else {
 			return Err(RequestError::UnknownVisibilityList(vl_pk.clone()).into());
 		};
-		// Walk items linearly — typical VL membership is sparse; a dedicated bitmap per
-		// visibility list is a follow-up optimization (M2+) if profiles show this hot.
-		for item in &snap.visibility_items {
-			if u32::from(item.visibility_list) == vl_idx_u32 && !item.hidden {
-				visibility_mask.insert(item.product);
+		allowed_vl_idxs.insert(vl_idx_u32);
+	}
+
+	let mut mask = RoaringBitmap::new();
+
+	// Walk products that are active and iterate their visibility items — `visibility_by_product`
+	// typically holds ≤ 4 entries per product (SmallVec inline), so even with 186k products the
+	// total work is bounded at a few × product count. A per-VL bitmap precomputed at snapshot
+	// build is a follow-up optimization if this becomes hot.
+	for product in &snap.all_products_mask {
+		let Some(item_idxs) = snap.visibility_by_product.get(&product) else {
+			continue;
+		};
+
+		let mut best: Option<VisibilityItem> = None;
+
+		for &row_idx in item_idxs {
+			let Some(&item) = snap.visibility_items.get(row_idx as usize) else {
+				continue;
+			};
+			if !allowed_vl_idxs.contains(&u32::from(item.visibility_list)) {
+				continue;
+			}
+
+			// Priority ASC (lower = higher precedence). Tie-break: `eshop_visibilitylist.uuid ASC`
+			// for determinism when two lists share priority — same contract as the SQL join.
+			let wins = match best {
+				None => true,
+				Some(current) => {
+					if item.priority < current.priority {
+						true
+					} else if item.priority == current.priority {
+						let item_uuid = snap.visibility_list_pool.get(u32::from(item.visibility_list)).unwrap_or("");
+						let current_uuid = snap
+							.visibility_list_pool
+							.get(u32::from(current.visibility_list))
+							.unwrap_or("");
+						item_uuid < current_uuid
+					} else {
+						false
+					}
+				}
+			};
+
+			if wins {
+				best = Some(item);
+			}
+		}
+
+		if let Some(winner) = best {
+			if !winner.hidden {
+				mask.insert(product);
 			}
 		}
 	}
-	mask &= visibility_mask;
+
 	Ok(mask)
 }
 

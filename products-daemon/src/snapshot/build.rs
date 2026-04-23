@@ -30,7 +30,7 @@ use crate::{
 	snapshot::{
 		bitmaps::BitmapIndex, intern::InternPool, AttrValIdx, CatalogSnapshot, CategoryIdx, CategoryNode,
 		InternalRibbonIdx, PriceFact, PriceFactFlags, PricelistIdx, PricelistMeta, ProductIdx, ProductRow, RibbonIdx,
-		VisibilityItem, VisibilityListIdx,
+		VisibilityItem, VisibilityListIdx, VisibilityListMeta,
 	},
 };
 
@@ -66,6 +66,11 @@ impl<'a> SnapshotBuilder<'a> {
 		// Invariant: `pricelists[i].idx == i as PricelistIdx`. `query::pricing::apply_modifiers`
 		// depends on it for O(1) pricelist-meta lookup (hot path). debug_assert catches any
 		// regression in the push order without paying the check in release builds.
+		let customer_bound_pricelist_set: ahash::AHashSet<&str> = raw
+			.customer_bound_pricelists
+			.iter()
+			.map(String::as_str)
+			.collect();
 		let mut pricelists = Vec::with_capacity(raw.pricelists.len());
 		for raw_pl in &raw.pricelists {
 			let idx: PricelistIdx =
@@ -88,6 +93,7 @@ impl<'a> SnapshotBuilder<'a> {
 				allow_discount_level: raw_pl.allow_discount_level,
 				allow_surcharge: raw_pl.allow_surcharge,
 				is_active: raw_pl.is_active,
+				has_customer_binding: customer_bound_pricelist_set.contains(raw_pl.uuid.as_str()),
 			});
 		}
 		let pricelist_pk_to_idx: AHashMap<SmolStr, PricelistIdx> = pricelists
@@ -103,6 +109,37 @@ impl<'a> SnapshotBuilder<'a> {
 		}
 		for uuid in &raw.internal_ribbons {
 			let _ = internal_ribbon_pool.intern(uuid)?;
+		}
+
+		// --- visibility lists (intern first, then items can lookup their list idx) ---
+		// Mirror pricelist pattern: `visibility_lists[i].idx == i`. Interning the authoritative
+		// `eshop_visibilitylist` table before `eshop_visibilitylistitem` guarantees every item's
+		// VisibilityListIdx resolves to a real VisibilityListMeta entry.
+		let customer_bound_vl_set: ahash::AHashSet<&str> = raw
+			.customer_bound_visibility_lists
+			.iter()
+			.map(String::as_str)
+			.collect();
+		let mut visibility_lists: Vec<VisibilityListMeta> = Vec::with_capacity(raw.visibility_lists.len());
+		for raw_vl in &raw.visibility_lists {
+			let idx_u32 = visibility_list_pool.intern(&raw_vl.uuid)?;
+			let idx: VisibilityListIdx =
+				idx_u32
+					.try_into()
+					.map_err(|_| SnapshotBuildError::InternOverflow {
+						pool: "visibility_list",
+						limit: u16::MAX as usize,
+					})?;
+			debug_assert_eq!(
+				usize::from(idx),
+				visibility_lists.len(),
+				"visibility_list idx must match its position in visibility_lists[]"
+			);
+			visibility_lists.push(VisibilityListMeta {
+				idx,
+				is_active: raw_vl.is_active,
+				has_customer_binding: customer_bound_vl_set.contains(raw_vl.uuid.as_str()),
+			});
 		}
 
 		// --- displayAmount isSold lookup — hashed the same way as display_amount_idx below. ---
@@ -485,6 +522,7 @@ impl<'a> SnapshotBuilder<'a> {
 			pricelist_pk_to_idx,
 			visibility_items,
 			visibility_by_product,
+			visibility_lists,
 			categories,
 			category_bump_sets,
 			attribute_pool,
@@ -606,6 +644,7 @@ pub fn fixture_snapshot(product_count: usize, pricelist_count: usize) -> Catalog
 		pricelist_pk_to_idx: ahash::AHashMap::new(),
 		visibility_items: Vec::new(),
 		visibility_by_product: ahash::AHashMap::new(),
+		visibility_lists: Vec::new(),
 		categories: Vec::new(),
 		category_bump_sets: ahash::AHashMap::new(),
 		attribute_pool: InternPool::new("attribute", 0),

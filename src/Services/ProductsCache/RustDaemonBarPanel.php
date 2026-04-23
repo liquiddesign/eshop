@@ -15,6 +15,9 @@ use Tracy\IBarPanel;
  *
  * Registrace: {@see \Eshop\Bridges\ShopperDI::afterCompile()} vloží panel do
  * Tracy baru jen když je provider nastaven na `rust`.
+ * @internal Not a part of the public API — use {@see GeneralProductsCacheProvider} instead.
+ *           Direct injection of this class bypasses the provider abstraction and breaks
+ *           the 'cache' / 'live' / 'rust' provider switch.
  */
 final class RustDaemonBarPanel implements IBarPanel
 {

@@ -37,6 +37,9 @@ use Tracy\Debugger;
  *
  * Podporovaná řazení: priority (výchozí, "Doporučujeme"), price ASC/DESC, name.
  * Nepodporováno ve v1: relatedTypeMaster/Slave, countCategories, primaryCategoryByCategoryType, availabilityAndPrice, custom order expressions.
+ * @internal Not a part of the public API — use {@see GeneralProductsCacheProvider} instead.
+ *           Direct injection of this class bypasses the provider abstraction and breaks
+ *           the 'cache' / 'live' / 'rust' provider switch.
  */
 class LiveProductsProvider implements GeneralProductsCacheProvider
 {
@@ -157,6 +160,27 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		// LiveProductsProvider nepoužívá cache — no-op.
 	}
 
+	/**
+	 * @return list<string>
+	 */
+	public function getSellableProductPKs(): array
+	{
+		$activePricelistPKs = $this->pricelistRepository->many()
+			->where('this.isActive', true)
+			->toArrayOf('uuid');
+
+		if ($activePricelistPKs === []) {
+			return [];
+		}
+
+		return $this->connection->rows(['eshop_price'])
+			->where('fk_pricelist', $activePricelistPKs)
+			->where('price > 0 OR priceVat > 0')
+			->setSelect(['pk' => 'fk_product'])
+			->setGroupBy(['fk_product'])
+			->toArrayOf('pk', toArrayValues: true);
+	}
+
 	public function addCollectionOrderExpression(string $name, callable $callback): void
 	{
 		$this->allowedCollectionOrderExpressions[$name] = $callback;
@@ -193,16 +217,6 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		$priceLists = $customerMerchant->getPricelists()->toArray();
 
 		return 'live-' . \implode(',', \array_keys($visibilityLists)) . '-' . \implode(',', \array_keys($priceLists));
-	}
-
-	public function hasInternalCategoryCountCache(): bool
-	{
-		// LP má v `getCategoryCount` per-request memoizaci přes `$this->cachedCategoryCounts` —
-		// jedním dotazem `fetchAllCategoryCountsDirect` spočítá counts pro všechny kategorie,
-		// následné volání per kategorie jsou pole-lookupy. Externí Nette Cache v `CategoryRepository::getCounts`
-		// by naopak vytvářela zbytečnou SQLite I/O pro každou kategorii zvlášť (~500 volání v menu
-		// templatech × ~50ms/write na DDEV overlayfs = desítky sekund latence).
-		return true;
 	}
 
 	public function getCategoryCount(array $filters, array $priceLists = [], array $visibilityLists = [], bool $debug = false): int|null // phpcs:ignore
@@ -911,11 +925,16 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 
 		$hiddenCondition = $includeHiddenPrices ? '' : ' AND pr.hidden = 0';
 
+		// Tie-break `priority → price → pricelist.uuid` matchuje `ProductRepository::sqlHandlePrice` LEAST semantiku:
+		// nejdřív nižší priority, při rovnosti nižší cena (LEAST přes LPAD-serializovanou cenu v getProducts).
+		// `uuid ASC` zaručuje deterministický výběr i když má více pricelistů shodnou priority i cenu.
+		// JOIN na eshop_pricelist je levný — `pl.priority` se používá jen v ORDER BY a partition je per-product.
 		$sql = 'SELECT ranked.fk_product, ranked.price, ranked.priceVat, ranked.priceBefore, ranked.priceVatBefore, ranked.fk_pricelist'
 			. ' FROM ('
 			. '   SELECT pr.fk_product, pr.price, pr.priceVat, pr.priceBefore, pr.priceVatBefore, pr.fk_pricelist,'
-			. '     ROW_NUMBER() OVER (PARTITION BY pr.fk_product ORDER BY FIELD(pr.fk_pricelist, ' . $plInClause . ')) AS rn'
+			. '     ROW_NUMBER() OVER (PARTITION BY pr.fk_product ORDER BY pl.priority ASC, pr.price ASC, pl.uuid ASC) AS rn'
 			. '   FROM eshop_price pr'
+			. '   JOIN eshop_pricelist pl ON pl.uuid = pr.fk_pricelist'
 			. '   WHERE pr.fk_pricelist IN (' . $plInClause . ') AND pr.price IS NOT NULL' . $hiddenCondition . $catExists . $vlExists
 			. ' ) AS ranked'
 			. ' WHERE ranked.rn = 1';
@@ -971,11 +990,13 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		$plInClause = \implode(',', $plQuoted);
 		$hiddenCondition = $includeHiddenPrices ? '' : ' AND pr.hidden = 0';
 
+		// Tie-break `priority → price → pricelist.uuid` — stejná semantika jako `fetchBestPricesByProduct` (viz tam).
 		$sql = 'SELECT ranked.fk_product, ranked.price, ranked.priceVat, ranked.priceBefore, ranked.priceVatBefore, ranked.fk_pricelist'
 			. ' FROM ('
 			. '   SELECT pr.fk_product, pr.price, pr.priceVat, pr.priceBefore, pr.priceVatBefore, pr.fk_pricelist,'
-			. '     ROW_NUMBER() OVER (PARTITION BY pr.fk_product ORDER BY FIELD(pr.fk_pricelist, ' . $plInClause . ')) AS rn'
+			. '     ROW_NUMBER() OVER (PARTITION BY pr.fk_product ORDER BY pl.priority ASC, pr.price ASC, pl.uuid ASC) AS rn'
 			. '   FROM eshop_price pr'
+			. '   JOIN eshop_pricelist pl ON pl.uuid = pr.fk_pricelist'
 			. '   JOIN __lp_price_uuids t ON t.uuid = pr.fk_product'
 			. '   WHERE pr.fk_pricelist IN (' . $plInClause . ') AND pr.price IS NOT NULL' . $hiddenCondition
 			. ' ) AS ranked'
@@ -1098,6 +1119,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 		foreach ($priceLists as $pricelist) {
 			$pricelistMeta[] = [
 				'pk' => $pricelist->getPK(),
+				'priority' => $pricelist->priority ?? 10,
 				'allowSurchargeLevel' => $pricelist->allowSurchargeLevel,
 				'allowDiscountLevel' => $pricelist->allowDiscountLevel,
 			];
@@ -1126,12 +1148,16 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 
 			$effectiveDiscount = \max(\min((int) ($product->discountLevelPct ?? 0), $maxProductDiscountLevel), $discountLevelPct);
 			$best = null;
+			$bestPriority = null;
 
-			// Priority-first: iterujeme pricelisty v pořadí priority ASC (nejnižší priority = nejvyšší přednost)
-			// a vezmeme cenu z PRVNÍHO pricelistu, kde produkt má platnou cenu. Nevybíráme MIN(price) napříč.
-			// Tím respektujeme, že customer-specific ceník přebije obecný, i když má vyšší cenu.
-			// Odpovídá SQL LEAST(IF(price IS NULL,'X',CONCAT_WS('|',priority,...))) v ProductRepository::getProducts().
+			// Priority-first, tie-break by modifier-applied price — matchuje SQL LEAST(CONCAT_WS(LPAD(priority),
+			// LPAD(price), ...)) v ProductRepository::sqlHandlePrice. pricelistMeta je seřazené priority ASC,
+			// takže jakmile se posuneme přes bestPriority, další kandidáti už nemohou tie-out.
 			foreach ($pricelistMeta as $meta) {
+				if ($bestPriority !== null && $meta['priority'] > $bestPriority) {
+					break;
+				}
+
 				$pricelistPK = $meta['pk'];
 				$priceRow = $pricesByPricelist[$pricelistPK] ?? null;
 
@@ -1139,6 +1165,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 					continue;
 				}
 
+				// Inner round pro currency rate matchuje SQL `ROUND($alias.$priceExp * $rate, $prec)` v sqlHandlePrice.
 				$price = $convertRatio === null ? (float) $priceRow->price : \round(((float) $priceRow->price) * $convertRatio, $prec);
 				$priceVat = $priceRow->priceVat === null
 					? $price
@@ -1150,24 +1177,44 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 					? 0.0
 					: ($convertRatio === null ? (float) $priceRow->priceVatBefore : \round(((float) $priceRow->priceVatBefore) * $convertRatio, $prec));
 
+				// Surcharge BEZ intermediate roundu — matchuje SQL `$expression$surchargeExpression`, kde
+				// divize je inline v expresi a outer ROUND/CAST se uplatní až na konci celého výrazu.
+				// Předchozí `round(.../surchargeDivisor, prec)` způsobovalo halířové divergence proti SQL
+				// (trojí zaokrouhlení místo jednoho).
 				if ($surchargeLevelPct > 0 && $meta['allowSurchargeLevel']) {
 					$surchargeDivisor = 1 - ($surchargeLevelPct / 100);
 
 					if ($surchargeDivisor > 0) {
-						$price = \round($price / $surchargeDivisor, $prec);
-						$priceVat = \round($priceVat / $surchargeDivisor, $prec);
+						$price /= $surchargeDivisor;
+						$priceVat /= $surchargeDivisor;
 					}
 				}
 
 				if ($meta['allowDiscountLevel'] && $effectiveDiscount > 0) {
-					$discountFactor = (100 - $effectiveDiscount) / 100;
-					$price = \round($price * $discountFactor, $prec);
-					$priceVat = \round($priceVat * $discountFactor, $prec);
+					$discountDivisor = 100 - $effectiveDiscount;
+					$price = \round($price * $discountDivisor / 100, $prec);
+					$priceVat = \round($priceVat * $discountDivisor / 100, $prec);
 
+					// Reverse-engineering priceBefore z po-discount ceny — `price * 100 / (100-effDisc)`
+					// matchuje SQL `($priceSelect) * 100/(100 - IF(...))` v ProductRepository::getProducts.
+					// Formu `price / discountFactor` (s discountFactor = (100-d)/100) nevolíme — f64
+					// reprezentace (100-d)/100 jako dělitel tvoří větší chybu než celočíselné násobení 100.
 					if ($priceBeforeRaw === 0.0) {
-						$priceBeforeRaw = \round($price / $discountFactor, $prec);
-						$priceVatBeforeRaw = \round($priceVat / $discountFactor, $prec);
+						$priceBeforeRaw = \round($price * 100 / $discountDivisor, $prec);
+						$priceVatBeforeRaw = \round($priceVat * 100 / $discountDivisor, $prec);
 					}
+				} else {
+					// Bez discountu SQL ukládá výsledek do `LPAD(CAST(X AS DECIMAL($priceLpad, $prec)), ...)`
+					// v CONCAT_WS, což zaokrouhlí na `$prec` míst. Explicit round tady tenhle CAST matchuje.
+					$price = \round($price, $prec);
+					$priceVat = \round($priceVat, $prec);
+				}
+
+				// Tie-break při stejné priority: vítězí nižší modifier-applied price (SQL LEAST semantika).
+				// První match v priority skupině nastaví best; další kandidáti téže priority ji přebijí jen
+				// pokud mají nižší cenu po modifierech.
+				if ($best !== null && $price >= $best['price']) {
+					continue;
 				}
 
 				$best = [
@@ -1177,8 +1224,7 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 					'priceVatBefore' => $priceVatBeforeRaw,
 					'pricelist' => $pricelistPK,
 				];
-
-				break;
+				$bestPriority = $meta['priority'];
 			}
 
 			if ($best === null) {
@@ -1257,26 +1303,34 @@ class LiveProductsProvider implements GeneralProductsCacheProvider
 
 			$pricelist = $pricelistMap[$product->priceList] ?? null;
 
+			// Surcharge bez intermediate round — viz `computeEffectivePrices` pro vysvětlení (SQL sqlHandlePrice
+			// nemá ROUND kolem `/ (1-s/100)`, outer ROUND/CAST se aplikuje až za celý výraz).
 			if ($pricelist !== null && $surchargeLevelPct > 0 && $pricelist->allowSurchargeLevel) {
 				$surchargeDivisor = 1 - ($surchargeLevelPct / 100);
 
 				if ($surchargeDivisor > 0) {
-					$price = \round($price / $surchargeDivisor, $prec);
-					$priceVat = \round($priceVat / $surchargeDivisor, $prec);
+					$price /= $surchargeDivisor;
+					$priceVat /= $surchargeDivisor;
 				}
 			}
 
 			$effectiveDiscount = \max(\min((int) ($product->discountLevelPct ?? 0), $maxProductDiscountLevel), $discountLevelPct);
 
 			if ($pricelist !== null && $pricelist->allowDiscountLevel && $effectiveDiscount > 0) {
-				$discountFactor = (100 - $effectiveDiscount) / 100;
-				$price = \round($price * $discountFactor, $prec);
-				$priceVat = \round($priceVat * $discountFactor, $prec);
+				$discountDivisor = 100 - $effectiveDiscount;
+				$price = \round($price * $discountDivisor / 100, $prec);
+				$priceVat = \round($priceVat * $discountDivisor / 100, $prec);
 
+				// Reverze přes `* 100 / divisor` matchuje SQL tvar a drží menší f64 chybu než
+				// `/ discountFactor` (viz `computeEffectivePrices` pro detail).
 				if ($priceBefore === 0.0) {
-					$priceBefore = \round($price / $discountFactor, $prec);
-					$priceVatBefore = \round($priceVat / $discountFactor, $prec);
+					$priceBefore = \round($price * 100 / $discountDivisor, $prec);
+					$priceVatBefore = \round($priceVat * 100 / $discountDivisor, $prec);
 				}
+			} else {
+				// Bez discountu SQL CAST na DECIMAL zaokrouhlí na `$prec` míst — explicit round tady matchuje.
+				$price = \round($price, $prec);
+				$priceVat = \round($priceVat, $prec);
 			}
 
 			$product->price = $price;

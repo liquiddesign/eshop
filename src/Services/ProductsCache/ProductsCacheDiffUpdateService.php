@@ -15,6 +15,9 @@ use Tracy\ILogger;
 
 /**
  * @deprecated Use GoProductsCacheDiffUpdateService instead
+ * @internal Not a part of the public API — use {@see GeneralProductsCacheProvider} instead.
+ *           Direct injection of this class bypasses the provider abstraction and breaks
+ *           the 'cache' / 'live' / 'rust' provider switch.
  */
 class ProductsCacheDiffUpdateService extends ProductsCacheBaseWarmUpService
 {

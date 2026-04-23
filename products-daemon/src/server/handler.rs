@@ -88,6 +88,11 @@ async fn dispatch(
 			let counts = query::all_category_counts(&snap, req)?;
 			Ok(ResponseBody::AllCategoryCounts { counts })
 		}
+		RequestEnvelope::GetSellableProductPKs => {
+			let snap = catalog.load_full();
+			let pks = query::sellable_product_pks(&snap);
+			Ok(ResponseBody::SellableProductPKs { pks })
+		}
 	}
 }
 

@@ -19,6 +19,9 @@ namespace Eshop\Services\ProductsCache;
  *
  * Callers should catch the common base {@see RustDaemonException} and degrade gracefully
  * (typically by delegating to `LiveProductsProvider`).
+ * @internal Not a part of the public API — use {@see GeneralProductsCacheProvider} instead.
+ *           Direct injection of this class bypasses the provider abstraction and breaks
+ *           the 'cache' / 'live' / 'rust' provider switch.
  */
 final class RustDaemonClient
 {
@@ -146,6 +149,37 @@ final class RustDaemonClient
 
 		foreach ($raw as $uuid => $count) {
 			$out[(string) $uuid] = (int) $count;
+		}
+
+		return $out;
+	}
+
+	/**
+	 * @return list<string> PKs produktů, kteří mají cenu alespoň v jedné kombinaci v aktuálním snapshotu.
+	 * @throws \Eshop\Services\ProductsCache\RustDaemonException
+	 */
+	public function getSellableProductPKs(): array
+	{
+		$resp = $this->request([
+			'method' => 'getSellableProductPKs',
+		]);
+
+		if (($resp['type'] ?? null) !== 'sellableProductPKs') {
+			throw new RustDaemonProtocolException('unexpected response type: ' . \json_encode($resp['type'] ?? null));
+		}
+
+		$raw = $resp['pks'] ?? [];
+
+		if (!\is_array($raw)) {
+			throw new RustDaemonProtocolException('sellableProductPKs.pks is not an array');
+		}
+
+		$out = [];
+
+		foreach ($raw as $pk) {
+			if (\is_string($pk) && $pk !== '') {
+				$out[] = $pk;
+			}
 		}
 
 		return $out;

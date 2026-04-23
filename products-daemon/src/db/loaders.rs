@@ -32,6 +32,16 @@ pub struct RawCatalog {
 	pub prices: Vec<RawPrice>,
 	pub pricelists: Vec<RawPricelist>,
 	pub visibility_items: Vec<RawVisibilityItem>,
+	pub visibility_lists: Vec<RawVisibilityList>,
+	/// UUID ceníků, které mají vazbu na aspoň jednoho zákazníka, zákaznickou skupinu nebo
+	/// merchanta (union čtyř junction tabulek). Cache `prices_*` plní jen ceníky z téhle množiny —
+	/// ostatní aktivní ceníky (orphan, admin-only) by byly dead weight. Daemon to respektuje
+	/// přes `PricelistMeta::has_customer_binding` v `query::sellable_product_pks`.
+	pub customer_bound_pricelists: Vec<String>,
+	/// UUID visibility listů s vazbou na zákazníka / skupinu / merchanta (union tří junction tabulek).
+	/// Stejná logika jako u `customer_bound_pricelists` — filtruje cache scope daemona na realně
+	/// použitelné visibility listy.
+	pub customer_bound_visibility_lists: Vec<String>,
 	pub categories: Vec<RawCategory>,
 	/// `eshop_attributevalue` — authoritative value→attribute membership for the facet
 	/// leave-one-out calculation. Without this mapping, every attribute value would get
@@ -157,6 +167,63 @@ pub struct RawVisibilityItem {
 }
 
 #[derive(Debug)]
+pub struct RawVisibilityList {
+	pub uuid: String,
+	pub is_active: bool,
+}
+
+/// Load UUIDs ceníků s customer vazbou — union přes junction tabulky. Mirror
+/// `ProductsCacheBaseWarmUpService::getAllPossibleVisibilityAndPriceListOptionsHelper`,
+/// které `allPriceLists` staví z `customerGroup->getDefaultPricelists()` + customer junction
+/// + favourite + merchant junction.
+async fn load_customer_bound_pricelists(pool: &Pool) -> Result<Vec<String>, SnapshotBuildError> {
+	let mut conn = pool.conn().await?;
+	let sql = r#"
+		SELECT DISTINCT fk_pricelist AS uuid FROM eshop_customergroup_nxn_eshop_pricelist WHERE fk_pricelist IS NOT NULL
+		UNION
+		SELECT DISTINCT fk_pricelist FROM eshop_customer_nxn_eshop_pricelist WHERE fk_pricelist IS NOT NULL
+		UNION
+		SELECT DISTINCT fk_pricelist FROM eshop_customer_nxn_eshop_pricelist_favourite WHERE fk_pricelist IS NOT NULL
+		UNION
+		SELECT DISTINCT fk_pricelist FROM eshop_merchant_nxn_eshop_pricelist WHERE fk_pricelist IS NOT NULL
+	"#;
+	let stream = conn.query_stream::<Row, _>(sql).await?;
+	stream
+		.map_err(SnapshotBuildError::from)
+		.and_then(|mut row| async move {
+			row.take::<String, _>("uuid").ok_or(SnapshotBuildError::Decode {
+				field: "customer_bound_pricelist.uuid",
+				reason: "missing".into(),
+			})
+		})
+		.try_collect::<Vec<_>>()
+		.await
+}
+
+/// Load UUIDs visibility listů s customer vazbou — union přes tři junction tabulky.
+async fn load_customer_bound_visibility_lists(pool: &Pool) -> Result<Vec<String>, SnapshotBuildError> {
+	let mut conn = pool.conn().await?;
+	let sql = r#"
+		SELECT DISTINCT fk_visibilitylist AS uuid FROM eshop_customergroup_nxn_eshop_visibilitylist WHERE fk_visibilitylist IS NOT NULL
+		UNION
+		SELECT DISTINCT fk_visibilitylist FROM eshop_customer_nxn_eshop_visibilitylist WHERE fk_visibilitylist IS NOT NULL
+		UNION
+		SELECT DISTINCT fk_visibilitylist FROM eshop_merchant_nxn_eshop_visibilitylist WHERE fk_visibilitylist IS NOT NULL
+	"#;
+	let stream = conn.query_stream::<Row, _>(sql).await?;
+	stream
+		.map_err(SnapshotBuildError::from)
+		.and_then(|mut row| async move {
+			row.take::<String, _>("uuid").ok_or(SnapshotBuildError::Decode {
+				field: "customer_bound_visibility_list.uuid",
+				reason: "missing".into(),
+			})
+		})
+		.try_collect::<Vec<_>>()
+		.await
+}
+
+#[derive(Debug)]
 pub struct RawCategory {
 	pub uuid: String,
 	pub parent_uuid: Option<String>,
@@ -201,6 +268,9 @@ pub async fn load_catalog_raw(pool: &Pool) -> Result<RawCatalog, SnapshotBuildEr
 		prices,
 		pricelists,
 		visibility_items,
+		visibility_lists,
+		customer_bound_pricelists,
+		customer_bound_visibility_lists,
 		categories,
 		attribute_values,
 		display_amounts,
@@ -216,6 +286,9 @@ pub async fn load_catalog_raw(pool: &Pool) -> Result<RawCatalog, SnapshotBuildEr
 		load_prices(pool),
 		load_pricelists(pool),
 		load_visibility(pool),
+		load_visibility_lists(pool),
+		load_customer_bound_pricelists(pool),
+		load_customer_bound_visibility_lists(pool),
 		load_categories(pool),
 		load_attribute_values(pool),
 		load_display_amounts(pool),
@@ -233,6 +306,9 @@ pub async fn load_catalog_raw(pool: &Pool) -> Result<RawCatalog, SnapshotBuildEr
 		prices,
 		pricelists,
 		visibility_items,
+		visibility_lists,
+		customer_bound_pricelists,
+		customer_bound_visibility_lists,
 		categories,
 		attribute_values,
 		display_amounts,
@@ -617,6 +693,35 @@ async fn load_visibility(pool: &Pool) -> Result<Vec<RawVisibilityItem>, Snapshot
 				recommended: recommended != 0,
 				unavailable: unavailable != 0,
 				priority: row.take("priority").unwrap_or(0),
+			})
+		})
+		.try_collect::<Vec<_>>()
+		.await
+}
+
+/// Load `eshop_visibilitylist` metadata. Tabulka má flag `hidden` (nikoliv `isActive` jako
+/// `eshop_pricelist`) — mapujeme na `is_active = !hidden`, aby snapshot držel jednotnou
+/// sémantiku "aktivní list" napříč metadata strukturami. Used by `query::sellable_product_pks`
+/// to restrict visible products to items sitting on an active list.
+async fn load_visibility_lists(pool: &Pool) -> Result<Vec<RawVisibilityList>, SnapshotBuildError> {
+	let mut conn = pool.conn().await?;
+	let sql = r#"
+		SELECT
+			uuid,
+			COALESCE(hidden, 0) AS hidden
+		FROM eshop_visibilitylist
+	"#;
+	let stream = conn.query_stream::<Row, _>(sql).await?;
+	stream
+		.map_err(SnapshotBuildError::from)
+		.and_then(|mut row| async move {
+			let hidden: u8 = row.take("hidden").unwrap_or(0);
+			Ok(RawVisibilityList {
+				uuid: row.take("uuid").ok_or(SnapshotBuildError::Decode {
+					field: "visibility_list.uuid",
+					reason: "missing".into(),
+				})?,
+				is_active: hidden == 0,
 			})
 		})
 		.try_collect::<Vec<_>>()

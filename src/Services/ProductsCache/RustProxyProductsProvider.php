@@ -38,6 +38,9 @@ use Tracy\ILogger;
  *   reach the daemon even when other extensions are registered.
  *
  * Failure never propagates to the caller: the fallback provider always runs and its result is returned.
+ * @internal Not a part of the public API — use {@see GeneralProductsCacheProvider} instead.
+ *           Direct injection of this class bypasses the provider abstraction and breaks
+ *           the 'cache' / 'live' / 'rust' provider switch.
  */
 final class RustProxyProductsProvider implements GeneralProductsCacheProvider
 {
@@ -132,6 +135,20 @@ final class RustProxyProductsProvider implements GeneralProductsCacheProvider
 	public function updatePricesCacheTable(array $customers = [], array $customerGroups = [], array $merchants = []): void
 	{
 		$this->fallback->updatePricesCacheTable($customers, $customerGroups, $merchants);
+	}
+
+	/**
+	 * @return list<string>
+	 */
+	public function getSellableProductPKs(): array
+	{
+		try {
+			return $this->client->getSellableProductPKs();
+		} catch (RustDaemonException $e) {
+			Debugger::log($e, ILogger::EXCEPTION);
+
+			return $this->fallback->getSellableProductPKs();
+		}
 	}
 
 	public function getProductsFromCacheTable(
@@ -328,11 +345,6 @@ final class RustProxyProductsProvider implements GeneralProductsCacheProvider
 
 			return $this->fallback->getCategoryCount($filters, $priceLists, $visibilityLists, $debug);
 		}
-	}
-
-	public function hasInternalCategoryCountCache(): bool
-	{
-		return $this->fallback->hasInternalCategoryCountCache();
 	}
 
 	public function getIndexByCustomer(Customer|Merchant $customerMerchant): string

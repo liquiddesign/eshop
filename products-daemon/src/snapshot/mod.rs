@@ -152,6 +152,11 @@ pub struct PricelistMeta {
 	pub allow_discount_level: bool,
 	pub allow_surcharge: bool,
 	pub is_active: bool,
+	/// `true` když má ceník aspoň jednu vazbu v junction tabulkách (customer group / customer /
+	/// customer favourite / merchant). `ProductsCacheDiffUpdateService` generuje cache jen pro
+	/// ceníky z téhle množiny — orphan aktivní ceníky (admin-only, osiřelé) do cache nepadají.
+	/// `query::sellable_product_pks` totéž respektuje, aby výstup odpovídal cache sémantice.
+	pub has_customer_binding: bool,
 }
 
 impl PricelistMeta {
@@ -167,6 +172,32 @@ impl PricelistMeta {
 			allow_discount_level: false,
 			allow_surcharge: false,
 			is_active: false,
+			has_customer_binding: false,
+		}
+	}
+}
+
+/// Static metadata per visibility list — replicated into the snapshot so the hot path doesn't JOIN.
+/// Mirror `PricelistMeta`: `visibility_lists[i].idx == i`, stable by construction in `SnapshotBuilder`.
+#[derive(Debug, Copy, Clone)]
+pub struct VisibilityListMeta {
+	pub idx: VisibilityListIdx,
+	pub is_active: bool,
+	/// Same sémantika jako `PricelistMeta::has_customer_binding`, jen pro visibility listy
+	/// — vazba přes `eshop_customergroup_nxn_eshop_visibilitylist`,
+	/// `eshop_customer_nxn_eshop_visibilitylist` nebo `eshop_merchant_nxn_eshop_visibilitylist`.
+	pub has_customer_binding: bool,
+}
+
+impl VisibilityListMeta {
+	/// Neutral fallback for a visibility list idx that never made it into the snapshot —
+	/// treated as inactive so `sellable_product_pks` won't leak products attached to unknown lists.
+	#[must_use]
+	pub const fn neutral() -> Self {
+		Self {
+			idx: 0,
+			is_active: false,
+			has_customer_binding: false,
 		}
 	}
 }
@@ -249,6 +280,11 @@ pub struct CatalogSnapshot {
 	pub pricelist_pk_to_idx: AHashMap<smol_str::SmolStr, PricelistIdx>,
 	pub visibility_items: Vec<VisibilityItem>,
 	pub visibility_by_product: AHashMap<ProductIdx, SmallVec<[u32; 4]>>,
+	/// Per-`VisibilityListIdx` metadata. Index-matched with `visibility_list_pool` — entry `i`
+	/// describes the list whose UUID lives at `visibility_list_pool.get(i)`. Populated in
+	/// `SnapshotBuilder::build` before visibility items so `VisibilityItem::visibility_list`
+	/// idx always resolves to a real meta entry.
+	pub visibility_lists: Vec<VisibilityListMeta>,
 	pub categories: Vec<CategoryNode>,
 
 	/// Per-direct-category precomputed fanout: `direct_idx → [direct_idx, flagged_descendants,
@@ -375,6 +411,7 @@ impl CatalogSnapshot {
 			pricelist_pk_to_idx: AHashMap::new(),
 			visibility_items: Vec::new(),
 			visibility_by_product: AHashMap::new(),
+			visibility_lists: Vec::new(),
 			categories: Vec::new(),
 			category_bump_sets: AHashMap::new(),
 			attribute_pool: InternPool::new("attribute", 0),

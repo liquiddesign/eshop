@@ -69,7 +69,7 @@ class MerchantPresenter extends BackendPresenter
 	public VisibilityListRepository $visibilityListRepository;
 
 	#[Inject]
-	public GeneralProductsCacheProvider $productsCacheGetterService;
+	public GeneralProductsCacheProvider $productsCacheProvider;
 
 	#[Inject]
 	public SettingsService $settingsService;
@@ -253,7 +253,7 @@ class MerchantPresenter extends BackendPresenter
 			);
 
 			try {
-				$index = $merchant ? $this->productsCacheGetterService->getIndexByCustomer($merchant) : null;
+				$index = $merchant ? $this->productsCacheProvider->getIndexByCustomer($merchant) : null;
 
 				$form->addGroup('Cache');
 				$form->addText('cacheIndex', 'Index')
@@ -348,7 +348,7 @@ class MerchantPresenter extends BackendPresenter
 	public function handleRefreshCache(Merchant $merchant): void
 	{
 		try {
-			$this->productsCacheGetterService->updatePricesCacheTable([], [], [$merchant->getPK()]);
+			$this->productsCacheProvider->updatePricesCacheTable([], [], [$merchant->getPK()]);
 
 			$this->flashMessage('Provedeno', 'success');
 		} catch (\Exception $e) {

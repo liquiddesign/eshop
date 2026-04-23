@@ -8,21 +8,29 @@ use Eshop\DB\Merchant;
 use Eshop\DB\PricelistRepository;
 use Eshop\Services\SettingsService;
 use Eshop\ShopperUser;
+use Nette\Caching\Cache;
+use Nette\Caching\Storage;
 use Nette\Utils\Arrays;
 
 /**
  * Cache-based products provider — reads from a separate cache DB renewed by a Go program.
  * @deprecated Use LiveProductsProvider instead. This provider relies on an external cache database
  *             and will be removed in a future version.
+ * @internal Not a part of the public API — use {@see GeneralProductsCacheProvider} instead.
+ *           Direct injection of this class bypasses the provider abstraction and breaks
+ *           the 'cache' / 'live' / 'rust' provider switch.
  */
 class ProductsCacheProvider implements GeneralProductsCacheProvider
 {
 	private bool|null $isReady = null;
 
 	/**
+	 * Per-request memoizace celé mapy category → count pro daný filter-set.
 	 * @var array<string, array<int|string, int>>
 	 */
 	private array $cachedCategoryCounts = [];
+
+	private readonly Cache $categoryCountCache;
 
 	public function __construct(
 		private readonly ProductsCacheGetterService $productsCacheProviderService,
@@ -31,7 +39,9 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 		private readonly PricelistRepository $pricelistRepository,
 		private readonly SettingsService $settingsService,
 		private readonly CategoryRepository $categoryRepository,
+		Storage $storage,
 	) {
+		$this->categoryCountCache = new Cache($storage, 'productsCacheCategoryCounts');
 	}
 
 	/**
@@ -240,18 +250,37 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 		$this->productsCacheDiffUpdateService->updatePricesTableDiff($customers, $customerGroups, $merchants);
 	}
 
-	public function hasInternalCategoryCountCache(): bool
+	/**
+	 * @return list<string>
+	 */
+	public function getSellableProductPKs(): array
 	{
-		// Cache-based provider spoléhá na externí Nette Cache v `CategoryRepository::getCounts`
-		// pro cross-request caching — getProductsFromCacheTable(countCategories: true) se při chybějícím
-		// Nette Cache entry musí znovu provést. Per-request memoizace zde je jen jako mikro-optimalizace.
-		return false;
+		$connection = $this->productsCacheDiffUpdateService->getConnection();
+
+		/** @var list<string> $tables */
+		$tables = $connection
+			->query("SELECT TABLE_NAME FROM information_schema.tables
+			         WHERE TABLE_SCHEMA = DATABASE()
+			         AND (table_name LIKE 'prices\\_%' OR table_name LIKE 'cache\\_prices\\_%');")
+			->fetchAll(\PDO::FETCH_COLUMN);
+
+		$uniqueProducts = [];
+
+		foreach ($tables as $table) {
+			$local = $connection->rows(["`$table`"], ['product'])->toArrayOf('product');
+
+			foreach ($local as $pk) {
+				$uniqueProducts[$pk] = true;
+			}
+		}
+
+		return \array_keys($uniqueProducts);
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function getCategoryCount(array $filters, array $priceLists = [], array $visibilityLists = [], bool $debug = false,): int|null
+	public function getCategoryCount(array $filters, array $priceLists = [], array $visibilityLists = [], bool $debug = false): int|null
 	{
 		$category = $filters['category'] ?? null;
 
@@ -264,11 +293,19 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 		/** @var \Eshop\DB\Category $category */
 		$category = $this->categoryRepository->many()->setSelect(['this.id'])->where('this.path', $category)->first(true);
 
-		$dataCacheIndex = \serialize($filters) . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists));
-		$dataCacheIndex = \md5($dataCacheIndex);
+		$dataCacheIndex = \md5(\serialize($filters) . '_' . \serialize(\array_keys($priceLists)) . '_' . \serialize(\array_keys($visibilityLists)));
 
 		if (isset($this->cachedCategoryCounts[$dataCacheIndex])) {
 			return $this->cachedCategoryCounts[$dataCacheIndex][$category->id] ?? 0;
+		}
+
+		/** @var array<int|string, int>|null $cached */
+		$cached = $this->categoryCountCache->load($dataCacheIndex);
+
+		if ($cached !== null) {
+			$this->cachedCategoryCounts[$dataCacheIndex] = $cached;
+
+			return $cached[$category->id] ?? 0;
 		}
 
 		$result = $this->getProductsFromCacheTable(
@@ -279,8 +316,13 @@ class ProductsCacheProvider implements GeneralProductsCacheProvider
 			countCategories: true,
 		);
 
-		$this->cachedCategoryCounts[$dataCacheIndex] = $result['categoriesCounts'] ?? [];
+		$counts = \is_array($result) ? ($result['categoriesCounts'] ?? []) : [];
+		$this->cachedCategoryCounts[$dataCacheIndex] = $counts;
 
-		return $this->cachedCategoryCounts[$dataCacheIndex][$category->id] ?? 0;
+		$this->categoryCountCache->save($dataCacheIndex, $counts, [
+			Cache::Tags => ['categories', 'products', 'pricelists', self::PRODUCTS_PROVIDER_CACHE_TAG],
+		]);
+
+		return $counts[$category->id] ?? 0;
 	}
 }

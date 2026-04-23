@@ -29,6 +29,11 @@ pub enum RequestEnvelope {
 	/// per direct category). Caller má vynechat `filters.category_uuids`; pokud pošle, daemon
 	/// omezí mask na subtree té kategorie (užitečné pro menu-stromek pod aktuální kategorií).
 	GetAllCategoryCounts(GetAllCategoryCountsRequest),
+	/// Vrátí seznam UUID všech produktů, které mají nenulovou cenu v aspoň jednom aktivním
+	/// ceníku. Určeno pro export exportéry (Algolia) — odpovídá `ProductsCacheProvider::getSellableProductPKs`.
+	/// Explicitní rename aby wire name PKs byl zachován přesně (heck camelCase by PKs špatně přepsal).
+	#[serde(rename = "getSellableProductPKs")]
+	GetSellableProductPKs,
 }
 
 /// Server response envelope. Always includes `fallback_required`; PHP treats `true` as
@@ -73,6 +78,12 @@ pub enum ResponseBody {
 	/// `LiveProductsProvider` and returns its result instead.
 	FallbackRequired {
 		reason: String,
+	},
+	/// Seznam UUID produktů s nenulovou cenou v aspoň jednom aktivním ceníku.
+	/// Explicitní rename aby wire name PKs byl zachován přesně.
+	#[serde(rename = "sellableProductPKs")]
+	SellableProductPKs {
+		pks: Vec<String>,
 	},
 }
 

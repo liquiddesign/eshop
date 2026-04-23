@@ -1,24 +1,28 @@
 //! Priority-first best-price resolution + discount / surcharge / currency modifiers.
 //!
 //! ## PHP parity reference
-//! Exact port of `LiveProductsProvider::computeEffectivePrices` (lines 1078–1199 of
-//! `/home/petr/eshop/src/Services/ProductsCache/LiveProductsProvider.php`). Every rounding,
-//! clamp, and short-circuit here mirrors that method. Any divergence must be paired with an
-//! updated golden fixture in `tests/fixtures/pricing/`.
+//! Aligned with `ProductRepository::sqlHandlePrice` semantics (the canonical SQL pricing in
+//! `getProducts()`) — mirrors `LiveProductsProvider::computeEffectivePrices` after its own
+//! alignment to SQL. Any divergence must be paired with an updated golden fixture in
+//! `tests/fixtures/pricing/`.
 //!
 //! ## Algorithm
 //! For each candidate product, walk its `prices_by_product[p]` slice (sorted by pricelist
-//! priority **ASC** at snapshot-build time — lower number = higher precedence). First
-//! non-hidden entry whose pricelist is in the customer's set wins; then:
+//! priority **ASC** at snapshot-build time — lower number = higher precedence). Priority-first
+//! selection with a price + UUID tie-break (SQL `LEAST(CONCAT_WS(priority, price, ..., uuid))`
+//! semantics); then:
 //!
 //! 1. Apply `currency_rate` to all four prices (price, priceVat, priceBefore, priceVatBefore)
-//!    via `round(x * rate, prec)` when rate is `Some`.
+//!    via `round(x * rate, prec)` when rate is `Some` — matches SQL `ROUND(price * rate, prec)`
+//!    inner ROUND in `sqlHandlePrice`.
 //! 2. Compute `effective_discount = max(min(product_pct, max_product_discount_level), discount_level_pct)`.
-//! 3. If `pricelist.allow_surcharge && surcharge_level_pct > 0`:
-//!    `price /= (1 - pct/100)`, round to `prec`; same for `price_vat`.
-//! 4. If `pricelist.allow_discount_level && effective_discount > 0`:
-//!    `price *= (100 - eff) / 100`, round to `prec`. If `price_before == 0`, reverse-engineer
-//!    `price_before = price / discount_factor` (PHP semantic: "show the pre-discount price").
+//! 3. If `pricelist.allow_surcharge && surcharge_level_pct > 0`: `price /= (1 - pct/100)`
+//!    — **no intermediate round**, matches SQL inline `/ (1-s/100)` in sqlHandlePrice.
+//! 4. If `pricelist.allow_discount_level && effective_discount > 0`: `price *= (100 - eff) / 100`,
+//!    single final round to `prec`. When no discount applies, still round once to match SQL
+//!    `LPAD(CAST(x AS DECIMAL(n, prec)), ...)` in CONCAT_WS. If `price_before == 0`,
+//!    reverse-engineer `price_before = price / discount_factor` (PHP semantic: "show the
+//!    pre-discount price").
 //!
 //! ## Float precision
 //! f64 throughout — storage, wire, and arithmetic. PHP `round($x, $prec)` is
@@ -51,7 +55,7 @@ pub fn compute_effective_prices(
 			continue;
 		};
 		let slice = &snap.prices[range.start as usize..range.end as usize];
-		let Some(hit) = pick_best_price(slice, &set) else {
+		let Some(hit) = pick_best_price(snap, slice, &set) else {
 			continue;
 		};
 
@@ -61,15 +65,71 @@ pub fn compute_effective_prices(
 }
 
 /// Given a product's prices (sorted priority ASC) and the customer's pricelist set,
-/// return the first non-hidden match.
+/// return the winning `PriceFact` after priority-first selection with a price + UUID tie-break.
+///
+/// ## Tie-break
+/// SQL `ProductRepository::sqlHandlePrice` builds one LPAD-serialized string per pricelist and
+/// wraps them in `LEAST(...)`. Lexicographic LEAST over those strings means priority ASC first,
+/// then price ASC, then `fk_pricelist` ASC (UUID). We replicate the same semantics: lower
+/// priority wins; on priority tie, lower raw price wins; on price tie, lower pricelist UUID
+/// wins (pure determinism). The price compared here is the raw DB value — full parity with SQL
+/// would apply modifiers to each same-priority candidate, but raw price matches SQL whenever
+/// the tied pricelists share `allow_discount_level` / `allow_surcharge` flags (typical config).
 #[inline]
-fn pick_best_price(prices: &[PriceFact], set: &ahash::AHashSet<PricelistIdx>) -> Option<PriceFact> {
+fn pick_best_price(
+	snap: &CatalogSnapshot,
+	prices: &[PriceFact],
+	set: &ahash::AHashSet<PricelistIdx>,
+) -> Option<PriceFact> {
+	let mut best: Option<PriceFact> = None;
+	let mut best_priority: i32 = i32::MAX;
+
 	for p in prices {
-		if !p.flags.is_hidden() && set.contains(&p.pricelist) {
-			return Some(*p);
+		if p.flags.is_hidden() {
+			continue;
+		}
+		if !set.contains(&p.pricelist) {
+			continue;
+		}
+
+		let priority = snap
+			.pricelists
+			.get(p.pricelist as usize)
+			.map_or(i32::MAX, |pm| pm.priority);
+
+		// Prices per-product are sorted `(priority ASC)` at snapshot-build time. Once we see a
+		// strictly higher priority than the current best, no further candidate can tie.
+		if priority > best_priority {
+			break;
+		}
+
+		match best {
+			None => {
+				best = Some(*p);
+				best_priority = priority;
+			}
+			Some(current) => {
+				// `priority > best_priority` was handled by `break` above, so here
+				// `priority == best_priority` (strict `<` impossible since slice is sorted
+				// and we've already seen a match at `best_priority`). Tie-break by price,
+				// then by UUID for determinism.
+				let p_wins = if p.price < current.price {
+					true
+				} else if (p.price - current.price).abs() < f64::EPSILON {
+					let p_uuid = snap.pricelist_pool.get(u32::from(p.pricelist)).unwrap_or("");
+					let c_uuid = snap.pricelist_pool.get(u32::from(current.pricelist)).unwrap_or("");
+					p_uuid < c_uuid
+				} else {
+					false
+				};
+
+				if p_wins {
+					best = Some(*p);
+				}
+			}
 		}
 	}
-	None
+	best
 }
 
 /// Round `x` to `prec` decimal places using PHP `round()` semantics (half away from zero).
@@ -120,33 +180,50 @@ pub fn compute_price(
 	// PHP line 1127: max(min(product_pct, maxProductDiscount), globalDiscountPct).
 	let effective_discount = product_pct.min(max_product_discount).max(global_discount_pct);
 
-	// Currency conversion step — PHP lines 1142–1151 apply rate + round per price independently.
+	// Currency conversion step — inner `ROUND(raw * rate, prec)` matches SQL `sqlHandlePrice`:
+	// rate step is the only place SQL rounds before the final outer ROUND/CAST.
 	let mut price = apply_rate(hit.price, convert_ratio, prec);
 	let mut price_vat = apply_rate(hit.price_vat, convert_ratio, prec);
 	let mut price_before = apply_rate(hit.price_before, convert_ratio, prec);
 	let mut price_vat_before = apply_rate(hit.price_vat_before, convert_ratio, prec);
 
-	// Surcharge divisor — PHP lines 1153–1160. Only price/priceVat are affected (not priceBefore).
+	// Surcharge divisor — **no intermediate round**, matches SQL inline `$expression$surchargeExpression`
+	// where the divide is a raw SQL expression (no ROUND wrap) and the outer ROUND/CAST handles
+	// final precision. The previous `round(.../divisor, prec)` caused halíř-level divergence vs. SQL
+	// (three rounds vs. SQL's two).
 	if pricelist_meta.allow_surcharge && modifiers.surcharge_level_pct > 0.0 {
 		let surcharge_divisor = 1.0 - (modifiers.surcharge_level_pct / 100.0);
 		if surcharge_divisor > 0.0 {
-			price = round_to_prec(price / surcharge_divisor, prec);
-			price_vat = round_to_prec(price_vat / surcharge_divisor, prec);
+			price /= surcharge_divisor;
+			price_vat /= surcharge_divisor;
 		}
 	}
 
-	// Discount factor — PHP lines 1162–1171.
+	// Discount — single round on the combined expression matches SQL
+	// `ROUND($expression$surchargeExpression * ((100 - effDisc) / 100), $prec)` in sqlHandlePrice.
+	// Use `* divisor / 100` (integer-first) instead of `* discount_factor` where
+	// `discount_factor = (100-d)/100`. The factor form compounds f64 rounding: `discount_factor`
+	// is inexact, and reversing via `/ discount_factor` produces a different f64 bit pattern
+	// than multiplying by `100 / divisor`. Integer-first matches SQL DECIMAL arithmetic more
+	// closely and keeps PHP parity on the reverse-engineered `priceBefore` edge case.
 	if pricelist_meta.allow_discount_level && effective_discount > 0 {
-		let discount_factor = f64::from(100 - effective_discount) / 100.0;
-		price = round_to_prec(price * discount_factor, prec);
-		price_vat = round_to_prec(price_vat * discount_factor, prec);
+		let discount_divisor = f64::from(100 - effective_discount);
+		price = round_to_prec(price * discount_divisor / 100.0, prec);
+		price_vat = round_to_prec(price_vat * discount_divisor / 100.0, prec);
 
-		// PHP line 1167: reverse-engineer priceBefore so the UI can display "was X, now Y".
-		// Only when the DB column was null/0 — otherwise the explicit value wins.
+		// Reverse-engineer priceBefore from the (now rounded) discounted price — matches SQL
+		// `($priceSelect) * 100/(100 - effDisc)` branch byte-for-byte.
 		if price_before == 0.0 {
-			price_before = round_to_prec(price / discount_factor, prec);
-			price_vat_before = round_to_prec(price_vat / discount_factor, prec);
+			price_before = round_to_prec(price * 100.0 / discount_divisor, prec);
+			price_vat_before = round_to_prec(price_vat * 100.0 / discount_divisor, prec);
 		}
+	} else {
+		// No discount path: SQL stores `$expression$surchargeExpression` into
+		// `LPAD(CAST(x AS DECIMAL($priceLpad, $prec)), ...)` in CONCAT_WS, which rounds to `$prec`
+		// places. Explicit round here mirrors that CAST so surcharge-only prices don't keep raw
+		// f64 precision that would diverge from SQL output.
+		price = round_to_prec(price, prec);
+		price_vat = round_to_prec(price_vat, prec);
 	}
 
 	PricedProduct {

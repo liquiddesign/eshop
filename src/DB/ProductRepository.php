@@ -1477,12 +1477,16 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			return "'$val'";
 		}, $visibilityLists));
 
+		// Tie-break on `eshop_visibilitylist.uuid ASC` po priority — při stejné priority není sémantický
+		// důvod preferovat jeden list před druhým, takže volíme deterministický pořadový klíč. Bez něj
+		// MariaDB vrátí libovolný řádek v tieu (podle fyzického uložení), což by způsobilo nestabilní
+		// výstupy mezi volání/prostředími.
 		$collection->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid AND visibilityListItem.fk_visibilityList = (
             SELECT fk_visibilityList
                 FROM eshop_visibilitylistitem
                 JOIN eshop_visibilitylist ON eshop_visibilitylist.uuid = eshop_visibilitylistitem.fk_visibilityList
                 WHERE fk_product = this.uuid AND ' . ($visibilityLists ? 'eshop_visibilitylist.uuid IN (' . $visibilityLists . ')' : '1=0') . '
-                ORDER BY eshop_visibilitylist.priority ASC
+                ORDER BY eshop_visibilitylist.priority ASC, eshop_visibilitylist.uuid ASC
                 LIMIT 1
             )
         ');
