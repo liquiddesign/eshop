@@ -2058,6 +2058,7 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 					$product,
 					$supplierProduct,
 					$supplier->getPK(),
+					currentImageFileName: null,
 				);
 			}
 

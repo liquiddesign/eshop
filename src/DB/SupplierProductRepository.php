@@ -463,7 +463,15 @@ class SupplierProductRepository extends \StORM\Repository
 				continue;
 			}
 
-			$this->syncPhotosForProduct($product, $draft, $supplierId, $sourceImageDirectory, $galleryImageDirectory, $overwrite);
+			$this->syncPhotosForProduct(
+				$product,
+				$draft,
+				$supplierId,
+				$sourceImageDirectory,
+				$galleryImageDirectory,
+				$overwrite,
+				$productsMap[$uuid]->imageFileName ?? null,
+			);
 		}
 
 		$productsToFetch = [];
@@ -535,6 +543,7 @@ class SupplierProductRepository extends \StORM\Repository
 		string|null $sourceImageDirectory = null,
 		string|null $galleryImageDirectory = null,
 		bool $overwrite = false,
+		string|null $currentImageFileName = null,
 	): void {
 		$sep = \DIRECTORY_SEPARATOR;
 		$photoRepository = $this->getConnection()->findRepository(Photo::class);
@@ -555,7 +564,7 @@ class SupplierProductRepository extends \StORM\Repository
 			return;
 		}
 
-		if ($product->imageFileName === null || $product->imageFileName === '') {
+		if ($currentImageFileName === null || $currentImageFileName === '') {
 			$firstPhoto = Arrays::first($supplierProductPhotos);
 
 			if ($firstPhoto instanceof SupplierProductPhoto) {
