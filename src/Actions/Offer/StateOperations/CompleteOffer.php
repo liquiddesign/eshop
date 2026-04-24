@@ -7,11 +7,13 @@ namespace Eshop\Actions\Offer\StateOperations;
 use Base\BaseAction;
 use Carbon\Carbon;
 use Eshop\Actions\Offer\GetOfferState;
+use Eshop\DB\Merchant;
 use Eshop\DB\Offer;
 use Eshop\DB\OfferLogItem;
 use Eshop\DB\OfferLogItemRepository;
 use Eshop\DB\OfferState;
 use Eshop\Services\Offer\OfferTypeStrategyResolver;
+use Nette\Utils\Arrays;
 
 class CompleteOffer extends BaseAction
 {
@@ -25,7 +27,7 @@ class CompleteOffer extends BaseAction
 	/**
 	 * @throws \Eshop\Actions\Offer\StateOperations\UnauthorizedStateChangeException
 	 */
-	public function execute(Offer $offer): void
+	public function execute(Offer $offer, Merchant|null $actor = null): void
 	{
 		$this->canCompleteOffer($offer);
 
@@ -41,7 +43,7 @@ class CompleteOffer extends BaseAction
 			$offer,
 			OfferLogItem::COMPLETED,
 			null,
-			$offer->merchant
+			$actor ?? $offer->merchant,
 		);
 
 		$this->onOfferCompleted($offer);
@@ -53,8 +55,10 @@ class CompleteOffer extends BaseAction
 	public function canCompleteOffer(Offer $offer): void
 	{
 		$state = $this->getOfferState->execute($offer);
+		$strategy = $this->strategyResolver->resolve($offer);
+		$allowedTransitions = $strategy->getAllowedTransitions($state);
 
-		if ($state === OfferState::Sent || $state === OfferState::Approved) {
+		if (Arrays::contains($allowedTransitions, OfferState::Completed)) {
 			return;
 		}
 
