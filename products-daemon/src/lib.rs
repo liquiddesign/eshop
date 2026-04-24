@@ -24,6 +24,7 @@
 pub mod config;
 pub mod db;
 pub mod error;
+pub mod metrics;
 pub mod protocol;
 pub mod query;
 pub mod refresher;
@@ -33,6 +34,7 @@ pub mod snapshot;
 pub use crate::{
 	config::Config,
 	error::{DaemonError, ProtocolError, RequestError, Result, SnapshotBuildError},
+	metrics::DaemonMetrics,
 	snapshot::CatalogSnapshot,
 };
 

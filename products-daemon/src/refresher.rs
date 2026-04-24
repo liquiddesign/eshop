@@ -10,20 +10,27 @@ use arc_swap::ArcSwap;
 use tokio::time::{interval, MissedTickBehavior};
 use tracing::{error, info, instrument};
 
-use crate::{db::Pool, snapshot::CatalogSnapshot};
+use crate::{db::Pool, metrics::DaemonMetrics, snapshot::CatalogSnapshot};
 
 pub struct Refresher {
 	pool: Pool,
 	catalog: Arc<ArcSwap<CatalogSnapshot>>,
+	metrics: Arc<DaemonMetrics>,
 	interval: Duration,
 }
 
 impl Refresher {
 	#[must_use]
-	pub const fn new(pool: Pool, catalog: Arc<ArcSwap<CatalogSnapshot>>, interval: Duration) -> Self {
+	pub const fn new(
+		pool: Pool,
+		catalog: Arc<ArcSwap<CatalogSnapshot>>,
+		metrics: Arc<DaemonMetrics>,
+		interval: Duration,
+	) -> Self {
 		Self {
 			pool,
 			catalog,
+			metrics,
 			interval,
 		}
 	}
@@ -61,6 +68,7 @@ impl Refresher {
 		);
 		let new_snap = CatalogSnapshot::load_from_pool(&self.pool).await?;
 		self.catalog.store(Arc::new(new_snap));
+		self.metrics.record_snapshot();
 		Ok(())
 	}
 }

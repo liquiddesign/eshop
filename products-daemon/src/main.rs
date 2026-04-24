@@ -18,7 +18,7 @@ use tokio::signal;
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
-use abel_products_daemon::{db::Pool, refresher::Refresher, server::Server, CatalogSnapshot, Config};
+use abel_products_daemon::{db::Pool, refresher::Refresher, server::Server, CatalogSnapshot, Config, DaemonMetrics};
 
 // jemalloc: lower peak RSS during snapshot hot-swap, faster short-lived alloc on query path.
 #[cfg(not(target_env = "msvc"))]
@@ -96,16 +96,27 @@ async fn async_main(config: Config, once: bool, benchmark_mode: bool) -> Result<
 	);
 
 	let catalog = Arc::new(ArcSwap::from(Arc::new(initial)));
+	// Shared metriky — held Arc'em od server + refresher + handler. `DaemonMetrics::new`
+	// stampuje `started_at` _teď_, ne při compile-time. Iniciální snapshot building probíhal
+	// před tímto bodem, ale zaznamenáváme ho jako první entry v historii — z pohledu Tracy
+	// panelu je to "kdy byl daemon schopný servírovat" a to je po initial buildu.
+	let metrics = Arc::new(DaemonMetrics::new());
+	metrics.record_snapshot();
 
 	if once {
 		info!("--once: initial snapshot built, exiting");
 		return Ok(());
 	}
 
-	let server = Server::bind(&config.socket_path, Arc::clone(&catalog)).await?;
-	let refresher = pool
-		.as_ref()
-		.map(|p| Refresher::new(p.clone(), Arc::clone(&catalog), config.refresh_interval));
+	let server = Server::bind(&config.socket_path, Arc::clone(&catalog), Arc::clone(&metrics)).await?;
+	let refresher = pool.as_ref().map(|p| {
+		Refresher::new(
+			p.clone(),
+			Arc::clone(&catalog),
+			Arc::clone(&metrics),
+			config.refresh_interval,
+		)
+	});
 
 	// Drive server + refresher together. Shutdown on SIGTERM/SIGINT.
 	let shutdown = shutdown_signal();

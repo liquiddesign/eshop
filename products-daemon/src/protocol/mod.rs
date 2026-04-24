@@ -34,6 +34,9 @@ pub enum RequestEnvelope {
 	/// Explicitní rename aby wire name PKs byl zachován přesně (heck camelCase by PKs špatně přepsal).
 	#[serde(rename = "getSellableProductPKs")]
 	GetSellableProductPKs,
+	/// Diagnostické runtime metriky pro Tracy panel (uptime, RSS, total requests,
+	/// avg/max latence, historie snapshot buildů). Nemutuje stav; cheap, safe to poll.
+	GetStats,
 }
 
 /// Server response envelope. Always includes `fallback_required`; PHP treats `true` as
@@ -85,6 +88,50 @@ pub enum ResponseBody {
 	SellableProductPKs {
 		pks: Vec<String>,
 	},
+	/// Diagnostické metriky daemonu pro Tracy panel.
+	Stats(Box<StatsResponse>),
+}
+
+/// Snapshot runtime metrik daemonu — konzumuje PHP `RustDaemonBarPanel`.
+///
+/// Request-countery jsou rozdělené do dvou kategorií:
+/// - `total_requests` — kumulativní počet **všech** volání (query + ping + getStats). Tracy
+///   panel polling i health-check ping se tedy v něm projeví. Ukazatel "daemon je živý".
+/// - `work_requests` + `avg_request_ms` + `max_request_ms` — jen "skutečná práce" (query
+///   proti snapshotu, včetně fallback_required). Meta-calls (ping, getStats) jsou z latencí
+///   vyřazené, aby polling nezkresloval business SLO.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StatsResponse {
+	/// Unix epoch seconds, kdy byl proces startován.
+	pub started_at_unix: u64,
+	/// Uptime v celých sekundách.
+	pub uptime_secs: u64,
+	/// Resident-set-size procesu v MB (z `/proc/self/statm`), `None` pokud se nepodařilo přečíst.
+	pub rss_mb: Option<u64>,
+	/// Kumulativní počet zpracovaných requestů (všechny metody dohromady, včetně ping/getStats).
+	pub total_requests: u64,
+	/// Počet "work" requestů (query proti snapshotu, bez ping/getStats). Podmnožina
+	/// `total_requests`. Je to to, co počítá avg/max latence.
+	pub work_requests: u64,
+	/// Průměrná latence jednoho work requestu v ms. `None` pokud `work_requests == 0`.
+	pub avg_request_ms: Option<f64>,
+	/// Nejpomalejší zpracovaný work request v ms.
+	pub max_request_ms: f64,
+	/// Bounded historie wallclock časů snapshot buildů (Unix epoch seconds) — initial
+	/// build + každý drift rebuild. Nejnovější naposledy.
+	pub snapshot_timestamps_unix: Vec<u64>,
+	/// Počet produktů v aktuálně publikovaném snapshotu.
+	pub product_count: u64,
+	/// Počet price rows v aktuálně publikovaném snapshotu.
+	pub price_count: u64,
+	/// Hrubý odhad RAM držené snapshotem (MB).
+	pub snapshot_memory_estimate_mb: u64,
+	/// Hash drift signálů pro aktuální snapshot — viz `Refresher::tick`. Posílá se jako
+	/// string: u64 hash přesahuje PHP_INT_MAX (~9.22e18) i JS MAX_SAFE_INTEGER (~9e15),
+	/// takže JSON float repre by tiše ztrácel precision a PHP 8.4 by na `(int)$float`
+	/// vyhodil ErrorException.
+	pub schema_version: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

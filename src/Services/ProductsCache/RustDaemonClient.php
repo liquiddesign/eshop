@@ -68,6 +68,56 @@ final class RustDaemonClient
 	}
 
 	/**
+	 * Diagnostic runtime stats — uptime, RSS, request counters, snapshot history.
+	 * Vrací `null`, když daemon neběží, neumí `getStats` (starší binárka), nebo jakákoli
+	 * chyba — Tracy panel je cosmetic, rozbíjet kvůli tomu request by bylo zbytečné.
+	 *
+	 * Shape odpovídá `StatsResponse` v `/home/petr/eshop/products-daemon/src/protocol/mod.rs`.
+	 * @return array{
+	 *     startedAtUnix: int,
+	 *     uptimeSecs: int,
+	 *     rssMb: int|null,
+	 *     totalRequests: int,
+	 *     workRequests: int,
+	 *     avgRequestMs: float|null,
+	 *     maxRequestMs: float,
+	 *     snapshotTimestampsUnix: list<int>,
+	 *     productCount: int,
+	 *     priceCount: int,
+	 *     snapshotMemoryEstimateMb: int,
+	 *     schemaVersion: string
+	 * }|null
+	 */
+	public function getStats(): array|null
+	{
+		try {
+			$resp = $this->request(['method' => 'getStats']);
+		} catch (RustDaemonException) {
+			return null;
+		}
+
+		if (($resp['type'] ?? null) !== 'stats') {
+			return null;
+		}
+
+		return [
+			'startedAtUnix' => (int) ($resp['startedAtUnix'] ?? 0),
+			'uptimeSecs' => (int) ($resp['uptimeSecs'] ?? 0),
+			'rssMb' => isset($resp['rssMb']) && \is_int($resp['rssMb']) ? $resp['rssMb'] : null,
+			'totalRequests' => (int) ($resp['totalRequests'] ?? 0),
+			'workRequests' => (int) ($resp['workRequests'] ?? 0),
+			'avgRequestMs' => isset($resp['avgRequestMs']) && \is_numeric($resp['avgRequestMs']) ? (float) $resp['avgRequestMs'] : null,
+			'maxRequestMs' => (float) ($resp['maxRequestMs'] ?? 0),
+			'snapshotTimestampsUnix' => \array_values(\array_map('intval', (array) ($resp['snapshotTimestampsUnix'] ?? []))),
+			'productCount' => (int) ($resp['productCount'] ?? 0),
+			'priceCount' => (int) ($resp['priceCount'] ?? 0),
+			'snapshotMemoryEstimateMb' => (int) ($resp['snapshotMemoryEstimateMb'] ?? 0),
+			// u64 hash — držíme jako string, viz StatsResponse::schema_version v Rust protokolu.
+			'schemaVersion' => (string) ($resp['schemaVersion'] ?? '0'),
+		];
+	}
+
+	/**
 	 * @param array<mixed> $params Serializable to JSON; field names use camelCase per GetProductsRequest struct.
 	 * @return array<string, mixed> Raw decoded response body (without the envelope — the envelope is validated here).
 	 * @throws \Eshop\Services\ProductsCache\RustDaemonException

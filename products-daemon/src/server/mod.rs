@@ -12,11 +12,12 @@ use arc_swap::ArcSwap;
 use tokio::net::UnixListener;
 use tracing::{error, info};
 
-use crate::{error::DaemonError, snapshot::CatalogSnapshot};
+use crate::{error::DaemonError, metrics::DaemonMetrics, snapshot::CatalogSnapshot};
 
 pub struct Server {
 	listener: UnixListener,
 	catalog: Arc<ArcSwap<CatalogSnapshot>>,
+	metrics: Arc<DaemonMetrics>,
 }
 
 impl Server {
@@ -25,7 +26,11 @@ impl Server {
 	/// Post-bind the socket is chmod'd to 0666 so any local user can connect — required because
 	/// PHP-FPM workers typically run under a different user/group than the daemon. Socket content
 	/// is catalog metadata (public pricing), not secret, so world-accessible is acceptable.
-	pub async fn bind(socket_path: &Path, catalog: Arc<ArcSwap<CatalogSnapshot>>) -> Result<Self, DaemonError> {
+	pub async fn bind(
+		socket_path: &Path,
+		catalog: Arc<ArcSwap<CatalogSnapshot>>,
+		metrics: Arc<DaemonMetrics>,
+	) -> Result<Self, DaemonError> {
 		// Clear a stale socket left behind by a crashed previous run.
 		if socket_path.exists() {
 			std::fs::remove_file(socket_path).map_err(DaemonError::Io)?;
@@ -37,7 +42,11 @@ impl Server {
 		std::fs::set_permissions(socket_path, perms).map_err(DaemonError::Io)?;
 
 		info!(path = %socket_path.display(), "socket listening");
-		Ok(Self { listener, catalog })
+		Ok(Self {
+			listener,
+			catalog,
+			metrics,
+		})
 	}
 
 	/// Accept loop. Runs until `self` is dropped (which happens when `tokio::select!` in
@@ -52,8 +61,9 @@ impl Server {
 				}
 			};
 			let catalog = Arc::clone(&self.catalog);
+			let metrics = Arc::clone(&self.metrics);
 			tokio::spawn(async move {
-				if let Err(err) = handler::serve_connection(stream, catalog).await {
+				if let Err(err) = handler::serve_connection(stream, catalog, metrics).await {
 					error!(?err, "per-connection handler ended with error");
 				}
 			});

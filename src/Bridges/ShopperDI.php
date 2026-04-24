@@ -185,7 +185,15 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 			return;
 		}
 
+		// Panel dostane klient injected, aby mohl on-demand stáhnout daemon stats
+		// (uptime, RSS, total requests, avg/max ms, snapshot history). Service jméno je
+		// konstantní — klient je registrován v `loadConfiguration` s `setAutowired(false)`,
+		// takže ho autowire nenajde; přímý `getService(name)` je proto nutný.
+		$clientServiceName = $this->prefix('rustDaemonClient');
 		$class->getMethod('initialize')
-			->addBody('\\Tracy\\Debugger::getBar()->addPanel(new \\Eshop\\Services\\ProductsCache\\RustDaemonBarPanel());');
+			->addBody(
+				'\\Tracy\\Debugger::getBar()->addPanel(new \\Eshop\\Services\\ProductsCache\\RustDaemonBarPanel($this->getService(?)));',
+				[$clientServiceName],
+			);
 	}
 }
