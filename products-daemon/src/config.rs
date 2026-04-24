@@ -11,7 +11,12 @@ use anyhow::{Context, Result};
 pub struct Config {
 	pub database: DatabaseConfig,
 	pub socket_path: PathBuf,
-	pub refresh_interval: Duration,
+	/// How often drift probe runs. Cheap (9 COUNT/MAX queries, sub-100 ms).
+	pub quick_check_interval: Duration,
+	/// Floor between consecutive rebuilds — rate limit during import storm.
+	pub min_rebuild_interval: Duration,
+	/// Ceiling without any rebuild — safety net against UPDATE blind-spot in drift probe.
+	pub max_fresh_interval: Duration,
 	pub log_level: String,
 }
 
@@ -31,10 +36,21 @@ impl Config {
 	///
 	/// Missing required values fail fast — the daemon refuses to start with a half-configured state.
 	pub fn from_env() -> Result<Self> {
+		// `QUICK_CHECK_INTERVAL_SECS` je nový název, `REFRESH_INTERVAL_SECS` zůstává jako legacy
+		// alias — produkce ho má už nastavený v `.env` souborech a neměli bychom forcovat migraci.
+		// Přesná preference: pokud je nastaven `QUICK_CHECK_INTERVAL_SECS`, vyhrává; jinak
+		// `REFRESH_INTERVAL_SECS`; jinak default 60 s.
+		let quick_check_secs = match env::var("QUICK_CHECK_INTERVAL_SECS") {
+			Ok(v) => v.parse::<u64>().map_err(|e| anyhow::anyhow!("QUICK_CHECK_INTERVAL_SECS invalid: {e}"))?,
+			Err(_) => env_parse::<u64>("REFRESH_INTERVAL_SECS", 60)?,
+		};
+
 		Ok(Self {
 			database: DatabaseConfig::from_env()?,
 			socket_path: env_required("SOCKET_PATH").map(PathBuf::from)?,
-			refresh_interval: Duration::from_secs(env_parse::<u64>("REFRESH_INTERVAL_SECS", 600)?),
+			quick_check_interval: Duration::from_secs(quick_check_secs),
+			min_rebuild_interval: Duration::from_secs(env_parse::<u64>("MIN_REBUILD_INTERVAL_SECS", 120)?),
+			max_fresh_interval: Duration::from_secs(env_parse::<u64>("MAX_FRESH_INTERVAL_SECS", 300)?),
 			log_level: env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string()),
 		})
 	}

@@ -114,7 +114,9 @@ async fn async_main(config: Config, once: bool, benchmark_mode: bool) -> Result<
 			p.clone(),
 			Arc::clone(&catalog),
 			Arc::clone(&metrics),
-			config.refresh_interval,
+			config.quick_check_interval,
+			config.min_rebuild_interval,
+			config.max_fresh_interval,
 		)
 	});
 
