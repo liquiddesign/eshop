@@ -11,9 +11,9 @@ use Tracy\IBarPanel;
  * Tracy bar panel vizualizující:
  *  1. Daemon-level runtime (uptime, RSS, kumulativní total/avg/max requesty, historie snapshotů),
  *     čtené on-demand z {@see RustDaemonClient::getStats()}.
- *  2. Per-request volání {@see RustProxyProductsProvider}: kolikrát se šlo na daemon vs. fallback,
+ *  2. Per-request volání {@see RustProductsProvider}: kolikrát se šlo na daemon vs. fallback,
  *     s jakými důvody, a jak dlouho to trvalo. Zdrojem je statický
- *     `RustProxyProductsProvider::$callLog`.
+ *     `RustProductsProvider::$callLog`.
  *
  * Registrace: {@see \Eshop\Bridges\ShopperDI::afterCompile()} vloží panel do Tracy baru jen když
  * je provider nastaven na `rust`. Klient je optional dependency — `null` = daemon-runtime sekce
@@ -133,7 +133,7 @@ final class RustDaemonBarPanel implements IBarPanel
 
 	private function renderCallLog(): string
 	{
-		$log = RustProxyProductsProvider::$callLog;
+		$log = RustProductsProvider::$callLog;
 
 		if ($log === []) {
 			return '<h2>Per-request calls</h2><p>No calls in this request.</p>';
@@ -196,7 +196,7 @@ final class RustDaemonBarPanel implements IBarPanel
 		$totalFallbacks = 0;
 		$totalMs = 0.0;
 
-		foreach (RustProxyProductsProvider::$callLog as $entry) {
+		foreach (RustProductsProvider::$callLog as $entry) {
 			$totalCalls += $entry['count'];
 			$totalMs += $entry['totalMs'];
 

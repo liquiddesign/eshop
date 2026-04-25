@@ -2,7 +2,6 @@
 # Build production musl binary for abel-products-daemon.
 #
 # Output: ../bin/products-daemon-linux-x86_64 (deploy path, shipped in vendor package)
-#         bin/products-daemon-linux-x86_64     (dev copy next to sources)
 #
 # Prerequisites (one-time host setup):
 #   rustup target add x86_64-unknown-linux-musl
@@ -32,16 +31,12 @@ cargo build --release --target "${TARGET}"
 
 SRC="target/${TARGET}/release/${BIN_NAME}"
 VENDOR_BIN="../bin/${DEPLOY_BIN}"
-DEV_BIN="bin/${DEPLOY_BIN}"
 
 cp "${SRC}" "${VENDOR_BIN}"
-cp "${SRC}" "${DEV_BIN}"
-chmod +x "${VENDOR_BIN}" "${DEV_BIN}"
+chmod +x "${VENDOR_BIN}"
 
 SIZE=$(stat -c%s "${VENDOR_BIN}")
-echo "==> deployed $(numfmt --to=iec "${SIZE}") to:"
-echo "    ${VENDOR_BIN}"
-echo "    ${DEV_BIN}"
+echo "==> deployed $(numfmt --to=iec "${SIZE}") to ${VENDOR_BIN}"
 
 if command -v file >/dev/null 2>&1; then
 	file "${VENDOR_BIN}"

@@ -7,6 +7,9 @@ set -e
 
 export LC_ALL=C.UTF-8
 
+# Git hooks don't inherit shell profile — add user local bin to PATH
+export PATH="$HOME/.local/bin:$PATH"
+
 # Git hooks don't inherit shell profile — initialize node version manager
 # Priority: fnm → nvm → native PATH
 node_ready=false
@@ -35,6 +38,9 @@ fi
 echo ""
 echo "=== Pre-commit: composer update ==="
 composer update --no-interaction --quiet
+
+echo "=== Pre-commit: composer fix-code ==="
+composer fix-code
 
 echo "=== Pre-commit: composer check-code ==="
 if composer check-code; then

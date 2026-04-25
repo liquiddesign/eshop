@@ -37,6 +37,13 @@ pub enum RequestEnvelope {
 	/// Diagnostické runtime metriky pro Tracy panel (uptime, RSS, total requests,
 	/// avg/max latence, historie snapshot buildů). Nemutuje stav; cheap, safe to poll.
 	GetStats,
+	/// Fire-and-forget signál pro probuzení refresheru. PHP volá po dokončení velkého
+	/// importu, aby snapshot rebuild proběhl dřív než po `quick_check_interval` (60s).
+	/// Daemon vyšle `Notify::notify_one()` (idempotentní — opakované volání před
+	/// receiverovým wakeupem konsoliduje na jeden permit), takže storm volání nemůže
+	/// způsobit storm rebuildů; další ochranou je `MIN_REBUILD_INTERVAL_SECS` floor
+	/// uvnitř refresheru. Server odpovídá okamžitě (nečeká na rebuild).
+	RequestRebuild,
 }
 
 /// Server response envelope. Always includes `fallback_required`; PHP treats `true` as
@@ -90,6 +97,12 @@ pub enum ResponseBody {
 	},
 	/// Diagnostické metriky daemonu pro Tracy panel.
 	Stats(Box<StatsResponse>),
+	/// Acknowledgement pro `RequestRebuild`. `queued = true` znamená, že wakeup permit
+	/// byl uložen — refresher se probudí v nejbližší `select!` iteraci a (pokud floor
+	/// dovolí) provede rebuild. Není to potvrzení, že rebuild fakticky proběhl.
+	RebuildAccepted {
+		queued: bool,
+	},
 }
 
 /// Snapshot runtime metrik daemonu — konzumuje PHP `RustDaemonBarPanel`.
@@ -159,7 +172,7 @@ pub enum ErrorKind {
 
 /// A full query for `LiveProductsProvider::getProductsFromCacheTable`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GetProductsRequest {
 	/// Pricelist UUIDs belonging to the current customer (visibility/sorted by priority DESC).
 	/// Empty means "no eligible pricelist" — response will have no products.
@@ -221,7 +234,7 @@ pub struct GetProductsRequest {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ProjectFilter {
 	/// Customer IČ (nebo merchant-proxied zákazník). `None` = žádné IČ → filter odmítá project produkty.
 	pub customer_ic: Option<String>,
@@ -234,7 +247,7 @@ pub struct ProjectFilter {
 /// (everything `None`) instead of erroring out on "missing field". PHP proxy emits `{}`
 /// whenever no filters are active.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct FilterPayload {
 	pub category_uuids: Option<Vec<String>>,
 	pub producer_uuids: Option<Vec<String>>,
@@ -303,7 +316,7 @@ pub struct FilterPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RelatedFilter {
 	/// UUID produktu, který má být ze seznamu vyloučen (PHP `whereNot('this.uuid', $values['uuid'])`).
 	pub exclude_uuid: String,
@@ -315,7 +328,7 @@ pub struct RelatedFilter {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RelatedSlaveFilter {
 	/// `related.fk_type` — UUID `eshop_relatedtype`.
 	pub type_uuid: String,
@@ -324,7 +337,7 @@ pub struct RelatedSlaveFilter {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CrossSellFilter {
 	/// Category path (multiple-of-4 chars); rozdělen na 4-char chunky.
 	pub path: String,
@@ -345,7 +358,7 @@ pub struct CrossSellFilter {
 /// only `price > 0` is added, NOT both. We replicate that bug for 1:1 parity; see
 /// `has_any_price_mask` docstring.
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PriceVisibility {
 	/// PHP `ShopperUser::getShowZeroPrices()`. When `true`, price rows with `0` are accepted.
 	/// Default: `false` (hide free/placeholder SKUs).
@@ -379,7 +392,7 @@ impl Default for PriceVisibility {
 /// every request. Defaults are the "no modifier applied" identity: 0 % discount, 0 % surcharge,
 /// `None` currency rate, precision 2 (the standard eshop_currency default).
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PriceModifiers {
 	/// Global discount percent resolved from customer / customer group / discount coupon
 	/// (`ProductRepository::getDiscountPct`). `0` means no customer-level discount.
@@ -443,7 +456,7 @@ pub struct GetProductsResponse {
 // -------- Get category count --------
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GetCategoryCountRequest {
 	pub pricelist_pks: Vec<String>,
 	pub visibility_list_pks: Vec<String>,
@@ -464,7 +477,7 @@ pub struct GetCategoryCountRequest {
 /// caller typicky vynechá `filters.category_uuids`, aby dostal counts pro všechny
 /// kategorie naráz; pokud ho pošle, daemon omezí mask na subtree té kategorie.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GetAllCategoryCountsRequest {
 	pub pricelist_pks: Vec<String>,
 	pub visibility_list_pks: Vec<String>,

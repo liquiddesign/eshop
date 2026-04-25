@@ -9,7 +9,7 @@ pub mod handler;
 use std::{path::Path, sync::Arc};
 
 use arc_swap::ArcSwap;
-use tokio::net::UnixListener;
+use tokio::{net::UnixListener, sync::Notify};
 use tracing::{error, info};
 
 use crate::{error::DaemonError, metrics::DaemonMetrics, snapshot::CatalogSnapshot};
@@ -18,6 +18,7 @@ pub struct Server {
 	listener: UnixListener,
 	catalog: Arc<ArcSwap<CatalogSnapshot>>,
 	metrics: Arc<DaemonMetrics>,
+	wakeup: Arc<Notify>,
 }
 
 impl Server {
@@ -26,10 +27,14 @@ impl Server {
 	/// Post-bind the socket is chmod'd to 0666 so any local user can connect — required because
 	/// PHP-FPM workers typically run under a different user/group than the daemon. Socket content
 	/// is catalog metadata (public pricing), not secret, so world-accessible is acceptable.
+	///
+	/// `wakeup` is a `Notify` shared with the refresher; the `requestRebuild` RPC fires
+	/// `notify_one()` on it to signal "PHP just finished writes, please refresh now".
 	pub async fn bind(
 		socket_path: &Path,
 		catalog: Arc<ArcSwap<CatalogSnapshot>>,
 		metrics: Arc<DaemonMetrics>,
+		wakeup: Arc<Notify>,
 	) -> Result<Self, DaemonError> {
 		// Clear a stale socket left behind by a crashed previous run.
 		if socket_path.exists() {
@@ -46,6 +51,7 @@ impl Server {
 			listener,
 			catalog,
 			metrics,
+			wakeup,
 		})
 	}
 
@@ -62,8 +68,9 @@ impl Server {
 			};
 			let catalog = Arc::clone(&self.catalog);
 			let metrics = Arc::clone(&self.metrics);
+			let wakeup = Arc::clone(&self.wakeup);
 			tokio::spawn(async move {
-				if let Err(err) = handler::serve_connection(stream, catalog, metrics).await {
+				if let Err(err) = handler::serve_connection(stream, catalog, metrics, wakeup).await {
 					error!(?err, "per-connection handler ended with error");
 				}
 			});

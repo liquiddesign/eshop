@@ -51,7 +51,7 @@ The daemon reads `.env` via `dotenvy::dotenv()` on startup.
 ## Run manually (for debug)
 
 ```bash
-./bin/products-daemon-linux-x86_64 --socket /tmp/abel-daemon.sock
+../bin/products-daemon-linux-x86_64 --socket /tmp/abel-daemon.sock
 # Ping:
 printf '\x00\x00\x00\x13{"method":"ping"}' | nc -U /tmp/abel-daemon.sock | xxd | head
 ```

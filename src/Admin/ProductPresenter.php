@@ -46,6 +46,7 @@ use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\FormValidators;
 use Eshop\Services\Product\ProductClonerService;
+use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
@@ -154,6 +155,9 @@ class ProductPresenter extends BackendPresenter
 
 	#[Inject]
 	public ProductGridFactory $productGridFactory;
+
+	#[Inject]
+	public GeneralProductsCacheProvider $productsCacheProvider;
 
 	#[Inject]
 	public IProductFormFactory $productFormFatory;
@@ -1349,6 +1353,8 @@ Perex a Obsah budou importovány vždy pro aktuálně zvolený obchod.';
 			} catch (\Exception $e) {
 				Debugger::log($e, ILogger::WARNING);
 			}
+
+			$this->productsCacheProvider->requestSnapshotRebuild();
 
 			$this->redirect('this');
 		};

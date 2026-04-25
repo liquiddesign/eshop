@@ -14,7 +14,7 @@ use std::{path::PathBuf, sync::Arc};
 use anyhow::{Context, Result};
 use arc_swap::ArcSwap;
 use clap::Parser;
-use tokio::signal;
+use tokio::{signal, sync::Notify};
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -108,7 +108,19 @@ async fn async_main(config: Config, once: bool, benchmark_mode: bool) -> Result<
 		return Ok(());
 	}
 
-	let server = Server::bind(&config.socket_path, Arc::clone(&catalog), Arc::clone(&metrics)).await?;
+	// Shared wakeup signal mezi server (handler.rs) a refresherem. PHP volá `requestRebuild`
+	// RPC po dokončení velkého importu; handler vyšle `notify_one()`, refresher v `select!`
+	// dostane permit a (pokud floor dovolí) provede rebuild. `Notify::new()` je non-const,
+	// takže ho musíme vyrobit za runtime.
+	let wakeup = Arc::new(Notify::new());
+
+	let server = Server::bind(
+		&config.socket_path,
+		Arc::clone(&catalog),
+		Arc::clone(&metrics),
+		Arc::clone(&wakeup),
+	)
+	.await?;
 	let refresher = pool.as_ref().map(|p| {
 		Refresher::new(
 			p.clone(),
@@ -117,6 +129,7 @@ async fn async_main(config: Config, once: bool, benchmark_mode: bool) -> Result<
 			config.quick_check_interval,
 			config.min_rebuild_interval,
 			config.max_fresh_interval,
+			Arc::clone(&wakeup),
 		)
 	});
 

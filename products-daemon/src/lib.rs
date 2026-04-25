@@ -41,4 +41,13 @@ pub use crate::{
 /// Wire-protocol version advertised by this build. Bumped on breaking changes to
 /// `GetProductsRequest`/`GetProductsResponse` shape. PHP clients send their supported
 /// version in the handshake; the daemon rejects anything lower.
-pub const PROTOCOL_VERSION: u16 = 1;
+///
+/// ## Changelog
+/// - **v1**: initial release — `ping`, `getProducts`, `getCategoryCount`,
+///   `getAllCategoryCounts`, `getSellableProductPKs`, `getStats`.
+/// - **v2**: added `requestRebuild` (fire-and-forget snapshot rebuild trigger). PHP volá
+///   po dokončení velkého importu, aby refresher proběhl dřív než po `quick_check_interval`
+///   (60s) — místo čekání až 5 min na drift probe + TTL ceiling. Server odpovídá
+///   `rebuildAccepted` ihned (nečeká na rebuild). Idempotentní díky `Notify::notify_one()`
+///   semantice + `min_rebuild_interval` floor v refresheru.
+pub const PROTOCOL_VERSION: u16 = 2;

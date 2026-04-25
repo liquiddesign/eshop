@@ -12,20 +12,6 @@ interface GeneralProductsCacheProvider
 	public const PRODUCTS_PROVIDER_CACHE_TAG = 'productsProviderCache';
 
 	/**
-	 * @param array<string|\Eshop\DB\Customer> $customers
-	 * @param array<string|int> $customerGroups
-	 * @param array<string|int> $merchants
-	 */
-	public function warmUpCacheTable(array $customers = [], array $customerGroups = [], array $merchants = []): void;
-
-	/**
-	 * @param array<string|\Eshop\DB\Customer> $customers
-	 * @param array<string|int> $customerGroups
-	 * @param array<string|int> $merchants
-	 */
-	public function updatePricesCacheTable(array $customers = [], array $customerGroups = [], array $merchants = []): void;
-
-	/**
 	 * Vrací seznam PKs produktů, kteří jsou alespoň pro jednu existující kombinaci
 	 * (customer × pricelist × visibilityList × merchant) prodejní — tedy mají platnou
 	 * cenu v nějaké aktivní cenové hladině, která se na někoho vztahuje.
@@ -80,15 +66,21 @@ interface GeneralProductsCacheProvider
 
 	public function getIndexByCustomer(Customer|Merchant $customerMerchant): string;
 
-	public function addCollectionOrderExpression(string $name, callable $callback): void;
+	/**
+	 * Nastaví pořadí UUIDů pro `uuidField` ordering (assistant create-order, UUID-based listing).
+	 * Volá se místo `addCollectionOrderExpression('uuidField', closure)`.
+	 * @param list<string> $uuids
+	 */
+	public function setUuidOrdering(array $uuids): void;
 
-	public function addAllowedCollectionFilterColumn(string $name, string $column): void;
-
-	public function addFilterCollectionExpression(string $name, callable $callback): void;
-
-	public function addAllowedDynamicFilterColumn(string $name, string $column): void;
-
-	public function addFilterDynamicExpression(string $name, callable $callback): void;
-
-	public function addAllowedCollectionOrderColumn(string $name, string $column): void;
+	/**
+	 * Fire-and-forget požadavek na rebuild snapshotu produktové cache. Volat na konci úspěšné
+	 * mutační cesty (po commit/save) — import cen, hromadná admin akce, QI sync. Drift probe
+	 * v Rust daemonu nemá visibility na in-place UPDATE existujících řádků v `eshop_price`,
+	 * tohle je explicitní wakeup ze strany PHP.
+	 *
+	 * Implementace musí být no-op pro neaktivní providery a tichá při výpadku daemonu —
+	 * caller nemá důvod o tom vědět ani exception řešit.
+	 */
+	public function requestSnapshotRebuild(): void;
 }

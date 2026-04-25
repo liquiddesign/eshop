@@ -10,7 +10,6 @@ use Common\DB\IGeneralRepository;
 use Eshop\Admin\ScriptsPresenter;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
-use Eshop\Services\ProductsCache\ProductsCacheNotReadyException;
 use Eshop\ShopperUser;
 use Latte\Loaders\StringLoader;
 use Latte\Sandbox\SecurityPolicy;
@@ -109,8 +108,6 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 				priceLists: $priceLists,
 				visibilityLists: $visibilityLists,
 			) ?? 0;
-		} catch (ProductsCacheNotReadyException $e) {
-			return null;
 		} catch (\Throwable $e) {
 			Debugger::log($e, ILogger::EXCEPTION);
 

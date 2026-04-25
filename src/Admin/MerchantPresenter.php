@@ -29,7 +29,6 @@ use Nette\Utils\Image;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\DIConnection;
-use Tracy\Debugger;
 
 class MerchantPresenter extends BackendPresenter
 {
@@ -258,7 +257,8 @@ class MerchantPresenter extends BackendPresenter
 				$form->addGroup('Cache');
 				$form->addText('cacheIndex', 'Index')
 					->setDisabled()
-					->setDefaultValue($index);
+					->setDefaultValue($index)
+					->setHtmlAttribute('data-info', "<a href='" . $this->link('rebuildSnapshot!') . "' class='btn btn-sm btn-warning'><i class='fas fa-sync-alt'></i> Vyžádat rebuild snapshotu</a>");
 			} catch (\Exception) {
 			}
 
@@ -327,11 +327,20 @@ class MerchantPresenter extends BackendPresenter
 			/** @var \Eshop\DB\Merchant $merchant */
 			$merchant = $this->merchantRepository->syncOne($values, null, true, ignore: false);
 
+			$this->productsCacheProvider->requestSnapshotRebuild();
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$merchant]);
 		};
 
 		return $form;
+	}
+
+	public function handleRebuildSnapshot(): void
+	{
+		$this->productsCacheProvider->requestSnapshotRebuild();
+		$this->flashMessage('Rebuild snapshotu produktové cache byl vyžádán.', 'success');
+		$this->redirect('this');
 	}
 
 	public function handleLoginMerchant(string $login): void
@@ -343,21 +352,6 @@ class MerchantPresenter extends BackendPresenter
 		$this->user->login($identity, null, [Merchant::class]);
 
 		$this->presenter->redirect(':Web:Index:default');
-	}
-
-	public function handleRefreshCache(Merchant $merchant): void
-	{
-		try {
-			$this->productsCacheProvider->updatePricesCacheTable([], [], [$merchant->getPK()]);
-
-			$this->flashMessage('Provedeno', 'success');
-		} catch (\Exception $e) {
-			$this->flashMessage('Chyba', 'error');
-
-			Debugger::barDump($e);
-		}
-
-		$this->redirect('this');
 	}
 
 	public function renderDefault(): void
@@ -383,21 +377,14 @@ class MerchantPresenter extends BackendPresenter
 
 	public function renderDetail(Merchant $merchant): void
 	{
+		unset($merchant);
+
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Obchodníci', 'default'],
 			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
-
-		if ($this->settingsService->isUsingProductsCache()) {
-			$this->template->displayButtons[] = $this->createButton2(
-				'refreshCache!',
-				'Přepočítat cache obchodníka',
-				linkArgs: [$merchant],
-			);
-		}
-
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
 

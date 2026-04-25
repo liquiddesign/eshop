@@ -917,7 +917,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				$form->addGroup('Cache');
 				$form->addText('cacheIndex', 'Index')
 					->setDisabled()
-					->setDefaultValue($index);
+					->setDefaultValue($index)
+					->setHtmlAttribute('data-info', "<a href='" . $this->link('rebuildSnapshot!') . "' class='btn btn-sm btn-warning'><i class='fas fa-sync-alt'></i> Vyžádat rebuild snapshotu</a>");
 			} catch (\Exception) {
 			}
 
@@ -996,6 +997,8 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 				$this->storm->createRow('eshop_merchant_nxn_eshop_customer', ['fk_merchant' => $merchant, 'fk_customer' => $customer->getPK()]);
 			}
 
+			$this->generalProductsCacheProvider->requestSnapshotRebuild();
+
 			$this->onFormSuccessBeforeRedirect($form);
 
 			$this->flashMessage('Vytvořeno', 'success');
@@ -1008,6 +1011,13 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 	public function onFormSuccessBeforeRedirect(AdminForm $form): void
 	{
 		unset($form);
+	}
+
+	public function handleRebuildSnapshot(): void
+	{
+		$this->generalProductsCacheProvider->requestSnapshotRebuild();
+		$this->flashMessage('Rebuild snapshotu produktové cache byl vyžádán.', 'success');
+		$this->redirect('this');
 	}
 
 	public function createComponentEditAddress(): AdminForm
@@ -1093,26 +1103,7 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 			$this->createButton2('editFavouriteProducts', 'Oblíbené produkty', linkArgs: [$this->getParameter('customer')]),
 		];
 
-		if ($this->settingsService->isUsingProductsCache()) {
-			$this->template->displayButtons[] = $this->createButton2('refreshCache!', 'Přepočítat cache zákazníka', linkArgs: [$this->getParameter('customer')]);
-		}
-
 		$this->template->displayControls = [$this->getComponent('form')];
-	}
-
-	public function handleRefreshCache(Customer $customer): void
-	{
-		try {
-			$this->generalProductsCacheProvider->updatePricesCacheTable([$customer]);
-
-			$this->flashMessage('Provedeno', 'success');
-		} catch (\Exception $e) {
-			$this->flashMessage('Chyba', 'error');
-
-			Debugger::barDump($e);
-		}
-
-		$this->redirect('this');
 	}
 
 	public function renderEditAddress(): void

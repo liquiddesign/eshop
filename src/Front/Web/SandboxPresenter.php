@@ -8,8 +8,6 @@ use Eshop\DB\CartRepository;
 use Eshop\DB\Product;
 use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\WatcherRepository;
-use Eshop\DevelTools;
-use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
 use LiquidMonitorConnector\Cron;
 use Nette\Application\BadRequestException;
 use Nette\DI\Attributes\Inject;
@@ -41,9 +39,6 @@ abstract class SandboxPresenter extends \Eshop\Front\FrontendPresenter
 	public VisibilityListItemRepository $visibilityListItemRepository;
 
 	#[Inject]
-	public GeneralProductsCacheProvider $productsProvider;
-
-	#[Inject]
 	public Cron $cron;
 
 	public function actionDefault(): void
@@ -63,24 +58,6 @@ abstract class SandboxPresenter extends \Eshop\Front\FrontendPresenter
 		}
 
 		$this->terminate();
-	}
-
-	public function cache(): void
-	{
-		$this->stm->setDebug(false);
-
-		if (!$this->cron->scheduleOrStartJob('cache')) {
-			return;
-		}
-
-		Debugger::timer('warmUpCacheTable');
-
-		$this->productsProvider->warmUpCacheTable();
-
-		$this->cron->finishJob(['warmUpTimer' => Debugger::timer('warmUpCacheTable')]);
-
-		Debugger::dump(Debugger::timer('warmUpCacheTable'));
-		Debugger::dump(DevelTools::getPeakMemoryUsage());
 	}
 
 	public function watchers(): void

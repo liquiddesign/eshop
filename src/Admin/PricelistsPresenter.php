@@ -32,6 +32,7 @@ use Eshop\DB\SupplierProductRepository;
 use Eshop\DB\SupplierRepository;
 use Eshop\DB\VatRateRepository;
 use Eshop\FormValidators;
+use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
 use Eshop\ShopperUser;
 use Forms\Form;
 use Grid\Datagrid;
@@ -128,6 +129,9 @@ class PricelistsPresenter extends BackendPresenter
 
 	#[Inject]
 	public DisplayAmountRepository $displayAmountRepository;
+
+	#[Inject]
+	public GeneralProductsCacheProvider $productsCacheProvider;
 
 	#[Persistent]
 	public string $tab = 'priceLists';
@@ -865,6 +869,7 @@ product - Kód produktu<br>price - Cena<br>priceVat - Cena s daní<br>priceBefor
 				$this->priceListRepository->getConnection()->getLink()->commit();
 
 				$form->getPresenter()->flashMessage('Uloženo', 'success');
+				$this->productsCacheProvider->requestSnapshotRebuild();
 			} catch (\Throwable $e) {
 				Debugger::log($e, ILogger::WARNING);
 				$this->priceListRepository->getConnection()->getLink()->rollBack();
@@ -1150,6 +1155,8 @@ Cílový ceník - Jako původní ceny budou použity normální ceny ze cílové
 				$quantity,
 				$values['beforePricesSource'],
 			);
+
+			$this->productsCacheProvider->requestSnapshotRebuild();
 
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect(

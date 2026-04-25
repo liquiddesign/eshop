@@ -25,7 +25,7 @@ namespace Eshop\Services\ProductsCache;
  */
 final class RustDaemonClient
 {
-	public const PROTOCOL_VERSION = 1;
+	public const PROTOCOL_VERSION = 2;
 
 	public const MAX_FRAME_BYTES = 16 * 1024 * 1024;
 
@@ -115,6 +115,25 @@ final class RustDaemonClient
 			// u64 hash — držíme jako string, viz StatsResponse::schema_version v Rust protokolu.
 			'schemaVersion' => (string) ($resp['schemaVersion'] ?? '0'),
 		];
+	}
+
+	/**
+	 * Fire-and-forget trigger pro rebuild snapshotu. Daemon kumuluje notifikace do jednoho permitu
+	 * (tokio `Notify::notify_one`), takže duplicitní volání nepřebijí rate limit
+	 * (`MIN_REBUILD_INTERVAL_SECS` floor v Refresheru). Vrací `true`, když daemon potvrdil přijetí.
+	 *
+	 * Tichý fail (vrací `false`) při `RustDaemonException` — never-down kontrakt: drift probe
+	 * to chytne nakonec sama.
+	 */
+	public function requestRebuild(): bool
+	{
+		try {
+			$resp = $this->request(['method' => 'requestRebuild']);
+		} catch (RustDaemonException) {
+			return false;
+		}
+
+		return ($resp['type'] ?? null) === 'rebuildAccepted' && ($resp['queued'] ?? false) === true;
 	}
 
 	/**

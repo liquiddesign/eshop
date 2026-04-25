@@ -9,7 +9,7 @@ use std::{
 };
 
 use arc_swap::ArcSwap;
-use tokio::{io::AsyncWriteExt, net::UnixStream};
+use tokio::{io::AsyncWriteExt, net::UnixStream, sync::Notify};
 use tracing::{debug, warn};
 
 use crate::{
@@ -28,6 +28,7 @@ pub async fn serve_connection(
 	stream: UnixStream,
 	catalog: Arc<ArcSwap<CatalogSnapshot>>,
 	metrics: Arc<DaemonMetrics>,
+	wakeup: Arc<Notify>,
 ) -> Result<(), DaemonError> {
 	let (mut reader, mut writer) = stream.into_split();
 
@@ -51,7 +52,7 @@ pub async fn serve_connection(
 		};
 
 		let started = Instant::now();
-		let response = match dispatch(&envelope, &catalog, &metrics).await {
+		let response = match dispatch(&envelope, &catalog, &metrics, &wakeup).await {
 			Ok(body) => ResponseEnvelope::Ok(Box::new(OkResponse {
 				protocol_version: PROTOCOL_VERSION,
 				body,
@@ -71,13 +72,16 @@ pub async fn serve_connection(
 			}
 		};
 
-		// Rozlišujeme meta-calls (Ping, GetStats) od work-calls (queries). Meta-calls se
-		// zapíšou jen do total_requests, ne do avg/max latence — polling z Tracy baru nebo
-		// health-check ping by jinak zkresloval business SLO. Work-calls (včetně
-		// fallback_required odpovědí) se počítají všude: je to daemon work time, nezávisle
-		// na tom, co s výsledkem udělá PHP.
+		// Rozlišujeme meta-calls (Ping, GetStats, RequestRebuild) od work-calls (queries).
+		// Meta-calls se zapíšou jen do total_requests, ne do avg/max latence — polling z Tracy
+		// baru, health-check ping nebo wakeup signál by jinak zkresloval business SLO.
+		// Work-calls (včetně fallback_required odpovědí) se počítají všude: je to daemon work
+		// time, nezávisle na tom, co s výsledkem udělá PHP. RequestRebuild je meta protože
+		// nedotazuje snapshot — jen vyšle Notify, prakticky nulová latence.
 		match envelope {
-			RequestEnvelope::Ping | RequestEnvelope::GetStats => metrics.record_meta_request(),
+			RequestEnvelope::Ping | RequestEnvelope::GetStats | RequestEnvelope::RequestRebuild => {
+				metrics.record_meta_request();
+			},
 			RequestEnvelope::GetProducts(_)
 			| RequestEnvelope::GetCategoryCount(_)
 			| RequestEnvelope::GetAllCategoryCounts(_)
@@ -93,6 +97,7 @@ async fn dispatch(
 	envelope: &RequestEnvelope,
 	catalog: &Arc<ArcSwap<CatalogSnapshot>>,
 	metrics: &Arc<DaemonMetrics>,
+	wakeup: &Arc<Notify>,
 ) -> Result<ResponseBody, DaemonError> {
 	match envelope {
 		RequestEnvelope::Ping => Ok(ResponseBody::Pong { ok: true }),
@@ -119,6 +124,13 @@ async fn dispatch(
 		RequestEnvelope::GetStats => {
 			let snap = catalog.load_full();
 			Ok(ResponseBody::Stats(Box::new(build_stats_response(metrics, &snap))))
+		}
+		RequestEnvelope::RequestRebuild => {
+			// Fire-and-forget: notify_one() is idempotent — opakované volání před receiverovým
+			// wakeupem konsoliduje na jeden permit, takže storm volání nemůže způsobit storm
+			// rebuildů. Floor v refresheru (`min_rebuild_interval`) je druhá vrstva ochrany.
+			wakeup.notify_one();
+			Ok(ResponseBody::RebuildAccepted { queued: true })
 		}
 	}
 }
