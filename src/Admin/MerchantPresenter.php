@@ -251,17 +251,6 @@ class MerchantPresenter extends BackendPresenter
 				'Posílat e-mailem informace o objednávkách přiřazených zákazníků.',
 			);
 
-			try {
-				$index = $merchant ? $this->productsCacheProvider->getIndexByCustomer($merchant) : null;
-
-				$form->addGroup('Cache');
-				$form->addText('cacheIndex', 'Index')
-					->setDisabled()
-					->setDefaultValue($index)
-					->setHtmlAttribute('data-info', "<a href='" . $this->link('rebuildSnapshot!') . "' class='btn btn-sm btn-warning'><i class='fas fa-sync-alt'></i> Vyžádat rebuild snapshotu</a>");
-			} catch (\Exception) {
-			}
-
 			$form->addGroup('Externí');
 			$form->addText('externalId', 'Externí ID')->setNullable();
 			$form->addText('externalCode', 'Externí kód')->setNullable();
@@ -334,13 +323,6 @@ class MerchantPresenter extends BackendPresenter
 		};
 
 		return $form;
-	}
-
-	public function handleRebuildSnapshot(): void
-	{
-		$this->productsCacheProvider->requestSnapshotRebuild();
-		$this->flashMessage('Rebuild snapshotu produktové cache byl vyžádán.', 'success');
-		$this->redirect('this');
 	}
 
 	public function handleLoginMerchant(string $login): void

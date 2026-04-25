@@ -911,17 +911,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 					->setHtmlAttribute('Bude použito při exportu objednávky do formátu EDI.');
 			}
 
-			try {
-				$index = $customer ? $this->generalProductsCacheProvider->getIndexByCustomer($customer) : null;
-
-				$form->addGroup('Cache');
-				$form->addText('cacheIndex', 'Index')
-					->setDisabled()
-					->setDefaultValue($index)
-					->setHtmlAttribute('data-info', "<a href='" . $this->link('rebuildSnapshot!') . "' class='btn btn-sm btn-warning'><i class='fas fa-sync-alt'></i> Vyžádat rebuild snapshotu</a>");
-			} catch (\Exception) {
-			}
-
 			$this->addCustomFieldsToCustomerForm($form, $customer);
 
 			if ($customer && isset($form['shop']) && $form['shop'] instanceof SelectBox) {
@@ -1011,13 +1000,6 @@ Platí jen pokud má ceník povoleno "Povolit procentuální slevy".',
 	public function onFormSuccessBeforeRedirect(AdminForm $form): void
 	{
 		unset($form);
-	}
-
-	public function handleRebuildSnapshot(): void
-	{
-		$this->generalProductsCacheProvider->requestSnapshotRebuild();
-		$this->flashMessage('Rebuild snapshotu produktové cache byl vyžádán.', 'success');
-		$this->redirect('this');
 	}
 
 	public function createComponentEditAddress(): AdminForm
