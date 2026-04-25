@@ -1,7 +1,9 @@
 //! Runtime configuration loaded from `.env` in the binary's working directory.
 //!
-//! The file is expected to live at `<binary dir>/.env`; the user fills values from
-//! `/home/petr/abel/config/general.local.neon` (section `database`). See `.env.example`.
+//! The file is optional — only DB credentials (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`)
+//! are required and must come from the environment (typically `<binary dir>/.env`). All other
+//! values have defaults; see `.env.example` for the full list and recommended values from
+//! `/home/petr/abel/config/general.local.neon` (section `database`).
 
 use std::{env, path::PathBuf, time::Duration};
 
@@ -47,7 +49,7 @@ impl Config {
 
 		Ok(Self {
 			database: DatabaseConfig::from_env()?,
-			socket_path: env_required("SOCKET_PATH").map(PathBuf::from)?,
+			socket_path: PathBuf::from(env::var("SOCKET_PATH").unwrap_or_else(|_| "/tmp/abel-products-daemon.sock".to_string())),
 			quick_check_interval: Duration::from_secs(quick_check_secs),
 			min_rebuild_interval: Duration::from_secs(env_parse::<u64>("MIN_REBUILD_INTERVAL_SECS", 120)?),
 			max_fresh_interval: Duration::from_secs(env_parse::<u64>("MAX_FRESH_INTERVAL_SECS", 300)?),
