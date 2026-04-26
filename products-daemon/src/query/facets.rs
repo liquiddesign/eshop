@@ -21,6 +21,7 @@
 
 use std::collections::HashMap;
 
+use rayon::prelude::*;
 use roaring::RoaringBitmap;
 
 use crate::query::{filter, PricedProduct, RequestContext};
@@ -164,16 +165,37 @@ fn compute_attribute_counts(
 		})
 		.unwrap_or_default();
 
-	for (value_idx, bitmap) in snap.attr_value_bitmaps.iter() {
-		let mask = snap
-			.attribute_of_value
-			.get(&value_idx)
-			.and_then(|attr_idx| filtered_attr_idxs.get(attr_idx))
-			.unwrap_or(surviving_mask);
-		let count = intersection_len(mask, bitmap);
-		if count == 0 {
-			continue;
-		}
+	// `attr_value_bitmaps` má v produkčním snapshotu tisíce buckets — každý
+	// `intersection_len` je sub-µs, ale celkem to je největší jednotlivý cost ve facets
+	// (~3-5 ms / call). Rayon paralelizuje fan-out přes worker pool inicializovaný jednou
+	// per process. Roaring bitmapy + AHashMap jsou `Sync` (immutable read), tak je sdílíme
+	// bez kopie. `fold` shromažďuje per-thread Vec<(idx, count)>, `reduce` slije do jednoho —
+	// odstraňuje contention na výsledné HashMapě.
+	let entries: Vec<(u32, &RoaringBitmap)> = snap.attr_value_bitmaps.iter().collect();
+	let folded: Vec<(u32, u64)> = entries
+		.par_iter()
+		.fold(Vec::new, |mut acc, &(value_idx, bitmap)| {
+			let mask = snap
+				.attribute_of_value
+				.get(&value_idx)
+				.and_then(|attr_idx| filtered_attr_idxs.get(attr_idx))
+				.unwrap_or(surviving_mask);
+			let count = intersection_len(mask, bitmap);
+			if count != 0 {
+				acc.push((value_idx, count));
+			}
+			acc
+		})
+		.reduce(Vec::new, |mut a, mut b| {
+			if a.len() < b.len() {
+				std::mem::swap(&mut a, &mut b);
+			}
+			a.extend(b);
+			a
+		});
+
+	out.reserve(folded.len());
+	for (value_idx, count) in folded {
 		if let Some(uuid) = snap.attribute_value_pool.get(value_idx) {
 			out.insert(uuid.to_owned(), count);
 		}
@@ -211,11 +233,19 @@ fn leave_dim_out(
 		return pre_pricing_mask.clone();
 	}
 
+	// `apply_bitmap_filters_inner` přijímá komponenty přímo, takže nemusíme klonovat
+	// celý `GetProductsRequest` (~500 B-2 KB Vec<String> + Option<HashMap> kopie per call).
+	// Stačí lokální stripped FilterPayload (drobnější struct), všechno ostatní reusujeme jako referenci.
 	let stripped_filters = req.filters.dims_besides(dim);
-	let mut stripped = req.clone();
-	stripped.filters = stripped_filters;
-	let mask = filter::apply_bitmap_filters(ctx.snap, ctx.base_mask.clone(), &stripped)
-		.unwrap_or_else(|_| ctx.snap.all_products_mask.clone());
+	let mask = filter::apply_bitmap_filters_inner(
+		ctx.snap,
+		ctx.base_mask.clone(),
+		&stripped_filters,
+		req.dynamic_filter_attributes.as_ref(),
+		&req.visibility_list_pks,
+		None,
+	)
+	.unwrap_or_else(|_| ctx.snap.all_products_mask.clone());
 	mask & &ctx.has_price_mask
 }
 
@@ -224,11 +254,17 @@ fn leave_dim_out(
 ///
 /// Reusuje `ctx.base_mask` a `ctx.has_price_mask` — žádný redundantní VL/price recompute.
 fn leave_attribute_out(ctx: &RequestContext<'_>, attr_pk_to_omit: &str) -> RoaringBitmap {
-	let mut stripped = ctx.req.clone();
-	if let Some(attrs) = stripped.dynamic_filter_attributes.as_mut() {
-		attrs.remove(attr_pk_to_omit);
-	}
-	let mask = filter::apply_bitmap_filters(ctx.snap, ctx.base_mask.clone(), &stripped)
-		.unwrap_or_else(|_| ctx.snap.all_products_mask.clone());
+	let req = ctx.req;
+	// `omit_attr_pk` říká inneru "skip tuhle attr key v dynamic_filter_attributes loopu" —
+	// žádné HashMap clone+remove per facet leave-one-out.
+	let mask = filter::apply_bitmap_filters_inner(
+		ctx.snap,
+		ctx.base_mask.clone(),
+		&req.filters,
+		req.dynamic_filter_attributes.as_ref(),
+		&req.visibility_list_pks,
+		Some(attr_pk_to_omit),
+	)
+	.unwrap_or_else(|_| ctx.snap.all_products_mask.clone());
 	mask & &ctx.has_price_mask
 }

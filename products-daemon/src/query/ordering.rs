@@ -11,7 +11,7 @@ use std::sync::Arc;
 use crate::{
 	protocol::OrderDirection,
 	query::PricedProduct,
-	snapshot::{CatalogSnapshot, VisibilityItem},
+	snapshot::CatalogSnapshot,
 };
 
 /// Sort in place and serialize product indexes to their wire PKs.
@@ -39,9 +39,17 @@ pub fn order_and_serialize(
 		_ => sort_by_priority(snap, &mut priced, direction),
 	}
 
+	// `product_id_strings` jsou pre-rendered build-time (Phase 7) — clone do String je memcpy
+	// místo `i64::to_string()` formátování per produkt. Fallback `product_ids[i].to_string()`
+	// drží zpětnou kompatibilitu s benchmark fixturami (před prvním rebuildem).
 	priced
 		.into_iter()
-		.filter_map(|p| snap.product_ids.get(p.product as usize).map(|id| id.to_string()))
+		.filter_map(|p| {
+			snap.product_id_strings
+				.get(p.product as usize)
+				.map(|s| s.to_string())
+				.or_else(|| snap.product_ids.get(p.product as usize).map(u64::to_string))
+		})
 		.collect()
 }
 
@@ -104,13 +112,22 @@ fn sort_by_name(snap: &CatalogSnapshot, priced: &mut [PricedProduct], direction:
 }
 
 fn visibility_priority_for(snap: &CatalogSnapshot, product: u32) -> i32 {
-	// First row in `visibility_by_product[product]` wins (snapshot loader preserves VL priority
-	// ordering). If the product has no VL membership, treat it as maximally deprioritized.
+	// `priority_by_product` je precomputed Vec<i32> indexovaný `ProductIdx`. Hot path sort
+	// (~25 comparisons × 5000 produktů × 2 list calls) byl 250 k AHashMap → Vec → Vec lookups
+	// = ~1-2 ms. Vec index je O(1) bez hashování.
+	//
+	// Fallback chain pro snapshot fixtures, které manuálně staví snapshot a `priority_by_product`
+	// neplní (integration tests, benchmark setup): walk `visibility_by_product[p].first() →
+	// visibility_items[idx].priority`. Build-time logika v `snapshot::build` plní `priority_by_product`
+	// stejnou sémantikou — fallback udržuje paritu, když pole zůstane prázdné.
+	if !snap.priority_by_product.is_empty() {
+		return snap.priority_by_product.get(product as usize).copied().unwrap_or(i32::MAX);
+	}
 	snap.visibility_by_product
 		.get(&product)
 		.and_then(|ids| ids.first())
 		.and_then(|id| snap.visibility_items.get(*id as usize))
-		.map(|v: &VisibilityItem| v.priority)
+		.map(|v| v.priority)
 		.unwrap_or(i32::MAX)
 }
 

@@ -204,6 +204,28 @@ impl VisibilityListMeta {
 	}
 }
 
+/// Pre-sorted (vl_idx, hidden) entry pro `product_vl_winners`. Velikost 4 B umožňuje 4-inline
+/// SmallVec bez heap allocu pro typický produkt. `VisibilityListIdx` (u16) + `hidden` bool +
+/// 1 B padding = 4 B.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(C)]
+pub struct VlWinnerEntry {
+	pub visibility_list: VisibilityListIdx,
+	pub hidden: bool,
+	_pad: u8,
+}
+
+impl VlWinnerEntry {
+	#[must_use]
+	pub const fn new(visibility_list: VisibilityListIdx, hidden: bool) -> Self {
+		Self {
+			visibility_list,
+			hidden,
+			_pad: 0,
+		}
+	}
+}
+
 /// Visibility-list item bundle — per (product, visibility_list) row.
 #[derive(Debug, Copy, Clone)]
 pub struct VisibilityItem {
@@ -288,6 +310,23 @@ pub struct CatalogSnapshot {
 	/// neumí použít (priority-first napříč VL setem nezachová parity), proto zůstává
 	/// fallback na lineární scan v `filter::base_mask`. Build-time O(visibility_items.len()).
 	pub visibility_winner_bitmaps: AHashMap<VisibilityListIdx, RoaringBitmap>,
+
+	/// Per-product priority-sorted seznam (`VisibilityListIdx`, `hidden`) páru — Phase 7
+	/// precompute pro multi-VL `base_mask` rychlý lookup. Indexovaný `ProductIdx`, prázdný
+	/// `SmallVec` pro produkty bez VL membership.
+	///
+	/// Build-time: pro každý produkt seskupit `visibility_items`, vybrat min-priority item
+	/// per VL (nejen first), potom seřadit kandidáty podle `(item.priority ASC, vl_uuid ASC)`.
+	/// To přesně mirroruje `base_mask_scan` priority-first selekci napříč VL setem.
+	///
+	/// Runtime: pro daný customer VL set walk `product_vl_winners[product]` v priority order;
+	/// první entry s `vl_idx ∈ customer_set` je winner. Když má `hidden=false` → produkt v mask.
+	/// Vyhne se per-comparison `visibility_items[idx]` lookupům (cache-cold pole) i priority
+	/// porovnání — pre-sort dělá build-time.
+	///
+	/// Memory: 186 k × ~16 B (SmallVec inline 4) ≈ 3 MB. Žádný heap alloc pro typický produkt
+	/// (≤ 4 VLs).
+	pub product_vl_winners: Vec<SmallVec<[VlWinnerEntry; 4]>>,
 	/// Per-`VisibilityListIdx` metadata. Index-matched with `visibility_list_pool` — entry `i`
 	/// describes the list whose UUID lives at `visibility_list_pool.get(i)`. Populated in
 	/// `SnapshotBuilder::build` before visibility items so `VisibilityItem::visibility_list`
@@ -335,6 +374,19 @@ pub struct CatalogSnapshot {
 	/// sees integer IDs, matching LiveProductsProvider fallback. See `product_pool` for the
 	/// UUID mapping still needed by request-side lookups (`filters.uuids`, `sort_by_uuid_field`).
 	pub product_ids: Vec<u64>,
+
+	/// Pre-rendered string forms `product_ids[i].to_string()`. Index-aligned with `product_ids`.
+	/// `ordering::order_and_serialize` clone-uje hodnoty místo `i64::to_string()` per produkt
+	/// — `Box<str>` clone do `String` je memcpy, žádný format. Pro 186 k produktů ~2 MB stálé
+	/// alokace, build-time O(P).
+	pub product_id_strings: Vec<Box<str>>,
+
+	/// Per-`ProductIdx` priority winner-VL itemu (lower = higher precedence). Předpočítáno
+	/// build-time z `visibility_by_product[p].first()` → `visibility_items[idx].priority`.
+	/// `i32::MAX` = žádný VL item (sort to the end). Hot path `ordering::sort_by_priority`
+	/// dělá O(1) Vec lookup místo 3-úrovňového AHashMap → Vec → Vec walku per comparison.
+	/// Memory: 186 k × 4 B = ~750 KB.
+	pub priority_by_product: Vec<i32>,
 
 	/// `eshop_productprimarycategory` lookup: `(category_type_pk, category_uuid)` → bitmap produktů,
 	/// které mají tuhle kategorii jako primární pod daným category type. Drží SmolStr pool aby
@@ -433,6 +485,7 @@ impl CatalogSnapshot {
 			visibility_items: Vec::new(),
 			visibility_by_product: AHashMap::new(),
 			visibility_winner_bitmaps: AHashMap::new(),
+			product_vl_winners: Vec::new(),
 			visibility_lists: Vec::new(),
 			categories: Vec::new(),
 			category_bump_sets: AHashMap::new(),
@@ -445,6 +498,8 @@ impl CatalogSnapshot {
 			display_amount_is_sold: AHashMap::new(),
 			is_sold_by_product: Vec::new(),
 			product_ids: Vec::new(),
+			product_id_strings: Vec::new(),
+			priority_by_product: Vec::new(),
 			primary_category_by_type_cat: AHashMap::new(),
 			related_slaves_by_type_master: AHashMap::new(),
 			categories_by_path_suffix: AHashMap::new(),

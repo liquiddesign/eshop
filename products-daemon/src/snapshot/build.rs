@@ -30,7 +30,7 @@ use crate::{
 	snapshot::{
 		bitmaps::BitmapIndex, intern::InternPool, AttrValIdx, CatalogSnapshot, CategoryIdx, CategoryNode,
 		InternalRibbonIdx, PriceFact, PriceFactFlags, PricelistIdx, PricelistMeta, ProductIdx, ProductRow, RibbonIdx,
-		VisibilityItem, VisibilityListIdx, VisibilityListMeta,
+		VisibilityItem, VisibilityListIdx, VisibilityListMeta, VlWinnerEntry,
 	},
 };
 
@@ -342,6 +342,80 @@ impl<'a> SnapshotBuilder<'a> {
 			visibility_by_product.entry(product).or_default().push(row_idx);
 		}
 
+		// --- priority_by_product (Phase 7 — ordering precompute) -----------------------
+		// Mirror `ordering::visibility_priority_for`: per produkt vyber priority winner-VL itemu
+		// (= first row v `visibility_by_product[product]`, snapshot loader už zachová priority
+		// ordering). Produkty bez VL membership dostanou `i32::MAX` (sort to the end). O(P) walk.
+		let mut priority_by_product: Vec<i32> = vec![i32::MAX; products.len()];
+		for (product_idx, row_idxs) in &visibility_by_product {
+			let priority = row_idxs
+				.first()
+				.and_then(|id| visibility_items.get(*id as usize))
+				.map(|v| v.priority)
+				.unwrap_or(i32::MAX);
+			if let Some(slot) = priority_by_product.get_mut(*product_idx as usize) {
+				*slot = priority;
+			}
+		}
+
+		// --- product_id_strings (Phase 7 — ordering precompute) ------------------------
+		// Pre-render `product_ids[i].to_string()` aby `order_and_serialize` neformat-loval na
+		// hot path. `Box<str>` šetří 16 B per produkt oproti `String` (žádný capacity field).
+		let product_id_strings: Vec<Box<str>> = product_ids
+			.iter()
+			.map(|id| id.to_string().into_boxed_str())
+			.collect();
+
+		// --- product_vl_winners (Phase 7 — multi-VL base_mask precompute) -------------
+		// Pro každý produkt seskupit visibility_items podle VL, v každé VL vybrat min-priority
+		// item (= per-(product, VL) winner — mirror `base_mask_scan` `wins` logiky), pak seřadit
+		// kandidáty podle `(priority ASC, vl_uuid ASC)`. Runtime walk je první vl_idx, který je
+		// v customer setu — winner.
+		//
+		// Důvod min-priority výběru per VL (a ne `seen_vls.insert` first-encountered): produkt
+		// může mít víc visibility itemů ve stejné VL (řídké, ale FK to nezakazuje); SQL
+		// `ORDER BY priority ASC LIMIT 1` by vybral min-priority napříč všemi rows produktu.
+		// `base_mask_scan` to dělá implicitně přes `wins` porovnání — náš precompute musí stejně.
+		let mut product_vl_winners: Vec<smallvec::SmallVec<[VlWinnerEntry; 4]>> =
+			vec![smallvec::SmallVec::new(); products.len()];
+		for (product_idx, row_idxs) in &visibility_by_product {
+			// Per-VL winner item (min priority, tie-break: lower row_idx by load order).
+			let mut per_vl: ahash::AHashMap<VisibilityListIdx, (i32, bool)> =
+				ahash::AHashMap::with_capacity(row_idxs.len());
+			for &row_idx in row_idxs {
+				let Some(item) = visibility_items.get(row_idx as usize) else {
+					continue;
+				};
+				per_vl
+					.entry(item.visibility_list)
+					.and_modify(|existing| {
+						if item.priority < existing.0 {
+							*existing = (item.priority, item.hidden);
+						}
+					})
+					.or_insert((item.priority, item.hidden));
+			}
+			let mut sorted: Vec<(VisibilityListIdx, i32, bool)> = per_vl
+				.into_iter()
+				.map(|(vl, (prio, hidden))| (vl, prio, hidden))
+				.collect();
+			// Tie-break přes vl_uuid ASC — exact mirror `base_mask_scan` deterministického ordering.
+			sorted.sort_by(|a, b| {
+				a.1.cmp(&b.1).then_with(|| {
+					let a_uuid = visibility_list_pool.get(u32::from(a.0)).unwrap_or("");
+					let b_uuid = visibility_list_pool.get(u32::from(b.0)).unwrap_or("");
+					a_uuid.cmp(b_uuid)
+				})
+			});
+			let entries: smallvec::SmallVec<[VlWinnerEntry; 4]> = sorted
+				.into_iter()
+				.map(|(vl, _prio, hidden)| VlWinnerEntry::new(vl, hidden))
+				.collect();
+			if let Some(slot) = product_vl_winners.get_mut(*product_idx as usize) {
+				*slot = entries;
+			}
+		}
+
 		// --- per-VL "single-VL winner" bitmaps (Phase 3 fast path) ----------------------
 		// Pro single-VL request (`visibility_list_pks.len() == 1`) je `base_mask` jen lookup
 		// předbudovaného bitmapu místo lineárního scan-u nad 186k produkty. Bitmap obsahuje
@@ -553,6 +627,7 @@ impl<'a> SnapshotBuilder<'a> {
 			visibility_items,
 			visibility_by_product,
 			visibility_winner_bitmaps,
+			product_vl_winners,
 			visibility_lists,
 			categories,
 			category_bump_sets,
@@ -565,6 +640,8 @@ impl<'a> SnapshotBuilder<'a> {
 			display_amount_is_sold,
 			is_sold_by_product,
 			product_ids,
+			product_id_strings,
+			priority_by_product,
 			primary_category_by_type_cat,
 			related_slaves_by_type_master,
 			categories_by_path_suffix,
@@ -652,6 +729,8 @@ pub fn fixture_snapshot(product_count: usize, pricelist_count: usize) -> Catalog
 	// Synthetic `eshop_product.id` starting at 100_000 so they stay visually distinct from
 	// ProductIdx values and from the pricelist index space.
 	let product_ids: Vec<u64> = (0..product_count).map(|i| 100_000u64 + i as u64).collect();
+	let product_id_strings: Vec<Box<str>> = product_ids.iter().map(|id| id.to_string().into_boxed_str()).collect();
+	let priority_by_product: Vec<i32> = vec![i32::MAX; product_count];
 	CatalogSnapshot {
 		product_pool: InternPool::new("product", 0),
 		pricelist_pool: InternPool::new("pricelist", 0),
@@ -677,6 +756,7 @@ pub fn fixture_snapshot(product_count: usize, pricelist_count: usize) -> Catalog
 		visibility_items: Vec::new(),
 		visibility_by_product: ahash::AHashMap::new(),
 		visibility_winner_bitmaps: ahash::AHashMap::new(),
+		product_vl_winners: Vec::new(),
 		visibility_lists: Vec::new(),
 		categories: Vec::new(),
 		category_bump_sets: ahash::AHashMap::new(),
@@ -689,6 +769,8 @@ pub fn fixture_snapshot(product_count: usize, pricelist_count: usize) -> Catalog
 		display_amount_is_sold: ahash::AHashMap::new(),
 		is_sold_by_product: Vec::new(),
 		product_ids,
+		product_id_strings,
+		priority_by_product,
 		primary_category_by_type_cat: ahash::AHashMap::new(),
 		related_slaves_by_type_master: ahash::AHashMap::new(),
 		categories_by_path_suffix: ahash::AHashMap::new(),

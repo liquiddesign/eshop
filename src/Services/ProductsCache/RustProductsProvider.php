@@ -16,6 +16,7 @@ use Eshop\DB\VisibilityList;
 use Eshop\ShopperUser;
 use Nette\Caching\Cache;
 use Nette\Caching\Storage;
+use Nette\DI\Container;
 use Nette\Utils\Arrays;
 use Nette\Utils\Strings;
 use Tracy\Debugger;
@@ -66,6 +67,7 @@ final class RustProductsProvider implements GeneralProductsCacheProvider
 		private readonly CategoryRepository $categoryRepository,
 		private readonly AttributeRepository $attributeRepository,
 		private readonly AttributeValueRepository $attributeValueRepository,
+		private readonly Container $container,
 		Storage $storage,
 	) {
 		$this->categoryCountCache = new Cache($storage, 'rustProductsCategoryCounts');
@@ -105,11 +107,13 @@ final class RustProductsProvider implements GeneralProductsCacheProvider
 			}
 		}
 
-		// V dev módu vždy zapneme `debug: true` aby daemon vracel `timings` breakdown — Tracy
-		// panel je registrovaný jen mimo production mode (viz `ShopperDI::afterCompile()`),
-		// takže overhead měření se neprojeví v produkci. Volající explicitní `$debug=true`
-		// respektujeme i bez Tracy.
-		$wantTimings = $debug || !Debugger::$productionMode;
+		// V dev módu vždy zapneme `debug: true` aby daemon vracel `timings` breakdown pro Tracy
+		// panel. Zdrojem pravdy je Nette container parameter `debugMode` (autoritativní, vždy
+		// nastavený compilerem) — `Debugger::$productionMode` může být `null` než Tracy doběhne
+		// auto-detect, což by v produkci falešně zapnulo `wantTimings=true` a tím by se přes
+		// daemon-side `cache_eligible if !r.debug` mlčky vyřazoval response cache.
+		$debugMode = (bool) ($this->container->getParameters()['debugMode'] ?? false);
+		$wantTimings = $debug || $debugMode;
 
 		$request = $this->buildRequest($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists, $wantTimings, $countCategories);
 		$response = $this->client->getProducts($request);

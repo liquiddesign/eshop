@@ -58,6 +58,10 @@ lru = "0.12"
 # request frame. Strong enough that we don't worry about collisions on the bound (256 keys).
 blake3 = "1.5"
 
+# Data-parallel iteration for facet attr-value count fan-out (1000+ buckets / request).
+# Worker pool je inicializovaný lazily na první par_iter — daemon ho zaplatí jednou per process.
+rayon = "1.10"
+
 # Env loading for DB credentials (.env in binary directory)
 dotenvy = "0.15"
 

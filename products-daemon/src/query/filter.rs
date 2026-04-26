@@ -5,6 +5,8 @@
 
 use roaring::RoaringBitmap;
 
+use std::collections::HashMap;
+
 use crate::{
 	error::{RequestError, Result},
 	protocol::{FilterPayload, GetProductsRequest, PriceVisibility},
@@ -58,15 +60,42 @@ pub fn base_mask(snap: &CatalogSnapshot, visibility_list_pks: &[String]) -> Resu
 	Ok(base_mask_scan(snap, &allowed_vl_idxs))
 }
 
-/// Lineární scan implementace `base_mask` — extracted aby fast-path bypass šel testovat
-/// proti scan výstupu. Volá se přímo z `base_mask` pro multi-VL request.
+/// Multi-VL `base_mask` rychlý lookup nad precomputed `product_vl_winners`.
+///
+/// Pro každý produkt walk pre-sorted seznamu `(vl_idx, hidden)` v priority order; první
+/// `vl_idx ∈ allowed_vl_idxs` je winner. Pokud má `hidden=false`, produkt prochází.
+///
+/// Build-time pre-sort šetří per-comparison priority/uuid loop a `visibility_items[idx]`
+/// indirection (cache-cold pole). Pre-Phase-7 implementace dělala 186 k × ≤4 row lookups
+/// + porovnání ~3.66 ms; teď je to flat scan nad inline SmallVec entries ~< 1 ms.
+///
+/// Snapshot fixtures (před prvním rebuildem) mohou mít prázdný `product_vl_winners` —
+/// fallback na původní lineární scan přes `visibility_items` zachová parity v testech.
 pub(crate) fn base_mask_scan(snap: &CatalogSnapshot, allowed_vl_idxs: &ahash::AHashSet<u32>) -> RoaringBitmap {
+	if snap.product_vl_winners.is_empty() {
+		return base_mask_scan_legacy(snap, allowed_vl_idxs);
+	}
+	let mut mask = RoaringBitmap::new();
+	for product in &snap.all_products_mask {
+		let Some(winners) = snap.product_vl_winners.get(product as usize) else {
+			continue;
+		};
+		for entry in winners {
+			if allowed_vl_idxs.contains(&u32::from(entry.visibility_list)) {
+				if !entry.hidden {
+					mask.insert(product);
+				}
+				break;
+			}
+		}
+	}
+	mask
+}
+
+/// Pre-Phase-7 fallback used when `product_vl_winners` is empty (test fixtures, pre-rebuild).
+fn base_mask_scan_legacy(snap: &CatalogSnapshot, allowed_vl_idxs: &ahash::AHashSet<u32>) -> RoaringBitmap {
 	let mut mask = RoaringBitmap::new();
 
-	// Walk products that are active and iterate their visibility items — `visibility_by_product`
-	// typically holds ≤ 4 entries per product (SmallVec inline), so even with 186k products the
-	// total work is bounded at a few × product count. A per-VL bitmap precomputed at snapshot
-	// build is a follow-up optimization if this becomes hot.
 	for product in &snap.all_products_mask {
 		let Some(item_idxs) = snap.visibility_by_product.get(&product) else {
 			continue;
@@ -82,8 +111,6 @@ pub(crate) fn base_mask_scan(snap: &CatalogSnapshot, allowed_vl_idxs: &ahash::AH
 				continue;
 			}
 
-			// Priority ASC (lower = higher precedence). Tie-break: `eshop_visibilitylist.uuid ASC`
-			// for determinism when two lists share priority — same contract as the SQL join.
 			let wins = match best {
 				None => true,
 				Some(current) => {
@@ -122,10 +149,33 @@ pub(crate) fn base_mask_scan(snap: &CatalogSnapshot, allowed_vl_idxs: &ahash::AH
 /// OR-within-dimension, AND-across-dimensions — standard facet semantics.
 pub fn apply_bitmap_filters(
 	snap: &CatalogSnapshot,
-	mut mask: RoaringBitmap,
+	mask: RoaringBitmap,
 	req: &GetProductsRequest,
 ) -> Result<RoaringBitmap> {
-	if let Some(cat_pks) = &req.filters.category_uuids {
+	apply_bitmap_filters_inner(
+		snap,
+		mask,
+		&req.filters,
+		req.dynamic_filter_attributes.as_ref(),
+		&req.visibility_list_pks,
+		None,
+	)
+}
+
+/// Same as [`apply_bitmap_filters`] but accepts the filter components directly so the facet
+/// leave-one-out path can override `filters` / `dynamic_filter_attributes` without cloning the
+/// whole `GetProductsRequest` per call. `omit_attr_pk` skips that one attribute key during the
+/// dynamic-attributes loop — used by `facets::leave_attribute_out`.
+pub(crate) fn apply_bitmap_filters_inner(
+	snap: &CatalogSnapshot,
+	mut mask: RoaringBitmap,
+	filter_payload: &FilterPayload,
+	dynamic_filter_attributes: Option<&HashMap<String, Vec<String>>>,
+	visibility_list_pks: &[String],
+	omit_attr_pk: Option<&str>,
+) -> Result<RoaringBitmap> {
+	let req_filters = filter_payload;
+	if let Some(cat_pks) = &req_filters.category_uuids {
 		// Parita s PHP `LiveProvider::applyCategoryFilter` (LiveProvider.php:1317-1320):
 		// `FIND_IN_SET(category_uuid, denormalizedCategories)`. CSV `denormalizedCategories` na
 		// eshop_product už obsahuje "direct + applicable ancestors" (viz LiveProvider.php:1313),
@@ -143,9 +193,12 @@ pub fn apply_bitmap_filters(
 		mask &= snap.category_bitmaps.union_of(&idxs);
 	}
 
-	if let Some(attr_value_pks) = &req.dynamic_filter_attributes {
+	if let Some(attr_value_pks) = dynamic_filter_attributes {
 		// Each attribute is its own dimension: OR within attribute, AND across attributes.
 		for (attr_pk, value_pks) in attr_value_pks {
+			if omit_attr_pk.is_some_and(|omit| omit == attr_pk.as_str()) {
+				continue;
+			}
 			let mut idxs = Vec::with_capacity(value_pks.len());
 			for pk in value_pks {
 				let Some(idx) = snap.attribute_value_pool.lookup(pk) else {
@@ -157,7 +210,7 @@ pub fn apply_bitmap_filters(
 		}
 	}
 
-	if let Some(producer_pks) = &req.filters.producer_uuids {
+	if let Some(producer_pks) = &req_filters.producer_uuids {
 		let mut idxs = Vec::with_capacity(producer_pks.len());
 		for pk in producer_pks {
 			if let Some(idx) = snap.producer_pool.lookup(pk) {
@@ -167,12 +220,12 @@ pub fn apply_bitmap_filters(
 		mask &= snap.producer_bitmaps.union_of(&idxs);
 	}
 
-	if let Some(display_amount_pks) = &req.filters.display_amount_uuids {
+	if let Some(display_amount_pks) = &req_filters.display_amount_uuids {
 		let idxs: Vec<u32> = display_amount_pks.iter().filter_map(|pk| hash_display(pk)).collect();
 		mask &= snap.display_amount_bitmaps.union_of(&idxs);
 	}
 
-	if let Some(display_delivery_pks) = &req.filters.display_delivery_uuids {
+	if let Some(display_delivery_pks) = &req_filters.display_delivery_uuids {
 		let idxs: Vec<u32> = display_delivery_pks.iter().filter_map(|pk| hash_display(pk)).collect();
 		mask &= snap.display_delivery_bitmaps.union_of(&idxs);
 	}
@@ -180,7 +233,7 @@ pub fn apply_bitmap_filters(
 	// --- `uuids` subset restrict --------------------------------------------------------
 	// PHP `where('this.uuid', $uuids)` — unknown UUIDs are silently dropped (StORM IN-empty = no hits,
 	// but any missing ones just drop from the union, so we skip unresolved rather than error).
-	if let Some(uuids) = &req.filters.uuids {
+	if let Some(uuids) = &req_filters.uuids {
 		let mut allowed = RoaringBitmap::new();
 		for pk in uuids {
 			if let Some(idx) = snap.product_pool.lookup(pk) {
@@ -193,7 +246,7 @@ pub fn apply_bitmap_filters(
 	// --- `masterProduct` (fk_masterProduct IS NULL / IS NOT NULL) -----------------------
 	// Mirror PHP `allowedCollectionFilterExpressions['masterProduct']`. Bitmap ops nad
 	// předbudovaným `snap.master_mask`: true = průnik s master sadou, false = množinový rozdíl.
-	if let Some(want_master) = req.filters.master_product {
+	if let Some(want_master) = req_filters.master_product {
 		if want_master {
 			mask &= &snap.master_mask;
 		} else {
@@ -204,7 +257,7 @@ pub fn apply_bitmap_filters(
 	// --- ribbon AND (require each) -------------------------------------------------------
 	// PHP `allowedDynamicFilterExpressions['ribbon']` flips the product's CSV and `isset`-checks
 	// every requested ribbon. Missing ribbon in the pool ⇒ no product has it ⇒ mask drops to empty.
-	if let Some(ribbons) = &req.filters.ribbon_uuids {
+	if let Some(ribbons) = &req_filters.ribbon_uuids {
 		for uuid in ribbons {
 			let Some(idx) = snap.ribbon_pool.lookup(uuid) else {
 				// Unknown ribbon UUID ⇒ no product carries it ⇒ result is empty.
@@ -221,7 +274,7 @@ pub fn apply_bitmap_filters(
 		}
 	}
 
-	if let Some(not_ribbons) = &req.filters.not_ribbon_uuids {
+	if let Some(not_ribbons) = &req_filters.not_ribbon_uuids {
 		for uuid in not_ribbons {
 			if let Some(idx) = snap.ribbon_pool.lookup(uuid) {
 				if let Some(bm) = snap.ribbon_bitmaps.get(idx) {
@@ -231,7 +284,7 @@ pub fn apply_bitmap_filters(
 		}
 	}
 
-	if let Some(internal_ribbons) = &req.filters.internal_ribbon_uuids {
+	if let Some(internal_ribbons) = &req_filters.internal_ribbon_uuids {
 		for uuid in internal_ribbons {
 			let Some(idx) = snap.internal_ribbon_pool.lookup(uuid) else {
 				mask.clear();
@@ -247,7 +300,7 @@ pub fn apply_bitmap_filters(
 		}
 	}
 
-	if let Some(not_internal_ribbons) = &req.filters.not_internal_ribbon_uuids {
+	if let Some(not_internal_ribbons) = &req_filters.not_internal_ribbon_uuids {
 		for uuid in not_internal_ribbons {
 			if let Some(idx) = snap.internal_ribbon_pool.lookup(uuid) {
 				if let Some(bm) = snap.internal_ribbon_bitmaps.get(idx) {
@@ -258,7 +311,7 @@ pub fn apply_bitmap_filters(
 	}
 
 	// --- isSold (display_amount.isSold) --------------------------------------------------
-	if let Some(wanted) = req.filters.is_sold {
+	if let Some(wanted) = req_filters.is_sold {
 		mask = filter_by_is_sold(snap, mask, wanted);
 	}
 
@@ -268,7 +321,7 @@ pub fn apply_bitmap_filters(
 	// display_amount nebo když display_amount má unknown isSold — tyto dva případy se liší
 	// sémanticky (NULL → pass, unknown → reject). Proto bereme v úvahu `display_amount.is_none()`
 	// zvlášť.
-	if matches!(req.filters.in_stock, Some(true)) {
+	if matches!(req_filters.in_stock, Some(true)) {
 		let mut allowed = RoaringBitmap::new();
 		for product in &mask {
 			let Some(row) = snap.products.get(product as usize) else {
@@ -290,7 +343,7 @@ pub fn apply_bitmap_filters(
 	// AND productPrimaryCategory.fk_category = category`. `productPrimaryCategory` je
 	// per-categoryType tabulka — PHP joinne ji na `shopperUser->getMainCategoryType()`. Klíč
 	// do snapshot lookupu je tedy `(main_category_type_pk, primary_category_uuid)`.
-	if let Some(related) = &req.filters.related {
+	if let Some(related) = &req_filters.related {
 		let key = (
 			smol_str::SmolStr::new(&related.main_category_type_pk),
 			smol_str::SmolStr::new(&related.primary_category_uuid),
@@ -309,7 +362,7 @@ pub fn apply_bitmap_filters(
 	// PHP `filterRelatedSlave` (ProductRepository.php:1196-1202): `this.uuid = related.fk_slave
 	// AND related.fk_type = $typeUuid AND related.fk_master = $masterUuid`. Snapshot lookup:
 	// `(type_uuid, master_uuid)` → bitmap slave ProductIdx.
-	if let Some(rs) = &req.filters.related_slave {
+	if let Some(rs) = &req_filters.related_slave {
 		let key = (
 			smol_str::SmolStr::new(&rs.type_uuid),
 			smol_str::SmolStr::new(&rs.master_uuid),
@@ -326,7 +379,7 @@ pub fn apply_bitmap_filters(
 	// 4-char chunky a pro každý přidá `categories.path LIKE '%chunk'` přes OR. Rust verze:
 	// pro každý chunk najde CategoryIdx seznam v `categories_by_path_suffix`, unionuje jejich
 	// category_bitmaps (= produkty v té kategorii) a intersectuje do mask.
-	if let Some(cs) = &req.filters.cross_sell {
+	if let Some(cs) = &req_filters.cross_sell {
 		let mut cat_idxs: Vec<u32> = Vec::new();
 		let bytes = cs.path.as_bytes();
 		// `str_split` v PHP na 4 bere po bytech, čímž je konzistentní s naším ASCII path formátem
@@ -358,13 +411,12 @@ pub fn apply_bitmap_filters(
 	// All four dimensions share the same pass: produce a bitmap of products that have at least
 	// one VL item in `req.visibility_list_pks` matching the requested flag values. Skip the pass
 	// entirely if no flag is set to avoid a linear scan on the hot path.
-	let filters = &req.filters;
-	let has_bool_filter = filters.hidden.is_some()
-		|| filters.hidden_in_menu.is_some()
-		|| filters.recommended.is_some()
-		|| filters.unavailable.is_some();
+	let has_bool_filter = req_filters.hidden.is_some()
+		|| req_filters.hidden_in_menu.is_some()
+		|| req_filters.recommended.is_some()
+		|| req_filters.unavailable.is_some();
 	if has_bool_filter {
-		mask &= visibility_boolean_mask(snap, &req.visibility_list_pks, filters)?;
+		mask &= visibility_boolean_mask(snap, visibility_list_pks, req_filters)?;
 	}
 
 	Ok(mask)
@@ -733,5 +785,72 @@ mod tests {
 		// Unknown VL => UnknownVisibilityList error (resolution happens před fast path).
 		let err = base_mask(&snap, &[String::from("does-not-exist")]).unwrap_err();
 		assert!(format!("{err}").contains("does-not-exist"));
+	}
+
+	/// Phase 7: ověř že multi-VL `base_mask_scan` přes `product_vl_winners` respektuje
+	/// priority-first selekci uvnitř customer subsetu a vyloučí produkty, jejichž winner
+	/// má `hidden = true`. Single-VL fast path je pokrytý zvlášť (testy výš).
+	///
+	/// Scenario (oba multi-VL volání):
+	/// - VL_HIGH (priority 1, uuid "vl-high"), VL_LOW (priority 5, uuid "vl-low"), VL_EXTRA (uuid "vl-extra")
+	/// - p0: HIGH non-hidden + LOW non-hidden → winner v {HIGH,LOW} = HIGH (priority 1), visible
+	/// - p1: HIGH hidden + LOW non-hidden → winner = HIGH (hidden), drops out
+	/// - p2: jen LOW non-hidden → winner v {HIGH,LOW} = LOW, visible
+	#[test]
+	fn multi_vl_priority_first_winner_with_hidden() {
+		use crate::snapshot::VlWinnerEntry;
+
+		let mut snap = std::sync::Arc::into_inner(CatalogSnapshot::empty()).unwrap();
+
+		let vl_high = snap.visibility_list_pool.intern("vl-high").unwrap();
+		let vl_low = snap.visibility_list_pool.intern("vl-low").unwrap();
+		let vl_extra = snap.visibility_list_pool.intern("vl-extra").unwrap();
+		let vl_high_idx = u16::try_from(vl_high).unwrap();
+		let vl_low_idx = u16::try_from(vl_low).unwrap();
+		let vl_extra_idx = u16::try_from(vl_extra).unwrap();
+		for idx in [vl_high_idx, vl_low_idx, vl_extra_idx] {
+			snap.visibility_lists.push(VisibilityListMeta {
+				idx,
+				is_active: true,
+				has_customer_binding: true,
+			});
+		}
+
+		for i in 0..3u32 {
+			snap.product_pool.intern(&format!("p-{i}")).unwrap();
+			snap.all_products_mask.insert(i);
+		}
+
+		// `product_vl_winners` plněné build-time logikou: kandidáti seřazení podle
+		// (priority ASC, vl_uuid ASC). HIGH má prio 1, LOW prio 5 → HIGH stojí první.
+		snap.product_vl_winners = vec![
+			SmallVec::from_vec(vec![
+				VlWinnerEntry::new(vl_high_idx, false),
+				VlWinnerEntry::new(vl_low_idx, false),
+			]),
+			SmallVec::from_vec(vec![
+				VlWinnerEntry::new(vl_high_idx, true),
+				VlWinnerEntry::new(vl_low_idx, false),
+			]),
+			SmallVec::from_vec(vec![VlWinnerEntry::new(vl_low_idx, false)]),
+		];
+
+		// Customer subset = {LOW, EXTRA} (multi-VL → product_vl_winners path).
+		// p0 → LOW (HIGH chybí v subsetu) → visible.
+		// p1 → LOW → visible.
+		// p2 → LOW → visible.
+		let mask_low = base_mask(&snap, &["vl-low".to_string(), "vl-extra".to_string()]).unwrap();
+		assert_eq!(
+			mask_low.iter().collect::<Vec<_>>(),
+			vec![0, 1, 2],
+			"subset {{LOW, EXTRA}}"
+		);
+
+		// Customer subset = {HIGH, LOW}. Winner per produkt:
+		// p0 → HIGH (priority 1, non-hidden) → visible.
+		// p1 → HIGH (priority 1, hidden) → drops out.
+		// p2 → LOW (jediná entry) → visible.
+		let mask_both = base_mask(&snap, &["vl-high".to_string(), "vl-low".to_string()]).unwrap();
+		assert_eq!(mask_both.iter().collect::<Vec<_>>(), vec![0, 2], "subset {{HIGH,LOW}}");
 	}
 }

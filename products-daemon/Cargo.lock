@@ -18,6 +18,7 @@ dependencies = [
  "mysql_async",
  "parking_lot",
  "pretty_assertions",
+ "rayon",
  "roaring",
  "serde",
  "serde_json",
