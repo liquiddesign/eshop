@@ -23,11 +23,7 @@ use std::collections::HashMap;
 
 use roaring::RoaringBitmap;
 
-use crate::{
-	protocol::GetProductsRequest,
-	query::{filter, PricedProduct},
-	snapshot::{CatalogSnapshot, PricelistIdx},
-};
+use crate::query::{filter, PricedProduct, RequestContext};
 
 #[derive(Debug, Default)]
 pub struct FacetCounts {
@@ -43,16 +39,19 @@ pub struct FacetCounts {
 }
 
 /// Compute all facet aggregates in one pass.
+///
+/// `pre_pricing_mask` = `base_mask & apply_bitmap_filters(req) & has_price_mask` (před
+/// pricing/price_band/restrictive). Hlavní pipeline ho už spočítala — facet leave-one-out
+/// pro **nezfiltrované** dimenze ho použije jako rovnou výsledek bez recompute.
 pub fn compute(
-	snap: &CatalogSnapshot,
-	req: &GetProductsRequest,
+	ctx: &RequestContext<'_>,
 	surviving_mask: &RoaringBitmap,
 	priced: &[PricedProduct],
-	pricelist_idxs: &[PricelistIdx],
+	pre_pricing_mask: &RoaringBitmap,
 ) -> FacetCounts {
 	let mut out = FacetCounts::default();
-
-	let has_price_mask = filter::has_any_price_mask(snap, pricelist_idxs, req.price_visibility);
+	let snap = ctx.snap;
+	let req = ctx.req;
 
 	// --- attribute value counts — per-attribute leave-one-out --------------------------
 	// Strategy:
@@ -60,10 +59,10 @@ pub fn compute(
 	//   with that attribute's filter removed; count each of ITS value buckets against that mask.
 	// - For all other attributes (not in the request filter), the surviving_mask already
 	//   represents the right pre-mask (removing a filter that isn't applied is a no-op).
-	compute_attribute_counts(snap, req, surviving_mask, &has_price_mask, &mut out.attr_values);
+	compute_attribute_counts(ctx, surviving_mask, &mut out.attr_values);
 
 	// --- producer counts (leave-one-out: ignore producer filter) -----------------------
-	let producer_pre = leave_dim_out(snap, req, filter::FilterDim::Producer, &has_price_mask);
+	let producer_pre = leave_dim_out(ctx, filter::FilterDim::Producer, pre_pricing_mask);
 	for (idx, bitmap) in snap.producer_bitmaps.iter() {
 		let count = intersection_len(&producer_pre, bitmap);
 		if count == 0 {
@@ -75,7 +74,7 @@ pub fn compute(
 	}
 
 	// --- displayAmount counts ----------------------------------------------------------
-	let da_pre = leave_dim_out(snap, req, filter::FilterDim::DisplayAmount, &has_price_mask);
+	let da_pre = leave_dim_out(ctx, filter::FilterDim::DisplayAmount, pre_pricing_mask);
 	for (idx, bitmap) in snap.display_amount_bitmaps.iter() {
 		let count = intersection_len(&da_pre, bitmap);
 		if count == 0 {
@@ -90,7 +89,7 @@ pub fn compute(
 	}
 
 	// --- displayDelivery counts --------------------------------------------------------
-	let dd_pre = leave_dim_out(snap, req, filter::FilterDim::DisplayDelivery, &has_price_mask);
+	let dd_pre = leave_dim_out(ctx, filter::FilterDim::DisplayDelivery, pre_pricing_mask);
 	for (idx, bitmap) in snap.display_delivery_bitmaps.iter() {
 		let count = intersection_len(&dd_pre, bitmap);
 		if count == 0 {
@@ -106,7 +105,7 @@ pub fn compute(
 
 	// --- category counts (optional: only if countCategories=true) ----------------------
 	if req.count_categories {
-		let cat_pre = leave_dim_out(snap, req, filter::FilterDim::Category, &has_price_mask);
+		let cat_pre = leave_dim_out(ctx, filter::FilterDim::Category, pre_pricing_mask);
 		let mut cat_counts = HashMap::new();
 		for (idx, bitmap) in snap.category_bitmaps.iter() {
 			let count = intersection_len(&cat_pre, bitmap);
@@ -143,12 +142,13 @@ pub fn compute(
 /// - Values under an attribute the user IS filtering → count against pre-mask without that attr's constraint.
 /// - Values under any other attribute → count against the `surviving_mask` (same as not filtering it).
 fn compute_attribute_counts(
-	snap: &CatalogSnapshot,
-	req: &GetProductsRequest,
+	ctx: &RequestContext<'_>,
 	surviving_mask: &RoaringBitmap,
-	has_price_mask: &RoaringBitmap,
 	out: &mut HashMap<String, u64>,
 ) {
+	let snap = ctx.snap;
+	let req = ctx.req;
+
 	// Resolve each requested attribute_pk to its AttributeIdx (skipping unknown ones —
 	// those never produced any bitmap hits anyway).
 	let filtered_attr_idxs: ahash::AHashMap<u32, RoaringBitmap> = req
@@ -158,7 +158,7 @@ fn compute_attribute_counts(
 			m.keys()
 				.filter_map(|pk| {
 					let attr_idx = snap.attribute_pool.lookup(pk)?;
-					Some((attr_idx, leave_attribute_out(snap, req, pk, has_price_mask)))
+					Some((attr_idx, leave_attribute_out(ctx, pk)))
 				})
 				.collect()
 		})
@@ -191,35 +191,44 @@ fn intersection_len(a: &RoaringBitmap, b: &RoaringBitmap) -> u64 {
 /// Falls back to a clone of the full active mask on error — facet computation is best-effort
 /// and shouldn't block the whole response for a mistyped filter key (the main path already
 /// validated before calling us).
+///
+/// **Fast path:** pokud uživatel danou dimenzi nefiltruje (`req.filters.<dim>_uuids.is_none()`),
+/// stripping je no-op — výsledek je identický s `pre_pricing_mask`, který hlavní pipeline
+/// už spočítala. Šetří `apply_bitmap_filters` recompute.
 fn leave_dim_out(
-	snap: &CatalogSnapshot,
-	req: &GetProductsRequest,
+	ctx: &RequestContext<'_>,
 	dim: filter::FilterDim,
-	has_price_mask: &RoaringBitmap,
+	pre_pricing_mask: &RoaringBitmap,
 ) -> RoaringBitmap {
+	let req = ctx.req;
+	let dim_active = match dim {
+		filter::FilterDim::Category => req.filters.category_uuids.is_some(),
+		filter::FilterDim::Producer => req.filters.producer_uuids.is_some(),
+		filter::FilterDim::DisplayAmount => req.filters.display_amount_uuids.is_some(),
+		filter::FilterDim::DisplayDelivery => req.filters.display_delivery_uuids.is_some(),
+	};
+	if !dim_active {
+		return pre_pricing_mask.clone();
+	}
+
 	let stripped_filters = req.filters.dims_besides(dim);
 	let mut stripped = req.clone();
 	stripped.filters = stripped_filters;
-	let mask = filter::base_mask(snap, &stripped.visibility_list_pks)
-		.and_then(|base| filter::apply_bitmap_filters(snap, base, &stripped))
-		.unwrap_or_else(|_| snap.all_products_mask.clone());
-	mask & has_price_mask
+	let mask = filter::apply_bitmap_filters(ctx.snap, ctx.base_mask.clone(), &stripped)
+		.unwrap_or_else(|_| ctx.snap.all_products_mask.clone());
+	mask & &ctx.has_price_mask
 }
 
 /// Rebuild a mask with all filters applied except one specific attribute key in
 /// `dynamic_filter_attributes`. Intersects with `has_price_mask`.
-fn leave_attribute_out(
-	snap: &CatalogSnapshot,
-	req: &GetProductsRequest,
-	attr_pk_to_omit: &str,
-	has_price_mask: &RoaringBitmap,
-) -> RoaringBitmap {
-	let mut stripped = req.clone();
+///
+/// Reusuje `ctx.base_mask` a `ctx.has_price_mask` — žádný redundantní VL/price recompute.
+fn leave_attribute_out(ctx: &RequestContext<'_>, attr_pk_to_omit: &str) -> RoaringBitmap {
+	let mut stripped = ctx.req.clone();
 	if let Some(attrs) = stripped.dynamic_filter_attributes.as_mut() {
 		attrs.remove(attr_pk_to_omit);
 	}
-	let mask = filter::base_mask(snap, &stripped.visibility_list_pks)
-		.and_then(|base| filter::apply_bitmap_filters(snap, base, &stripped))
-		.unwrap_or_else(|_| snap.all_products_mask.clone());
-	mask & has_price_mask
+	let mask = filter::apply_bitmap_filters(ctx.snap, ctx.base_mask.clone(), &stripped)
+		.unwrap_or_else(|_| ctx.snap.all_products_mask.clone());
+	mask & &ctx.has_price_mask
 }

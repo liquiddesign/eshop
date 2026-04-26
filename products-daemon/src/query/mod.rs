@@ -74,6 +74,40 @@ fn elapsed_ms(start: Instant) -> f64 {
 	}
 }
 
+/// Per-request memoizovaný kontext sdílený hlavní pipeline a facet leave-one-out smyčkou.
+///
+/// **Why:** `base_mask` a `has_any_price_mask` jsou v rámci jednoho requestu invariantní
+/// (závisí jen na `visibility_list_pks` resp. `pricelist_pks` + `price_visibility`).
+/// Bez memoizace každý `leave_dim_out` / `leave_attribute_out` v `facets::compute` recomputuje
+/// base_mask znovu (lineární scan ~16 ms při 186k produktech × ≤4 visibility items per produkt).
+/// Pro typickou kategorii s 3-5 attribute filtry to bylo 5-7× zbytečně.
+///
+/// Eager build (ne `OnceCell`) — obě masky jsou potřeba vždy, lazy by jen přidalo runtime
+/// větvení. Klonování `RoaringBitmap` při průniku ve facets je cheap (Roaring container je
+/// reference-counted internally; zde jen Vec<Container> alokace).
+pub struct RequestContext<'a> {
+	pub snap: &'a CatalogSnapshot,
+	pub req: &'a GetProductsRequest,
+	pub pricelist_idxs: Vec<PricelistIdx>,
+	pub base_mask: RoaringBitmap,
+	pub has_price_mask: RoaringBitmap,
+}
+
+impl<'a> RequestContext<'a> {
+	pub fn build(snap: &'a CatalogSnapshot, req: &'a GetProductsRequest) -> Result<Self> {
+		let pricelist_idxs = resolve_pricelists(snap, &req.pricelist_pks)?;
+		let base_mask = filter::base_mask(snap, &req.visibility_list_pks)?;
+		let has_price_mask = filter::has_any_price_mask(snap, &pricelist_idxs, req.price_visibility);
+		Ok(Self {
+			snap,
+			req,
+			pricelist_idxs,
+			base_mask,
+			has_price_mask,
+		})
+	}
+}
+
 /// Entry point used by the server handler. Orchestrates the whole pipeline.
 ///
 /// ```text
@@ -93,20 +127,22 @@ pub fn run(
 
 	// 1. Base mask (visibility + deletedTs IS NULL via `all_products_mask`).
 	let t0 = Instant::now();
-	let base_mask = filter::base_mask(snap, &req.visibility_list_pks)?;
+	let ctx = RequestContext::build(snap, req)?;
 	let base_mask_ms = elapsed_ms(t0);
 
 	// 2. Customer-independent bitmap filters.
 	let t1 = Instant::now();
-	let mut mask = filter::apply_bitmap_filters(snap, base_mask, req)?;
+	let mut mask = filter::apply_bitmap_filters(snap, ctx.base_mask.clone(), req)?;
 	let bitmap_filters_ms = elapsed_ms(t1);
 
 	// 3-5. Pricing pipeline: pricelist mask + best-price + restrictive + price-band.
 	let t2 = Instant::now();
-	let pricelist_idxs: Vec<PricelistIdx> = resolve_pricelists(snap, &req.pricelist_pks)?;
-	let has_price_mask = filter::has_any_price_mask(snap, &pricelist_idxs, req.price_visibility);
-	mask &= has_price_mask;
-	let priced = pricing::compute_effective_prices(snap, &mask, &pricelist_idxs, &req.price_modifiers)?;
+	mask &= &ctx.has_price_mask;
+	// `pre_pricing_mask` = base ∩ bitmap filters ∩ has_price. Reusable v facet leave-one-out
+	// fast-pathu pro nezfiltrované dimenze (jejich pre-mask = identita s tímto, takže není
+	// potřeba recomputeovat apply_bitmap_filters s "stripped" filters, který je stejný).
+	let pre_pricing_mask = mask.clone();
+	let priced = pricing::compute_effective_prices(snap, &mask, &ctx.pricelist_idxs, &req.price_modifiers)?;
 	let priced = filter::apply_restrictive_filters(snap, priced, req);
 	let priced = pricing::apply_price_band(priced, &req.filters, req.price_visibility.show_vat);
 	let surviving_mask: RoaringBitmap = priced.iter().map(|p| p.product).collect();
@@ -114,7 +150,7 @@ pub fn run(
 
 	// 6. Facets.
 	let t3 = Instant::now();
-	let facets = facets::compute(snap, req, &surviving_mask, &priced, &pricelist_idxs);
+	let facets = facets::compute(&ctx, &surviving_mask, &priced, &pre_pricing_mask);
 	let facets_ms = elapsed_ms(t3);
 
 	// 7. Ordering + serialize PKs to wire form.
