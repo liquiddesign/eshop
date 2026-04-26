@@ -48,6 +48,16 @@ smol_str = { version = "0.3", features = ["serde"] }
 # Faster hasher than default SipHash (ch. 3 — performance-first)
 ahash = "0.8"
 
+# Per-snapshot response cache (Phase 4 latency optimization).
+# `parking_lot::Mutex<lru::LruCache>` — daemon does single-digit RPS, mutex
+# contention is negligible; LruCache caps memory growth on diverse traffic.
+parking_lot = "0.12"
+lru = "0.12"
+
+# Cryptographic hash for request → cache-key. blake3 is ~5 GB/s, sub-µs for typical
+# request frame. Strong enough that we don't worry about collisions on the bound (256 keys).
+blake3 = "1.5"
+
 # Env loading for DB credentials (.env in binary directory)
 dotenvy = "0.15"
 

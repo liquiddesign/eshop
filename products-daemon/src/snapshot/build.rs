@@ -570,6 +570,7 @@ impl<'a> SnapshotBuilder<'a> {
 			categories_by_path_suffix,
 			schema_version,
 			built_at: Instant::now(),
+			response_cache: parking_lot::Mutex::new(lru::LruCache::new(crate::snapshot::RESPONSE_CACHE_CAPACITY)),
 		})
 	}
 }
@@ -693,5 +694,6 @@ pub fn fixture_snapshot(product_count: usize, pricelist_count: usize) -> Catalog
 		categories_by_path_suffix: ahash::AHashMap::new(),
 		schema_version: 0,
 		built_at: Instant::now(),
+		response_cache: parking_lot::Mutex::new(lru::LruCache::new(crate::snapshot::RESPONSE_CACHE_CAPACITY)),
 	}
 }

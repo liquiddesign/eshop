@@ -7,9 +7,11 @@ pub mod bitmaps;
 pub mod build;
 pub mod intern;
 
-use std::{ops::Range, sync::Arc, time::Instant};
+use std::{num::NonZeroUsize, ops::Range, sync::Arc, time::Instant};
 
 use ahash::AHashMap;
+use lru::LruCache;
+use parking_lot::Mutex;
 use roaring::RoaringBitmap;
 use smallvec::SmallVec;
 
@@ -355,6 +357,19 @@ pub struct CatalogSnapshot {
 	/// Version tuple hashed into a `u64` — refresher compares against this to detect DB drift.
 	pub schema_version: u64,
 	pub built_at: Instant,
+
+	/// Per-snapshot LRU cache nad serialized response bytes (Phase 4 — největší cache hit win).
+	/// Klíč: `[u8; 32]` blake3 hash request frame bytes. Hodnota: serialized response frame
+	/// (bez délkového headeru — ten se připojí v `write_frame`). Cache umírá s drop-em snapshotu
+	/// (ArcSwap drop semantics) — žádné stale entries po rebuild.
+	///
+	/// Bound: 256 entries × průměrných 100 KB = ~25 MB ceiling. Pro daemon s 187k produkty
+	/// a stable frontend cestami je top-50 klíčů (kategorie × isB2B × VAT toggle) typicky pokrývá
+	/// 70-90 % traffic — cache hit ratio na produkčním e-shopu.
+	///
+	/// `Mutex` (ne `RwLock`) protože LruCache `get()` mutuje recency tracker. `parking_lot::Mutex`
+	/// je ~10× rychlejší než `std::sync::Mutex` pro krátké hold-time (lookup je sub-µs).
+	pub response_cache: Mutex<LruCache<[u8; 32], Arc<Vec<u8>>>>,
 }
 
 impl CatalogSnapshot {
@@ -435,6 +450,18 @@ impl CatalogSnapshot {
 			categories_by_path_suffix: AHashMap::new(),
 			schema_version: 0,
 			built_at: Instant::now(),
+			response_cache: Mutex::new(LruCache::new(RESPONSE_CACHE_CAPACITY)),
 		})
 	}
 }
+
+/// Capacity per snapshot response cache.
+///
+/// Plánovaných 256 × 100 KB = 25 MB ceiling, ale produkční data ukázala že velké kategorie
+/// (22k produktů) vrací ~1 MB JSON response (full UUID list bez pagination — pagination
+/// se dělá až v PHP `ProductList`). 128 entries × průměr ~200 KB ≈ 25 MB ceiling i při
+/// mixu malých a velkých odpovědí.
+pub const RESPONSE_CACHE_CAPACITY: NonZeroUsize = match NonZeroUsize::new(128) {
+	Some(n) => n,
+	None => panic!("RESPONSE_CACHE_CAPACITY must be > 0"),
+};

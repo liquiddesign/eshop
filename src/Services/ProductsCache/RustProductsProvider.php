@@ -379,13 +379,33 @@ final class RustProductsProvider implements GeneralProductsCacheProvider
 		$needsFavourites = $contractRibbonPk !== null || $notPublicRibbonPk !== null;
 		$favouritePricelistPks = $needsFavourites ? $this->resolveFavouritePricelistUuids() : [];
 
+		// Normalize `attributeValue` aby identical logical request produkoval byte-identický
+		// JSON frame — předpoklad pro daemonový response cache lookup (Phase 4). UI může
+		// posílat attribute keys / hodnoty v libovolném pořadí; bez sort by každá permutace
+		// byla cache miss.
+		$dynamicFilterAttributes = null;
+
+		if (isset($filters['attributeValue']) && \is_array($filters['attributeValue'])) {
+			$dynamicFilterAttributes = $filters['attributeValue'];
+			\ksort($dynamicFilterAttributes);
+
+			foreach ($dynamicFilterAttributes as &$values) {
+				if (!\is_array($values)) {
+					continue;
+				}
+
+				$values = \array_values(\array_unique($values));
+				\sort($values);
+			}
+
+			unset($values);
+		}
+
 		return [
 			'pricelistPks' => \array_values(\array_map(static fn (Pricelist $p): string => (string) $p->getPK(), $priceLists)),
 			'visibilityListPks' => \array_values(\array_map(static fn (VisibilityList $v): string => (string) $v->getPK(), $visibilityLists)),
 			'filters' => $this->mapFilters($filters),
-			'dynamicFilterAttributes' => isset($filters['attributeValue']) && \is_array($filters['attributeValue'])
-				? $filters['attributeValue']
-				: null,
+			'dynamicFilterAttributes' => $dynamicFilterAttributes,
 			'priceModifiers' => $this->buildPriceModifiers(),
 			'priceVisibility' => [
 				'showZeroPrices' => $this->shopperUser->getShowZeroPrices(),
@@ -594,24 +614,29 @@ final class RustProductsProvider implements GeneralProductsCacheProvider
 
 		if (isset($filters['category'])) {
 			$rawPaths = \is_array($filters['category']) ? \array_values($filters['category']) : [(string) $filters['category']];
-			$out->categoryUuids = $this->resolveCategoryPathsToUuids($rawPaths);
+			$resolved = $this->resolveCategoryPathsToUuids($rawPaths);
+			\sort($resolved);
+			$out->categoryUuids = $resolved;
 		}
 
 		$producerUuids = $this->collectUuids($filters, ['producer', 'producers', 'systemicAttributes.producer']);
 
 		if ($producerUuids !== []) {
+			\sort($producerUuids);
 			$out->producerUuids = $producerUuids;
 		}
 
 		$displayAmountUuids = $this->collectUuids($filters, ['displayAmount', 'systemicAttributes.availability']);
 
 		if ($displayAmountUuids !== []) {
+			\sort($displayAmountUuids);
 			$out->displayAmountUuids = $displayAmountUuids;
 		}
 
 		$displayDeliveryUuids = $this->collectUuids($filters, ['displayDelivery', 'systemicAttributes.delivery']);
 
 		if ($displayDeliveryUuids !== []) {
+			\sort($displayDeliveryUuids);
 			$out->displayDeliveryUuids = $displayDeliveryUuids;
 		}
 
