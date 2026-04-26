@@ -38,6 +38,29 @@ pub fn base_mask(snap: &CatalogSnapshot, visibility_list_pks: &[String]) -> Resu
 		allowed_vl_idxs.insert(vl_idx_u32);
 	}
 
+	// Phase 3 fast path: single-VL request. Priority/uuid tie-break je no-op (jen jedna VL
+	// v sadě), takže "winner" je pro každý produkt první encountered item v té VL —
+	// přesně to, co `snap.visibility_winner_bitmaps` zachycuje při build-time.
+	// Multi-VL request musí dál procházet skrz priority-first selection napříč VL setem.
+	if visibility_list_pks.len() == 1 {
+		let vl_idx_u32 = *allowed_vl_idxs.iter().next().expect("len == 1");
+		if let Ok(vl_idx) = u16::try_from(vl_idx_u32) {
+			if let Some(precomputed) = snap.visibility_winner_bitmaps.get(&vl_idx) {
+				return Ok(precomputed.clone());
+			}
+			// Žádný precomputed bitmap pro známou VL znamená "VL nemá ani jeden produkt
+			// s hidden=0". Build-time precompute prázdné bitmapy neukládá. Fallback na
+			// `RoaringBitmap::new()` se shoduje se scanem níž (žádný winner → empty mask).
+			return Ok(RoaringBitmap::new());
+		}
+	}
+
+	Ok(base_mask_scan(snap, &allowed_vl_idxs))
+}
+
+/// Lineární scan implementace `base_mask` — extracted aby fast-path bypass šel testovat
+/// proti scan výstupu. Volá se přímo z `base_mask` pro multi-VL request.
+pub(crate) fn base_mask_scan(snap: &CatalogSnapshot, allowed_vl_idxs: &ahash::AHashSet<u32>) -> RoaringBitmap {
 	let mut mask = RoaringBitmap::new();
 
 	// Walk products that are active and iterate their visibility items — `visibility_by_product`
@@ -91,7 +114,7 @@ pub fn base_mask(snap: &CatalogSnapshot, visibility_list_pks: &[String]) -> Resu
 		}
 	}
 
-	Ok(mask)
+	mask
 }
 
 /// Intersect the mask with the user's category/attribute/producer/displayAmount constraints.
@@ -613,4 +636,102 @@ pub(crate) enum FilterDim {
 	Producer,
 	DisplayAmount,
 	DisplayDelivery,
+}
+
+#[cfg(test)]
+mod tests {
+	use ahash::AHashMap;
+	use roaring::RoaringBitmap;
+	use smallvec::SmallVec;
+
+	use crate::snapshot::{CatalogSnapshot, VisibilityItem, VisibilityListIdx, VisibilityListMeta};
+
+	use super::base_mask;
+
+	/// Postaví test snapshot se třemi produkty a dvěma VLs:
+	/// - p0: VL_A hidden=false (winner) → visible v VL_A
+	/// - p1: VL_A hidden=true (winner)  → invisible v VL_A
+	/// - p2: VL_B hidden=false (winner) → visible v VL_B, ne v VL_A
+	fn build_vl_snapshot(with_precompute: bool) -> CatalogSnapshot {
+		let mut snap = std::sync::Arc::into_inner(CatalogSnapshot::empty()).unwrap();
+
+		let vl_a = snap.visibility_list_pool.intern("vl-a").unwrap();
+		let vl_b = snap.visibility_list_pool.intern("vl-b").unwrap();
+		snap.visibility_lists.push(VisibilityListMeta {
+			idx: u16::try_from(vl_a).unwrap(),
+			is_active: true,
+			has_customer_binding: true,
+		});
+		snap.visibility_lists.push(VisibilityListMeta {
+			idx: u16::try_from(vl_b).unwrap(),
+			is_active: true,
+			has_customer_binding: true,
+		});
+
+		for i in 0..3u32 {
+			snap.product_pool.intern(&format!("p-{i}")).unwrap();
+			snap.all_products_mask.insert(i);
+		}
+
+		let mk_item = |product: u32, vl: u32, hidden: bool| VisibilityItem {
+			product,
+			visibility_list: VisibilityListIdx::try_from(vl).unwrap(),
+			hidden,
+			hidden_in_menu: false,
+			recommended: false,
+			unavailable: false,
+			priority: 0,
+		};
+		snap.visibility_items.push(mk_item(0, vl_a, false));
+		snap.visibility_items.push(mk_item(1, vl_a, true));
+		snap.visibility_items.push(mk_item(2, vl_b, false));
+
+		let mut by_product: AHashMap<u32, SmallVec<[u32; 4]>> = AHashMap::new();
+		by_product.insert(0, SmallVec::from_iter([0u32]));
+		by_product.insert(1, SmallVec::from_iter([1u32]));
+		by_product.insert(2, SmallVec::from_iter([2u32]));
+		snap.visibility_by_product = by_product;
+
+		if with_precompute {
+			// Mirror SnapshotBuilder Phase 3 logic: per-VL = produkty s non-hidden winner.
+			let mut bitmaps: AHashMap<VisibilityListIdx, RoaringBitmap> = AHashMap::new();
+			let mut a_bm = RoaringBitmap::new();
+			a_bm.insert(0); // p0 winner v vl_a, non-hidden
+			bitmaps.insert(VisibilityListIdx::try_from(vl_a).unwrap(), a_bm);
+			let mut b_bm = RoaringBitmap::new();
+			b_bm.insert(2);
+			bitmaps.insert(VisibilityListIdx::try_from(vl_b).unwrap(), b_bm);
+			snap.visibility_winner_bitmaps = bitmaps;
+		}
+
+		snap
+	}
+
+	#[test]
+	fn single_vl_fast_path_matches_scan() {
+		let snap = build_vl_snapshot(true);
+
+		for vl_pk in ["vl-a", "vl-b"] {
+			let pks = vec![vl_pk.to_string()];
+			let fast = base_mask(&snap, &pks).unwrap();
+
+			let mut allowed: ahash::AHashSet<u32> = ahash::AHashSet::new();
+			allowed.insert(snap.visibility_list_pool.lookup(vl_pk).unwrap());
+			let scan = super::base_mask_scan(&snap, &allowed);
+
+			assert_eq!(
+				fast.iter().collect::<Vec<_>>(),
+				scan.iter().collect::<Vec<_>>(),
+				"single-VL fast path drift for {vl_pk}"
+			);
+		}
+	}
+
+	#[test]
+	fn unknown_single_vl_errors() {
+		let snap = build_vl_snapshot(true);
+		// Unknown VL => UnknownVisibilityList error (resolution happens před fast path).
+		let err = base_mask(&snap, &[String::from("does-not-exist")]).unwrap_err();
+		assert!(format!("{err}").contains("does-not-exist"));
+	}
 }

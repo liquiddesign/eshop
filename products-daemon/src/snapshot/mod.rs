@@ -280,6 +280,12 @@ pub struct CatalogSnapshot {
 	pub pricelist_pk_to_idx: AHashMap<smol_str::SmolStr, PricelistIdx>,
 	pub visibility_items: Vec<VisibilityItem>,
 	pub visibility_by_product: AHashMap<ProductIdx, SmallVec<[u32; 4]>>,
+	/// Per-VL precomputed bitmap pro single-VL `base_mask` fast path. Klíč: `VisibilityListIdx`.
+	/// Hodnota: produkty, jejichž "winner v rámci té VL" (= first item v
+	/// `visibility_by_product[p]` v dané VL) má `hidden = 0`. Multi-VL request tuhle mapu
+	/// neumí použít (priority-first napříč VL setem nezachová parity), proto zůstává
+	/// fallback na lineární scan v `filter::base_mask`. Build-time O(visibility_items.len()).
+	pub visibility_winner_bitmaps: AHashMap<VisibilityListIdx, RoaringBitmap>,
 	/// Per-`VisibilityListIdx` metadata. Index-matched with `visibility_list_pool` — entry `i`
 	/// describes the list whose UUID lives at `visibility_list_pool.get(i)`. Populated in
 	/// `SnapshotBuilder::build` before visibility items so `VisibilityItem::visibility_list`
@@ -411,6 +417,7 @@ impl CatalogSnapshot {
 			pricelist_pk_to_idx: AHashMap::new(),
 			visibility_items: Vec::new(),
 			visibility_by_product: AHashMap::new(),
+			visibility_winner_bitmaps: AHashMap::new(),
 			visibility_lists: Vec::new(),
 			categories: Vec::new(),
 			category_bump_sets: AHashMap::new(),

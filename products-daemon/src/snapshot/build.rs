@@ -342,6 +342,36 @@ impl<'a> SnapshotBuilder<'a> {
 			visibility_by_product.entry(product).or_default().push(row_idx);
 		}
 
+		// --- per-VL "single-VL winner" bitmaps (Phase 3 fast path) ----------------------
+		// Pro single-VL request (`visibility_list_pks.len() == 1`) je `base_mask` jen lookup
+		// předbudovaného bitmapu místo lineárního scan-u nad 186k produkty. Bitmap obsahuje
+		// produkty, jejichž **winner v rámci dané VL** (= first encountered item v
+		// `visibility_by_product[p]` filtrovaný na tu VL) má `hidden = 0` — exact mirror
+		// `filter::base_mask` algoritmu pro single-VL případ (priority/uuid tie-break je
+		// no-op, když je v sadě jen jedna VL).
+		//
+		// Multi-VL request fallbackuje na původní scan — priority-first selection napříč
+		// VL setem zůstává parity-safe.
+		let mut visibility_winner_bitmaps: AHashMap<VisibilityListIdx, RoaringBitmap> = AHashMap::new();
+		for (product_idx, row_idxs) in &visibility_by_product {
+			let mut seen_vls: ahash::AHashSet<VisibilityListIdx> = ahash::AHashSet::with_capacity(row_idxs.len());
+			for &row_idx in row_idxs {
+				let Some(item) = visibility_items.get(row_idx as usize) else {
+					continue;
+				};
+				if !seen_vls.insert(item.visibility_list) {
+					continue;
+				}
+				if item.hidden {
+					continue;
+				}
+				visibility_winner_bitmaps
+					.entry(item.visibility_list)
+					.or_default()
+					.insert(*product_idx);
+			}
+		}
+
 		// --- attribute values → attribute mapping (for per-attribute facet leave-one-out) ---
 		let mut attribute_of_value: AHashMap<AttrValIdx, u32> = AHashMap::with_capacity(raw.attribute_values.len());
 		for av in &raw.attribute_values {
@@ -522,6 +552,7 @@ impl<'a> SnapshotBuilder<'a> {
 			pricelist_pk_to_idx,
 			visibility_items,
 			visibility_by_product,
+			visibility_winner_bitmaps,
 			visibility_lists,
 			categories,
 			category_bump_sets,
@@ -644,6 +675,7 @@ pub fn fixture_snapshot(product_count: usize, pricelist_count: usize) -> Catalog
 		pricelist_pk_to_idx: ahash::AHashMap::new(),
 		visibility_items: Vec::new(),
 		visibility_by_product: ahash::AHashMap::new(),
+		visibility_winner_bitmaps: ahash::AHashMap::new(),
 		visibility_lists: Vec::new(),
 		categories: Vec::new(),
 		category_bump_sets: ahash::AHashMap::new(),
