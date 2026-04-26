@@ -63,6 +63,7 @@ fn fallback_required_response_shape() {
 		body: ResponseBody::FallbackRequired {
 			reason: "custom order".into(),
 		},
+		timings: None,
 	}));
 	let json = serde_json::to_string(&env).unwrap();
 	assert!(json.contains(r#""type":"fallbackRequired""#), "{json}");

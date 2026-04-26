@@ -18,8 +18,9 @@ use crate::{
 	protocol::{
 		framing::{read_frame, write_frame},
 		ErrorKind, ErrorResponse, OkResponse, RequestEnvelope, ResponseBody, ResponseEnvelope, StatsResponse,
+		TimingsBreakdown,
 	},
-	query,
+	query::{self, Timings},
 	snapshot::CatalogSnapshot,
 	PROTOCOL_VERSION,
 };
@@ -43,6 +44,7 @@ pub async fn serve_connection(
 			Err(e) => return Err(e.into()),
 		};
 
+		let parse_started = Instant::now();
 		let envelope: RequestEnvelope = match serde_json::from_slice(&frame) {
 			Ok(v) => v,
 			Err(e) => {
@@ -50,12 +52,24 @@ pub async fn serve_connection(
 				continue;
 			}
 		};
+		let parse_ms = elapsed_ms(parse_started);
+
+		// Timings opt-in jen pro `getProducts`, kde PHP zapíná `debug: true`. Pro ostatní
+		// volání zůstane `None` (žádný overhead z měření, žádné `timings` field v JSON).
+		let mut timings: Option<Timings> = match &envelope {
+			RequestEnvelope::GetProducts(req) if req.debug => Some(Timings {
+				parse_ms,
+				..Timings::default()
+			}),
+			_ => None,
+		};
 
 		let started = Instant::now();
-		let response = match dispatch(&envelope, &catalog, &metrics, &wakeup).await {
+		let response = match dispatch(&envelope, &catalog, &metrics, &wakeup, timings.as_mut()).await {
 			Ok(body) => ResponseEnvelope::Ok(Box::new(OkResponse {
 				protocol_version: PROTOCOL_VERSION,
 				body,
+				timings: None, // doplníme níž po serializaci
 			})),
 			Err(DaemonError::Request(req_err)) if req_err.is_fallback() => {
 				// Graceful fallback — not an error, PHP handles the request itself.
@@ -64,6 +78,7 @@ pub async fn serve_connection(
 					body: ResponseBody::FallbackRequired {
 						reason: req_err.to_string(),
 					},
+					timings: None,
 				}))
 			}
 			Err(err) => {
@@ -88,9 +103,40 @@ pub async fn serve_connection(
 			| RequestEnvelope::GetSellableProductPKs => metrics.record_work_request(started.elapsed()),
 		}
 
+		// Měření serializace zaplaceně i bez `debug` flagu (cheap), ale ukládáme jen pokud
+		// timings akumulátor existuje. Když ano, vložíme breakdown do `OkResponse.timings`
+		// a serializujeme znovu (overhead ~5–10 ms na 90 KB response je akceptovatelný —
+		// `debug: true` se posílá jen z Tracy panelu, ne na produkční hot path).
+		let serialize_started = Instant::now();
 		let bytes = serde_json::to_vec(&response).map_err(ProtocolError::from)?;
-		write_frame(&mut writer, &bytes).await.map_err(DaemonError::from)?;
+		let serialize_ms = elapsed_ms(serialize_started);
+
+		let final_bytes = if let (Some(mut t), ResponseEnvelope::Ok(ok)) = (timings, response) {
+			t.serialize_ms = serialize_ms;
+			let mut ok = *ok;
+			ok.timings = Some(timings_to_breakdown(t));
+			let env = ResponseEnvelope::Ok(Box::new(ok));
+			serde_json::to_vec(&env).map_err(ProtocolError::from)?
+		} else {
+			bytes
+		};
+
+		write_frame(&mut writer, &final_bytes).await.map_err(DaemonError::from)?;
 	}
+}
+
+#[inline]
+fn elapsed_ms(start: Instant) -> f64 {
+	let nanos = start.elapsed().as_nanos();
+	#[allow(clippy::cast_precision_loss)]
+	{
+		nanos as f64 / 1_000_000.0
+	}
+}
+
+#[inline]
+fn timings_to_breakdown(t: Timings) -> TimingsBreakdown {
+	t.into_breakdown()
 }
 
 async fn dispatch(
@@ -98,12 +144,13 @@ async fn dispatch(
 	catalog: &Arc<ArcSwap<CatalogSnapshot>>,
 	metrics: &Arc<DaemonMetrics>,
 	wakeup: &Arc<Notify>,
+	timings: Option<&mut Timings>,
 ) -> Result<ResponseBody, DaemonError> {
 	match envelope {
 		RequestEnvelope::Ping => Ok(ResponseBody::Pong { ok: true }),
 		RequestEnvelope::GetProducts(req) => {
 			let snap = catalog.load_full();
-			let resp = query::run(&snap, req)?;
+			let resp = query::run(&snap, req, timings)?;
 			Ok(ResponseBody::Products(Box::new(resp)))
 		}
 		RequestEnvelope::GetCategoryCount(req) => {

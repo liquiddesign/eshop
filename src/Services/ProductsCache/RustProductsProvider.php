@@ -105,9 +105,19 @@ final class RustProductsProvider implements GeneralProductsCacheProvider
 			}
 		}
 
-		$request = $this->buildRequest($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists, $debug, $countCategories);
+		// V dev módu vždy zapneme `debug: true` aby daemon vracel `timings` breakdown — Tracy
+		// panel je registrovaný jen mimo production mode (viz `ShopperDI::afterCompile()`),
+		// takže overhead měření se neprojeví v produkci. Volající explicitní `$debug=true`
+		// respektujeme i bez Tracy.
+		$wantTimings = $debug || !Debugger::$productionMode;
+
+		$request = $this->buildRequest($filters, $orderByName, $orderByDirection, $priceLists, $visibilityLists, $wantTimings, $countCategories);
 		$response = $this->client->getProducts($request);
 		$decoded = $this->decodeGetProductsResponse($response);
+
+		if (isset($response['timings']) && \is_array($response['timings'])) {
+			$this->recordTimings($response['timings']);
+		}
 
 		$summary = [
 			'request' => $request,
@@ -285,6 +295,26 @@ final class RustProductsProvider implements GeneralProductsCacheProvider
 		}
 
 		self::$callLog[$key]['maxMs'] = $durationMs;
+	}
+
+	/**
+	 * Zaloguje per-step timings z daemonu jako sub-rows v Tracy panelu. Klíče matchují
+	 * `TimingsBreakdown` v daemonovém protokolu. Status `daemon-step` je distinct od
+	 * `daemon` — panel řadí podle totalMs, takže sub-rows skončí logicky pod hlavním row.
+	 * @param array<string, mixed> $timings
+	 */
+	private function recordTimings(array $timings): void
+	{
+		$keys = ['parseMs', 'baseMaskMs', 'bitmapFiltersMs', 'pricingMs', 'facetsMs', 'orderingMs', 'serializeMs'];
+
+		foreach ($keys as $key) {
+			if (!isset($timings[$key]) || !\is_numeric($timings[$key])) {
+				continue;
+			}
+
+			$label = 'getProductsFromCacheTable.' . Strings::substring($key, 0, -2);
+			self::recordCall($label, 'daemon-step', '', (float) $timings[$key]);
+		}
 	}
 
 	private function resolveCategoryPathToUuid(string $path): string|null

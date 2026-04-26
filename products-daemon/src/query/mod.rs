@@ -19,7 +19,7 @@ pub mod filter;
 pub mod ordering;
 pub mod pricing;
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use roaring::RoaringBitmap;
 
@@ -27,9 +27,52 @@ use std::collections::HashMap;
 
 use crate::{
 	error::{RequestError, Result},
-	protocol::{GetAllCategoryCountsRequest, GetCategoryCountRequest, GetProductsRequest, GetProductsResponse},
+	protocol::{
+		GetAllCategoryCountsRequest, GetCategoryCountRequest, GetProductsRequest, GetProductsResponse, TimingsBreakdown,
+	},
 	snapshot::{CatalogSnapshot, CategoryIdx, PricelistIdx, ProductIdx},
 };
+
+/// Akumulátor sub-step latencí v ms. Plněn jen když caller posílá `Some(&mut Timings)`,
+/// jinak je celé měření no-op (instrumentace nemá zaplatit nic na produkčním fast pathu).
+///
+/// Konvertuje se na `TimingsBreakdown` na hranici protokolu (`into_breakdown`).
+#[derive(Debug, Default)]
+pub struct Timings {
+	pub parse_ms: f64,
+	pub base_mask_ms: f64,
+	pub bitmap_filters_ms: f64,
+	pub pricing_ms: f64,
+	pub facets_ms: f64,
+	pub ordering_ms: f64,
+	pub serialize_ms: f64,
+}
+
+impl Timings {
+	#[inline]
+	pub fn into_breakdown(self) -> TimingsBreakdown {
+		TimingsBreakdown {
+			parse_ms: self.parse_ms,
+			base_mask_ms: self.base_mask_ms,
+			bitmap_filters_ms: self.bitmap_filters_ms,
+			pricing_ms: self.pricing_ms,
+			facets_ms: self.facets_ms,
+			ordering_ms: self.ordering_ms,
+			serialize_ms: self.serialize_ms,
+		}
+	}
+}
+
+/// Pomocník na konverzi elapsed `Instant` → ms (f64). Inline aby release build vůbec
+/// nevolal funkci, když `Option<&mut Timings>` je `None` (větvení na vstupu `run`).
+#[inline]
+fn elapsed_ms(start: Instant) -> f64 {
+	let nanos = start.elapsed().as_nanos();
+	#[allow(clippy::cast_precision_loss)]
+	{
+		nanos as f64 / 1_000_000.0
+	}
+}
 
 /// Entry point used by the server handler. Orchestrates the whole pipeline.
 ///
@@ -40,37 +83,42 @@ use crate::{
 ///                                     → ordering::order_and_serialize
 ///                                     → GetProductsResponse
 /// ```
-pub fn run(snap: &Arc<CatalogSnapshot>, req: &GetProductsRequest) -> Result<GetProductsResponse> {
+pub fn run(
+	snap: &Arc<CatalogSnapshot>,
+	req: &GetProductsRequest,
+	timings: Option<&mut Timings>,
+) -> Result<GetProductsResponse> {
 	// Fast bail-out: features the daemon doesn't own yet.
 	req.ensure_supported()?;
 
 	// 1. Base mask (visibility + deletedTs IS NULL via `all_products_mask`).
+	let t0 = Instant::now();
 	let base_mask = filter::base_mask(snap, &req.visibility_list_pks)?;
+	let base_mask_ms = elapsed_ms(t0);
 
 	// 2. Customer-independent bitmap filters.
+	let t1 = Instant::now();
 	let mut mask = filter::apply_bitmap_filters(snap, base_mask, req)?;
+	let bitmap_filters_ms = elapsed_ms(t1);
 
-	// 3. Translate customer pricelist PKs → PricelistIdx set, then mask by "has-price-in-set".
+	// 3-5. Pricing pipeline: pricelist mask + best-price + restrictive + price-band.
+	let t2 = Instant::now();
 	let pricelist_idxs: Vec<PricelistIdx> = resolve_pricelists(snap, &req.pricelist_pks)?;
 	let has_price_mask = filter::has_any_price_mask(snap, &pricelist_idxs, req.price_visibility);
 	mask &= has_price_mask;
-
-	// 4. Priority-first best price per candidate.
 	let priced = pricing::compute_effective_prices(snap, &mask, &pricelist_idxs, &req.price_modifiers)?;
-
-	// 5a. Restrictive dynamic filters (contract, notPublic, project) — applied after pricing
-	//     because contract/notPublic check the *selected* pricelist against customer favourites.
 	let priced = filter::apply_restrictive_filters(snap, priced, req);
-
-	// 5b. Price-band filter (priceFrom/priceTo/priceGt) after effective price is computed.
-	//     `show_vat` from PHP `ShopperUser::getMainPriceType() === 'withVat'` picks the field.
 	let priced = pricing::apply_price_band(priced, &req.filters, req.price_visibility.show_vat);
 	let surviving_mask: RoaringBitmap = priced.iter().map(|p| p.product).collect();
+	let pricing_ms = elapsed_ms(t2);
 
 	// 6. Facets.
+	let t3 = Instant::now();
 	let facets = facets::compute(snap, req, &surviving_mask, &priced, &pricelist_idxs);
+	let facets_ms = elapsed_ms(t3);
 
 	// 7. Ordering + serialize PKs to wire form.
+	let t4 = Instant::now();
 	let ordered_pks = ordering::order_and_serialize(
 		snap,
 		priced,
@@ -78,6 +126,15 @@ pub fn run(snap: &Arc<CatalogSnapshot>, req: &GetProductsRequest) -> Result<GetP
 		req.order_direction,
 		req.order_uuids.as_deref(),
 	);
+	let ordering_ms = elapsed_ms(t4);
+
+	if let Some(t) = timings {
+		t.base_mask_ms = base_mask_ms;
+		t.bitmap_filters_ms = bitmap_filters_ms;
+		t.pricing_ms = pricing_ms;
+		t.facets_ms = facets_ms;
+		t.ordering_ms = ordering_ms;
+	}
 
 	Ok(GetProductsResponse {
 		product_pks: ordered_pks,

@@ -64,6 +64,34 @@ pub struct OkResponse {
 	pub protocol_version: u16,
 	#[serde(flatten)]
 	pub body: ResponseBody,
+	/// Per-step latency breakdown. `None` (a tedy nepřítomné v JSON) když request neměl
+	/// `debug: true`. PHP `RustDaemonBarPanel` mapuje keys jako sub-rows v Tracy panelu.
+	/// Hodnoty v ms (f64 — lépe lidsky čitelné než µs u sub-ms kroků jako parse).
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub timings: Option<TimingsBreakdown>,
+}
+
+/// Per-step měření daemon pipeline — opt-in přes `GetProductsRequest::debug = true`.
+///
+/// `parse_ms` / `serialize_ms` měří samotný handler (mimo `query::run`); zbytek pochází
+/// z `query::Timings`. Hodnoty jsou v ms. Klíče matchují PHP-side sub-rows v Tracy panelu.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimingsBreakdown {
+	/// `serde_json::from_slice(frame) → RequestEnvelope`.
+	pub parse_ms: f64,
+	/// `filter::base_mask` — visibility-list priority-first selection (hlavní pipeline).
+	pub base_mask_ms: f64,
+	/// `filter::apply_bitmap_filters` — category, attributes, producer, ribbons, ...
+	pub bitmap_filters_ms: f64,
+	/// `filter::has_any_price_mask` + `pricing::compute_effective_prices` + price-band.
+	pub pricing_ms: f64,
+	/// `facets::compute` — per-dim leave-one-out + price min/max.
+	pub facets_ms: f64,
+	/// `ordering::order_and_serialize` — sort + UUID materializace.
+	pub ordering_ms: f64,
+	/// `serde_json::to_vec(&response)` — výstupní serializace.
+	pub serialize_ms: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
