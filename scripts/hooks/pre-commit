@@ -39,9 +39,6 @@ echo ""
 echo "=== Pre-commit: composer update ==="
 composer update --no-interaction --quiet
 
-echo "=== Pre-commit: composer fix-code ==="
-composer fix-code
-
 echo "=== Pre-commit: composer check-code ==="
 if composer check-code; then
 	echo ""
