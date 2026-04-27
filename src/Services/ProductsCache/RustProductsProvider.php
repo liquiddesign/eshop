@@ -168,7 +168,14 @@ final class RustProductsProvider implements GeneralProductsCacheProvider
 		$filtersForBatch = $filters;
 		unset($filtersForBatch['category'], $filtersForBatch['pricelist']);
 
-		$stateFingerprint = \serialize($filtersForBatch)
+		// Fingerprint memoizace `$state` musí zahrnovat všechny vstupy, které ovlivňují výsledné
+		// `$priceListPKs` / `$batchCacheKey`. Vyloučené je jen `category`, protože daemon vrací mapu
+		// pro všechny kategorie najednou (`category` ovlivňuje pouze lookup do mapy, ne batch).
+		// `pricelist` se MUSÍ započítat — `resolveListsFromShopperUser` podle něj filtruje `$priceLists`.
+		$filtersForFingerprint = $filters;
+		unset($filtersForFingerprint['category']);
+
+		$stateFingerprint = \serialize($filtersForFingerprint)
 			. '|' . ($priceLists === [] ? '*' : \implode(',', \array_map(\spl_object_id(...), $priceLists)))
 			. '|' . ($visibilityLists === [] ? '*' : \implode(',', \array_map(\spl_object_id(...), $visibilityLists)));
 
