@@ -84,6 +84,8 @@ fn build_test_snapshot() -> Arc<CatalogSnapshot> {
 		attr_values: SmallVec::new(),
 		ribbons: ribbons.iter().copied().collect(),
 		internal_ribbons: internal_ribbons.iter().copied().collect(),
+		buy_count: 0,
+		published: 0,
 	};
 	snap.products = (0u32..6)
 		.map(|i| mk_row(i, &ribbons_per_product[i as usize], &iribbons_per_product[i as usize]))
@@ -384,6 +386,8 @@ fn mini_price_snapshot(price: f64, price_vat: f64) -> Arc<CatalogSnapshot> {
 		attr_values: SmallVec::new(),
 		ribbons: SmallVec::new(),
 		internal_ribbons: SmallVec::new(),
+		buy_count: 0,
+		published: 0,
 	});
 	snap.is_sold_by_product = vec![2];
 	snap.all_products_mask.insert(0);
@@ -477,6 +481,8 @@ fn build_in_stock_snapshot() -> std::sync::Arc<CatalogSnapshot> {
 		attr_values: SmallVec::new(),
 		ribbons: SmallVec::new(),
 		internal_ribbons: SmallVec::new(),
+		buy_count: 0,
+		published: 0,
 	};
 	snap.products = vec![
 		mk_row(0, Some(100)),
@@ -549,6 +555,8 @@ fn related_filter_matches_primary_category_and_excludes_self() {
 		attr_values: SmallVec::new(),
 		ribbons: SmallVec::new(),
 		internal_ribbons: SmallVec::new(),
+		buy_count: 0,
+		published: 0,
 	};
 	snap.products = (0u32..4).map(mk_row).collect();
 
@@ -618,6 +626,8 @@ fn related_slave_filter_matches_type_master_pair() {
 		attr_values: SmallVec::new(),
 		ribbons: SmallVec::new(),
 		internal_ribbons: SmallVec::new(),
+		buy_count: 0,
+		published: 0,
 	};
 	snap.products = (0u32..3).map(mk_row).collect();
 
@@ -679,6 +689,8 @@ fn cross_sell_filter_matches_path_chunks_and_excludes_self() {
 		attr_values: SmallVec::new(),
 		ribbons: SmallVec::new(),
 		internal_ribbons: SmallVec::new(),
+		buy_count: 0,
+		published: 0,
 	};
 	snap.products = (0u32..4).map(mk_row).collect();
 
@@ -750,6 +762,8 @@ fn cross_sell_filter_single_chunk_path() {
 		attr_values: SmallVec::new(),
 		ribbons: SmallVec::new(),
 		internal_ribbons: SmallVec::new(),
+		buy_count: 0,
+		published: 0,
 	};
 	snap.products = (0u32..2).map(mk_row).collect();
 	let cat = snap.category_pool.intern("cat-X").unwrap();

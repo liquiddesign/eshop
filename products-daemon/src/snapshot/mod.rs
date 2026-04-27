@@ -143,6 +143,12 @@ pub struct ProductRow {
 	pub ribbons: SmallVec<[RibbonIdx; 4]>,
 	/// Internal ribbons (eshop_internalribbon). Pro `contract`/`notPublic` filtry.
 	pub internal_ribbons: SmallVec<[InternalRibbonIdx; 4]>,
+	/// `eshop_product.buyCount` (NULL coalesced na 0). Sortable přes `buyCount` orderBy.
+	pub buy_count: i32,
+	/// `eshop_product.published` jako Unix timestamp v sekundách (NULL → 0). Sortable přes
+	/// `published` orderBy. NULL coalesce na 0 znamená že nepublikované řadí na konec ASC,
+	/// na začátek DESC — same jako MariaDB `ORDER BY published ASC NULLS LAST` default.
+	pub published: i64,
 }
 
 /// Static metadata per pricelist — replicated into the snapshot so the hot path doesn't JOIN.
@@ -398,8 +404,44 @@ pub struct CatalogSnapshot {
 	pub primary_category_by_type_cat: AHashMap<(smol_str::SmolStr, smol_str::SmolStr), RoaringBitmap>,
 
 	/// `eshop_related` lookup: `(type_uuid, master_uuid)` → bitmap slave produktů. Používá
-	/// filter `relatedSlave` (`filterRelatedSlave`). Uložené v intern-rámci daemon snapshot.
+	/// filter `relatedSlave` (`filterRelatedSlave`) i `relatedTypeMaster` (`filterRelatedTypeMaster`)
+	/// — obě PHP funkce mají identickou sémantiku, jen jiný order argumentů na callsite.
 	pub related_slaves_by_type_master: AHashMap<(smol_str::SmolStr, smol_str::SmolStr), RoaringBitmap>,
+
+	/// Zrcadlový index k `related_slaves_by_type_master`: `(type_uuid, slave_uuid)` → bitmap master
+	/// produktů. Používá filter `relatedTypeSlave` (`filterRelatedTypeSlave`). Build duplikuje
+	/// pass přes `eshop_related` pro O(1) hot-path lookup, paměť ~stejná velikost jako master index.
+	pub related_masters_by_type_slave: AHashMap<(smol_str::SmolStr, smol_str::SmolStr), RoaringBitmap>,
+
+	/// Per-`ProductIdx` maximální délka `eshop_category.path` z kategorií, ke kterým produkt
+	/// patří. PHP `crossSellOrder` ordering řadí podle `LENGTH(categories.path)` po JOINu na
+	/// `eshop_product_nxn_eshop_category` × `eshop_category`. Predpočítáno z `raw.product_categories`
+	/// × `raw.categories.path`, fallback `0` pro produkty bez kategorie. `u16` stačí (path je
+	/// vždy násobkem 4 znaků, max ~10 úrovní = 40 znaků). Memory: 186 k × 2 B = ~370 KB.
+	pub max_category_path_len_by_product: Vec<u16>,
+
+	/// `eshop_related.uuid` (PK řádku) → bitmap master ProductIdx pro text-only relace
+	/// (`fk_slave IS NULL`). Pokrývá `relatedTextSlave([rowUuid, typeCode])` filter, který v PHP
+	/// matchuje `related.uuid = $rowUuid AND fk_type = $typeCode`. V daemon strukturujeme bez
+	/// `type_uuid` v klíči — `eshop_related.uuid` je per-řádek unikátní, takže type je redundantní
+	/// (řádek vždy patří jednomu type). PHP `fk_type` parametr je defensive check, daemon ho
+	/// vyhodnotí post-hoc přes `text_related_type_by_row_uuid` lookup.
+	pub text_related_master_by_row_uuid: AHashMap<smol_str::SmolStr, u32>,
+
+	/// Helper k `text_related_master_by_row_uuid`: `row_uuid` → `type_uuid`. Slouží k validaci
+	/// že daný řádek opravdu patří k typu, který volající poslal. Mismatch = filter clear (parita
+	/// s PHP `where('fk_type', $value[1])`).
+	pub text_related_type_by_row_uuid: AHashMap<smol_str::SmolStr, smol_str::SmolStr>,
+
+	/// `(type_uuid, slave_name)` → bitmap master ProductIdx pro `relatedTextSlaveByName` filter
+	/// (PHP ProductRepository.php:1273). Match na `eshop_related.slaveName` text.
+	pub text_related_master_by_type_name: AHashMap<(smol_str::SmolStr, smol_str::SmolStr), RoaringBitmap>,
+
+	/// Per-product seznam "similar" sousedů — produkty, se kterými je v `eshop_related` přes
+	/// `eshop_relatedtype.similar = 1`. PHP `filterSimilarProducts($value)` matchuje z obou stran
+	/// (`fk_master = $value OR fk_slave = $value`) a vrací druhou stranu. Daemon ukládá symetrický
+	/// graf. Klíčem je `ProductIdx`, hodnotou bitmap sousedů (sám sebe vyloučen na build-time).
+	pub similar_neighbors_by_product: AHashMap<u32, RoaringBitmap>,
 
 	/// Inverted index `4-char suffix` → list `CategoryIdx` jejichž `eshop_category.path` končí
 	/// tímto suffixem. Používá `crossSellFilter`, který rozdělí vstupní path na 4-char chunky
@@ -502,6 +544,12 @@ impl CatalogSnapshot {
 			priority_by_product: Vec::new(),
 			primary_category_by_type_cat: AHashMap::new(),
 			related_slaves_by_type_master: AHashMap::new(),
+			related_masters_by_type_slave: AHashMap::new(),
+			max_category_path_len_by_product: Vec::new(),
+			text_related_master_by_row_uuid: AHashMap::new(),
+			text_related_type_by_row_uuid: AHashMap::new(),
+			text_related_master_by_type_name: AHashMap::new(),
+			similar_neighbors_by_product: AHashMap::new(),
 			categories_by_path_suffix: AHashMap::new(),
 			schema_version: 0,
 			built_at: Instant::now(),

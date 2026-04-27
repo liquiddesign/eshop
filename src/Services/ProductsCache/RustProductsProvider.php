@@ -738,6 +738,81 @@ final class RustProductsProvider implements GeneralProductsCacheProvider
 			}
 		}
 
+		// `relatedTypeMaster` — PHP `[$masterUuid, $typeUuid]`, daemon má identický index jako
+		// `relatedSlave` (jen jiné pořadí argumentů). `filterRelatedTypeMaster` ProductRepository:1225.
+		if (isset($filters['relatedTypeMaster']) && \is_array($filters['relatedTypeMaster'])) {
+			$raw = $filters['relatedTypeMaster'];
+			$masterUuid = isset($raw[0]) ? (string) $raw[0] : '';
+			$typeUuid = isset($raw[1]) ? (string) $raw[1] : '';
+
+			if ($masterUuid !== '' && $typeUuid !== '') {
+				$out->relatedTypeMaster = [
+					'typeUuid' => $typeUuid,
+					'masterUuid' => $masterUuid,
+				];
+			}
+		}
+
+		// `relatedTypeSlave` — PHP `[$slaveUuid, $typeUuid]`, daemon má dedikovaný index
+		// `related_masters_by_type_slave`. `filterRelatedTypeSlave` ProductRepository:1238.
+		if (isset($filters['relatedTypeSlave']) && \is_array($filters['relatedTypeSlave'])) {
+			$raw = $filters['relatedTypeSlave'];
+			$slaveUuid = isset($raw[0]) ? (string) $raw[0] : '';
+			$typeUuid = isset($raw[1]) ? (string) $raw[1] : '';
+
+			if ($slaveUuid !== '' && $typeUuid !== '') {
+				$out->relatedTypeSlave = [
+					'typeUuid' => $typeUuid,
+					'slaveUuid' => $slaveUuid,
+				];
+			}
+		}
+
+		// `toners` — PHP single UUID `$masterUuid` (printer master pro který hledáme tonery).
+		// `filterToners` ProductRepository:1207, @deprecated.
+		if (isset($filters['toners']) && \is_string($filters['toners']) && $filters['toners'] !== '') {
+			$out->toners = $filters['toners'];
+		}
+
+		// `compatiblePrinters` — PHP single UUID `$value` (toner master pro který hledáme printery).
+		// `filterCompatiblePrinters` ProductRepository:1217, @deprecated.
+		if (isset($filters['compatiblePrinters']) && \is_string($filters['compatiblePrinters']) && $filters['compatiblePrinters'] !== '') {
+			$out->compatiblePrinters = $filters['compatiblePrinters'];
+		}
+
+		// `relatedTextSlave` — PHP `[$rowUuid, $typeCode]`. `filterRelatedTextSlave` ProductRepository:1255.
+		if (isset($filters['relatedTextSlave']) && \is_array($filters['relatedTextSlave'])) {
+			$raw = $filters['relatedTextSlave'];
+			$rowUuid = isset($raw[0]) ? (string) $raw[0] : '';
+			$typeUuid = isset($raw[1]) ? (string) $raw[1] : '';
+
+			if ($rowUuid !== '' && $typeUuid !== '') {
+				$out->relatedTextSlave = [
+					'rowUuid' => $rowUuid,
+					'typeUuid' => $typeUuid,
+				];
+			}
+		}
+
+		// `relatedTextSlaveByName` — PHP `[$slaveName, $typeCode]`. `filterRelatedTextSlaveByName` ProductRepository:1273.
+		if (isset($filters['relatedTextSlaveByName']) && \is_array($filters['relatedTextSlaveByName'])) {
+			$raw = $filters['relatedTextSlaveByName'];
+			$slaveName = isset($raw[0]) ? (string) $raw[0] : '';
+			$typeUuid = isset($raw[1]) ? (string) $raw[1] : '';
+
+			if ($slaveName !== '' && $typeUuid !== '') {
+				$out->relatedTextSlaveByName = [
+					'slaveName' => $slaveName,
+					'typeUuid' => $typeUuid,
+				];
+			}
+		}
+
+		// `similarProducts` — PHP single UUID. `filterSimilarProducts` ProductRepository:1287.
+		if (isset($filters['similarProducts']) && \is_string($filters['similarProducts']) && $filters['similarProducts'] !== '') {
+			$out->similarProducts = $filters['similarProducts'];
+		}
+
 		if (isset($filters['crossSellFilter']) && \is_array($filters['crossSellFilter'])) {
 			$raw = $filters['crossSellFilter'];
 			$path = isset($raw[0]) ? (string) $raw[0] : '';

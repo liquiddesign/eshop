@@ -228,6 +228,8 @@ fn mini_snapshot() -> Arc<CatalogSnapshot> {
 			attr_values: SmallVec::new(),
 			ribbons: SmallVec::new(),
 			internal_ribbons: SmallVec::new(),
+			buy_count: 0,
+			published: 0,
 		},
 		ProductRow {
 			uuid_idx: 1,
@@ -242,6 +244,8 @@ fn mini_snapshot() -> Arc<CatalogSnapshot> {
 			attr_values: SmallVec::new(),
 			ribbons: SmallVec::new(),
 			internal_ribbons: SmallVec::new(),
+			buy_count: 0,
+			published: 0,
 		},
 	];
 

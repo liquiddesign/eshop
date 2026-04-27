@@ -62,6 +62,12 @@ pub struct RawCatalog {
 	pub internal_ribbons: Vec<String>,
 	/// `eshop_related` rows — for `relatedSlave` filter. Only rows with `fk_slave IS NOT NULL`.
 	pub related_rows: Vec<RawRelated>,
+	/// `eshop_related` rows kde `fk_slave IS NULL` (text-only relace) — pro `relatedTextSlave`
+	/// (`uuid` lookup) a `relatedTextSlaveByName` (`(type_uuid, slave_name)` lookup).
+	pub text_related_rows: Vec<RawTextRelated>,
+	/// UUID seznam `eshop_relatedtype` rows kde `similar = 1` — pro `similarProducts` filter.
+	/// Drobná tabulka (typicky < 20), v daemon snapshotu jako `AHashSet`.
+	pub similar_type_uuids: Vec<String>,
 	/// `eshop_productprimarycategory` rows — for `related` filter per `main_category_type_pk`.
 	pub product_primary_categories: Vec<RawProductPrimaryCategory>,
 	/// `eshop_product_nxn_eshop_category` direct junction — pouze přímé (nedenormalizované)
@@ -76,6 +82,20 @@ pub struct RawRelated {
 	pub master_uuid: String,
 	pub slave_uuid: String,
 	pub type_uuid: String,
+}
+
+/// `eshop_related` row pro text-only relace (kde `fk_slave IS NULL`). Master + type + řádkové
+/// UUID (jednoznačný identifier řádku) + nullable `slave_name` text. PHP filtry `relatedTextSlave`
+/// a `relatedTextSlaveByName` ji konzumují (ProductRepository.php:1255 / 1273).
+#[derive(Debug)]
+pub struct RawTextRelated {
+	/// `eshop_related.uuid` — primary key řádku, používán `relatedTextSlave([uuid, type])`.
+	pub row_uuid: String,
+	pub master_uuid: String,
+	pub type_uuid: String,
+	/// `eshop_related.slaveName` — text label pro `relatedTextSlaveByName([slaveName, type])`.
+	/// `None` = text není vyplněn (řádek nepokryje by-name lookup).
+	pub slave_name: Option<String>,
 }
 
 /// `eshop_productprimarycategory` row — primary category per (product, category type).
@@ -126,6 +146,12 @@ pub struct RawProduct {
 	pub ribbon_uuids: Vec<String>,
 	/// CSV UUID stringů (`eshop_internalribbon`). Používá se pro `contract`/`notPublic` filtry.
 	pub internal_ribbon_uuids: Vec<String>,
+	/// `eshop_product.buyCount` — agregovaný čítač nákupů. Mirror `setAllowedOrderColumns['buyCount']`
+	/// v ProductList. NULL coalesced na 0 v SQL.
+	pub buy_count: i32,
+	/// `eshop_product.published` — datum publikace produktu (Unix timestamp v sekundách, 0 = NULL).
+	/// Mirror `setAllowedOrderColumns['published']`. Ordering podle "od nejnovějšího" je sane default.
+	pub published: i64,
 }
 
 #[derive(Debug)]
@@ -278,6 +304,8 @@ pub async fn load_catalog_raw(pool: &Pool) -> Result<RawCatalog, SnapshotBuildEr
 		ribbons,
 		internal_ribbons,
 		related_rows,
+		text_related_rows,
+		similar_type_uuids,
 		product_primary_categories,
 		product_categories,
 		drift,
@@ -296,6 +324,8 @@ pub async fn load_catalog_raw(pool: &Pool) -> Result<RawCatalog, SnapshotBuildEr
 		load_ribbons(pool),
 		load_internal_ribbons(pool),
 		load_related(pool),
+		load_text_related(pool),
+		load_similar_type_uuids(pool),
 		load_product_primary_categories(pool),
 		load_product_categories(pool),
 		load_drift(pool),
@@ -316,6 +346,8 @@ pub async fn load_catalog_raw(pool: &Pool) -> Result<RawCatalog, SnapshotBuildEr
 		ribbons,
 		internal_ribbons,
 		related_rows,
+		text_related_rows,
+		similar_type_uuids,
 		product_primary_categories,
 		product_categories,
 		drift,
@@ -350,6 +382,66 @@ async fn load_related(pool: &Pool) -> Result<Vec<RawRelated>, SnapshotBuildError
 					field: "related.type_uuid",
 					reason: "missing".into(),
 				})?,
+			})
+		})
+		.try_collect::<Vec<_>>()
+		.await
+}
+
+/// Load `eshop_related` rows kde `fk_slave IS NULL` — text-only relace pro `relatedTextSlave`
+/// a `relatedTextSlaveByName` filtry (ProductRepository.php:1255 / 1273). Vrací `uuid` (PK řádku),
+/// `fk_master`, `fk_type`, `slaveName`. Filter zahrnuje obě subsety:
+/// - `slave_name IS NOT NULL OR uuid IS NOT NULL` (uuid je vždy PK, je vždy non-null) — tj.
+///   všechny text-only řádky. By-name index potom uloží jen ty s vyplněným `slaveName`.
+async fn load_text_related(pool: &Pool) -> Result<Vec<RawTextRelated>, SnapshotBuildError> {
+	let mut conn = pool.conn().await?;
+	let sql = r#"
+		SELECT
+			uuid                AS row_uuid,
+			fk_master           AS master_uuid,
+			fk_type             AS type_uuid,
+			slaveName           AS slave_name
+		FROM eshop_related
+		WHERE fk_slave IS NULL AND fk_master IS NOT NULL AND fk_type IS NOT NULL
+	"#;
+	let stream = conn.query_stream::<Row, _>(sql).await?;
+	stream
+		.map_err(SnapshotBuildError::from)
+		.and_then(|mut row| async move {
+			Ok(RawTextRelated {
+				row_uuid: row.take("row_uuid").ok_or(SnapshotBuildError::Decode {
+					field: "text_related.row_uuid",
+					reason: "missing".into(),
+				})?,
+				master_uuid: row.take("master_uuid").ok_or(SnapshotBuildError::Decode {
+					field: "text_related.master_uuid",
+					reason: "missing".into(),
+				})?,
+				type_uuid: row.take("type_uuid").ok_or(SnapshotBuildError::Decode {
+					field: "text_related.type_uuid",
+					reason: "missing".into(),
+				})?,
+				slave_name: row.take::<Option<String>, _>("slave_name").flatten(),
+			})
+		})
+		.try_collect::<Vec<_>>()
+		.await
+}
+
+/// Load UUIDy `eshop_relatedtype` kde `similar = 1` — pro `similarProducts` filter
+/// (ProductRepository.php:1287). Drobná tabulka (typicky < 20), single SQL pass.
+async fn load_similar_type_uuids(pool: &Pool) -> Result<Vec<String>, SnapshotBuildError> {
+	let mut conn = pool.conn().await?;
+	let sql = r#"
+		SELECT uuid FROM eshop_relatedtype WHERE similar = 1
+	"#;
+	let stream = conn.query_stream::<Row, _>(sql).await?;
+	stream
+		.map_err(SnapshotBuildError::from)
+		.and_then(|mut row| async move {
+			row.take::<String, _>("uuid").ok_or(SnapshotBuildError::Decode {
+				field: "relatedtype.uuid",
+				reason: "missing".into(),
 			})
 		})
 		.try_collect::<Vec<_>>()
@@ -414,7 +506,9 @@ async fn load_products(pool: &Pool) -> Result<Vec<RawProduct>, SnapshotBuildErro
 			COALESCE(this.denormalizedAttributeValues, '')  AS attribute_values_csv,
 			COALESCE(this.denormalizedCategories, '')       AS categories_csv,
 			COALESCE(this.denormalizedRibbons, '')          AS ribbons_csv,
-			COALESCE(this.denormalizedInternalRibbons, '')  AS internal_ribbons_csv
+			COALESCE(this.denormalizedInternalRibbons, '')  AS internal_ribbons_csv,
+			COALESCE(this.buyCount, 0)             AS buy_count,
+			COALESCE(UNIX_TIMESTAMP(this.published), 0) AS published
 		FROM eshop_product AS this
 		WHERE this.deletedTs IS NULL
 	"#;
@@ -450,6 +544,8 @@ async fn load_products(pool: &Pool) -> Result<Vec<RawProduct>, SnapshotBuildErro
 			let categories_csv: String = row.take("categories_csv").unwrap_or_default();
 			let ribbons_csv: String = row.take("ribbons_csv").unwrap_or_default();
 			let internal_ribbons_csv: String = row.take("internal_ribbons_csv").unwrap_or_default();
+			let buy_count: i32 = row.take("buy_count").unwrap_or(0);
+			let published: i64 = row.take("published").unwrap_or(0);
 			Ok(RawProduct {
 				uuid,
 				id,
@@ -465,6 +561,8 @@ async fn load_products(pool: &Pool) -> Result<Vec<RawProduct>, SnapshotBuildErro
 				category_uuids: split_csv(&categories_csv),
 				ribbon_uuids: split_csv(&ribbons_csv),
 				internal_ribbon_uuids: split_csv(&internal_ribbons_csv),
+				buy_count,
+				published,
 			})
 		})
 		.try_collect::<Vec<_>>()

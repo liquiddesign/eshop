@@ -36,6 +36,9 @@ pub fn order_and_serialize(
 		"name" => sort_by_name(snap, &mut priced, direction),
 		"priorityAvailabilityPrice" => sort_by_priority_availability_price(snap, &mut priced, direction),
 		"availabilityAndPrice" => sort_by_availability_and_price(snap, &mut priced, direction),
+		"crossSellOrder" => sort_by_cross_sell_order(snap, &mut priced, direction),
+		"buyCount" => sort_by_buy_count(snap, &mut priced, direction),
+		"published" => sort_by_published(snap, &mut priced, direction),
 		_ => sort_by_priority(snap, &mut priced, direction),
 	}
 
@@ -188,6 +191,57 @@ fn cmp_availability_tuple(a: &(i32, u8, f64), b: &(i32, u8, f64)) -> std::cmp::O
 	a.0.cmp(&b.0)
 		.then_with(|| a.1.cmp(&b.1))
 		.then_with(|| a.2.total_cmp(&b.2))
+}
+
+/// PHP `crossSellOrder` ordering (`ProductList.php:102-107`). Po JOINu produkt × kategorie 1:N
+/// MySQL `ORDER BY LENGTH(categories.path)` má nejednoznačné chování (vrací duplicate rows).
+/// Daemon volí maximum z délek paths kategorií produktu — koresponduje s "produkt v nejhlubší
+/// (nejspecifičtější) kategorii" jako proxy pro PHP záměr. Lookup je O(1) z předpočítaného
+/// `max_category_path_len_by_product` Vec.
+fn sort_by_cross_sell_order(snap: &CatalogSnapshot, priced: &mut [PricedProduct], direction: OrderDirection) {
+	priced.sort_unstable_by(|a, b| {
+		let la = snap
+			.max_category_path_len_by_product
+			.get(a.product as usize)
+			.copied()
+			.unwrap_or(0);
+		let lb = snap
+			.max_category_path_len_by_product
+			.get(b.product as usize)
+			.copied()
+			.unwrap_or(0);
+		match direction {
+			OrderDirection::Asc => la.cmp(&lb),
+			OrderDirection::Desc => lb.cmp(&la),
+		}
+	});
+}
+
+/// PHP `setAllowedOrderColumns['buyCount' => 'this.buyCount']`. Sortable column z denormalized
+/// `eshop_product.buyCount`. Produkty bez záznamu (out-of-bounds) drop na 0.
+fn sort_by_buy_count(snap: &CatalogSnapshot, priced: &mut [PricedProduct], direction: OrderDirection) {
+	priced.sort_unstable_by(|a, b| {
+		let va = snap.products.get(a.product as usize).map(|p| p.buy_count).unwrap_or(0);
+		let vb = snap.products.get(b.product as usize).map(|p| p.buy_count).unwrap_or(0);
+		match direction {
+			OrderDirection::Asc => va.cmp(&vb),
+			OrderDirection::Desc => vb.cmp(&va),
+		}
+	});
+}
+
+/// PHP `setAllowedOrderColumns['published' => 'this.published']`. `eshop_product.published` je
+/// `DATE` sloupec, daemon ho drží jako Unix timestamp v sekundách (NULL → 0). NULL/zero rows
+/// projdou na konec ASC, na začátek DESC — paritní s MariaDB default null ordering pro `DATE`.
+fn sort_by_published(snap: &CatalogSnapshot, priced: &mut [PricedProduct], direction: OrderDirection) {
+	priced.sort_unstable_by(|a, b| {
+		let va = snap.products.get(a.product as usize).map(|p| p.published).unwrap_or(0);
+		let vb = snap.products.get(b.product as usize).map(|p| p.published).unwrap_or(0);
+		match direction {
+			OrderDirection::Asc => va.cmp(&vb),
+			OrderDirection::Desc => vb.cmp(&va),
+		}
+	});
 }
 
 /// Map raw `is_sold` (0/1/2/…) to availability weight (0 = best, 2 = worst) matching PHP

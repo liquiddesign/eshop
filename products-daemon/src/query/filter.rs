@@ -374,6 +374,121 @@ pub(crate) fn apply_bitmap_filters_inner(
 		}
 	}
 
+	// --- relatedTypeMaster (eshop_related JOIN, alias k relatedSlave s opačným pořadím args)
+	// PHP `filterRelatedTypeMaster` (ProductRepository.php:1225-1236) má identickou sémantiku
+	// jako `filterRelatedSlave`, jen v PHP volání se argumenty předávají v opačném pořadí
+	// (`[$masterUuid, $typeUuid]` vs `[$typeUuid, $masterUuid]`). Sahá do stejného indexu.
+	if let Some(rtm) = &req_filters.related_type_master {
+		let key = (
+			smol_str::SmolStr::new(&rtm.type_uuid),
+			smol_str::SmolStr::new(&rtm.master_uuid),
+		);
+		if let Some(bm) = snap.related_slaves_by_type_master.get(&key) {
+			mask &= bm;
+		} else {
+			mask.clear();
+		}
+	}
+
+	// --- relatedTypeSlave (eshop_related JOIN, opačná strana) ---------------------------
+	// PHP `filterRelatedTypeSlave` (ProductRepository.php:1238-1249): `this.uuid = related.fk_master
+	// AND related.fk_slave = $slaveUuid AND related.fk_type = $typeUuid`. Vrací produkty, které
+	// jsou MASTER. Lookup: `(type_uuid, slave_uuid)` → bitmap master ProductIdx.
+	if let Some(rts) = &req_filters.related_type_slave {
+		let key = (
+			smol_str::SmolStr::new(&rts.type_uuid),
+			smol_str::SmolStr::new(&rts.slave_uuid),
+		);
+		if let Some(bm) = snap.related_masters_by_type_slave.get(&key) {
+			mask &= bm;
+		} else {
+			mask.clear();
+		}
+	}
+
+	// --- toners (alias k relatedTypeSlave s pevným type 'tonerForPrinter') --------------
+	// PHP `filterToners($masterUuid)` (1207-1212, @deprecated): vrátí mastery (= toner produkty)
+	// pro daný printer master. Sémanticky `relatedTypeSlave([masterUuid, "tonerForPrinter"])` —
+	// daemon používá stejný snapshot index `related_masters_by_type_slave`.
+	if let Some(slave_uuid) = req_filters.toners.as_deref() {
+		let key = (smol_str::SmolStr::new("tonerForPrinter"), smol_str::SmolStr::new(slave_uuid));
+		if let Some(bm) = snap.related_masters_by_type_slave.get(&key) {
+			mask &= bm;
+		} else {
+			mask.clear();
+		}
+	}
+
+	// --- compatiblePrinters (alias k relatedTypeMaster s pevným type 'tonerForPrinter') --
+	// PHP `filterCompatiblePrinters($value)` (1217-1223, @deprecated): vrátí slaves (= printer
+	// produkty) pro daný toner master.
+	if let Some(master_uuid) = req_filters.compatible_printers.as_deref() {
+		let key = (smol_str::SmolStr::new("tonerForPrinter"), smol_str::SmolStr::new(master_uuid));
+		if let Some(bm) = snap.related_slaves_by_type_master.get(&key) {
+			mask &= bm;
+		} else {
+			mask.clear();
+		}
+	}
+
+	// --- relatedTextSlave (text-only `eshop_related` row by UUID) -----------------------
+	// PHP `filterRelatedTextSlave([rowUuid, typeCode])` (1255-1267): matchuje konkrétní řádek
+	// (`related.uuid = $rowUuid AND fk_type = $typeCode AND fk_slave IS NULL`). Daemon: lookup
+	// master přes `text_related_master_by_row_uuid`, defensive check typu přes
+	// `text_related_type_by_row_uuid`.
+	if let Some(rts) = &req_filters.related_text_slave {
+		let row_key = smol_str::SmolStr::new(&rts.row_uuid);
+		let type_match = snap
+			.text_related_type_by_row_uuid
+			.get(&row_key)
+			.is_some_and(|t| t.as_str() == rts.type_uuid.as_str());
+		if type_match {
+			if let Some(&master_idx) = snap.text_related_master_by_row_uuid.get(&row_key) {
+				let mut allowed = RoaringBitmap::new();
+				allowed.insert(master_idx);
+				mask &= allowed;
+			} else {
+				mask.clear();
+			}
+		} else {
+			mask.clear();
+		}
+	}
+
+	// --- relatedTextSlaveByName (text-only `eshop_related` rows by slaveName) -----------
+	// PHP `filterRelatedTextSlaveByName([slaveName, typeCode])` (1273-1285): vrátí mastery,
+	// kteří mají v daném typu stejný `slaveName`. Daemon: `text_related_master_by_type_name`.
+	if let Some(rtn) = &req_filters.related_text_slave_by_name {
+		let key = (
+			smol_str::SmolStr::new(&rtn.type_uuid),
+			smol_str::SmolStr::new(&rtn.slave_name),
+		);
+		if let Some(bm) = snap.text_related_master_by_type_name.get(&key) {
+			mask &= bm;
+		} else {
+			mask.clear();
+		}
+	}
+
+	// --- similarProducts (graf "similar" relací) ----------------------------------------
+	// PHP `filterSimilarProducts($value)` (1287-1293): produkt je v relaci přes type s
+	// `similar=1` s `$value` (z obou stran), AND `this.uuid != $value`. Daemon má symetrický
+	// graf předpočítaný v `similar_neighbors_by_product`.
+	if let Some(value_uuid) = req_filters.similar_products.as_deref() {
+		if let Some(value_idx) = snap.product_pool.lookup(value_uuid) {
+			if let Some(neighbors) = snap.similar_neighbors_by_product.get(&value_idx) {
+				mask &= neighbors;
+			} else {
+				mask.clear();
+			}
+			mask.remove(value_idx);
+		} else {
+			// Neznámý produkt = 0 výsledků (PHP `where this.uuid != $unknown` projde, ale
+			// JOIN `relation` na neexistujícím produktu nedá žádné rows).
+			mask.clear();
+		}
+	}
+
 	// --- crossSellFilter (category.path LIKE '%chunk' OR-chain) ------------------------
 	// PHP `filterCrossSellFilter` (ProductRepository.php:1157-1170): rozdělí vstupní path na
 	// 4-char chunky a pro každý přidá `categories.path LIKE '%chunk'` přes OR. Rust verze:

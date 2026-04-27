@@ -117,10 +117,11 @@ final class RustDaemonBarPanel implements IBarPanel
 
 		// Nejnovější nahoře pro rychlou orientaci.
 		$reversed = \array_reverse($timestamps);
+		$visible = \array_slice($reversed, 0, 20);
 		$now = \time();
 		$items = '';
 
-		foreach ($reversed as $ts) {
+		foreach ($visible as $ts) {
 			$when = Carbon::createFromTimestamp($ts)->format('Y-m-d H:i:s');
 			$ago = self::formatAgo($now - $ts);
 			$items .= '<li><code>' . \htmlspecialchars($when, \ENT_QUOTES, 'UTF-8') . '</code> '

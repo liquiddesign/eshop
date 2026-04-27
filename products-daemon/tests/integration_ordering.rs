@@ -42,6 +42,8 @@ fn ordering_snapshot() -> Arc<CatalogSnapshot> {
 		attr_values: SmallVec::new(),
 		ribbons: SmallVec::new(),
 		internal_ribbons: SmallVec::new(),
+		buy_count: 0,
+		published: 0,
 	};
 	snap.products = (0u32..3).map(mk_row).collect();
 

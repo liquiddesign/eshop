@@ -252,6 +252,8 @@ impl<'a> SnapshotBuilder<'a> {
 				attr_values,
 				ribbons,
 				internal_ribbons,
+				buy_count: raw_p.buy_count,
+				published: raw_p.published,
 			});
 			product_ids.push(raw_p.id);
 		}
@@ -555,17 +557,97 @@ impl<'a> SnapshotBuilder<'a> {
 			primary_category_by_type_cat.entry(key).or_default().insert(product_idx);
 		}
 
-		// --- related_slaves_by_type_master (for `relatedSlave` filter) ---
-		// Klíč: (type_uuid, master_uuid) → bitmap slave produktů. PHP `filterRelatedSlave` joinne
-		// `eshop_related` a matchuje fk_type + fk_master.
+		// --- related_slaves_by_type_master + related_masters_by_type_slave ---
+		// PHP filtry `filterRelatedSlave` / `filterRelatedTypeMaster` joinujou `eshop_related` na
+		// `this.uuid = related.fk_slave` (= produkt je SLAVE), zatímco `filterRelatedTypeSlave`
+		// joinuje `this.uuid = related.fk_master` (= produkt je MASTER). Stavíme oba indexy v
+		// jediném průchodu, paměť ~2× velikost jednoho indexu (ale O(R) vs duplicitní pass).
 		let mut related_slaves_by_type_master: AHashMap<(SmolStr, SmolStr), RoaringBitmap> =
 			AHashMap::with_capacity(raw.related_rows.len());
+		let mut related_masters_by_type_slave: AHashMap<(SmolStr, SmolStr), RoaringBitmap> =
+			AHashMap::with_capacity(raw.related_rows.len());
 		for row in &raw.related_rows {
-			let Some(slave_idx) = product_pool.lookup(&row.slave_uuid) else {
+			let slave_idx_opt = product_pool.lookup(&row.slave_uuid);
+			let master_idx_opt = product_pool.lookup(&row.master_uuid);
+			if let Some(slave_idx) = slave_idx_opt {
+				let key = (SmolStr::new(&row.type_uuid), SmolStr::new(&row.master_uuid));
+				related_slaves_by_type_master.entry(key).or_default().insert(slave_idx);
+			}
+			if let Some(master_idx) = master_idx_opt {
+				let key = (SmolStr::new(&row.type_uuid), SmolStr::new(&row.slave_uuid));
+				related_masters_by_type_slave.entry(key).or_default().insert(master_idx);
+			}
+		}
+
+		// --- text_related_* (for `relatedTextSlave` / `relatedTextSlaveByName` filters) ---
+		// Text-only relace (fk_slave IS NULL) — by-row-uuid lookup pro `relatedTextSlave` a
+		// (type_uuid, slave_name) lookup pro `relatedTextSlaveByName`. PHP filtruje na master,
+		// takže ukládáme master ProductIdx jako hodnotu.
+		let mut text_related_master_by_row_uuid: AHashMap<SmolStr, u32> =
+			AHashMap::with_capacity(raw.text_related_rows.len());
+		let mut text_related_type_by_row_uuid: AHashMap<SmolStr, SmolStr> =
+			AHashMap::with_capacity(raw.text_related_rows.len());
+		let mut text_related_master_by_type_name: AHashMap<(SmolStr, SmolStr), RoaringBitmap> = AHashMap::new();
+		for row in &raw.text_related_rows {
+			let Some(master_idx) = product_pool.lookup(&row.master_uuid) else {
 				continue;
 			};
-			let key = (SmolStr::new(&row.type_uuid), SmolStr::new(&row.master_uuid));
-			related_slaves_by_type_master.entry(key).or_default().insert(slave_idx);
+			let row_uuid_key = SmolStr::new(&row.row_uuid);
+			text_related_master_by_row_uuid.insert(row_uuid_key.clone(), master_idx);
+			text_related_type_by_row_uuid.insert(row_uuid_key, SmolStr::new(&row.type_uuid));
+			if let Some(slave_name) = row.slave_name.as_deref() {
+				if !slave_name.is_empty() {
+					let key = (SmolStr::new(&row.type_uuid), SmolStr::new(slave_name));
+					text_related_master_by_type_name
+						.entry(key)
+						.or_default()
+						.insert(master_idx);
+				}
+			}
+		}
+
+		// --- similar_neighbors_by_product (for `similarProducts` filter) ---
+		// Pro každý `eshop_related` row, jehož typ má `similar = 1`, přidej slave do master
+		// neighbors a obráceně (PHP filter matchuje `fk_master OR fk_slave`). Sám sebe vyloučen
+		// na compute-time přes `value` parametr — build symetricky uloží oba směry, vyloučení
+		// vlastního UUID se aplikuje ve filteru.
+		let similar_type_set: ahash::AHashSet<&str> = raw.similar_type_uuids.iter().map(String::as_str).collect();
+		let mut similar_neighbors_by_product: AHashMap<u32, RoaringBitmap> = AHashMap::new();
+		for row in &raw.related_rows {
+			if !similar_type_set.contains(row.type_uuid.as_str()) {
+				continue;
+			}
+			let (Some(master_idx), Some(slave_idx)) =
+				(product_pool.lookup(&row.master_uuid), product_pool.lookup(&row.slave_uuid))
+			else {
+				continue;
+			};
+			if master_idx == slave_idx {
+				continue;
+			}
+			similar_neighbors_by_product.entry(master_idx).or_default().insert(slave_idx);
+			similar_neighbors_by_product.entry(slave_idx).or_default().insert(master_idx);
+		}
+
+		// --- max_category_path_len_by_product (for `crossSellOrder` ordering) ---
+		// PHP řadí podle `LENGTH(categories.path)` po JOINu produkt × kategorie (1:N). Na DB
+		// úrovni MySQL vrací duplicitní rows, výsledný order je nejednoznačný. Daemon volí
+		// "nejdelší path z kategorií produktu" jako proxy — koresponduje s "produkt v nejhlubší
+		// kategorii" (= nejspecifičtější), což je očekávaný efekt cross-sell ordering.
+		let mut path_len_by_cat_uuid: AHashMap<&str, u16> = AHashMap::with_capacity(raw.categories.len());
+		for cat in &raw.categories {
+			path_len_by_cat_uuid.insert(cat.uuid.as_str(), cat.path.len().min(u16::MAX as usize) as u16);
+		}
+		let mut max_category_path_len_by_product: Vec<u16> = vec![0; product_pool.len()];
+		for row in &raw.product_categories {
+			let Some(product_idx) = product_pool.lookup(&row.product_uuid) else {
+				continue;
+			};
+			let len = path_len_by_cat_uuid.get(row.category_uuid.as_str()).copied().unwrap_or(0);
+			let slot = &mut max_category_path_len_by_product[product_idx as usize];
+			if len > *slot {
+				*slot = len;
+			}
 		}
 
 		// --- categories_by_path_suffix (for `crossSellFilter`) ---
@@ -644,6 +726,12 @@ impl<'a> SnapshotBuilder<'a> {
 			priority_by_product,
 			primary_category_by_type_cat,
 			related_slaves_by_type_master,
+			related_masters_by_type_slave,
+			max_category_path_len_by_product,
+			text_related_master_by_row_uuid,
+			text_related_type_by_row_uuid,
+			text_related_master_by_type_name,
+			similar_neighbors_by_product,
 			categories_by_path_suffix,
 			schema_version,
 			built_at: Instant::now(),
@@ -773,6 +861,12 @@ pub fn fixture_snapshot(product_count: usize, pricelist_count: usize) -> Catalog
 		priority_by_product,
 		primary_category_by_type_cat: ahash::AHashMap::new(),
 		related_slaves_by_type_master: ahash::AHashMap::new(),
+		related_masters_by_type_slave: ahash::AHashMap::new(),
+		max_category_path_len_by_product: Vec::new(),
+		text_related_master_by_row_uuid: ahash::AHashMap::new(),
+		text_related_type_by_row_uuid: ahash::AHashMap::new(),
+		text_related_master_by_type_name: ahash::AHashMap::new(),
+		similar_neighbors_by_product: ahash::AHashMap::new(),
 		categories_by_path_suffix: ahash::AHashMap::new(),
 		schema_version: 0,
 		built_at: Instant::now(),

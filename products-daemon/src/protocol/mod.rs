@@ -337,10 +337,48 @@ pub struct FilterPayload {
 	/// `JOIN eshop_related ON this.uuid=related.fk_slave WHERE related.fk_type=$typeUuid AND related.fk_master=$masterUuid`.
 	pub related_slave: Option<RelatedSlaveFilter>,
 
+	/// `relatedTypeMaster` filter — mirror `ProductRepository::filterRelatedTypeMaster` (1225–1236):
+	/// `JOIN eshop_related ON this.uuid=related.fk_slave WHERE related.fk_master=$masterUuid AND related.fk_type=$typeUuid`.
+	/// Sémanticky stejné jako `related_slave` (jiné pořadí argumentů v PHP), proto sahá do
+	/// stejného snapshot indexu `related_slaves_by_type_master`.
+	pub related_type_master: Option<RelatedTypeMasterFilter>,
+
+	/// `relatedTypeSlave` filter — mirror `ProductRepository::filterRelatedTypeSlave` (1238–1249):
+	/// `JOIN eshop_related ON this.uuid=related.fk_master WHERE related.fk_slave=$slaveUuid AND related.fk_type=$typeUuid`.
+	/// Vrací produkty, které jsou MASTER v relaci s daným slave. Snapshot lookup
+	/// `related_masters_by_type_slave[(type_uuid, slave_uuid)] → bitmap master ProductIdx`.
+	pub related_type_slave: Option<RelatedTypeSlaveFilter>,
+
 	/// `crossSellFilter` — mirror `ProductRepository::filterCrossSellFilter` (1157–1170).
 	/// Path je rozdělen na 4-char chunky; produkt prochází pokud má kategorii s `path LIKE '%chunk'`
 	/// pro aspoň jeden chunk, AND `this.uuid != exclude_uuid`.
 	pub cross_sell: Option<CrossSellFilter>,
+
+	/// `toners` filter — mirror `ProductRepository::filterToners` (1207–1212, @deprecated): hardcoded
+	/// `related.fk_type = 'tonerForPrinter'`. Hodnota je single UUID (printer master). Daemon
+	/// ji namapuje na `related_masters_by_type_slave[("tonerForPrinter", value)]` (= produkty,
+	/// které jsou MASTER tonerForPrinter relace pro daný printer).
+	pub toners: Option<String>,
+
+	/// `compatiblePrinters` filter — mirror `ProductRepository::filterCompatiblePrinters`
+	/// (1217–1223, @deprecated): hardcoded `related.fk_type = 'tonerForPrinter'`, lookup z opačné
+	/// strany (`related.fk_master = $value`). Daemon: `related_slaves_by_type_master[("tonerForPrinter", value)]`.
+	pub compatible_printers: Option<String>,
+
+	/// `relatedTextSlave` filter — mirror `ProductRepository::filterRelatedTextSlave` (1255–1267):
+	/// matchuje konkrétní text-only `eshop_related` row (`related.uuid = $rowUuid AND fk_type = $typeCode
+	/// AND fk_slave IS NULL`).
+	pub related_text_slave: Option<RelatedTextSlaveFilter>,
+
+	/// `relatedTextSlaveByName` filter — mirror `ProductRepository::filterRelatedTextSlaveByName`
+	/// (1273–1285): matchuje text-only relace podle `slaveName + fk_type` (vrátí všechny mastery
+	/// se stejným `slaveName` v daném typu).
+	pub related_text_slave_by_name: Option<RelatedTextSlaveByNameFilter>,
+
+	/// `similarProducts` filter — mirror `ProductRepository::filterSimilarProducts` (1287–1293):
+	/// vrátí produkty, které jsou v `eshop_related` přes nějaký type s `similar = 1` s daným
+	/// produktem (z obou stran), AND `this.uuid != $value`. Hodnota je UUID referenčního produktu.
+	pub similar_products: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -362,6 +400,43 @@ pub struct RelatedSlaveFilter {
 	pub type_uuid: String,
 	/// `related.fk_master` — UUID master produktu.
 	pub master_uuid: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RelatedTypeMasterFilter {
+	/// `related.fk_type` — UUID `eshop_relatedtype`.
+	pub type_uuid: String,
+	/// `related.fk_master` — UUID master produktu, jehož slave produkty hledáme.
+	pub master_uuid: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RelatedTypeSlaveFilter {
+	/// `related.fk_type` — UUID `eshop_relatedtype`.
+	pub type_uuid: String,
+	/// `related.fk_slave` — UUID slave produktu, jehož master produkty hledáme.
+	pub slave_uuid: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RelatedTextSlaveFilter {
+	/// `eshop_related.uuid` — primary key konkrétního row.
+	pub row_uuid: String,
+	/// `eshop_relatedtype.uuid` — defensive check že daný row patří k tomuto typu (PHP
+	/// `where('related.fk_type', $value[1])`). Mismatch = filter clear.
+	pub type_uuid: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RelatedTextSlaveByNameFilter {
+	/// `eshop_related.slaveName` — text label k matchování.
+	pub slave_name: String,
+	/// `eshop_relatedtype.uuid` — typ relace.
+	pub type_uuid: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
