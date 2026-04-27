@@ -259,39 +259,42 @@ Ostatní: Přebírání ze zvoleného zdroje
 			->setHtmlAttribute('data-info', 'Nákupní cena pro výpočet marže v nabídce, pokud neexistuje dodavatelský produkt.');
 		$manualPurchasePrice->addCondition($form::Filled)->addRule($form::Float);
 
+		$form->addText('manualPurchasePriceValidUntil', 'Platnost manuálně zadané nákupní ceny do')
+			->setNullable()
+			->setHtmlType('date')
+			->setHtmlAttribute('data-info', 'Platí POUZE pro pole „Manuálně zadaná nákupní cena“ výše. Po tomto datu nebude manuální nákupní cena platná.
+				Prázdné = neomezená platnost. Netýká se „Manuální skladové ceny“.');
+
+		$form->addText('manualPurchasePriceSupplierUrl', 'Odkaz na produkt u dodavatele (k manuálně zadané nákupní ceně)')
+			->setNullable()
+			->setHtmlAttribute('data-info', 'URL odkaz na stránku produktu u dodavatele (pouze informativní). Vztahuje se k „Manuálně zadané nákupní ceně“.')
+			->addCondition($form::Filled)
+			->addRule($form::URL, 'Zadejte platnou URL adresu');
+
+		$form->addTextArea('manualPurchasePriceCustomerRestriction', 'Omezení manuálně zadané nákupní ceny na IČ/CKP')
+			->setNullable()
+			->setHtmlAttribute('rows', 3)
+			->setHtmlAttribute('placeholder', '12345678, CKP-001, 87654321')
+			->setHtmlAttribute('data-info', 'Vztahuje se POUZE k „Manuálně zadané nákupní ceně“. Čárkou oddělené IČ nebo CKP zákazníků.
+			 Pokud vyplněno, manuální cena platí POUZE pro tyto zákazníky s nejvyšší prioritou.
+			  Pokud prázdné, cena platí jako fallback.');
+
 		$form->addText('productStockCostPrice', 'Skladová cena z Qi (ProductStockCostPrice)')
 			->setDisabled()
 			->setHtmlAttribute('data-info', 'Skladová nákladová cena synchronizovaná z Qi. Pouze pro čtení.');
 
-		$productStockCostPriceManual = $form->addText('productStockCostPriceManual', 'Manuální skladová cena')
+		$productStockCostPriceManual = $form->addText('productStockCostPriceManual', 'Manuální skladová cena (bez omezení platnosti)')
 			->setNullable()
 			->setHtmlType('number')
 			->setHtmlAttribute('step', 'any')
-			->setHtmlAttribute('data-info', 'Manuálně zadaná skladová nákladová cena. Má přednost před cenou z Qi.');
+			->setHtmlAttribute('data-info', 'Manuálně zadaná skladová nákladová cena. Má přednost před cenou z Qi.
+				POZOR: nemá omezení platnosti ani omezení na zákazníky — platí trvale, dokud ji ručně nesmažete.
+				Pole „Platnost ceny do“ a „Omezení na IČ/CKP“ se na ni nevztahují.');
 		$productStockCostPriceManual->addCondition($form::Filled)->addRule($form::Float);
 
 		$form->addText('retailPriceExclVAT', 'Doporučená prodejní cena pro odběratele (RetailPriceExclVAT)')
 			->setDisabled()
 			->setHtmlAttribute('data-info', 'Doporučená prodejní cena pro odběratele bez DPH z Qi.');
-
-		$form->addText('manualPurchasePriceValidUntil', 'Platnost ceny do')
-			->setNullable()
-			->setHtmlType('date')
-			->setHtmlAttribute('data-info', 'Po tomto datu nebude manuální nákupní cena platná. Prázdné = neomezená platnost.');
-
-		$form->addText('manualPurchasePriceSupplierUrl', 'Odkaz na produkt u dodavatele')
-			->setNullable()
-			->setHtmlAttribute('data-info', 'URL odkaz na stránku produktu u dodavatele (pouze informativní).')
-			->addCondition($form::Filled)
-			->addRule($form::URL, 'Zadejte platnou URL adresu');
-
-		$form->addTextArea('manualPurchasePriceCustomerRestriction', 'Omezení na IČ/CKP')
-			->setNullable()
-			->setHtmlAttribute('rows', 3)
-			->setHtmlAttribute('placeholder', '12345678, CKP-001, 87654321')
-			->setHtmlAttribute('data-info', 'Čárkou oddělené IČ nebo CKP zákazníků.
-			 Pokud vyplněno, manuální cena platí POUZE pro tyto zákazníky s nejvyšší prioritou.
-			  Pokud prázdné, cena platí jako fallback.');
 
 		$form->addLocaleText('unit', 'Jednotka');
 		//	->setHtmlAttribute('data-info', 'Např.: ks, ml, ...');
