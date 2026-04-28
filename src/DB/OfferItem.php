@@ -6,6 +6,7 @@ namespace Eshop\DB;
 
 use Eshop\Common\DB\IPackageItem;
 use StORM\Entity;
+use StORM\RelationCollection;
 
 /**
  * Položka nabídky
@@ -145,10 +146,23 @@ class OfferItem extends Entity implements IPackageItem
 	public float|null $targetMarginPct = null;
 
 	/**
+	 * Plovoucí cena dočasně neudržitelná (nelze získat nákupní cenu)
+	 * @column{"type":"datetime"}
+	 */
+	public string|null $floatingPriceInvalidatedAt = null;
+
+	/**
 	 * Skrýt v CKP ceníku
 	 * @column{"type":"tinyint","default":"0"}
 	 */
 	public bool $hideInPricelist = false;
+
+	/**
+	 * Množstevní (tier) ceny — platí teprve od určitého množství v košíku
+	 * @relation
+	 * @var \StORM\RelationCollection<\Eshop\DB\OfferItemQuantityPrice>
+	 */
+	public RelationCollection $quantityPrices;
 
 	public function getFullCode(): string|null
 	{
@@ -202,5 +216,25 @@ class OfferItem extends Entity implements IPackageItem
 		}
 
 		return $this->storeAmount->product->getSupplierProduct($this->storeAmount->store->supplier->code);
+	}
+
+	/**
+	 * Vrátí jednotkovou cenu (price/priceVat) pro dané množství. Projde tier ceny seřazené
+	 * sestupně podle validFrom a vybere první, jehož validFrom <= $amount. Pokud žádný tier
+	 * nepasuje, vrátí jednotkovou cenu položky (price pro 1 ks).
+	 * @return array{price: float, priceVat: float|null}
+	 */
+	public function getPriceForAmount(int $amount): array
+	{
+		/** @var array<\Eshop\DB\OfferItemQuantityPrice> $tiers */
+		$tiers = $this->quantityPrices->orderBy(['validFrom' => 'DESC'])->toArray();
+
+		foreach ($tiers as $tier) {
+			if ($tier->validFrom <= $amount) {
+				return ['price' => $tier->price, 'priceVat' => $tier->priceVat];
+			}
+		}
+
+		return ['price' => $this->price, 'priceVat' => $this->priceVat];
 	}
 }
