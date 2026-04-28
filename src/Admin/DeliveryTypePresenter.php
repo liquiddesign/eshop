@@ -11,6 +11,7 @@ use Base\BaseHelpers;
 use Eshop\DB\CountryRepository;
 use Eshop\DB\CurrencyRepository;
 use Eshop\DB\CustomerGroupRepository;
+use Eshop\DB\DeliveryRegionRepository;
 use Eshop\DB\DeliveryType;
 use Eshop\DB\DeliveryTypePriceRepository;
 use Eshop\DB\DeliveryTypeRepository;
@@ -82,6 +83,9 @@ class DeliveryTypePresenter extends BackendPresenter
 	#[Inject]
 	public DeliveryTypeThresholdRepository $deliveryTypeThresholdRepository;
 
+	#[Inject]
+	public DeliveryRegionRepository $deliveryRegionRepository;
+
 	public function createComponentGrid(): AdminGrid
 	{
 		$grid = $this->gridFactory->create($this->deliveryRepo->many(), 20, 'priority', 'ASC', true);
@@ -146,15 +150,41 @@ class DeliveryTypePresenter extends BackendPresenter
 			return null;
 		}, '%s', null, ['class' => 'fit']);
 		$grid->addColumnText('Typ dopravy', 'deliveryType.name', '%s', 'deliveryType.name_cs');
-		$grid->addColumnInputTime('Časový práh', 'time', '', '', 'time');
-		$grid->addColumnInputCheckbox('Pondělí', 'monday', 'monday', 'monday');
-		$grid->addColumnInputCheckbox('Úterý', 'tuesday', 'tuesday', 'tuesday');
-		$grid->addColumnInputCheckbox('Středa', 'wednesday', 'wednesday', 'wednesday');
-		$grid->addColumnInputCheckbox('Čtvrtek', 'thursday', 'thursday', 'thursday');
-		$grid->addColumnInputCheckbox('Pátek', 'friday', 'friday', 'friday');
-		$grid->addColumnInputCheckbox('Sobota', 'saturday', 'saturday', 'saturday');
-		$grid->addColumnInputCheckbox('Neděle', 'sunday', 'sunday', 'sunday');
+		$grid->addColumn('Kraj', static function (DeliveryTypeThreshold $threshold): string {
+			return $threshold->region?->name ?? 'globální';
+		});
+		$grid->addColumn('Periodicita', static function (DeliveryTypeThreshold $threshold): string {
+			$parts = [];
 
+			if ($threshold->frequencyType !== null) {
+				$parts[] = match ($threshold->frequencyType) {
+					DeliveryTypeThreshold::FREQUENCY_WEEKLY => 'týdně',
+					DeliveryTypeThreshold::FREQUENCY_BIWEEKLY => 'co 2 týdny ' . ($threshold->weekOffset === DeliveryTypeThreshold::WEEK_OFFSET_EVEN ? 'sudý' : 'lichý'),
+					DeliveryTypeThreshold::FREQUENCY_EVERY_4_WEEKS => 'co 4 týdny od ' . ($threshold->every4WeeksAnchorDate ?? '?'),
+					default => $threshold->frequencyType,
+				};
+			}
+
+			if ($threshold->daysFromThresholdToExpedition !== null) {
+				$parts[] = "cutoff→exp +{$threshold->daysFromThresholdToExpedition} d";
+			}
+
+			if ($threshold->daysToDelivery !== null) {
+				$parts[] = "exp→doruč +{$threshold->daysToDelivery} d";
+			}
+
+			return $parts === [] ? '—' : \implode(', ', $parts);
+		});
+		$grid->addColumnInputTime('Časový práh', 'time', '', '', 'time');
+		$grid->addColumnInputCheckbox('Po', 'monday', 'monday', 'monday');
+		$grid->addColumnInputCheckbox('Út', 'tuesday', 'tuesday', 'tuesday');
+		$grid->addColumnInputCheckbox('St', 'wednesday', 'wednesday', 'wednesday');
+		$grid->addColumnInputCheckbox('Čt', 'thursday', 'thursday', 'thursday');
+		$grid->addColumnInputCheckbox('Pá', 'friday', 'friday', 'friday');
+		$grid->addColumnInputCheckbox('So', 'saturday', 'saturday', 'saturday');
+		$grid->addColumnInputCheckbox('Ne', 'sunday', 'sunday', 'sunday');
+
+		$grid->addColumnLinkDetail('thresholdDetail');
 		$grid->addColumnActionDelete();
 
 		$grid->addButtonSaveAll();
@@ -321,11 +351,64 @@ class DeliveryTypePresenter extends BackendPresenter
 			->setPrompt('')
 			->setRequired();
 
+		// Regionální nastavení (volitelné — null znamená globální threshold platný pro všechna PSČ).
+		$form->addDataSelect('region', 'Kraj (volitelné)', $this->deliveryRegionRepository->getArrayForSelect())
+			->setPrompt('— globální (platí pro všechna PSČ) —')
+			->setHtmlAttribute('data-info', 'Pokud vyplníte, threshold se aplikuje JEN pro PSČ tohoto kraje. Použijte pro regionální dopravce (ABEL).');
+
+		$form->addSelect('frequencyType', 'Periodicita', [
+			'' => '— žádná (každý zaškrtnutý weekday) —',
+			DeliveryTypeThreshold::FREQUENCY_WEEKLY => 'Týdně',
+			DeliveryTypeThreshold::FREQUENCY_BIWEEKLY => 'Co 2 týdny (sudý/lichý)',
+			DeliveryTypeThreshold::FREQUENCY_EVERY_4_WEEKS => 'Co 4 týdny (od konkrétního data)',
+		]);
+
+		$form->addSelect('weekOffset', 'Sudý / lichý ISO týden (jen pro „Co 2 týdny")', [
+			'' => '— neurčeno —',
+			DeliveryTypeThreshold::WEEK_OFFSET_EVEN => 'Sudý',
+			DeliveryTypeThreshold::WEEK_OFFSET_ODD => 'Lichý',
+		]);
+
+		$form->addText('every4WeeksAnchorDate', 'Datum prvního cutoffu (jen pro „Co 4 týdny")')
+			->setHtmlType('date')
+			->setNullable()
+			->setHtmlAttribute('data-info', 'Konkrétní datum (Y-m-d) prvního cutoffu. Musí padnout na některý ze zaškrtnutých weekdayů. Další cutoffy jsou +28 dnů, +56 dnů, ...');
+
+		$form->addInteger('daysFromThresholdToExpedition', 'Override „dní od cutoff k expedici" (volitelné)')
+			->setNullable()
+			->setHtmlAttribute('data-info', 'Pokud null, použije se hodnota z DeliveryType. Vyplňte pro regionální prahy s odlišným delayem.');
+
+		$form->addInteger('daysToDelivery', 'Override „dní od expedice k doručení" (volitelné)')
+			->setNullable()
+			->setHtmlAttribute('data-info', 'Pokud null, použije se hodnota z DeliveryType. U vícedenních rozvozů zadejte nejbližší (nejdřívější) den.');
+
 		$form->addSubmits(!$deliveryTypeThreshold);
+
+		$form->onValidate[] = static function (AdminForm $form): void {
+			/** @var array<mixed> $values */
+			$values = $form->getValues('array');
+
+			$frequency = $values['frequencyType'] !== '' ? $values['frequencyType'] : null;
+
+			if ($frequency === DeliveryTypeThreshold::FREQUENCY_BIWEEKLY && ($values['weekOffset'] ?? '') === '') {
+				$form->addError('Pro periodicitu „Co 2 týdny" musíte vyplnit sudý nebo lichý.');
+			}
+
+			if ($frequency !== DeliveryTypeThreshold::FREQUENCY_EVERY_4_WEEKS || (($values['every4WeeksAnchorDate'] ?? '') !== '')) {
+				return;
+			}
+
+			$form->addError('Pro periodicitu „Co 4 týdny" musíte vyplnit datum prvního cutoffu.');
+		};
 
 		$form->onSuccess[] = function (AdminForm $form): void {
 			/** @var array<mixed> $values */
 			$values = $form->getValues('array');
+
+			$values['frequencyType'] = $values['frequencyType'] !== '' ? $values['frequencyType'] : null;
+			$values['weekOffset'] = ($values['weekOffset'] ?? '') !== '' ? $values['weekOffset'] : null;
+			$values['region'] = ($values['region'] ?? '') !== '' ? $values['region'] : null;
+			$values['every4WeeksAnchorDate'] = ($values['every4WeeksAnchorDate'] ?? '') !== '' ? $values['every4WeeksAnchorDate'] : null;
 
 			$deliveryTypeThreshold = $this->deliveryTypeThresholdRepository->syncOne($values, ignore: false);
 
@@ -363,6 +446,13 @@ class DeliveryTypePresenter extends BackendPresenter
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
 		$this->template->displayControls = [$this->getComponent('thresholdForm')];
+	}
+
+	public function actionThresholdDetail(DeliveryTypeThreshold $deliveryTypeThreshold): void
+	{
+		/** @var \Forms\Form $form */
+		$form = $this->getComponent('thresholdForm');
+		$form->setDefaults($deliveryTypeThreshold->toArray());
 	}
 
 	public function renderThresholdDetail(DeliveryTypeThreshold $deliveryTypeThreshold): void
