@@ -505,7 +505,7 @@ class IntegrationPresenter extends BackendPresenter
 				self::BALIKOBOT_PROVIDER_ID,
 				Html::fromHtml($shop->getIconImageFormAdmin() . ' Poskytovatel svozu'),
 				[
-					null => '',
+					'' => '',
 					...$availableDeliveries,
 				]
 			);
@@ -536,7 +536,7 @@ class IntegrationPresenter extends BackendPresenter
 				self::BALIKOBOT_PROVIDER_ID,
 				Html::fromHtml('Poskytovatel svozu'),
 				[
-					null => '',
+					'' => '',
 					...$availableDeliveries,
 				]
 			);
