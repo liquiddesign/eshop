@@ -40,7 +40,13 @@ echo "=== Pre-commit: composer update ==="
 composer update --no-interaction --quiet
 
 echo "=== Pre-commit: composer check-code ==="
-if composer check-code; then
+set +e
+check_output=$(composer check-code 2>&1)
+check_rc=$?
+set -e
+echo "$check_output"
+
+if [ $check_rc -eq 0 ]; then
 	echo ""
 	echo "=== Pre-commit: all checks passed ==="
 	exit 0
@@ -50,7 +56,23 @@ fi
 echo ""
 echo "=== Pre-commit: check-code failed, running Claude Code auto-fix ==="
 
-claude -p "Run 'composer check-code' in $(pwd), fix all reported errors (phpcs, phpstan, lattelint). Use 'composer phpcsfix' for code style auto-fix first, then fix remaining errors manually. Do NOT commit. At the end, print a summary of all changes you made." --allowedTools "Bash,Read,Edit,Write,Glob,Grep"
+claude_prompt=$(cat <<EOF
+The pre-commit hook in $(pwd) ran 'composer check-code' and it failed. Fix all reported errors (phpcs, phpstan, lattelint) based on the output below. Use 'composer phpcsfix' for code style auto-fix first if there are phpcs errors, then fix remaining errors manually. Do NOT re-run check-code — the pre-commit hook will re-run it automatically on the next commit attempt, which is the authoritative verification.
+
+check-code output:
+-----
+$check_output
+-----
+
+Rules:
+- Do NOT run 'check-code', phpstan, phpcs, or lattelint — trust the output above and the hook's next run.
+- Do NOT commit.
+- Do NOT add suppressions like '// @phpstan-ignore' — errors must be fixed in code.
+- Preserve code semantics — do not alter behavior. All errors must be fixed; no suppressions.
+- When done, print a brief summary of files changed.
+EOF
+)
+claude -p "$claude_prompt" --allowedTools "Bash,Read,Edit,Write,Glob,Grep"
 
 echo ""
 echo "=== Pre-commit: Claude auto-fix done. Review changes before committing. ==="
