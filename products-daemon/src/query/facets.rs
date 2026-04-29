@@ -24,7 +24,7 @@ use std::collections::HashMap;
 use rayon::prelude::*;
 use roaring::RoaringBitmap;
 
-use crate::query::{filter, PricedProduct, RequestContext};
+use crate::query::{filter, pricing, PricedProduct, RequestContext};
 
 #[derive(Debug, Default)]
 pub struct FacetCounts {
@@ -41,15 +41,12 @@ pub struct FacetCounts {
 
 /// Compute all facet aggregates in one pass.
 ///
-/// `pre_pricing_mask` = `base_mask & apply_bitmap_filters(req) & has_price_mask` (před
-/// pricing/price_band/restrictive). Hlavní pipeline ho už spočítala — facet leave-one-out
-/// pro **nezfiltrované** dimenze ho použije jako rovnou výsledek bez recompute.
-pub fn compute(
-	ctx: &RequestContext<'_>,
-	surviving_mask: &RoaringBitmap,
-	priced: &[PricedProduct],
-	pre_pricing_mask: &RoaringBitmap,
-) -> FacetCounts {
+/// `surviving_mask` = výsledek **plné** pipeline z hlavního `run`/`count`. Pro nezfiltrované
+/// dimenze se použije přímo (leave-one-out odstranění filtru, který není aktivní, je no-op).
+/// Pro filtrované dimenze leave_dim_out / leave_attribute_out spustí plnou pipeline znovu se
+/// stripped filters (žádný shortcut — počet ve facetu musí přesně odpovídat tomu, co by
+/// uživatel viděl po odstranění toho jednoho filtru).
+pub fn compute(ctx: &RequestContext<'_>, surviving_mask: &RoaringBitmap, priced: &[PricedProduct]) -> FacetCounts {
 	let mut out = FacetCounts::default();
 	let snap = ctx.snap;
 	let req = ctx.req;
@@ -63,7 +60,7 @@ pub fn compute(
 	compute_attribute_counts(ctx, surviving_mask, &mut out.attr_values);
 
 	// --- producer counts (leave-one-out: ignore producer filter) -----------------------
-	let producer_pre = leave_dim_out(ctx, filter::FilterDim::Producer, pre_pricing_mask);
+	let producer_pre = leave_dim_out(ctx, filter::FilterDim::Producer, surviving_mask);
 	for (idx, bitmap) in snap.producer_bitmaps.iter() {
 		let count = intersection_len(&producer_pre, bitmap);
 		if count == 0 {
@@ -75,7 +72,7 @@ pub fn compute(
 	}
 
 	// --- displayAmount counts ----------------------------------------------------------
-	let da_pre = leave_dim_out(ctx, filter::FilterDim::DisplayAmount, pre_pricing_mask);
+	let da_pre = leave_dim_out(ctx, filter::FilterDim::DisplayAmount, surviving_mask);
 	for (idx, bitmap) in snap.display_amount_bitmaps.iter() {
 		let count = intersection_len(&da_pre, bitmap);
 		if count == 0 {
@@ -90,7 +87,7 @@ pub fn compute(
 	}
 
 	// --- displayDelivery counts --------------------------------------------------------
-	let dd_pre = leave_dim_out(ctx, filter::FilterDim::DisplayDelivery, pre_pricing_mask);
+	let dd_pre = leave_dim_out(ctx, filter::FilterDim::DisplayDelivery, surviving_mask);
 	for (idx, bitmap) in snap.display_delivery_bitmaps.iter() {
 		let count = intersection_len(&dd_pre, bitmap);
 		if count == 0 {
@@ -106,7 +103,7 @@ pub fn compute(
 
 	// --- category counts (optional: only if countCategories=true) ----------------------
 	if req.count_categories {
-		let cat_pre = leave_dim_out(ctx, filter::FilterDim::Category, pre_pricing_mask);
+		let cat_pre = leave_dim_out(ctx, filter::FilterDim::Category, surviving_mask);
 		let mut cat_counts = HashMap::new();
 		for (idx, bitmap) in snap.category_bitmaps.iter() {
 			let count = intersection_len(&cat_pre, bitmap);
@@ -207,20 +204,18 @@ fn intersection_len(a: &RoaringBitmap, b: &RoaringBitmap) -> u64 {
 	a.intersection_len(b)
 }
 
-/// Rebuild a mask with all filters applied except the named dimension, then intersect with
-/// `has_price_mask` so facet counts never include products without any matching pricelist.
+/// Rebuild surviving set as if the named dimension were not filtered. **Plná pipeline** —
+/// bitmap filters (stripped) → has_price → compute_effective_prices → apply_restrictive_filters
+/// → apply_price_band. Žádný shortcut: facet count musí přesně odpovídat tomu, co by se
+/// listingem vrátilo po odstranění toho filtru.
 ///
-/// Falls back to a clone of the full active mask on error — facet computation is best-effort
-/// and shouldn't block the whole response for a mistyped filter key (the main path already
-/// validated before calling us).
-///
-/// **Fast path:** pokud uživatel danou dimenzi nefiltruje (`req.filters.<dim>_uuids.is_none()`),
-/// stripping je no-op — výsledek je identický s `pre_pricing_mask`, který hlavní pipeline
-/// už spočítala. Šetří `apply_bitmap_filters` recompute.
+/// **Fast path** pro nezfiltrovanou dimenzi (`req.filters.<dim>_uuids.is_none()`): stripping
+/// je no-op, surviving == surviving_mask z hlavní pipeline → vrátíme rovnou. Šetří kompletní
+/// pricing+restrictive recompute pro 0-3 dimenze, které uživatel zrovna nefiltruje.
 fn leave_dim_out(
 	ctx: &RequestContext<'_>,
 	dim: filter::FilterDim,
-	pre_pricing_mask: &RoaringBitmap,
+	surviving_mask: &RoaringBitmap,
 ) -> RoaringBitmap {
 	let req = ctx.req;
 	let dim_active = match dim {
@@ -230,41 +225,65 @@ fn leave_dim_out(
 		filter::FilterDim::DisplayDelivery => req.filters.display_delivery_uuids.is_some(),
 	};
 	if !dim_active {
-		return pre_pricing_mask.clone();
+		return surviving_mask.clone();
 	}
 
-	// `apply_bitmap_filters_inner` přijímá komponenty přímo, takže nemusíme klonovat
-	// celý `GetProductsRequest` (~500 B-2 KB Vec<String> + Option<HashMap> kopie per call).
-	// Stačí lokální stripped FilterPayload (drobnější struct), všechno ostatní reusujeme jako referenci.
 	let stripped_filters = req.filters.dims_besides(dim);
-	let mask = filter::apply_bitmap_filters_inner(
-		ctx.snap,
-		ctx.base_mask.clone(),
-		&stripped_filters,
-		req.dynamic_filter_attributes.as_ref(),
-		&req.visibility_list_pks,
-		None,
-	)
-	.unwrap_or_else(|_| ctx.snap.all_products_mask.clone());
-	mask & &ctx.has_price_mask
+	pipeline_with_overrides(ctx, &stripped_filters, req.dynamic_filter_attributes.as_ref(), None)
 }
 
-/// Rebuild a mask with all filters applied except one specific attribute key in
-/// `dynamic_filter_attributes`. Intersects with `has_price_mask`.
-///
-/// Reusuje `ctx.base_mask` a `ctx.has_price_mask` — žádný redundantní VL/price recompute.
+/// Rebuild surviving set as if one specific attribute key were not filtered. **Plná
+/// pipeline** — stejně jako `leave_dim_out`, žádný shortcut.
 fn leave_attribute_out(ctx: &RequestContext<'_>, attr_pk_to_omit: &str) -> RoaringBitmap {
 	let req = ctx.req;
-	// `omit_attr_pk` říká inneru "skip tuhle attr key v dynamic_filter_attributes loopu" —
-	// žádné HashMap clone+remove per facet leave-one-out.
-	let mask = filter::apply_bitmap_filters_inner(
-		ctx.snap,
-		ctx.base_mask.clone(),
+	pipeline_with_overrides(
+		ctx,
 		&req.filters,
 		req.dynamic_filter_attributes.as_ref(),
-		&req.visibility_list_pks,
 		Some(attr_pk_to_omit),
 	)
-	.unwrap_or_else(|_| ctx.snap.all_products_mask.clone());
-	mask & &ctx.has_price_mask
+}
+
+/// Společná pipeline pro facet leave-one-out — stripped bitmap filters → has_price →
+/// compute_effective_prices → apply_restrictive_filters → apply_price_band → bitmap.
+///
+/// Vstupní `filters` jsou už zbavené dim, kterou facet vynechává (pro attribute leave-out
+/// se stripping děje uvnitř `apply_bitmap_filters_inner` přes `omit_attr_pk`). Restrictive
+/// parametry (favourites/contract/notPublic/project) i price modifiers se berou ze
+/// `ctx.req` — ty se neodstraňují, jsou per-customer fixní pro celý request.
+///
+/// Při interním errorech (neznámé UUID v stripped filtrech) vrátí prázdný bitmap. Hlavní
+/// pipeline ten samý request už validovala — dorazit sem error znamená drift snapshotu
+/// během requestu, lepší je vrátit "0 v této dim" než celý request shodit.
+fn pipeline_with_overrides(
+	ctx: &RequestContext<'_>,
+	filters: &crate::protocol::FilterPayload,
+	dynamic_filter_attributes: Option<&HashMap<String, Vec<String>>>,
+	omit_attr_pk: Option<&str>,
+) -> RoaringBitmap {
+	let req = ctx.req;
+	let snap = ctx.snap;
+
+	let mut mask = filter::apply_bitmap_filters_inner(
+		snap,
+		ctx.base_mask.clone(),
+		filters,
+		dynamic_filter_attributes,
+		&req.visibility_list_pks,
+		omit_attr_pk,
+	)
+	.unwrap_or_else(|_| RoaringBitmap::new());
+	mask &= &ctx.has_price_mask;
+
+	let priced = pricing::compute_effective_prices(snap, &mask, &ctx.pricelist_idxs, &req.price_modifiers)
+		.unwrap_or_default();
+	// `apply_restrictive_filters` čte contract/notPublic/project + favourites z `req` —
+	// ty zůstávají identické s hlavní pipeline (jsou per-customer fixní, neodstraňují se).
+	let priced = filter::apply_restrictive_filters(snap, priced, req);
+	// `apply_price_band` čte priceFrom/To/Gt přímo ze `filters` — pro stripping kategorií atd.
+	// jsou hodnoty stejné jako v `req.filters`. `dims_besides` nevolá ani priceFrom; pro
+	// attribute leave-out používáme `&req.filters` přímo.
+	let priced = pricing::apply_price_band(priced, filters, req.price_visibility.show_vat);
+
+	priced.iter().map(|p| p.product).collect()
 }

@@ -569,9 +569,32 @@ pub struct GetCategoryCountRequest {
 
 	/// Mirror of `GetProductsRequest::price_visibility`. Ovlivňuje `has_any_price_mask`
 	/// (zero-price / VAT / hidden routing) — bez něj by count pro B2B session byl spočtený
-	/// s B2C defaulty a lišil se od PHP `LiveProductsProvider::fetchAllCategoryCountsDirect`.
+	/// s B2C defaulty a lišil se od PHP listingu.
 	#[serde(default)]
 	pub price_visibility: PriceVisibility,
+
+	/// Per-customer price modifiers (discount/surcharge/currency) — musí matchovat hodnoty
+	/// poslané v hlavním `GetProductsRequest`, jinak by `apply_price_band` (priceFrom/priceTo)
+	/// vyhodnotila kategorii odlišně než hlavní listing.
+	#[serde(default)]
+	pub price_modifiers: PriceModifiers,
+
+	/// Customer favourite pricelists — používané restrictive filtry `contract` / `notPublic`
+	/// (produkt s restricted ribbon prochází jen když jeho winning pricelist patří mezi tyto).
+	#[serde(default)]
+	pub favourite_pricelist_pks: Vec<String>,
+
+	/// UUID internal ribbonu pro restrictive filter `contract` (viz `apply_restrictive_filters`).
+	#[serde(default)]
+	pub contract_ribbon_pk: Option<String>,
+
+	/// UUID internal ribbonu pro restrictive filter `notPublic` (stejná sémantika jako contract).
+	#[serde(default)]
+	pub not_public_ribbon_pk: Option<String>,
+
+	/// Project authorization (customer IČ × product `projectIcs`) — viz `apply_restrictive_filters`.
+	#[serde(default)]
+	pub project_filter: Option<ProjectFilter>,
 }
 
 // -------- Get all category counts (batched) --------
@@ -589,6 +612,26 @@ pub struct GetAllCategoryCountsRequest {
 	pub dynamic_filter_attributes: Option<HashMap<String, Vec<String>>>,
 	#[serde(default)]
 	pub price_visibility: PriceVisibility,
+
+	/// Viz `GetCategoryCountRequest::price_modifiers`. Plná pricing pipeline závisí na nich.
+	#[serde(default)]
+	pub price_modifiers: PriceModifiers,
+
+	/// Viz `GetCategoryCountRequest::favourite_pricelist_pks`.
+	#[serde(default)]
+	pub favourite_pricelist_pks: Vec<String>,
+
+	/// Viz `GetCategoryCountRequest::contract_ribbon_pk`.
+	#[serde(default)]
+	pub contract_ribbon_pk: Option<String>,
+
+	/// Viz `GetCategoryCountRequest::not_public_ribbon_pk`.
+	#[serde(default)]
+	pub not_public_ribbon_pk: Option<String>,
+
+	/// Viz `GetCategoryCountRequest::project_filter`.
+	#[serde(default)]
+	pub project_filter: Option<ProjectFilter>,
 }
 
 impl GetProductsRequest {
@@ -598,5 +641,48 @@ impl GetProductsRequest {
 	#[allow(clippy::unnecessary_wraps)]
 	pub const fn ensure_supported(&self) -> Result<()> {
 		Ok(())
+	}
+}
+
+impl GetCategoryCountRequest {
+	/// Postaví plný `GetProductsRequest` se všemi customer-specific poli (priceModifiers,
+	/// favourites, contract/notPublic/project) — daemon-side count tak prochází identickou
+	/// pipeline jako hlavní listing. Žádné defaults pro restrictive filtry: pokud je caller
+	/// nepošle, count vyjde jiný než listing a invariant "počty přesně sedí" se rozpadne.
+	#[must_use]
+	pub fn to_pseudo_request(&self) -> GetProductsRequest {
+		GetProductsRequest {
+			pricelist_pks: self.pricelist_pks.clone(),
+			visibility_list_pks: self.visibility_list_pks.clone(),
+			filters: self.filters.clone(),
+			dynamic_filter_attributes: self.dynamic_filter_attributes.clone(),
+			price_modifiers: self.price_modifiers,
+			price_visibility: self.price_visibility,
+			favourite_pricelist_pks: self.favourite_pricelist_pks.clone(),
+			contract_ribbon_pk: self.contract_ribbon_pk.clone(),
+			not_public_ribbon_pk: self.not_public_ribbon_pk.clone(),
+			project_filter: self.project_filter.clone(),
+			..GetProductsRequest::default()
+		}
+	}
+}
+
+impl GetAllCategoryCountsRequest {
+	/// Viz `GetCategoryCountRequest::to_pseudo_request` — identická sémantika, jiný request typ.
+	#[must_use]
+	pub fn to_pseudo_request(&self) -> GetProductsRequest {
+		GetProductsRequest {
+			pricelist_pks: self.pricelist_pks.clone(),
+			visibility_list_pks: self.visibility_list_pks.clone(),
+			filters: self.filters.clone(),
+			dynamic_filter_attributes: self.dynamic_filter_attributes.clone(),
+			price_modifiers: self.price_modifiers,
+			price_visibility: self.price_visibility,
+			favourite_pricelist_pks: self.favourite_pricelist_pks.clone(),
+			contract_ribbon_pk: self.contract_ribbon_pk.clone(),
+			not_public_ribbon_pk: self.not_public_ribbon_pk.clone(),
+			project_filter: self.project_filter.clone(),
+			..GetProductsRequest::default()
+		}
 	}
 }

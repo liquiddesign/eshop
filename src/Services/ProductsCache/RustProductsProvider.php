@@ -47,7 +47,18 @@ final class RustProductsProvider implements GeneralProductsCacheProvider
 	private array $cachedCategoryCountsMap = [];
 
 	/**
-	 * @var array<string, array{batchCacheKey: string, priceListPKs: list<string>, visibilityListPKs: list<string>, priceVisibility: array<string, bool>, filtersForBatch: array<mixed>}>
+	 * @var array<string, array{
+	 *     batchCacheKey: string,
+	 *     priceListPKs: list<string>,
+	 *     visibilityListPKs: list<string>,
+	 *     priceVisibility: array{showZeroPrices: bool, showVat: bool, showWithoutVat: bool, includeHiddenPrices: bool},
+	 *     filtersForBatch: array<mixed>,
+	 *     priceModifiers: array{discountLevelPct: int, maxProductDiscountLevel: int, surchargeLevelPct: float, currencyRate: float|null, calculationPrecision: int},
+	 *     favouritePricelistPks: list<string>,
+	 *     contractRibbonPk: string|null,
+	 *     notPublicRibbonPk: string|null,
+	 *     projectFilter: array{customerIc: string|null, isMerchant: bool}|null
+	 * }>
 	 */
 	private array $resolvedBatchStateCache = [];
 
@@ -192,7 +203,30 @@ final class RustProductsProvider implements GeneralProductsCacheProvider
 				'showWithoutVat' => $this->shopperUser->getShowWithoutVat(),
 				'includeHiddenPrices' => $this->shopperUser->canViewHiddenPrices(),
 			];
-			$batchCacheKey = \md5(\serialize([$filtersForBatch, $priceListPKs, $visibilityListPKs, $priceVisibility]));
+
+			// Restrictive filtry (contract/notPublic/project) + priceModifiers MUSÍ být součástí
+			// daemon requestu i count cache key — jinak count vyjde jiný než hlavní listing
+			// (zákazník s `notPublic` ribbon restrikcí by viděl menu se širšími počty než reálně
+			// dostupné produkty). Daemon-side `count` / `all_category_counts` od 2026-04-29 spouští
+			// plnou pipeline; PHP musí dodat všechny vstupy nebo se invariant rozpadne.
+			$contractRibbonPk = $this->extractRibbonPk($filtersForBatch['contract'] ?? null);
+			$notPublicRibbonPk = $this->extractRibbonPk($filtersForBatch['notPublic'] ?? null);
+			$projectFilter = $this->extractProjectFilter($filtersForBatch['project'] ?? null);
+			$needsFavourites = $contractRibbonPk !== null || $notPublicRibbonPk !== null;
+			$favouritePricelistPks = $needsFavourites ? $this->resolveFavouritePricelistUuids() : [];
+			$priceModifiers = $this->buildPriceModifiers();
+
+			$batchCacheKey = \md5(\serialize([
+				$filtersForBatch,
+				$priceListPKs,
+				$visibilityListPKs,
+				$priceVisibility,
+				$priceModifiers,
+				$favouritePricelistPks,
+				$contractRibbonPk,
+				$notPublicRibbonPk,
+				$projectFilter,
+			]));
 
 			$state = [
 				'batchCacheKey' => $batchCacheKey,
@@ -200,6 +234,11 @@ final class RustProductsProvider implements GeneralProductsCacheProvider
 				'visibilityListPKs' => $visibilityListPKs,
 				'priceVisibility' => $priceVisibility,
 				'filtersForBatch' => $filtersForBatch,
+				'priceModifiers' => $priceModifiers,
+				'favouritePricelistPks' => $favouritePricelistPks,
+				'contractRibbonPk' => $contractRibbonPk,
+				'notPublicRibbonPk' => $notPublicRibbonPk,
+				'projectFilter' => $projectFilter,
 			];
 
 			$this->resolvedBatchStateCache[$stateFingerprint] = $state;
@@ -237,6 +276,11 @@ final class RustProductsProvider implements GeneralProductsCacheProvider
 				? $state['filtersForBatch']['attributeValue']
 				: null,
 			'priceVisibility' => $state['priceVisibility'],
+			'priceModifiers' => $state['priceModifiers'],
+			'favouritePricelistPks' => $state['favouritePricelistPks'],
+			'contractRibbonPk' => $state['contractRibbonPk'],
+			'notPublicRibbonPk' => $state['notPublicRibbonPk'],
+			'projectFilter' => $state['projectFilter'],
 		];
 
 		$map = $this->client->getAllCategoryCounts($request);

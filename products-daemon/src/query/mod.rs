@@ -108,6 +108,30 @@ impl<'a> RequestContext<'a> {
 	}
 }
 
+/// Spustí kompletní filter+pricing pipeline na top-level (bez stripped filters) — bitmap
+/// filters → has_price → compute_effective_prices → apply_restrictive_filters → apply_price_band.
+///
+/// Používá `run`, `count` i `all_category_counts`, aby všechny tři cesty produkovaly identický
+/// surviving set. **Jakékoliv zjednodušení (vynechání restrictive filters, price band, pricing)
+/// je v rozporu s invariantem**: count/menu/facet musí přesně sedět s hlavním listingem.
+///
+/// Vrací surviving `Vec<PricedProduct>`. `surviving_mask` postavíme z něj v callerovi
+/// (potřebujeme `priced` pro pricing facets a ordering, mask jen pro count/category aggregace).
+pub(crate) fn run_filter_pipeline(
+	snap: &CatalogSnapshot,
+	req: &GetProductsRequest,
+	base_mask: &RoaringBitmap,
+	has_price_mask: &RoaringBitmap,
+	pricelist_idxs: &[PricelistIdx],
+) -> Result<Vec<PricedProduct>> {
+	let mut mask = filter::apply_bitmap_filters(snap, base_mask.clone(), req)?;
+	mask &= has_price_mask;
+	let priced = pricing::compute_effective_prices(snap, &mask, pricelist_idxs, &req.price_modifiers)?;
+	let priced = filter::apply_restrictive_filters(snap, priced, req);
+	let priced = pricing::apply_price_band(priced, &req.filters, req.price_visibility.show_vat);
+	Ok(priced)
+}
+
 /// Entry point used by the server handler. Orchestrates the whole pipeline.
 ///
 /// ```text
@@ -130,27 +154,18 @@ pub fn run(
 	let ctx = RequestContext::build(snap, req)?;
 	let base_mask_ms = elapsed_ms(t0);
 
-	// 2. Customer-independent bitmap filters.
+	// 2-5. Bitmap filters → has_price → pricing → restrictive → price_band.
+	// `bitmap_filters_ms` zde už zahrnuje celou pipeline kromě base_mask; necháváme staré
+	// jméno, protože Tracy panel ho čeká, ale `pricing_ms` měří celé `run_filter_pipeline`.
 	let t1 = Instant::now();
-	let mut mask = filter::apply_bitmap_filters(snap, ctx.base_mask.clone(), req)?;
-	let bitmap_filters_ms = elapsed_ms(t1);
-
-	// 3-5. Pricing pipeline: pricelist mask + best-price + restrictive + price-band.
-	let t2 = Instant::now();
-	mask &= &ctx.has_price_mask;
-	// `pre_pricing_mask` = base ∩ bitmap filters ∩ has_price. Reusable v facet leave-one-out
-	// fast-pathu pro nezfiltrované dimenze (jejich pre-mask = identita s tímto, takže není
-	// potřeba recomputeovat apply_bitmap_filters s "stripped" filters, který je stejný).
-	let pre_pricing_mask = mask.clone();
-	let priced = pricing::compute_effective_prices(snap, &mask, &ctx.pricelist_idxs, &req.price_modifiers)?;
-	let priced = filter::apply_restrictive_filters(snap, priced, req);
-	let priced = pricing::apply_price_band(priced, &req.filters, req.price_visibility.show_vat);
+	let priced = run_filter_pipeline(snap, req, &ctx.base_mask, &ctx.has_price_mask, &ctx.pricelist_idxs)?;
 	let surviving_mask: RoaringBitmap = priced.iter().map(|p| p.product).collect();
-	let pricing_ms = elapsed_ms(t2);
+	let bitmap_filters_ms = 0.0; // pohlcen do pricing_ms aby pipeline měla jeden honest měřič
+	let pricing_ms = elapsed_ms(t1);
 
 	// 6. Facets.
 	let t3 = Instant::now();
-	let facets = facets::compute(&ctx, &surviving_mask, &priced, &pre_pricing_mask);
+	let facets = facets::compute(&ctx, &surviving_mask, &priced);
 	let facets_ms = elapsed_ms(t3);
 
 	// 7. Ordering + serialize PKs to wire form.
@@ -187,33 +202,17 @@ pub fn run(
 	})
 }
 
-/// Counts products surviving base visibility, bitmap filters and pricelist membership —
-/// sémanticky mirror `LiveProductsProvider::fetchAllCategoryCountsDirect` (jen pro jednu
-/// kategorii, výsledek per-kategorie bucket je v PHP proxy memo).
+/// Counts products surviving the **full** filter+pricing pipeline (base_mask → bitmap filters
+/// → has_price → compute_effective_prices → apply_restrictive_filters → apply_price_band).
 ///
-/// **Záměrně se vynechává:**
-/// - pricing pipeline (best-price / modifiers) — PHP count SQL rovněž neprovádí výběr
-///   per-pricelist ceny, jen existence řádku v `eshop_price`.
-/// - `apply_restrictive_filters` (contract/notPublic/project) — PHP SQL tyto filtry ignoruje
-///   (docstring `fetchAllCategoryCountsDirect`: "pro menu stromek je malá nepřesnost přijatelná").
-/// - price-band + facets + ordering — nejsou v count use-case potřeba.
+/// Žádný shortcut — count musí přesně sedět s hlavním listingem (`run`). Pokud caller
+/// nezná restrictive parametry (contract/notPublic/project) nebo `priceModifiers`, dostane
+/// **jiný** počet než hlavní listing a UI menu/facet rozejde se s rendrovanou stránkou.
 pub fn count(snap: &Arc<CatalogSnapshot>, req: &GetCategoryCountRequest) -> Result<u64> {
-	let base_mask = filter::base_mask(snap, &req.visibility_list_pks)?;
-
-	// apply_bitmap_filters čte jen `filters` a `dynamic_filter_attributes` z requestu — stavíme
-	// ad-hoc GetProductsRequest s defaulty pro zbytek polí, abychom nedupliovali filter logiku.
-	let pseudo = GetProductsRequest {
-		filters: req.filters.clone(),
-		dynamic_filter_attributes: req.dynamic_filter_attributes.clone(),
-		..GetProductsRequest::default()
-	};
-	let mut mask = filter::apply_bitmap_filters(snap, base_mask, &pseudo)?;
-
-	let pricelist_idxs = resolve_pricelists(snap, &req.pricelist_pks)?;
-	let has_price_mask = filter::has_any_price_mask(snap, &pricelist_idxs, req.price_visibility);
-	mask &= has_price_mask;
-
-	Ok(mask.len())
+	let pseudo = req.to_pseudo_request();
+	let ctx = RequestContext::build(snap, &pseudo)?;
+	let priced = run_filter_pipeline(snap, &pseudo, &ctx.base_mask, &ctx.has_price_mask, &ctx.pricelist_idxs)?;
+	Ok(priced.len() as u64)
 }
 
 /// Batched category counts — jeden průchod vrátí mapu `categoryUuid → count` pro celý snapshot.
@@ -221,8 +220,8 @@ pub fn count(snap: &Arc<CatalogSnapshot>, req: &GetCategoryCountRequest) -> Resu
 /// Mirroruje `ProductsCacheGetterService.php:734`: iteruje `direct_category_bitmaps` (přímé
 /// členství produkt↔kategorie) a pro každou direct kategorii přičte `|surviving ∩ direct_bitmap|`
 /// do všech targetů v precomputed `category_bump_sets[direct_idx]` — self, flagged descendants
-/// i flagged ancestors. Žádné ordering, žádné pricing pipeline, žádné restrictive filters;
-/// stejná sémantika jako per-request memoizace v cache getteru.
+/// i flagged ancestors. **Plná pipeline** — surviving = priced & restrictive & price_band,
+/// stejně jako hlavní listing.
 ///
 /// Caller typicky vynechá `filters.category_uuids` (pak vrací counts pro celý katalog). Pokud
 /// ho pošle, `apply_bitmap_filters` ořízne mask na subtree té kategorie.
@@ -230,16 +229,10 @@ pub fn all_category_counts(
 	snap: &Arc<CatalogSnapshot>,
 	req: &GetAllCategoryCountsRequest,
 ) -> Result<HashMap<String, u64>> {
-	let base_mask = filter::base_mask(snap, &req.visibility_list_pks)?;
-	let pseudo = GetProductsRequest {
-		filters: req.filters.clone(),
-		dynamic_filter_attributes: req.dynamic_filter_attributes.clone(),
-		..GetProductsRequest::default()
-	};
-	let mut mask = filter::apply_bitmap_filters(snap, base_mask, &pseudo)?;
-	let pricelist_idxs = resolve_pricelists(snap, &req.pricelist_pks)?;
-	let has_price_mask = filter::has_any_price_mask(snap, &pricelist_idxs, req.price_visibility);
-	mask &= has_price_mask;
+	let pseudo = req.to_pseudo_request();
+	let ctx = RequestContext::build(snap, &pseudo)?;
+	let priced = run_filter_pipeline(snap, &pseudo, &ctx.base_mask, &ctx.has_price_mask, &ctx.pricelist_idxs)?;
+	let mask: RoaringBitmap = priced.iter().map(|p| p.product).collect();
 
 	// Agregace per CategoryIdx (u64, ať se vejdou součty nad celým snapshotem); UUID string
 	// materializujeme až na výstupu, abychom v hot smyčce nealokovali do HashMapu stringové klíče.

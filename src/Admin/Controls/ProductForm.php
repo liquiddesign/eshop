@@ -39,6 +39,7 @@ use Eshop\DB\VisibilityListItemRepository;
 use Eshop\DB\VisibilityListRepository;
 use Eshop\FormValidators;
 use Eshop\Integration\Integrations;
+use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
 use Eshop\ShopperUser;
 use Nette\Application\UI\Control;
 use Nette\Application\UI\Presenter;
@@ -107,6 +108,7 @@ class ProductForm extends Control
 		Integrations $integrations,
 		private readonly \Base\Application $application,
 		private readonly \Nette\Caching\Storage $storage,
+		private readonly GeneralProductsCacheProvider $productsCache,
 		$product = null,
 		$onRenderGetPriceLists = null,
 		private readonly array $configuration = []
@@ -879,6 +881,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 		}
 
 		$this->productRepository->clearCache();
+		$this->productsCache->requestSnapshotRebuild();
 
 		$this->getPresenter()->flashMessage('Uloženo', 'success');
 		$form->processRedirect('edit', 'default', ['product' => $product, 'editTab' => $editTab]);
