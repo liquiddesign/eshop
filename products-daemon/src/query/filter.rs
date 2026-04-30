@@ -183,12 +183,16 @@ pub(crate) fn apply_bitmap_filters_inner(
 		// vrátil nadmnožinu (produkty ve subkategoriích, jejichž denormalizedCategories root
 		// nezahrnuje kvůli `showProductsInAncestors=false` na nějakém mezičlánku) a následná
 		// SQL stage `ProductRepository::filterCategory` je vyhodila z paginované stránky.
+		// Unknown UUIDs tiše dropujeme — kategorie bez produktů se vůbec neinternuje
+		// při buildu snapshotu (`snapshot/build.rs` interne jen z `raw_p.category_uuids`),
+		// takže lookup miss = prázdná kategorie, ne corrupt request. Stejný pattern jako
+		// `producer_uuids` níže. Pokud žádné PK nezná, `union_of(&[])` vrátí prázdný bitmap
+		// → mask &= empty = empty → 0 produktů, sémanticky správně.
 		let mut idxs = Vec::with_capacity(cat_pks.len());
 		for pk in cat_pks {
-			let Some(idx) = snap.category_pool.lookup(pk) else {
-				return Err(RequestError::UnknownCategory(pk.clone()).into());
-			};
-			idxs.push(idx);
+			if let Some(idx) = snap.category_pool.lookup(pk) {
+				idxs.push(idx);
+			}
 		}
 		mask &= snap.category_bitmaps.union_of(&idxs);
 	}
