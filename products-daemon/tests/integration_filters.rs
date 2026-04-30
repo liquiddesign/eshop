@@ -288,6 +288,26 @@ fn unknown_ribbon_drops_all_when_required() {
 	);
 }
 
+#[test]
+fn unknown_category_returns_empty_not_error() {
+	// Regression: prázdná kategorie (žádný produkt → není v `category_pool`) předtím
+	// vracela `RequestError::UnknownCategory` a HTTP 500 v abelu když na URL přišel bot.
+	// Nyní silently drop, stejný pattern jako `producer_uuids` / `uuids`.
+	let snap = build_test_snapshot();
+	let req = req_with_filters(FilterPayload {
+		category_uuids: Some(vec!["category-with-no-products".into()]),
+		..Default::default()
+	});
+
+	let mask = base_mask(&snap, &[]).unwrap();
+	let filtered = apply_bitmap_filters(&snap, mask, &req).expect("must not error on empty category");
+	assert!(
+		filtered.is_empty(),
+		"unknown category UUID must produce empty mask; got: {:?}",
+		mask_as_vec(&filtered)
+	);
+}
+
 // --- price_gt (strict greater-than) -------------------------------------------------------
 
 fn priced_fixture() -> Vec<PricedProduct> {
