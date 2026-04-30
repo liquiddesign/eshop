@@ -12,8 +12,6 @@ search:
         implements: Base\Bridges\AutoWireAction
 
 services:
-	shopper.productsCacheGetter: Eshop\Services\ProductsCache\ProductsCacheGetterService
-	shopper.productsCacheDiffUpdate: Eshop\Services\ProductsCache\GoProductsCacheDiffUpdateService
 	balikobot.api: Eshop\Services\BalikobotApi\ApiConnection('https://apiv2.balikobot.cz/', '', '')
 	vies.api: Vies\ViesApiClient('https://viesapi.eu/api-test/', 'test_id', 'test_key')
 #	- Vies\ViesApiClient('https://viesapi.eu/api/', 'test_id', 'test_key')

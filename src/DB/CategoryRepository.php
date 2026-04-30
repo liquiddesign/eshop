@@ -10,8 +10,6 @@ use Common\DB\IGeneralRepository;
 use Eshop\Admin\ScriptsPresenter;
 use Eshop\Admin\SettingsPresenter;
 use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
-use Eshop\Services\ProductsCache\ProductsCacheNotReadyException;
-use Eshop\Services\ProductsCache\ProductsCacheProvider;
 use Eshop\ShopperUser;
 use Latte\Loaders\StringLoader;
 use Latte\Sandbox\SecurityPolicy;
@@ -78,86 +76,43 @@ class CategoryRepository extends \StORM\Repository implements IGeneralRepository
 	{
 		/** @var \Eshop\Services\ProductsCache\GeneralProductsCacheProvider $productsProvider */
 		$productsProvider = $this->container->getByType(GeneralProductsCacheProvider::class);
-		$productRepository = $this->productRepository;
 
 		$mainCategoryType = $this->cache->load(self::class . '::mainCategoryType', function (&$dependencies) {
 			$dependencies = [
-				Cache::Tags => [ScriptsPresenter::CATEGORIES_CACHE_TAG, ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
+				Cache::Tags => [ScriptsPresenter::CATEGORIES_CACHE_TAG, GeneralProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
 				Cache::Expire => '1 day',
 			];
 
-			return $this->shopsConfig->getSelectedShop() ?
-				$this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK()) :
-				'main';
+			return $this->shopsConfig->getSelectedShop()
+				? $this->settingRepository->getValueByName(SettingsPresenter::MAIN_CATEGORY_TYPE . '_' . $this->shopsConfig->getSelectedShop()->getPK())
+				: 'main';
 		});
 
-		$category = \is_string($path) ?
-			$this->many()->where('this.path', $path)->where('this.fk_type', $mainCategoryType)->first() :
-			$path;
+		$category = \is_string($path)
+			? $this->many()->where('this.path', $path)->where('this.fk_type', $mainCategoryType)->first()
+			: $path;
 
-		if (!$category) {
+		if ($category === null) {
 			return null;
 		}
 
 		$filters['category'] = $category->path;
+		$filters['hidden'] = false;
 
-		$priceLists = $priceLists ?: $this->shopperUser->getPriceListsCached();
-		$visibilityLists = $visibilityLists ?: $this->shopperUser->getVisibilityLists();
+		$priceLists = $priceLists !== [] ? $priceLists : $this->shopperUser->getPriceListsCached();
+		$visibilityLists = $visibilityLists !== [] ? $visibilityLists : $this->shopperUser->getVisibilityLists();
 
-		$cacheIndex = \serialize($filters) . \serialize(\array_keys($priceLists)) . \serialize(\array_keys($visibilityLists)) . $path;
+		try {
+			return $productsProvider->getCategoryCount(
+				$filters,
+				priceLists: $priceLists,
+				visibilityLists: $visibilityLists,
+			) ?? 0;
+		} catch (\Throwable $e) {
+			Debugger::log($e, ILogger::EXCEPTION);
 
-		return $this->cache->load($cacheIndex, static function (&$dependencies) use ($productsProvider, $filters, $priceLists, $visibilityLists, $productRepository) {
-			$dependencies = [
-				Cache::Tags => ['categories', 'products', 'pricelists', ProductsCacheProvider::PRODUCTS_PROVIDER_CACHE_TAG],
-			];
-
-			try {
-				$filters['hidden'] = false;
-
-//				\Tracy\Debugger::timer('getProductsFromCacheTable');
-
-				$result = $productsProvider->getCategoryCount(
-					$filters,
-					priceLists: $priceLists,
-					visibilityLists: $visibilityLists,
-				);
-
-				if ($result === null) {
-					throw new \Exception('No results returned', 204);
-				}
-
-//				\Tracy\Debugger::barDump($this->countsCumulativeTime, 'cacheProducts');
-//				\Tracy\Debugger::barDump($result);
-
-				return $result;
-			} catch (\Throwable $e) {
-				if (!$e instanceof ProductsCacheNotReadyException) {
-					if ($e->getCode() !== 204) {
-						Debugger::log($e, ILogger::EXCEPTION);
-						Debugger::barDump($e->getTraceAsString(), $e->getMessage());
-					}
-
-					return 1;
-				}
-
-				unset($filters['priceGt']);
-
-				$collection = $productRepository->getProducts($priceLists, visibilityLists: $visibilityLists)
-					->setSelect(['total' => 'COUNT(DISTINCT this.uuid)']);
-
-				$productRepository->setProductsConditions($collection, false, $priceLists);
-
-				$productRepository->filter($collection, $filters);
-
-				try {
-					return $collection->count();
-				} catch (\Throwable $e) {
-					Debugger::log($e, ILogger::EXCEPTION);
-
-					return 1;
-				}
-			}
-		});
+			return 0;
+		}
 	}
 
 	/**

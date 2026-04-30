@@ -9,6 +9,8 @@ use Carbon\Carbon;
 use Eshop\Actions\Offer\GetOfferState;
 use Eshop\DB\Merchant;
 use Eshop\DB\Offer;
+use Eshop\DB\OfferLogItem;
+use Eshop\DB\OfferLogItemRepository;
 use Eshop\DB\OfferState;
 use Messages\DB\TemplateRepository;
 use Nette\Mail\Mailer;
@@ -21,6 +23,7 @@ class RejectByManager extends BaseAction
 		private readonly GetOfferState $getOfferState,
 		private readonly TemplateRepository $templateRepository,
 		private readonly Mailer $mailer,
+		private readonly OfferLogItemRepository $offerLogItemRepository,
 	) {
 	}
 
@@ -44,6 +47,13 @@ class RejectByManager extends BaseAction
 		$offer->update([
 			'canceledTs' => Carbon::now()->toDateTimeString(),
 		]);
+
+		$this->offerLogItemRepository->createLog(
+			$offer,
+			OfferLogItem::MANAGER_REJECTED,
+			$rejectionNote,
+			$manager,
+		);
 
 		// Send notification to offer author with rejection note
 		$this->notifyAuthor($offer, $manager, $rejectionNote);
@@ -69,7 +79,7 @@ class RejectByManager extends BaseAction
 	 */
 	private function notifyAuthor(Offer $offer, Merchant $rejectingManager, string $rejectionNote): void
 	{
-		$author = $offer->order->purchase->merchant;
+		$author = $offer->merchant;
 
 		if ($author === null || $author->email === '') {
 			return;

@@ -8,12 +8,19 @@ use Base\BaseAction;
 use Carbon\Carbon;
 use Eshop\Actions\Offer\GetOfferState;
 use Eshop\DB\Offer;
+use Eshop\DB\OfferLogItem;
+use Eshop\DB\OfferLogItemRepository;
 use Eshop\DB\OfferState;
+use Eshop\Services\Offer\OfferTypeStrategyResolver;
+use Nette\Utils\Arrays;
 
 class ApproveOffer extends BaseAction
 {
-	public function __construct(private readonly GetOfferState $getOfferState)
-	{
+	public function __construct(
+		private readonly GetOfferState $getOfferState,
+		private readonly OfferTypeStrategyResolver $strategyResolver,
+		private readonly OfferLogItemRepository $offerLogItemRepository,
+	) {
 	}
 
 	/**
@@ -23,8 +30,18 @@ class ApproveOffer extends BaseAction
 	{
 		$this->canApproveOffer($offer);
 
-		$offer->update(['approvedTs' => Carbon::now()->toDateTimeString()]);
-		$offer->update(['canceledTs' => null]);
+		$offer->update([
+			'approvedTs' => Carbon::now()->toDateTimeString(),
+			'sentTs' => $offer->sentTs ?? Carbon::now()->toDateTimeString(),
+			'canceledTs' => null,
+		]);
+
+		$this->offerLogItemRepository->createLog(
+			$offer,
+			OfferLogItem::APPROVED,
+			null,
+			$offer->merchant,
+		);
 
 		$this->onOfferApproved($offer);
 	}
@@ -35,8 +52,10 @@ class ApproveOffer extends BaseAction
 	public function canApproveOffer(Offer $offer): void
 	{
 		$state = $this->getOfferState->execute($offer);
+		$strategy = $this->strategyResolver->resolve($offer);
+		$allowedTransitions = $strategy->getAllowedTransitions($state);
 
-		if ($state === OfferState::Sent) {
+		if (Arrays::contains($allowedTransitions, OfferState::Approved)) {
 			return;
 		}
 
@@ -45,6 +64,6 @@ class ApproveOffer extends BaseAction
 
 	protected function onOfferApproved(Offer $offer): void
 	{
-		unset($offer);
+		$this->strategyResolver->resolve($offer)->onApproved($offer);
 	}
 }

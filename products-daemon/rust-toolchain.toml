@@ -1,0 +1,7 @@
+[toolchain]
+# 1.85+ required: `subprocess` transitive dep needs `edition2024` Cargo feature (stable in 1.85).
+# Using "stable" so fresh installs pick current toolchain; pin to specific version once CI is wired.
+channel = "stable"
+components = ["rustfmt", "clippy"]
+targets = ["x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl"]
+profile = "minimal"

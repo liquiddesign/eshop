@@ -1,0 +1,150 @@
+[package]
+name = "abel-products-daemon"
+version = "0.1.0"
+edition = "2021"
+description = "Long-running catalog daemon for Abel eshop — keeps product/price facts in RAM and serves bitmap-filtered queries over a Unix socket."
+license = "proprietary"
+publish = false
+
+[[bin]]
+name = "abel-products-daemon"
+path = "src/main.rs"
+
+[lib]
+name = "abel_products_daemon"
+path = "src/lib.rs"
+
+[dependencies]
+# Runtime
+tokio = { version = "1.40", features = ["rt-multi-thread", "net", "time", "sync", "signal", "macros", "io-util"] }
+tokio-util = { version = "0.7", features = ["codec"] }
+futures = "0.3"
+
+# Lock-free snapshot hot swap (ch. 9 — Arc<ArcSwap<T>>)
+arc-swap = "1.7"
+
+# Inverted index bitmaps for attribute/category/producer filtering
+roaring = "0.10"
+
+# MariaDB/MySQL async driver
+mysql_async = { version = "0.34", default-features = false, features = ["minimal", "default-rustls"] }
+
+# Serde wire protocol (v1 JSON; consider msgpack later for v2)
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Errors (ch. 4: thiserror for library, anyhow only in main.rs)
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Structured logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+
+# Memory-efficient small collections/strings
+smallvec = { version = "1.13", features = ["const_generics", "union", "serde"] }
+smol_str = { version = "0.3", features = ["serde"] }
+
+# Faster hasher than default SipHash (ch. 3 — performance-first)
+ahash = "0.8"
+
+# Per-snapshot response cache (Phase 4 latency optimization).
+# `parking_lot::Mutex<lru::LruCache>` — daemon does single-digit RPS, mutex
+# contention is negligible; LruCache caps memory growth on diverse traffic.
+parking_lot = "0.12"
+lru = "0.12"
+
+# Cryptographic hash for request → cache-key. blake3 is ~5 GB/s, sub-µs for typical
+# request frame. Strong enough that we don't worry about collisions on the bound (256 keys).
+blake3 = "1.5"
+
+# Data-parallel iteration for facet attr-value count fan-out (1000+ buckets / request).
+# Worker pool je inicializovaný lazily na první par_iter — daemon ho zaplatí jednou per process.
+rayon = "1.10"
+
+# Env loading for DB credentials (.env in binary directory)
+dotenvy = "0.15"
+
+# CLI arg parsing for --once / --benchmark-mode / --socket
+clap = { version = "4.5", features = ["derive", "env"] }
+
+# UUID handling (product PKs in the wire protocol are 32-char hex strings)
+# We keep the string-form on the wire, but use fast compare internally.
+uuid = { version = "1.10", features = ["v4", "serde"] }
+
+# Custom global allocator — lower peak RSS during snapshot hot-swap (2× snapshot window)
+# and faster short-lived allocations in query filter path.
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+tikv-jemallocator = "0.6"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+tokio = { version = "1.40", features = ["test-util", "macros", "rt", "rt-multi-thread"] }
+pretty_assertions = "1.4"
+tempfile = "3.10"
+
+[[bench]]
+name = "filter_bench"
+harness = false
+
+[[bench]]
+name = "snapshot_build_bench"
+harness = false
+
+[profile.release]
+# Hot-path daemon: optimize aggressively, keep debug info for flamegraph/perf.
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+debug = 1
+panic = "abort"
+strip = "debuginfo"
+
+[profile.bench]
+opt-level = 3
+lto = "thin"
+debug = 1
+
+# Workspace-wide clippy lints (ch. 2 — -D warnings in CI).
+# Kept pragmatic: perf + correctness are gates; style warnings are hints.
+[lints.rust]
+unsafe_code = "forbid"
+# missing_docs deferred until M2 — pub struct fields in wire protocol are self-documenting and
+# annotating every `uuid_idx: ProductIdx` would bloat without value. Re-enable once the public
+# API stabilizes.
+missing_docs = "allow"
+
+[lints.clippy]
+# M1 scaffolding: correctness + perf are gates; pedantic/style nits deferred to M2 style-pass.
+all = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+pedantic = { level = "allow", priority = -1 }
+# Individual noise suppressors — some of these are in `all` or `style`, not pedantic, so the
+# blanket `pedantic = allow` above does not cover them.
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+cast_possible_truncation = "allow"
+cast_possible_wrap = "allow"
+cast_sign_loss = "allow"
+cast_precision_loss = "allow"
+doc_markdown = "allow"
+unnecessary_wraps = "allow"
+similar_names = "allow"
+too_many_arguments = "allow"
+too_many_lines = "allow"
+unused_async = "allow"
+needless_pass_by_value = "allow"
+needless_raw_string_hashes = "allow"
+manual_let_else = "allow"
+match_same_arms = "allow"
+single_match_else = "allow"
+large_enum_variant = "allow"
+map_unwrap_or = "allow"
+needless_range_loop = "allow"
+unnecessary_map_or = "allow"
+doc_lazy_continuation = "allow"
+items_after_statements = "allow"
+struct_excessive_bools = "allow"
+redundant_closure_for_method_calls = "allow"

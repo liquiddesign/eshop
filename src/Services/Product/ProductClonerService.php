@@ -127,7 +127,13 @@ readonly class ProductClonerService implements AutoWireService
 			$explodedFilename = \explode('.', $fileClone->fileName);
 			$newFilename = Uuid::uuid4() . '.' . \end($explodedFilename);
 
-			FileSystem::copy($basePath . \DIRECTORY_SEPARATOR . $fileClone->fileName, $basePath . \DIRECTORY_SEPARATOR . $newFilename);
+			try {
+				FileSystem::copy($basePath . \DIRECTORY_SEPARATOR . $fileClone->fileName, $basePath . \DIRECTORY_SEPARATOR . $newFilename);
+			} catch (\Exception $e) {
+				Debugger::barDump($e);
+
+				continue;
+			}
 
 			$fileClone->fileName = $newFilename;
 			$fileCloneArray = $fileClone->toArray(includePK: false);

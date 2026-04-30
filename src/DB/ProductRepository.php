@@ -1443,10 +1443,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			}
 		}
 
-		$visibilityLists = \implode(',', \array_map(function ($val) {
-			return "'$val'";
-		}, $visibilityLists));
-
 		/** @var array<array<mixed>> $joins */
 		$joins = $collection->getModifiers()['JOIN'];
 
@@ -1464,12 +1460,33 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 			return;
 		}
 
+		// Fast path: při právě jednom visibility listu není potřeba correlated subquery pro priority-based výběr.
+		// Dependent subquery se v původní podobě spouštěl pro každý kandidátský produkt (v LP flow 131k×),
+		// rovnostní filtr umožňuje optimizeru využít covering index `visibilitylistitem_product_list_hidden` naplno.
+		if ($visibilityLists && \count($visibilityLists) === 1) {
+			$collection->join(
+				['visibilityListItem' => 'eshop_visibilitylistitem'],
+				'visibilityListItem.fk_product = this.uuid AND visibilityListItem.fk_visibilityList = :__vliSingleList',
+				['__vliSingleList' => (string) \reset($visibilityLists)],
+			);
+
+			return;
+		}
+
+		$visibilityLists = \implode(',', \array_map(function ($val) {
+			return "'$val'";
+		}, $visibilityLists));
+
+		// Tie-break on `eshop_visibilitylist.uuid ASC` po priority — při stejné priority není sémantický
+		// důvod preferovat jeden list před druhým, takže volíme deterministický pořadový klíč. Bez něj
+		// MariaDB vrátí libovolný řádek v tieu (podle fyzického uložení), což by způsobilo nestabilní
+		// výstupy mezi volání/prostředími.
 		$collection->join(['visibilityListItem' => 'eshop_visibilitylistitem'], 'visibilityListItem.fk_product = this.uuid AND visibilityListItem.fk_visibilityList = (
             SELECT fk_visibilityList
                 FROM eshop_visibilitylistitem
                 JOIN eshop_visibilitylist ON eshop_visibilitylist.uuid = eshop_visibilitylistitem.fk_visibilityList
                 WHERE fk_product = this.uuid AND ' . ($visibilityLists ? 'eshop_visibilitylist.uuid IN (' . $visibilityLists . ')' : '1=0') . '
-                ORDER BY eshop_visibilitylist.priority ASC
+                ORDER BY eshop_visibilitylist.priority ASC, eshop_visibilitylist.uuid ASC
                 LIMIT 1
             )
         ');
@@ -1985,6 +2002,11 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	{
 		$products = [];
 		$mutation = Arrays::first(\array_keys($this->getConnection()->getAvailableMutations()));
+		$priceRepository = $this->getConnection()->findRepository(Price::class);
+
+		$supplierPricelists = $this->pricelistRepository->many()
+			->where('fk_supplier', $supplier->getPK())
+			->toArray();
 
 		/** @var \Eshop\DB\SupplierProduct $supplierProduct */
 		foreach ($supplierProducts->where('this.fk_product IS NULL') as $supplierProduct) {
@@ -1995,10 +2017,8 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'subCode' => $supplierProduct->productSubCode,
 				'supplierCode' => $supplierProduct->code,
 				'name' => [$mutation => $supplierProduct->name],
-				'producer' => $supplierProduct->producer?->getValue('producer') ?: null,
+				'producer' => $supplierProduct->producer?->producer?->getPK() ?: null,
 				'unit' => $supplierProduct->unit,
-//				'unavailable' => $supplierProduct->unavailable,
-//				'hidden' => $supplier->defaultHiddenProduct,
 				'storageDate' => $supplierProduct->storageDate,
 				'defaultBuyCount' => $supplierProduct->defaultBuyCount,
 				'minBuyCount' => $supplierProduct->minBuyCount,
@@ -2007,7 +2027,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'inCarton' => $supplierProduct->inCarton,
 				'inPalett' => $supplierProduct->inPalett,
 				'weight' => $supplierProduct->weight,
-//				'primaryCategory' => $category->getPK(),
 				'supplierLock' => $supplier->importPriority,
 				'supplierSource' => $supplier,
 				'categories' => [$category->getPK(),],
@@ -2019,15 +2038,35 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 				'categoryType' => $category->type->getPK(),
 			], []);
 
-			if ($supplierProduct->content !== null) {
+			if ($supplierProduct->content !== null || $supplierProduct->perex !== null) {
+				$contentPayload = [];
+
+				if ($supplierProduct->content !== null) {
+					$contentPayload['content'] = [$mutation => $supplierProduct->content];
+				}
+
+				if ($supplierProduct->perex !== null) {
+					$contentPayload['perex'] = [$mutation => $supplierProduct->perex];
+				}
+
 				foreach ($this->shopsConfig->getAvailableShops() as $shop) {
 					$this->productContentRepository->syncOne([
 						'product' => $product->getPK(),
 						'shop' => $shop->getPK(),
-						'content' => [$mutation => $supplierProduct->content],
-					], []);
+					] + $contentPayload, []);
 				}
 			}
+
+			if ($supplier->importImages) {
+				$this->supplierProductRepository->syncPhotosForProduct(
+					$product,
+					$supplierProduct,
+					$supplier->getPK(),
+					currentImageFileName: null,
+				);
+			}
+
+			$this->syncDummyProductPrices($product, $supplierProduct, $supplier, $supplierPricelists, $priceRepository);
 
 			Arrays::invoke($this->onDummyProductCreated, $product, $supplierProduct);
 
@@ -2137,6 +2176,53 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 	}
 
 	/**
+	 * Generuje SQL výraz pro jeden sloupec ceny v daném pricelistu s aplikací discount level a surcharge level.
+	 * Používáno v `getProducts()` i `LiveProductsProvider` pro konzistentní SQL pricing logiku.
+	 * @param list<string> $generalPricelistIds Pricelist UUIDs, které povolují discount level
+	 */
+	public function sqlHandlePrice(
+		string $alias,
+		string $priceExp,
+		int|null $levelDiscountPct,
+		int $maxDiscountPct,
+		array $generalPricelistIds,
+		int $prec,
+		float|null $rate,
+		float $surchargePct,
+	): string {
+		$expression = $rate === null ? "$alias.$priceExp" : "ROUND($alias.$priceExp * $rate,$prec)";
+
+		$levelDiscountPct ??= 0;
+
+		if ($generalPricelistIds) {
+			$pricelists = \implode(',', \array_map(function ($value) {
+				return "'$value'";
+			}, $generalPricelistIds));
+
+			$surchargeExpression = $surchargePct > 0 ? ' / ' . (1 - ($surchargePct / 100)) : '';
+
+			$expression = "IF(
+				$alias.fk_pricelist IN ($pricelists),
+				ROUND(
+					$expression$surchargeExpression *
+					((100 - IF(LEAST(this.discountLevelPct, $maxDiscountPct) > $levelDiscountPct,LEAST(this.discountLevelPct, $maxDiscountPct),$levelDiscountPct)) / 100),$prec),
+				$expression$surchargeExpression
+			)";
+		}
+
+		return $expression;
+	}
+
+	/**
+	 * SQL helper: extrahuje pozici `$position` (1-based) z CONCAT_WS-sestaveného výrazu.
+	 */
+	public function sqlExplode(string $expression, string $delimiter, int $position): string
+	{
+		return "REPLACE(SUBSTRING(SUBSTRING_INDEX($expression, '$delimiter', $position),
+	   LENGTH(SUBSTRING_INDEX($expression, '$delimiter', " . ($position - 1) . ")) + 1), '$delimiter', '')";
+	}
+
+	/**
 	 * @deprecated Use DIConnection::generateUuid()
 	 */
 	public static function generateUuid(?string $ean, ?string $fullCode): string
@@ -2154,7 +2240,105 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		throw new InvalidArgumentException('There is no unique parameter');
 	}
 
-//	protected function getProductsWithPrices(): array
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\Pricelist> $collection
+	 * @return \StORM\Collection<\Eshop\DB\Pricelist>
+	 */
+	protected function getValidPricelists(Collection $collection): Collection
+	{
+		return $this->pricelistRepository->getPricelists(
+			$collection->toArrayOf('uuid'),
+			$this->shopperUser->getCurrency(),
+			$this->shopperUser->getCountry(),
+			$this->shopperUser->getCheckoutManager()->getDiscountCoupon(),
+		);
+	}
+
+	/**
+	 * @param \StORM\Collection<\Eshop\DB\VisibilityList> $collection
+	 * @return \StORM\Collection<\Eshop\DB\VisibilityList>
+	 */
+	protected function getValidVisibilityLists(Collection $collection): Collection
+	{
+		return $collection->where('this.hidden', false);
+	}
+
+	/**
+	 * Vytvoří cenové záznamy pro nově vytvořený dummy produkt v existujících supplier pricelistech.
+	 * Pokud supplier má vyplněné ABEL/RT ratio, hledá shop-scoped pricelisty (fk_shop = abel/rt);
+	 * jinak hledá shop-independent pricelisty.
+	 * @param array<string, \Eshop\DB\Pricelist> $supplierPricelists
+	 */
+	private function syncDummyProductPrices(
+		Product $product,
+		SupplierProduct $supplierProduct,
+		Supplier $supplier,
+		array $supplierPricelists,
+		\StORM\Repository $priceRepository,
+	): void {
+		if ($supplierProduct->price === null) {
+			return;
+		}
+
+		$hasAbelRt = $supplier->importPriceRatioAbel !== null || $supplier->importPriceRatioRt !== null;
+		$availabilityKey = $supplier->splitPricelists
+			? ($supplierProduct->amount === null || $supplierProduct->amount > 0 ? '2' : '1')
+			: '0';
+		$fallbackPrice = $supplierProduct->priceVat ?? $supplierProduct->price;
+
+		if ($hasAbelRt) {
+			$ratioAbel = $supplier->importPriceRatioAbel ?? $supplier->importPriceRatio;
+			$ratioRt = $supplier->importPriceRatioRt ?? $supplier->importPriceRatio;
+			$targets = [
+				'abel' => [
+					'price' => $supplierProduct->priceAbel ?? \round($supplierProduct->price * $ratioAbel / 100, 2),
+					'priceVat' => $supplierProduct->priceAbelVat ?? \round($fallbackPrice * $ratioAbel / 100, 2),
+				],
+				'rt' => [
+					'price' => $supplierProduct->priceRt ?? \round($supplierProduct->price * $ratioRt / 100, 2),
+					'priceVat' => $supplierProduct->priceRtVat ?? \round($fallbackPrice * $ratioRt / 100, 2),
+				],
+			];
+		} else {
+			$ratio = $supplier->importPriceRatio;
+			$targets = [
+				'' => [
+					'price' => \round($supplierProduct->price * $ratio / 100, 2),
+					'priceVat' => \round($fallbackPrice * $ratio / 100, 2),
+				],
+			];
+		}
+
+		foreach ($targets as $shopCode => $prices) {
+			$pricelistKey = $shopCode === ''
+				? "$supplier->code-$availabilityKey"
+				: "$supplier->code-$shopCode-$availabilityKey";
+
+			$pricelist = null;
+
+			foreach ($supplierPricelists as $candidate) {
+				if ($candidate->code !== $pricelistKey) {
+					continue;
+				}
+
+				$pricelist = $candidate;
+
+				break;
+			}
+
+			if ($pricelist === null) {
+				continue;
+			}
+
+			$priceRepository->syncOne([
+				'product' => $product->getPK(),
+				'pricelist' => $pricelist->getPK(),
+				'price' => $prices['price'],
+				'priceVat' => $prices['priceVat'],
+			]);
+		}
+	}
+	// protected function getProductsWithPrices(): array
 //	{
 //		return $this->cache->load('main_productsWithPrices', function (&$dependencies): array {
 //			$dependencies = [
@@ -2220,28 +2404,6 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 //		return [];
 //	}
 
-	/**
-	 * @param \StORM\Collection<\Eshop\DB\Pricelist> $collection
-	 * @return \StORM\Collection<\Eshop\DB\Pricelist>
-	 */
-	protected function getValidPricelists(Collection $collection): Collection
-	{
-		return $this->pricelistRepository->getPricelists(
-			$collection->toArrayOf('uuid'),
-			$this->shopperUser->getCurrency(),
-			$this->shopperUser->getCountry(),
-			$this->shopperUser->getCheckoutManager()->getDiscountCoupon(),
-		);
-	}
-
-	/**
-	 * @param \StORM\Collection<\Eshop\DB\VisibilityList> $collection
-	 * @return \StORM\Collection<\Eshop\DB\VisibilityList>
-	 */
-	protected function getValidVisibilityLists(Collection $collection): Collection
-	{
-		return $collection->where('this.hidden', false);
-	}
 
 	/**
 	 * @param array $products
@@ -2274,36 +2436,5 @@ class ProductRepository extends Repository implements IGeneralRepository, IGener
 		foreach ($product->slaveProducts as $mergedProduct) {
 			$this->doGetProductTree($mergedProduct, $result, $depth + 1);
 		}
-	}
-
-	private function sqlHandlePrice(string $alias, string $priceExp, ?int $levelDiscountPct, int $maxDiscountPct, array $generalPricelistIds, int $prec, ?float $rate, float $surchargePct): string
-	{
-		$expression = $rate === null ? "$alias.$priceExp" : "ROUND($alias.$priceExp * $rate,$prec)";
-
-		$levelDiscountPct ??= 0;
-
-		if ($generalPricelistIds) {
-			$pricelists = \implode(',', \array_map(function ($value) {
-				return "'$value'";
-			}, $generalPricelistIds));
-
-			$surchargeExpression = $surchargePct > 0 ? ' / ' . (1 - ($surchargePct / 100)) : '';
-
-			$expression = "IF(
-				$alias.fk_pricelist IN ($pricelists),
-				ROUND(
-					$expression$surchargeExpression *
-					((100 - IF(LEAST(this.discountLevelPct, $maxDiscountPct) > $levelDiscountPct,LEAST(this.discountLevelPct, $maxDiscountPct),$levelDiscountPct)) / 100),$prec),
-				$expression$surchargeExpression
-			)";
-		}
-
-		return $expression;
-	}
-
-	private function sqlExplode(string $expression, string $delimiter, int $position): string
-	{
-		return "REPLACE(SUBSTRING(SUBSTRING_INDEX($expression, '$delimiter', $position),
-       LENGTH(SUBSTRING_INDEX($expression, '$delimiter', " . ($position - 1) . ")) + 1), '$delimiter', '')";
 	}
 }

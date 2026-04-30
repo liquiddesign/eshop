@@ -29,7 +29,6 @@ use Nette\Utils\Image;
 use Security\DB\Account;
 use Security\DB\AccountRepository;
 use StORM\DIConnection;
-use Tracy\Debugger;
 
 class MerchantPresenter extends BackendPresenter
 {
@@ -69,7 +68,7 @@ class MerchantPresenter extends BackendPresenter
 	public VisibilityListRepository $visibilityListRepository;
 
 	#[Inject]
-	public GeneralProductsCacheProvider $productsCacheGetterService;
+	public GeneralProductsCacheProvider $productsCacheProvider;
 
 	#[Inject]
 	public SettingsService $settingsService;
@@ -252,16 +251,6 @@ class MerchantPresenter extends BackendPresenter
 				'Posílat e-mailem informace o objednávkách přiřazených zákazníků.',
 			);
 
-			try {
-				$index = $merchant ? $this->productsCacheGetterService->getIndexByCustomer($merchant) : null;
-
-				$form->addGroup('Cache');
-				$form->addText('cacheIndex', 'Index')
-					->setDisabled()
-					->setDefaultValue($index);
-			} catch (\Exception) {
-			}
-
 			$form->addGroup('Externí');
 			$form->addText('externalId', 'Externí ID')->setNullable();
 			$form->addText('externalCode', 'Externí kód')->setNullable();
@@ -327,6 +316,8 @@ class MerchantPresenter extends BackendPresenter
 			/** @var \Eshop\DB\Merchant $merchant */
 			$merchant = $this->merchantRepository->syncOne($values, null, true, ignore: false);
 
+			$this->productsCacheProvider->requestSnapshotRebuild();
+
 			$this->flashMessage('Uloženo', 'success');
 			$form->processRedirect('detail', 'default', [$merchant]);
 		};
@@ -343,21 +334,6 @@ class MerchantPresenter extends BackendPresenter
 		$this->user->login($identity, null, [Merchant::class]);
 
 		$this->presenter->redirect(':Web:Index:default');
-	}
-
-	public function handleRefreshCache(Merchant $merchant): void
-	{
-		try {
-			$this->productsCacheGetterService->updatePricesCacheTable([], [], [$merchant->getPK()]);
-
-			$this->flashMessage('Provedeno', 'success');
-		} catch (\Exception $e) {
-			$this->flashMessage('Chyba', 'error');
-
-			Debugger::barDump($e);
-		}
-
-		$this->redirect('this');
 	}
 
 	public function renderDefault(): void
@@ -383,21 +359,14 @@ class MerchantPresenter extends BackendPresenter
 
 	public function renderDetail(Merchant $merchant): void
 	{
+		unset($merchant);
+
 		$this->template->headerLabel = 'Detail';
 		$this->template->headerTree = [
 			['Obchodníci', 'default'],
 			['Detail'],
 		];
 		$this->template->displayButtons = [$this->createBackButton('default')];
-
-		if ($this->settingsService->isUsingProductsCache()) {
-			$this->template->displayButtons[] = $this->createButton2(
-				'refreshCache!',
-				'Přepočítat cache obchodníka',
-				linkArgs: [$merchant],
-			);
-		}
-
 		$this->template->displayControls = [$this->getComponent('form')];
 	}
 

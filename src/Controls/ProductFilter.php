@@ -141,6 +141,9 @@ class ProductFilter extends Control
 			$priceTo = \call_user_func($this->onGetPriceMax, $priceTo);
 		}
 
+		$priceFrom = (int) \floor((float) $priceFrom);
+		$priceTo = (int) \ceil((float) $priceTo);
+
 		$filterForm->addText('priceFrom')
 			->setNullable()
 			->setHtmlAttribute('placeholder', $priceFrom)

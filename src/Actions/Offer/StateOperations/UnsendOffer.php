@@ -6,20 +6,25 @@ namespace Eshop\Actions\Offer\StateOperations;
 
 use Base\BaseAction;
 use Eshop\Actions\Offer\GetOfferState;
+use Eshop\DB\Merchant;
 use Eshop\DB\Offer;
+use Eshop\DB\OfferLogItem;
+use Eshop\DB\OfferLogItemRepository;
 use Eshop\DB\OfferState;
 
 class UnsendOffer extends BaseAction
 {
-	public function __construct(private readonly GetOfferState $getOfferState,)
-	{
+	public function __construct(
+		private readonly GetOfferState $getOfferState,
+		private readonly OfferLogItemRepository $offerLogItemRepository,
+	) {
 	}
 
 	/**
 	 * Unsend offer - move from Sent/Approved back to Created state
 	 * @throws \Eshop\Actions\Offer\StateOperations\UnauthorizedStateChangeException|\StORM\Exception\NotFoundException
 	 */
-	public function execute(Offer $offer): void
+	public function execute(Offer $offer, Merchant|null $actor = null): void
 	{
 		$this->canUnsendOffer($offer);
 
@@ -31,6 +36,13 @@ class UnsendOffer extends BaseAction
 			'managerApprovalRequestedTs' => null,
 			'managerApprovedTs' => null,
 		]);
+
+		$this->offerLogItemRepository->createLog(
+			$offer,
+			OfferLogItem::UNSENT,
+			null,
+			$actor ?? $offer->merchant,
+		);
 
 		$this->onOfferUnsent($offer);
 	}

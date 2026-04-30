@@ -47,10 +47,22 @@ class Supplier extends \StORM\Entity
 	public int $importPriority = 0;
 
 	/**
-	 * Procentuální změna cen
+	 * Procentuální změna cen (společná, fallback pro ABEL/RT pokud nejsou vyplněny)
 	 * @column
 	 */
 	public int $importPriceRatio = 100;
+
+	/**
+	 * Procentuální změna cen pro ABEL ceník (pokud NULL, ABEL/RT ceníky se negenerují a použije se společná)
+	 * @column
+	 */
+	public int|null $importPriceRatioAbel = null;
+
+	/**
+	 * Procentuální změna cen pro RT ceník (pokud NULL, ABEL/RT ceníky se negenerují a použije se společná)
+	 * @column
+	 */
+	public int|null $importPriceRatioRt = null;
 
 	/**
 	 * Import obrázků

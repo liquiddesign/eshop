@@ -21,6 +21,7 @@ use Eshop\DB\SupplierRepository;
 use Eshop\DB\VisibilityList;
 use Eshop\DB\VisibilityListItem;
 use Eshop\DB\VisibilityListRepository;
+use Eshop\Services\ProductsCache\GeneralProductsCacheProvider;
 use Eshop\Services\SettingsService;
 use Forms\Form;
 use Grid\Datagrid;
@@ -49,6 +50,9 @@ class VisibilityListPresenter extends BackendPresenter
 
 	#[Inject]
 	public VisibilityListRepository $visibilityListRepository;
+
+	#[Inject]
+	public GeneralProductsCacheProvider $productsCacheProvider;
 
 	#[Inject]
 	public \Eshop\DB\VisibilityListItemRepository $visibilityListItemRepository;
@@ -503,6 +507,7 @@ priority - Priorita<br>
 				$this->productRepository->getConnection()->getLink()->commit();
 
 				$this->flashMessage("Uloženo: {$result['imported']}\nPřeskočeno: {$result['skipped']}", 'success');
+				$this->productsCacheProvider->requestSnapshotRebuild();
 			} catch (\Throwable $e) {
 				Debugger::barDump($e, ILogger::WARNING);
 				$this->productRepository->getConnection()->getLink()->rollBack();

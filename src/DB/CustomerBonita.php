@@ -7,14 +7,14 @@ namespace Eshop\DB;
 use StORM\Entity;
 
 /**
- * Customer bonita based on 12-month turnover aggregated by CKP_IC
+ * Customer bonita based on 12-month turnover aggregated by IC (or ckpIcOverride)
  * @table
  * @index{"name":"customer_bonita_ckp_ic","unique":true,"columns":["ckpIc"]}
  */
 class CustomerBonita extends Entity
 {
 	/**
-	 * CKP_IC identifier (qiPriceCategory_ic or externalCode_ic or ic)
+	 * IC identifier (ckpIcOverride if set, otherwise bare ic)
 	 * @column
 	 */
 	public string $ckpIc;

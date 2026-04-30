@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# pre-commit hook — runs composer update + check-code before allowing commit.
+# On failure, runs Claude Code to auto-fix errors.
+# Install: git config core.hooksPath scripts/hooks
+
+set -e
+
+export LC_ALL=C.UTF-8
+
+# Git hooks don't inherit shell profile — add user local bin to PATH
+export PATH="$HOME/.local/bin:$PATH"
+
+# Git hooks don't inherit shell profile — initialize node version manager
+# Priority: fnm → nvm → native PATH
+node_ready=false
+
+# Try fnm
+for fnm_path in "$HOME/.local/share/fnm/fnm" "$HOME/.fnm/fnm"; do
+	if [ -x "$fnm_path" ]; then
+		eval "$("$fnm_path" env --shell bash)"
+		node_ready=true
+		break
+	fi
+done
+
+# Try nvm
+if ! $node_ready && [ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; then
+	source "${NVM_DIR:-$HOME/.nvm}/nvm.sh"
+	node_ready=true
+fi
+
+# Fallback: native PATH
+if ! $node_ready && ! command -v npx &>/dev/null; then
+	echo "ERROR: npx not found. Install Node.js via fnm or nvm."
+	exit 1
+fi
+
+echo ""
+echo "=== Pre-commit: composer update ==="
+composer update --no-interaction --quiet
+
+echo "=== Pre-commit: composer check-code ==="
+set +e
+check_output=$(composer check-code 2>&1)
+check_rc=$?
+set -e
+echo "$check_output"
+
+if [ $check_rc -eq 0 ]; then
+	echo ""
+	echo "=== Pre-commit: all checks passed ==="
+	exit 0
+fi
+
+# check-code failed — try Claude Code auto-fix
+echo ""
+echo "=== Pre-commit: check-code failed, running Claude Code auto-fix ==="
+
+claude_prompt=$(cat <<EOF
+The pre-commit hook in $(pwd) ran 'composer check-code' and it failed. Fix all reported errors (phpcs, phpstan, lattelint) based on the output below. Use 'composer phpcsfix' for code style auto-fix first if there are phpcs errors, then fix remaining errors manually. Do NOT re-run check-code — the pre-commit hook will re-run it automatically on the next commit attempt, which is the authoritative verification.
+
+check-code output:
+-----
+$check_output
+-----
+
+Rules:
+- Do NOT run 'check-code', phpstan, phpcs, or lattelint — trust the output above and the hook's next run.
+- Do NOT commit.
+- Do NOT add suppressions like '// @phpstan-ignore' — errors must be fixed in code.
+- Preserve code semantics — do not alter behavior. All errors must be fixed; no suppressions.
+- When done, print a brief summary of files changed.
+EOF
+)
+claude -p "$claude_prompt" --allowedTools "Bash,Read,Edit,Write,Glob,Grep"
+
+echo ""
+echo "=== Pre-commit: Claude auto-fix done. Review changes before committing. ==="
+echo ""
+echo "Changed files after auto-fix:"
+git diff --name-only
+echo ""
+echo "Run 'git diff' to inspect changes, then 'git commit' again to retry."
+exit 1

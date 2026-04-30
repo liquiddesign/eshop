@@ -266,7 +266,7 @@ class CheckoutManager
 		protected readonly Nette\DI\Container $container,
 		protected readonly Integrations $integrations,
 		protected readonly AddressRepository $addressRepository,
-		protected readonly CreateOffer $createOffer,
+		protected readonly CreateOffer $createOfferAction,
 	) {
 	}
 
@@ -1847,7 +1847,6 @@ class CheckoutManager
 		array $defaultOrderValues = [],
 		?string $cartId = self::ACTIVE_CART_ID,
 		bool $isLastOrder = true,
-		bool $createOffer = false,
 	): Order {
 		/** @var \Eshop\DB\VatRateRepository $vatRepo */
 		$vatRepo = $this->cartItemRepository->getConnection()->findRepository(VatRate::class);
@@ -2268,17 +2267,72 @@ class CheckoutManager
 			$this->reviewRepository->createReviewsFromOrder($order);
 		}
 
-		if ($createOffer) {
-			$offer = $this->createOffer->execute($order);
+		Arrays::invoke($this->onOrderCreate, $order);
 
-			$this->onOfferCreate($offer);
-		} else {
-			Arrays::invoke($this->onOrderCreate, $order);
-
-			$this->onOrderCreate($order);
-		}
+		$this->onOrderCreate($order);
 
 		return $order;
+	}
+
+	public function createOffer(?Purchase $purchase = null, ?string $cartId = self::ACTIVE_CART_ID,): Offer
+	{
+		/** @var \Eshop\DB\Purchase $purchase */
+		$purchase = $purchase ?: $this->getPurchase(true, $cartId);
+
+		$customer = $this->getCustomer();
+		$merchant = $this->shopperUser->getMerchant();
+		$cart = $this->getCart($cartId);
+
+		$this->stm->beginTransaction();
+
+		if ($merchant) {
+			$purchase->update(['merchant' => $merchant->getPK()]);
+		}
+
+		$cart->update([
+			'approved' => ($customer && $customer->orderPermission === 'full') || !$customer ? 'yes' : 'waiting',
+			'closedTs' => Carbon::now()->toDateTimeString(),
+		]);
+
+		// create customer if needed
+		if (!$customer) {
+			if ($purchase->createAccount && $purchase->email) {
+				$customer = $this->createCustomer($purchase);
+
+				if ($customer) {
+					$purchase = $this->syncPurchase(['customer' => $customer->getPK()]);
+
+					Arrays::invoke($this->onCustomerCreate, $customer);
+				}
+			} elseif ($this->shopperUser->isAlwaysCreateCustomerOnOrderCreated()) {
+				$customer = $this->createCustomer($purchase, false);
+
+				$purchase = $this->syncPurchase(['customer' => $customer ? $customer->getPK() : $this->customerRepository->many()->match(['email' => $purchase->email])->first()]);
+			}
+		}
+
+		Arrays::invoke($this->onOrderCustomerProcessed, $purchase);
+
+		$offer = $this->createOfferAction->execute($purchase, $cart);
+
+		$offer->update([
+			'deliveryPrice' => $this->getDeliveryPrice(false, $cartId),
+			'paymentPrice' => $this->getPaymentPrice($cartId),
+		]);
+
+		$this->createCart();
+
+		if ($cartId !== self::ACTIVE_CART_ID) {
+			unset($this->carts[$cartId]);
+		}
+
+		$this->refreshSumProperties($cartId);
+
+		$this->stm->commit();
+
+		$this->onOfferCreate($offer);
+
+		return $offer;
 	}
 
 	public function getSendNewOrderEmail(): bool

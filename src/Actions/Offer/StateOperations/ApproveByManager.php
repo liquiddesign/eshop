@@ -9,6 +9,8 @@ use Carbon\Carbon;
 use Eshop\Actions\Offer\GetOfferState;
 use Eshop\DB\Merchant;
 use Eshop\DB\Offer;
+use Eshop\DB\OfferLogItem;
+use Eshop\DB\OfferLogItemRepository;
 use Eshop\DB\OfferState;
 use Messages\DB\TemplateRepository;
 use Nette\Mail\Mailer;
@@ -21,6 +23,7 @@ class ApproveByManager extends BaseAction
 		private readonly GetOfferState $getOfferState,
 		private readonly TemplateRepository $templateRepository,
 		private readonly Mailer $mailer,
+		private readonly OfferLogItemRepository $offerLogItemRepository,
 	) {
 	}
 
@@ -40,10 +43,18 @@ class ApproveByManager extends BaseAction
 			throw new \Exception('Schválit lze pouze nabídku čekající na schválení');
 		}
 
-		// Set timestamp
+		// Set timestamp + backfill preceding timestamps
 		$offer->update([
 			'managerApprovedTs' => Carbon::now()->toDateTimeString(),
+			'managerApprovalRequestedTs' => $offer->managerApprovalRequestedTs ?? Carbon::now()->toDateTimeString(),
 		]);
+
+		$this->offerLogItemRepository->createLog(
+			$offer,
+			OfferLogItem::MANAGER_APPROVED,
+			null,
+			$manager,
+		);
 
 		// Send notification to offer author
 		$this->notifyAuthor($offer, $manager);
@@ -68,7 +79,7 @@ class ApproveByManager extends BaseAction
 	 */
 	private function notifyAuthor(Offer $offer, Merchant $approvingManager): void
 	{
-		$author = $offer->order->purchase->merchant;
+		$author = $offer->merchant;
 
 		if ($author === null || $author->email === '') {
 			return;
