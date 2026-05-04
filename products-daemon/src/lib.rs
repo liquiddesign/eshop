@@ -49,5 +49,15 @@ pub use crate::{
 ///   po dokončení velkého importu, aby refresher proběhl dřív než po `quick_check_interval`
 ///   (60s) — místo čekání až 5 min na drift probe + TTL ceiling. Server odpovídá
 ///   `rebuildAccepted` ihned (nečeká na rebuild). Idempotentní díky `Notify::notify_one()`
-///   semantice + `min_rebuild_interval` floor v refresheru.
-pub const PROTOCOL_VERSION: u16 = 2;
+///   semantice — paralelní volání během běžícího rebuildu se kolabsují na jeden následný
+///   rebuild, takže ani spam nezpůsobí storm. External trigger bypassuje
+///   `min_rebuild_interval` floor (důvod: PHP volá po vytvoření zákaznického ceníku, kde
+///   čekání = okno chyby `unknown_pricelist`); floor zůstává jen v drift-detected větvi.
+/// - **v3**: best-effort handling neznámých ceníků — místo `unknown_pricelist` erroru daemon
+///   požadované ceníky filtruje, použije známé pro výpočet a do `OkResponse` přidává nový
+///   field `unknownPricelistPks: string[]` se seznamem PK, které snapshot nezná. PHP straně
+///   to říká: katalog je obsloužen z obsazené části ceníků (žádný HTTP 500), ale aspoň jeden
+///   pricelist čeká na následující snapshot rebuild. PHP `RustDaemonClient` flipuje merchant
+///   banner přes `UnknownPricelistObserver`. Field je `skip_serializing_if = "Vec::is_empty"`,
+///   takže běžná response zůstává bajtově shodná s v2.
+pub const PROTOCOL_VERSION: u16 = 3;

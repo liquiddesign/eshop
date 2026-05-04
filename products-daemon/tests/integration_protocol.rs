@@ -64,10 +64,35 @@ fn fallback_required_response_shape() {
 			reason: "custom order".into(),
 		},
 		timings: None,
+		unknown_pricelist_pks: Vec::new(),
 	}));
 	let json = serde_json::to_string(&env).unwrap();
 	assert!(json.contains(r#""type":"fallbackRequired""#), "{json}");
 	assert!(json.contains(r#""reason":"custom order""#), "{json}");
+}
+
+#[test]
+fn unknown_pricelist_pks_field_skipped_when_empty() {
+	let env = ResponseEnvelope::Ok(Box::new(OkResponse {
+		protocol_version: abel_products_daemon::PROTOCOL_VERSION,
+		body: ResponseBody::Pong { ok: true },
+		timings: None,
+		unknown_pricelist_pks: Vec::new(),
+	}));
+	let json = serde_json::to_string(&env).unwrap();
+	assert!(!json.contains("unknownPricelistPks"), "absent when empty: {json}");
+}
+
+#[test]
+fn unknown_pricelist_pks_field_present_when_populated() {
+	let env = ResponseEnvelope::Ok(Box::new(OkResponse {
+		protocol_version: abel_products_daemon::PROTOCOL_VERSION,
+		body: ResponseBody::Pong { ok: true },
+		timings: None,
+		unknown_pricelist_pks: vec!["abc".into(), "def".into()],
+	}));
+	let json = serde_json::to_string(&env).unwrap();
+	assert!(json.contains(r#""unknownPricelistPks":["abc","def"]"#), "{json}");
 }
 
 #[test]

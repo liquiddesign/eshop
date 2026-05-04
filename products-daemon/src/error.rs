@@ -82,6 +82,11 @@ pub enum RequestError {
 	#[error("unknown visibility list pk: {0}")]
 	UnknownVisibilityList(String),
 
+	/// Historická varianta — od v3 protokolu daemon neznámé ceníky **nevyhazuje jako error**,
+	/// ale tiše je vyfiltruje z resolvu a propíše do `OkResponse::unknown_pricelist_pks`, aby
+	/// PHP mohl zobrazit merchant banner bez shození listingu (HTTP 500). Varianta zůstává
+	/// kvůli wire-protocol kompatibilitě s `ErrorKind::UnknownPricelist` a defensive matching
+	/// na PHP straně, ale interně by neměla být ze žádné cesty raisovaná.
 	#[error("unknown pricelist pk: {0}")]
 	UnknownPricelist(String),
 

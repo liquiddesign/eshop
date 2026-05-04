@@ -11,6 +11,7 @@ use Eshop\CompareManager;
 use Eshop\Services\Comgate;
 use Eshop\Services\ProductsCache\RustDaemonClient;
 use Eshop\Services\ProductsCache\RustProductsProvider;
+use Eshop\Services\ProductsCache\UnknownPricelistObserver;
 use Eshop\ShopperUser;
 use Nette\Schema\Expect;
 use Nette\Schema\Schema;
@@ -163,6 +164,21 @@ class ShopperDI extends \Nette\DI\CompilerExtension
 
 		$shopperUser->addSetup('setRegistrationConfiguration', [(array) $config['registration']]);
 		$shopperUser->addSetup('setConfig', [$config]);
+	}
+
+	public function beforeCompile(): void
+	{
+		$builder = $this->getContainerBuilder();
+		$observerServices = $builder->findByType(UnknownPricelistObserver::class);
+
+		if ($observerServices === []) {
+			return;
+		}
+
+		$observerServiceName = \array_key_first($observerServices);
+		/** @var \Nette\DI\Definitions\ServiceDefinition $clientDefinition */
+		$clientDefinition = $builder->getDefinition($this->prefix('rustDaemonClient'));
+		$clientDefinition->setArgument('unknownPricelistObserver', '@' . $observerServiceName);
 	}
 
 	public function afterCompile(\Nette\PhpGenerator\ClassType $class): void

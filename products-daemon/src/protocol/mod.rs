@@ -69,6 +69,14 @@ pub struct OkResponse {
 	/// Hodnoty v ms (f64 — lépe lidsky čitelné než µs u sub-ms kroků jako parse).
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub timings: Option<TimingsBreakdown>,
+	/// PKs požadovaných ceníků, které snapshot nezná (typicky čerstvě vytvořený customer
+	/// pricelist po `offer approve` / CKP sync — v DB existuje, ale daemon snapshot ho ještě
+	/// nezahrnuje). Daemon je z resolvu **vyfiltruje** (best-effort) a hlásí PHP přes tento
+	/// field, aby přihlášený merchant viděl banner "Aktualizace cen zákazníka probíhá".
+	/// Empty/default = vše OK. Polní hodnota je výhradně signální — nemá vliv na ostatní
+	/// payload, který je počítaný ze známých ceníků.
+	#[serde(skip_serializing_if = "Vec::is_empty", default)]
+	pub unknown_pricelist_pks: Vec<String>,
 }
 
 /// Per-step měření daemon pipeline — opt-in přes `GetProductsRequest::debug = true`.
