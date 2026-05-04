@@ -64,8 +64,11 @@ class GetOfferEmailVariables extends BaseAction
 		}
 
 		$deliveryPrice = $offer->deliveryPrice ?? 0.0;
+		$deliveryPriceVat = $offer->deliveryPriceVat ?? $offer->deliveryPrice ?? 0.0;
 		$paymentPrice = $offer->paymentPrice ?? 0.0;
+		$paymentPriceVat = $offer->paymentPriceVat ?? $offer->paymentPrice ?? 0.0;
 		$totalDeliveryPrice = $deliveryPrice + $paymentPrice;
+		$totalDeliveryPriceVat = $deliveryPriceVat + $paymentPriceVat;
 
 		$values = [
 			'offer' => $offer,
@@ -77,12 +80,12 @@ class GetOfferEmailVariables extends BaseAction
 			'deliveryInfo' => $offer->deliveryType?->instructions,
 			'deliveryPrice' => $deliveryPrice,
 			'totalDeliveryPrice' => $totalDeliveryPrice,
-			'totalDeliveryPriceVat' => $totalDeliveryPrice,
-			'deliveryPriceVat' => $deliveryPrice,
+			'totalDeliveryPriceVat' => $totalDeliveryPriceVat,
+			'deliveryPriceVat' => $deliveryPriceVat,
 			'paymentType' => $offer->paymentType?->name,
 			'paymentInfo' => $offer->paymentType?->instructions,
 			'paymentPrice' => $paymentPrice,
-			'paymentPriceVat' => $paymentPrice,
+			'paymentPriceVat' => $paymentPriceVat,
 			'billName' => $offer->fullname,
 			'billingAddress' => $offer->billAddress ? $offer->billAddress->jsonSerialize() : [],
 			'deliveryAddress' => $offer->deliveryAddress ? $offer->deliveryAddress->jsonSerialize() : ($offer->billAddress ? $offer->billAddress->jsonSerialize() : []),
@@ -103,8 +106,8 @@ class GetOfferEmailVariables extends BaseAction
 
 		if ($currentContextCatalogPermissions->catalogPermission === 'price') {
 			if ($currentContextCatalogPermissions->showPricesWithVat && $currentContextCatalogPermissions->showPricesWithoutVat) {
-				$values['totalDeliveryPricePref'] = $totalDeliveryPrice;
-				$values['paymentPricePref'] = $paymentPrice;
+				$values['totalDeliveryPricePref'] = $currentContextCatalogPermissions->priorityPrice === 'withVat' ? $totalDeliveryPriceVat : $totalDeliveryPrice;
+				$values['paymentPricePref'] = $currentContextCatalogPermissions->priorityPrice === 'withVat' ? $paymentPriceVat : $paymentPrice;
 
 				$values['totalPricePref'] = $currentContextCatalogPermissions->priorityPrice === 'withVat' ? $offer->getTotalPriceVat() : $offer->getTotalPrice();
 
@@ -112,8 +115,8 @@ class GetOfferEmailVariables extends BaseAction
 				$values['withoutVat'] = true;
 			} else {
 				if ($currentContextCatalogPermissions->showPricesWithVat) {
-					$values['totalDeliveryPricePref'] = $totalDeliveryPrice;
-					$values['paymentPricePref'] = $paymentPrice;
+					$values['totalDeliveryPricePref'] = $totalDeliveryPriceVat;
+					$values['paymentPricePref'] = $paymentPriceVat;
 					$values['totalPricePref'] = $offer->getTotalPriceVat();
 					$values['withVat'] = true;
 				}

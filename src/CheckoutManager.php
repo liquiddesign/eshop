@@ -2317,7 +2317,9 @@ class CheckoutManager
 
 		$offer->update([
 			'deliveryPrice' => $this->getDeliveryPrice(false, $cartId),
+			'deliveryPriceVat' => $this->getDeliveryPriceVat(false, $cartId),
 			'paymentPrice' => $this->getPaymentPrice($cartId),
+			'paymentPriceVat' => $this->getPaymentPriceVat($cartId),
 		]);
 
 		$this->createCart();
