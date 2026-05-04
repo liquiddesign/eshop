@@ -158,10 +158,22 @@ class Offer extends Entity
 	public float|null $deliveryPrice = null;
 
 	/**
+	 * Cena dopravy s DPH v čase vytvoření nabídky
+	 * @column
+	 */
+	public float|null $deliveryPriceVat = null;
+
+	/**
 	 * Cena platby v čase vytvoření nabídky
 	 * @column
 	 */
 	public float|null $paymentPrice = null;
+
+	/**
+	 * Cena platby s DPH v čase vytvoření nabídky
+	 * @column
+	 */
+	public float|null $paymentPriceVat = null;
 
 	/**
 	 * @relation
@@ -357,6 +369,8 @@ class Offer extends Entity
 	 */
 	public function getTotalPriceVat(): float
 	{
-		return $this->getSumPriceVat() + ($this->deliveryPrice ?? 0.0) + ($this->paymentPrice ?? 0.0);
+		return $this->getSumPriceVat()
+			+ ($this->deliveryPriceVat ?? $this->deliveryPrice ?? 0.0)
+			+ ($this->paymentPriceVat ?? $this->paymentPrice ?? 0.0);
 	}
 }
