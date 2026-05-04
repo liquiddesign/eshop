@@ -162,6 +162,9 @@ pub struct StatsResponse {
 	/// Bounded historie wallclock časů snapshot buildů (Unix epoch seconds) — initial
 	/// build + každý drift rebuild. Nejnovější naposledy.
 	pub snapshot_timestamps_unix: Vec<u64>,
+	/// Paralelní pole k `snapshot_timestamps_unix` — doba samotného buildu v ms (DB load
+	/// + in-memory build, bez `ArcSwap::store`). Stejná délka, stejné pořadí.
+	pub snapshot_durations_ms: Vec<u64>,
 	/// Počet produktů v aktuálně publikovaném snapshotu.
 	pub product_count: u64,
 	/// Počet price rows v aktuálně publikovaném snapshotu.

@@ -85,7 +85,7 @@ final class RustDaemonBarPanel implements IBarPanel
 			? Carbon::createFromTimestamp($stats['startedAtUnix'])->format('Y-m-d H:i:s')
 			: '—';
 
-		$snapshotRows = $this->renderSnapshotList($stats['snapshotTimestampsUnix']);
+		$snapshotRows = $this->renderSnapshotList($stats['snapshotTimestampsUnix'], $stats['snapshotDurationsMs']);
 
 		return '<h2>Daemon runtime</h2>'
 			. '<table>'
@@ -108,28 +108,45 @@ final class RustDaemonBarPanel implements IBarPanel
 
 	/**
 	 * @param list<int> $timestamps Unix epoch seconds, nejstarší první.
+	 * @param list<int> $durationsMs Paralelní pole, ms strávených buildem. Prázdné, pokud daemon
+	 *   posílá starou verzi `StatsResponse` bez duration pole — pak duration sloupec vynecháme.
 	 */
-	private function renderSnapshotList(array $timestamps): string
+	private function renderSnapshotList(array $timestamps, array $durationsMs): string
 	{
 		if ($timestamps === []) {
 			return '<p><em>Žádná historie snapshotů.</em></p>';
 		}
 
-		// Nejnovější nahoře pro rychlou orientaci.
-		$reversed = \array_reverse($timestamps);
-		$visible = \array_slice($reversed, 0, 20);
-		$now = \time();
-		$items = '';
+		$hasDurations = \count($durationsMs) === \count($timestamps);
 
-		foreach ($visible as $ts) {
+		// Nejnovější nahoře pro rychlou orientaci.
+		$reversedTs = \array_reverse($timestamps);
+		$reversedDur = $hasDurations ? \array_reverse($durationsMs) : [];
+		$visibleCount = \min(20, \count($reversedTs));
+		$now = \time();
+		$rows = '';
+
+		for ($i = 0; $i < $visibleCount; $i++) {
+			$ts = $reversedTs[$i];
 			$when = Carbon::createFromTimestamp($ts)->format('Y-m-d H:i:s');
 			$ago = self::formatAgo($now - $ts);
-			$items .= '<li><code>' . \htmlspecialchars($when, \ENT_QUOTES, 'UTF-8') . '</code> '
-				. '<span style="color:#888">(' . \htmlspecialchars($ago, \ENT_QUOTES, 'UTF-8') . ')</span></li>';
+			$durationCell = $hasDurations
+				? '<td style="text-align:right">' . self::formatDurationMs($reversedDur[$i]) . '</td>'
+				: '';
+			$rows .= '<tr>'
+				. '<td><code>' . \htmlspecialchars($when, \ENT_QUOTES, 'UTF-8') . '</code></td>'
+				. '<td style="color:#888;padding-left:0.5em">' . \htmlspecialchars($ago, \ENT_QUOTES, 'UTF-8') . '</td>'
+				. $durationCell
+				. '</tr>';
 		}
 
+		$header = $hasDurations
+			? '<thead><tr><th style="text-align:left">when</th><th style="text-align:left">ago</th><th style="text-align:right">duration</th></tr></thead>'
+			: '<thead><tr><th style="text-align:left">when</th><th style="text-align:left">ago</th></tr></thead>';
+
 		return '<h3>Snapshot history (' . \count($timestamps) . ')</h3>'
-			. '<ul style="max-height:240px;overflow:auto;margin:0;padding-left:1.5em">' . $items . '</ul>';
+			. '<div style="max-height:240px;overflow:auto"><table>' . $header
+			. '<tbody>' . $rows . '</tbody></table></div>';
 	}
 
 	private function renderCallLog(): string
@@ -209,6 +226,23 @@ final class RustDaemonBarPanel implements IBarPanel
 		}
 
 		return [$totalCalls, $totalFallbacks, $totalMs];
+	}
+
+	private static function formatDurationMs(int $ms): string
+	{
+		if ($ms < 1000) {
+			return $ms . ' ms';
+		}
+
+		if ($ms < 60000) {
+			return \number_format($ms / 1000, 2, '.', '') . ' s';
+		}
+
+		$totalSecs = \intdiv($ms, 1000);
+		$minutes = \intdiv($totalSecs, 60);
+		$seconds = $totalSecs % 60;
+
+		return \sprintf('%dm %02ds', $minutes, $seconds);
 	}
 
 	private static function formatUptime(int $secs): string

@@ -193,9 +193,11 @@ impl Refresher {
 	}
 
 	async fn rebuild(&self) -> Result<(), crate::error::DaemonError> {
+		let started = Instant::now();
 		let new_snap = CatalogSnapshot::load_from_pool(&self.pool).await?;
+		let duration = started.elapsed();
 		self.catalog.store(Arc::new(new_snap));
-		self.metrics.record_snapshot();
+		self.metrics.record_snapshot(duration);
 		Ok(())
 	}
 }

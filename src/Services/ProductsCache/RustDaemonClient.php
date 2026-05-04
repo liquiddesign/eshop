@@ -82,6 +82,7 @@ final class RustDaemonClient
 	 *     avgRequestMs: float|null,
 	 *     maxRequestMs: float,
 	 *     snapshotTimestampsUnix: list<int>,
+	 *     snapshotDurationsMs: list<int>,
 	 *     productCount: int,
 	 *     priceCount: int,
 	 *     snapshotMemoryEstimateMb: int,
@@ -109,6 +110,9 @@ final class RustDaemonClient
 			'avgRequestMs' => isset($resp['avgRequestMs']) && \is_numeric($resp['avgRequestMs']) ? (float) $resp['avgRequestMs'] : null,
 			'maxRequestMs' => (float) ($resp['maxRequestMs'] ?? 0),
 			'snapshotTimestampsUnix' => \array_values(\array_map('intval', (array) ($resp['snapshotTimestampsUnix'] ?? []))),
+			// Paralelní pole — délka shodná s `snapshotTimestampsUnix`. Starší binárka pole neposílá; v takovém
+			// případě dostaneme prázdné pole a Tracy panel duration sloupec vynechá.
+			'snapshotDurationsMs' => \array_values(\array_map('intval', (array) ($resp['snapshotDurationsMs'] ?? []))),
 			'productCount' => (int) ($resp['productCount'] ?? 0),
 			'priceCount' => (int) ($resp['priceCount'] ?? 0),
 			'snapshotMemoryEstimateMb' => (int) ($resp['snapshotMemoryEstimateMb'] ?? 0),

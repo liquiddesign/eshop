@@ -253,10 +253,14 @@ fn build_stats_response(metrics: &DaemonMetrics, snap: &CatalogSnapshot) -> Stat
 		None
 	};
 
-	let snapshot_timestamps_unix = metrics
-		.snapshot_timestamps_copy()
-		.into_iter()
-		.map(|t| t.duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0))
+	let history = metrics.snapshot_history_copy();
+	let snapshot_timestamps_unix = history
+		.iter()
+		.map(|(t, _)| t.duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0))
+		.collect();
+	let snapshot_durations_ms = history
+		.iter()
+		.map(|(_, d)| u64::try_from(d.as_millis()).unwrap_or(u64::MAX))
 		.collect();
 
 	StatsResponse {
@@ -268,6 +272,7 @@ fn build_stats_response(metrics: &DaemonMetrics, snap: &CatalogSnapshot) -> Stat
 		avg_request_ms,
 		max_request_ms: max_micros as f64 / 1000.0,
 		snapshot_timestamps_unix,
+		snapshot_durations_ms,
 		product_count: snap.product_count() as u64,
 		price_count: snap.price_count() as u64,
 		snapshot_memory_estimate_mb: snap.memory_estimate_mb(),
