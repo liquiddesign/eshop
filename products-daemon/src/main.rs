@@ -9,7 +9,7 @@
 //! 6. Start the socket listener + refresher concurrently.
 //! 7. Wait for SIGTERM/SIGINT and drain gracefully.
 
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc, time::Instant};
 
 use anyhow::{Context, Result};
 use arc_swap::ArcSwap;
@@ -80,6 +80,7 @@ async fn async_main(config: Config, once: bool, benchmark_mode: bool) -> Result<
 		Some(Pool::connect(&config.database).await.context("opening mysql pool")?)
 	};
 
+	let initial_build_started = Instant::now();
 	let initial = match (&pool, benchmark_mode) {
 		(_, true) => CatalogSnapshot::fixtures_for_benchmarks(),
 		(Some(p), false) => CatalogSnapshot::load_from_pool(p)
@@ -87,11 +88,13 @@ async fn async_main(config: Config, once: bool, benchmark_mode: bool) -> Result<
 			.context("building initial snapshot")?,
 		(None, false) => anyhow::bail!("no pool available and benchmark_mode is false"),
 	};
+	let initial_build_duration = initial_build_started.elapsed();
 
 	info!(
 		products = initial.product_count(),
 		prices = initial.price_count(),
 		rss_estimate_mb = initial.memory_estimate_mb(),
+		duration_ms = initial_build_duration.as_millis() as u64,
 		"initial snapshot ready"
 	);
 
@@ -101,7 +104,7 @@ async fn async_main(config: Config, once: bool, benchmark_mode: bool) -> Result<
 	// před tímto bodem, ale zaznamenáváme ho jako první entry v historii — z pohledu Tracy
 	// panelu je to "kdy byl daemon schopný servírovat" a to je po initial buildu.
 	let metrics = Arc::new(DaemonMetrics::new());
-	metrics.record_snapshot();
+	metrics.record_snapshot(initial_build_duration);
 
 	if once {
 		info!("--once: initial snapshot built, exiting");

@@ -69,6 +69,14 @@ pub struct OkResponse {
 	/// Hodnoty v ms (f64 — lépe lidsky čitelné než µs u sub-ms kroků jako parse).
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub timings: Option<TimingsBreakdown>,
+	/// PKs požadovaných ceníků, které snapshot nezná (typicky čerstvě vytvořený customer
+	/// pricelist po `offer approve` / CKP sync — v DB existuje, ale daemon snapshot ho ještě
+	/// nezahrnuje). Daemon je z resolvu **vyfiltruje** (best-effort) a hlásí PHP přes tento
+	/// field, aby přihlášený merchant viděl banner "Aktualizace cen zákazníka probíhá".
+	/// Empty/default = vše OK. Polní hodnota je výhradně signální — nemá vliv na ostatní
+	/// payload, který je počítaný ze známých ceníků.
+	#[serde(skip_serializing_if = "Vec::is_empty", default)]
+	pub unknown_pricelist_pks: Vec<String>,
 }
 
 /// Per-step měření daemon pipeline — opt-in přes `GetProductsRequest::debug = true`.
@@ -162,6 +170,9 @@ pub struct StatsResponse {
 	/// Bounded historie wallclock časů snapshot buildů (Unix epoch seconds) — initial
 	/// build + každý drift rebuild. Nejnovější naposledy.
 	pub snapshot_timestamps_unix: Vec<u64>,
+	/// Paralelní pole k `snapshot_timestamps_unix` — doba samotného buildu v ms (DB load
+	/// + in-memory build, bez `ArcSwap::store`). Stejná délka, stejné pořadí.
+	pub snapshot_durations_ms: Vec<u64>,
 	/// Počet produktů v aktuálně publikovaném snapshotu.
 	pub product_count: u64,
 	/// Počet price rows v aktuálně publikovaném snapshotu.

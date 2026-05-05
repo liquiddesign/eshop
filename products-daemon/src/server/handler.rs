@@ -108,10 +108,11 @@ pub async fn serve_connection(
 
 		let started = Instant::now();
 		let response = match dispatch(&envelope, &snap, &metrics, &wakeup, timings.as_mut()).await {
-			Ok(body) => ResponseEnvelope::Ok(Box::new(OkResponse {
+			Ok((body, unknown_pricelist_pks)) => ResponseEnvelope::Ok(Box::new(OkResponse {
 				protocol_version: PROTOCOL_VERSION,
 				body,
 				timings: None, // doplníme níž po serializaci
+				unknown_pricelist_pks,
 			})),
 			Err(DaemonError::Request(req_err)) if req_err.is_fallback() => {
 				// Graceful fallback — not an error, PHP handles the request itself.
@@ -121,6 +122,7 @@ pub async fn serve_connection(
 						reason: req_err.to_string(),
 					},
 					timings: None,
+					unknown_pricelist_pks: Vec::new(),
 				}))
 			}
 			Err(err) => {
@@ -204,32 +206,36 @@ async fn dispatch(
 	metrics: &Arc<DaemonMetrics>,
 	wakeup: &Arc<Notify>,
 	timings: Option<&mut Timings>,
-) -> Result<ResponseBody, DaemonError> {
+) -> Result<(ResponseBody, Vec<String>), DaemonError> {
 	match envelope {
-		RequestEnvelope::Ping => Ok(ResponseBody::Pong { ok: true }),
+		RequestEnvelope::Ping => Ok((ResponseBody::Pong { ok: true }, Vec::new())),
 		RequestEnvelope::GetProducts(req) => {
-			let resp = query::run(snap, req, timings)?;
-			Ok(ResponseBody::Products(Box::new(resp)))
+			let (resp, unknown) = query::run(snap, req, timings)?;
+			Ok((ResponseBody::Products(Box::new(resp)), unknown))
 		}
 		RequestEnvelope::GetCategoryCount(req) => {
-			let count = query::count(snap, req)?;
-			Ok(ResponseBody::CategoryCount { count })
+			let (count, unknown) = query::count(snap, req)?;
+			Ok((ResponseBody::CategoryCount { count }, unknown))
 		}
 		RequestEnvelope::GetAllCategoryCounts(req) => {
-			let counts = query::all_category_counts(snap, req)?;
-			Ok(ResponseBody::AllCategoryCounts { counts })
+			let (counts, unknown) = query::all_category_counts(snap, req)?;
+			Ok((ResponseBody::AllCategoryCounts { counts }, unknown))
 		}
 		RequestEnvelope::GetSellableProductPKs => {
 			let pks = query::sellable_product_pks(snap);
-			Ok(ResponseBody::SellableProductPKs { pks })
+			Ok((ResponseBody::SellableProductPKs { pks }, Vec::new()))
 		}
-		RequestEnvelope::GetStats => Ok(ResponseBody::Stats(Box::new(build_stats_response(metrics, snap)))),
+		RequestEnvelope::GetStats => Ok((
+			ResponseBody::Stats(Box::new(build_stats_response(metrics, snap))),
+			Vec::new(),
+		)),
 		RequestEnvelope::RequestRebuild => {
 			// Fire-and-forget: notify_one() is idempotent — opakované volání před receiverovým
 			// wakeupem konsoliduje na jeden permit, takže storm volání nemůže způsobit storm
-			// rebuildů. Floor v refresheru (`min_rebuild_interval`) je druhá vrstva ochrany.
+			// rebuildů. External trigger v refresheru bypassuje `min_rebuild_interval` floor
+			// — paralelní requesty během běžícího rebuildu se kolabsují na jeden následný rebuild.
 			wakeup.notify_one();
-			Ok(ResponseBody::RebuildAccepted { queued: true })
+			Ok((ResponseBody::RebuildAccepted { queued: true }, Vec::new()))
 		}
 	}
 }
@@ -253,10 +259,14 @@ fn build_stats_response(metrics: &DaemonMetrics, snap: &CatalogSnapshot) -> Stat
 		None
 	};
 
-	let snapshot_timestamps_unix = metrics
-		.snapshot_timestamps_copy()
-		.into_iter()
-		.map(|t| t.duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0))
+	let history = metrics.snapshot_history_copy();
+	let snapshot_timestamps_unix = history
+		.iter()
+		.map(|(t, _)| t.duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0))
+		.collect();
+	let snapshot_durations_ms = history
+		.iter()
+		.map(|(_, d)| u64::try_from(d.as_millis()).unwrap_or(u64::MAX))
 		.collect();
 
 	StatsResponse {
@@ -268,6 +278,7 @@ fn build_stats_response(metrics: &DaemonMetrics, snap: &CatalogSnapshot) -> Stat
 		avg_request_ms,
 		max_request_ms: max_micros as f64 / 1000.0,
 		snapshot_timestamps_unix,
+		snapshot_durations_ms,
 		product_count: snap.product_count() as u64,
 		price_count: snap.price_count() as u64,
 		snapshot_memory_estimate_mb: snap.memory_estimate_mb(),

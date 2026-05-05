@@ -19,13 +19,18 @@ use std::{
 /// dlouho běžící daemon neměl lineárně rostoucí paměť.
 const MAX_SNAPSHOT_HISTORY: usize = 200;
 
+/// Jeden záznam v historii snapshot buildů: kdy doběhl + jak dlouho stavění trvalo.
+/// `duration` měříme od začátku `CatalogSnapshot::load_from_pool` do konce — pokrývá DB
+/// load i in-memory build, ne `ArcSwap::store` (ten je sub-microsecond).
+pub type SnapshotEntry = (SystemTime, Duration);
+
 pub struct DaemonMetrics {
 	started_at: SystemTime,
 	total_requests: AtomicU64,
 	work_requests: AtomicU64,
 	work_request_micros: AtomicU64,
 	max_work_request_micros: AtomicU64,
-	snapshot_timestamps: Mutex<VecDeque<SystemTime>>,
+	snapshot_history: Mutex<VecDeque<SnapshotEntry>>,
 }
 
 impl DaemonMetrics {
@@ -37,7 +42,7 @@ impl DaemonMetrics {
 			work_requests: AtomicU64::new(0),
 			work_request_micros: AtomicU64::new(0),
 			max_work_request_micros: AtomicU64::new(0),
-			snapshot_timestamps: Mutex::new(VecDeque::with_capacity(MAX_SNAPSHOT_HISTORY)),
+			snapshot_history: Mutex::new(VecDeque::with_capacity(MAX_SNAPSHOT_HISTORY)),
 		}
 	}
 
@@ -60,16 +65,16 @@ impl DaemonMetrics {
 	}
 
 	/// Zaznamená, že byl postaven nový catalog snapshot (initial i drift rebuild).
-	/// Drží bounded historii posledních `MAX_SNAPSHOT_HISTORY` timestampů — při přetečení
-	/// drop front.
-	pub fn record_snapshot(&self) {
-		let Ok(mut v) = self.snapshot_timestamps.lock() else {
+	/// `duration` je doba samotného buildu (typicky `CatalogSnapshot::load_from_pool` elapsed).
+	/// Drží bounded historii posledních `MAX_SNAPSHOT_HISTORY` záznamů — při přetečení drop front.
+	pub fn record_snapshot(&self, duration: Duration) {
+		let Ok(mut v) = self.snapshot_history.lock() else {
 			return;
 		};
 		if v.len() == MAX_SNAPSHOT_HISTORY {
 			v.pop_front();
 		}
-		v.push_back(SystemTime::now());
+		v.push_back((SystemTime::now(), duration));
 	}
 
 	#[must_use]
@@ -98,8 +103,8 @@ impl DaemonMetrics {
 	}
 
 	#[must_use]
-	pub fn snapshot_timestamps_copy(&self) -> Vec<SystemTime> {
-		self.snapshot_timestamps
+	pub fn snapshot_history_copy(&self) -> Vec<SnapshotEntry> {
+		self.snapshot_history
 			.lock()
 			.map(|v| v.iter().copied().collect())
 			.unwrap_or_default()
@@ -156,9 +161,20 @@ mod tests {
 	fn snapshot_history_is_bounded() {
 		let m = DaemonMetrics::new();
 		for _ in 0..(MAX_SNAPSHOT_HISTORY + 50) {
-			m.record_snapshot();
+			m.record_snapshot(Duration::from_millis(0));
 		}
-		assert_eq!(m.snapshot_timestamps_copy().len(), MAX_SNAPSHOT_HISTORY);
+		assert_eq!(m.snapshot_history_copy().len(), MAX_SNAPSHOT_HISTORY);
+	}
+
+	#[test]
+	fn snapshot_history_records_duration() {
+		let m = DaemonMetrics::new();
+		m.record_snapshot(Duration::from_millis(123));
+		m.record_snapshot(Duration::from_millis(456));
+		let history = m.snapshot_history_copy();
+		assert_eq!(history.len(), 2);
+		assert_eq!(history[0].1, Duration::from_millis(123));
+		assert_eq!(history[1].1, Duration::from_millis(456));
 	}
 
 	#[test]

@@ -25,7 +25,7 @@ namespace Eshop\Services\ProductsCache;
  */
 final class RustDaemonClient
 {
-	public const PROTOCOL_VERSION = 2;
+	public const PROTOCOL_VERSION = 3;
 
 	public const MAX_FRAME_BYTES = 16 * 1024 * 1024;
 
@@ -44,6 +44,7 @@ final class RustDaemonClient
 		private readonly string|null $envPath = null,
 		private readonly float $timeoutSec = self::DEFAULT_TIMEOUT_SEC,
 		private readonly bool $spawnOnDemand = true,
+		private readonly UnknownPricelistObserver|null $unknownPricelistObserver = null,
 	) {
 	}
 
@@ -82,6 +83,7 @@ final class RustDaemonClient
 	 *     avgRequestMs: float|null,
 	 *     maxRequestMs: float,
 	 *     snapshotTimestampsUnix: list<int>,
+	 *     snapshotDurationsMs: list<int>,
 	 *     productCount: int,
 	 *     priceCount: int,
 	 *     snapshotMemoryEstimateMb: int,
@@ -109,6 +111,9 @@ final class RustDaemonClient
 			'avgRequestMs' => isset($resp['avgRequestMs']) && \is_numeric($resp['avgRequestMs']) ? (float) $resp['avgRequestMs'] : null,
 			'maxRequestMs' => (float) ($resp['maxRequestMs'] ?? 0),
 			'snapshotTimestampsUnix' => \array_values(\array_map('intval', (array) ($resp['snapshotTimestampsUnix'] ?? []))),
+			// Paralelní pole — délka shodná s `snapshotTimestampsUnix`. Starší binárka pole neposílá; v takovém
+			// případě dostaneme prázdné pole a Tracy panel duration sloupec vynechá.
+			'snapshotDurationsMs' => \array_values(\array_map('intval', (array) ($resp['snapshotDurationsMs'] ?? []))),
 			'productCount' => (int) ($resp['productCount'] ?? 0),
 			'priceCount' => (int) ($resp['priceCount'] ?? 0),
 			'snapshotMemoryEstimateMb' => (int) ($resp['snapshotMemoryEstimateMb'] ?? 0),
@@ -285,10 +290,23 @@ final class RustDaemonClient
 		}
 
 		if (isset($decoded['error'])) {
-			throw new RustDaemonRequestException(
-				(string) $decoded['error'],
-				(string) ($decoded['message'] ?? ''),
-			);
+			$errorKind = (string) $decoded['error'];
+			$errorMessage = (string) ($decoded['message'] ?? '');
+
+			if ($errorKind === 'unknown_pricelist' && $this->unknownPricelistObserver !== null) {
+				// Format zprávy daemonu: `unknown pricelist pk: <32-hex-uuid>`. PK extrahujeme přes
+				// regex, ne split — kdyby daemon prefix v budoucnu změnil, jen ztratíme PK v notifikaci,
+				// ale observer se stejně zavolá (s prázdným stringem) a state-flag se nastaví.
+				$pricelistPk = '';
+
+				if (\preg_match('/[0-9a-f]{32}/i', $errorMessage, $match) === 1) {
+					$pricelistPk = $match[0];
+				}
+
+				$this->unknownPricelistObserver->onUnknownPricelist($pricelistPk);
+			}
+
+			throw new RustDaemonRequestException($errorKind, $errorMessage);
 		}
 
 		$version = (int) ($decoded['protocolVersion'] ?? 0);
@@ -297,6 +315,20 @@ final class RustDaemonClient
 			throw new RustDaemonProtocolException(
 				\sprintf('protocol version mismatch: client=%d server=%d', self::PROTOCOL_VERSION, $version),
 			);
+		}
+
+		// `unknownPricelistPks` (od v3) — daemon best-effort vyfiltroval ceníky, které jeho
+		// snapshot nezná, použil zbytek pro výpočet a tady hlásí které vypadly. Pro PHP je to
+		// signál, že přihlášený merchant má vidět banner "ceny zákazníka se aktualizují", ale
+		// listing/menu zůstávají funkční (na rozdíl od historického `unknown_pricelist` erroru,
+		// který shodil celý request do HTTP 500). Field je `skip_serializing_if = "Vec::is_empty"`,
+		// takže neexistence == žádný neznámý ceník.
+		$unknownPricelistPks = $decoded['unknownPricelistPks'] ?? [];
+
+		if (\is_array($unknownPricelistPks) && \count($unknownPricelistPks) > 0 && $this->unknownPricelistObserver !== null) {
+			foreach ($unknownPricelistPks as $unknownPk) {
+				$this->unknownPricelistObserver->onUnknownPricelist((string) $unknownPk);
+			}
 		}
 
 		// OkResponse flattens the body with `#[serde(flatten)]` — fields are siblings of `protocolVersion`.

@@ -26,7 +26,7 @@ use roaring::RoaringBitmap;
 use std::collections::HashMap;
 
 use crate::{
-	error::{RequestError, Result},
+	error::Result,
 	protocol::{
 		GetAllCategoryCountsRequest, GetCategoryCountRequest, GetProductsRequest, GetProductsResponse, TimingsBreakdown,
 	},
@@ -89,19 +89,26 @@ pub struct RequestContext<'a> {
 	pub snap: &'a CatalogSnapshot,
 	pub req: &'a GetProductsRequest,
 	pub pricelist_idxs: Vec<PricelistIdx>,
+	/// PKs requestovaných ceníků, které snapshot nezná (typicky čerstvě vytvořený customer
+	/// pricelist po `offer approve` / CKP sync — daemon snapshot ještě nezahrnuje). Neznámé
+	/// se z `pricelist_idxs` filtrují (ne erroru) a propagují přes response do PHP, které
+	/// flipne banner pro přihlášeného merchanta. Best-effort sémantika: ostatní známé ceníky
+	/// se použijí normálně, takže katalog/menu zůstávají funkční místo HTTP 500.
+	pub unknown_pricelist_pks: Vec<String>,
 	pub base_mask: RoaringBitmap,
 	pub has_price_mask: RoaringBitmap,
 }
 
 impl<'a> RequestContext<'a> {
 	pub fn build(snap: &'a CatalogSnapshot, req: &'a GetProductsRequest) -> Result<Self> {
-		let pricelist_idxs = resolve_pricelists(snap, &req.pricelist_pks)?;
+		let (pricelist_idxs, unknown_pricelist_pks) = resolve_pricelists(snap, &req.pricelist_pks);
 		let base_mask = filter::base_mask(snap, &req.visibility_list_pks)?;
 		let has_price_mask = filter::has_any_price_mask(snap, &pricelist_idxs, req.price_visibility);
 		Ok(Self {
 			snap,
 			req,
 			pricelist_idxs,
+			unknown_pricelist_pks,
 			base_mask,
 			has_price_mask,
 		})
@@ -145,13 +152,14 @@ pub fn run(
 	snap: &Arc<CatalogSnapshot>,
 	req: &GetProductsRequest,
 	timings: Option<&mut Timings>,
-) -> Result<GetProductsResponse> {
+) -> Result<(GetProductsResponse, Vec<String>)> {
 	// Fast bail-out: features the daemon doesn't own yet.
 	req.ensure_supported()?;
 
 	// 1. Base mask (visibility + deletedTs IS NULL via `all_products_mask`).
 	let t0 = Instant::now();
 	let ctx = RequestContext::build(snap, req)?;
+	let unknown_pricelist_pks = ctx.unknown_pricelist_pks.clone();
 	let base_mask_ms = elapsed_ms(t0);
 
 	// 2-5. Bitmap filters → has_price → pricing → restrictive → price_band.
@@ -187,19 +195,22 @@ pub fn run(
 		t.ordering_ms = ordering_ms;
 	}
 
-	Ok(GetProductsResponse {
-		product_pks: ordered_pks,
-		attribute_values_counts: facets.attr_values,
-		display_amounts_counts: facets.display_amounts,
-		display_deliveries_counts: facets.display_deliveries,
-		producers_counts: facets.producers,
-		categories_counts: facets.categories,
-		price_min: facets.price_min,
-		price_max: facets.price_max,
-		price_vat_min: facets.price_vat_min,
-		price_vat_max: facets.price_vat_max,
-		fallback_required: false,
-	})
+	Ok((
+		GetProductsResponse {
+			product_pks: ordered_pks,
+			attribute_values_counts: facets.attr_values,
+			display_amounts_counts: facets.display_amounts,
+			display_deliveries_counts: facets.display_deliveries,
+			producers_counts: facets.producers,
+			categories_counts: facets.categories,
+			price_min: facets.price_min,
+			price_max: facets.price_max,
+			price_vat_min: facets.price_vat_min,
+			price_vat_max: facets.price_vat_max,
+			fallback_required: false,
+		},
+		unknown_pricelist_pks,
+	))
 }
 
 /// Counts products surviving the **full** filter+pricing pipeline (base_mask → bitmap filters
@@ -208,11 +219,12 @@ pub fn run(
 /// Žádný shortcut — count musí přesně sedět s hlavním listingem (`run`). Pokud caller
 /// nezná restrictive parametry (contract/notPublic/project) nebo `priceModifiers`, dostane
 /// **jiný** počet než hlavní listing a UI menu/facet rozejde se s rendrovanou stránkou.
-pub fn count(snap: &Arc<CatalogSnapshot>, req: &GetCategoryCountRequest) -> Result<u64> {
+pub fn count(snap: &Arc<CatalogSnapshot>, req: &GetCategoryCountRequest) -> Result<(u64, Vec<String>)> {
 	let pseudo = req.to_pseudo_request();
 	let ctx = RequestContext::build(snap, &pseudo)?;
+	let unknown_pricelist_pks = ctx.unknown_pricelist_pks.clone();
 	let priced = run_filter_pipeline(snap, &pseudo, &ctx.base_mask, &ctx.has_price_mask, &ctx.pricelist_idxs)?;
-	Ok(priced.len() as u64)
+	Ok((priced.len() as u64, unknown_pricelist_pks))
 }
 
 /// Batched category counts — jeden průchod vrátí mapu `categoryUuid → count` pro celý snapshot.
@@ -228,9 +240,10 @@ pub fn count(snap: &Arc<CatalogSnapshot>, req: &GetCategoryCountRequest) -> Resu
 pub fn all_category_counts(
 	snap: &Arc<CatalogSnapshot>,
 	req: &GetAllCategoryCountsRequest,
-) -> Result<HashMap<String, u64>> {
+) -> Result<(HashMap<String, u64>, Vec<String>)> {
 	let pseudo = req.to_pseudo_request();
 	let ctx = RequestContext::build(snap, &pseudo)?;
+	let unknown_pricelist_pks = ctx.unknown_pricelist_pks.clone();
 	let priced = run_filter_pipeline(snap, &pseudo, &ctx.base_mask, &ctx.has_price_mask, &ctx.pricelist_idxs)?;
 	let mask: RoaringBitmap = priced.iter().map(|p| p.product).collect();
 
@@ -258,7 +271,7 @@ pub fn all_category_counts(
 		.into_iter()
 		.filter_map(|(idx, count)| snap.category_pool.get(idx).map(|uuid| (uuid.to_owned(), count)))
 		.collect();
-	Ok(out)
+	Ok((out, unknown_pricelist_pks))
 }
 
 /// Vrátí UUID produktů, které jsou prodejné — tj. zároveň:
@@ -317,16 +330,22 @@ pub fn sellable_product_pks(snap: &CatalogSnapshot) -> Vec<String> {
 		.collect()
 }
 
-fn resolve_pricelists(snap: &CatalogSnapshot, pks: &[String]) -> Result<Vec<PricelistIdx>> {
-	let mut out = Vec::with_capacity(pks.len());
+/// Rozdělí požadované ceníky na známé (`PricelistIdx`) a neznámé (`String` PK). Neznámé
+/// jsou ceníky, které byly v DB vytvořeny po posledním snapshot rebuildu — typicky čerstvý
+/// `offerPriceList` po offer approve nebo customer pricelist po CKP sync. Místo erroru
+/// (`unknown_pricelist`, který by celý request shodil do HTTP 500) je z výsledku tiše
+/// vyfiltrujeme a předáme caller-ovi seznam neznámých přes `RequestContext`. Caller je
+/// pošle v response, aby PHP flipnul merchant banner.
+fn resolve_pricelists(snap: &CatalogSnapshot, pks: &[String]) -> (Vec<PricelistIdx>, Vec<String>) {
+	let mut known = Vec::with_capacity(pks.len());
+	let mut unknown = Vec::new();
 	for pk in pks {
-		let idx = *snap
-			.pricelist_pk_to_idx
-			.get(pk.as_str())
-			.ok_or_else(|| RequestError::UnknownPricelist(pk.clone()))?;
-		out.push(idx);
+		match snap.pricelist_pk_to_idx.get(pk.as_str()) {
+			Some(idx) => known.push(*idx),
+			None => unknown.push(pk.clone()),
+		}
 	}
-	Ok(out)
+	(known, unknown)
 }
 
 /// A product that survived filtering, paired with its effective (final) prices.

@@ -28,8 +28,12 @@
 //! | `rate_limited` | Drift seen but `min_rebuild_interval` floor not yet elapsed.          |
 //! | `external`   | PHP volal `requestRebuild` RPC — `Notify::notified()` fired ticker.     |
 //!
-//! `external` triggers go through the same floor/ceiling logic as ticker triggers — spamming
-//! `requestRebuild` cannot create rebuild storms (`MIN_REBUILD_INTERVAL_SECS` still applies).
+//! `external` triggers bypass `min_rebuild_interval` — PHP volá `requestRebuild` po vytvoření
+//! zákaznického ceníku (offer approve, CKP sync), kde i krátké čekání znamená okno, kdy daemon
+//! vrací `unknown_pricelist` pro pricelist, který už v DB existuje. Storm protection drží
+//! `Notify::notify_one()` (1 permit) — paralelní volání během běžícího rebuildu se kolabsují
+//! na jeden následný rebuild. Floor zůstává v drift-detected (Ticker) větvi, kde chrání proti
+//! import-storm scénáři.
 
 use std::{
 	sync::Arc,
@@ -138,18 +142,16 @@ impl Refresher {
 		// External wakeup = "PHP just finished writes, please refresh now". We skip the cheap
 		// drift probe because (a) PHP wouldn't have called us if no writes happened, and
 		// (b) drift probe is INSERT/DELETE-only and could miss UPDATE-only changes anyway.
-		// The floor below still applies — spamming requestRebuild can't storm rebuilds.
+		//
+		// `min_rebuild_interval` floor is intentionally NOT enforced for external triggers:
+		// PHP volá `requestRebuild` po každém vytvoření zákaznického ceníku (offer approve,
+		// CKP sync), kde čekání 120 s znamená okno, kdy daemon vrací `unknown_pricelist`
+		// pro pricelist, který už v DB existuje. Storm protection drží `Notify::notify_one()`
+		// (1 permit) — paralelní `requestRebuild` během běžícího rebuildu se kolabsují na
+		// jeden následný rebuild, takže ani spam volání nezpůsobí storm. Floor zůstává jen
+		// v drift-detected (Ticker) větvi, kde chrání proti import-storm scénáři, kde drift
+		// flipuje každou minutu hodiny v kuse, aniž by někdo zavolal `requestRebuild`.
 		if trigger == RebuildTrigger::External {
-			if elapsed < self.min_rebuild_interval {
-				let wait = self.min_rebuild_interval.saturating_sub(elapsed);
-				info!(
-					reason = "external",
-					wait_s = wait.as_secs(),
-					"external wakeup throttled by min_rebuild_interval"
-				);
-				return Ok(RebuildOutcome::Skipped);
-			}
-
 			info!(
 				reason = "external",
 				elapsed_s = elapsed.as_secs(),
@@ -193,9 +195,11 @@ impl Refresher {
 	}
 
 	async fn rebuild(&self) -> Result<(), crate::error::DaemonError> {
+		let started = Instant::now();
 		let new_snap = CatalogSnapshot::load_from_pool(&self.pool).await?;
+		let duration = started.elapsed();
 		self.catalog.store(Arc::new(new_snap));
-		self.metrics.record_snapshot();
+		self.metrics.record_snapshot(duration);
 		Ok(())
 	}
 }
