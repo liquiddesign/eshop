@@ -126,7 +126,7 @@ class HeurekaProvider extends SupplierProvider
 		try {
 			$this->importResultRepository->createLog($supplier, $this->logDirectory);
 
-			$xml = \simplexml_load_file($supplier->url);
+			$xml = \simplexml_load_file($supplier->url, 'SimpleXMLElement', \LIBXML_NOCDATA);
 
 			if ($xml === false) {
 				$this->importResultRepository->markAsError('cannot get or parse xml file');
