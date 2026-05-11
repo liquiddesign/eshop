@@ -120,7 +120,7 @@ class ProductForm extends Control
 
 		$form = $adminFormFactory->create(true);
 
-		$this->monitor(Presenter::class, function (ProductPresenter $productPresenter) use ($form): void {
+		$this->monitor(ProductPresenter::class, function (ProductPresenter $productPresenter) use ($form): void {
 			$form->addHidden('editTab')->setDefaultValue($productPresenter->editTab);
 		});
 
@@ -463,7 +463,7 @@ Vyplňujte celá nebo desetinná čísla v intervalu ' . $this->shopperUser->get
 			]);
 		}
 
-		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($form, $storeRepository): void {
+		$this->monitor(BackendPresenter::class, function (BackendPresenter $presenter) use ($form, $storeRepository): void {
 			$prices = $form->addContainer('prices');
 
 			$pricesPermission = $presenter->admin->isAllowed(':Eshop:Admin:Pricelists:default');

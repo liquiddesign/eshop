@@ -38,7 +38,7 @@ class DiscountCouponForm extends Control
 
 		$codeInput = $form->addText('code', 'Kód')->setRequired();
 
-		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($codeInput, $discountCoupon): void {
+		$this->monitor(BackendPresenter::class, function (BackendPresenter $presenter) use ($codeInput, $discountCoupon): void {
 			if ($discountCoupon) {
 				try {
 					$url = $presenter->link('//:Eshop:Checkout:cart', ['coupon' => $discountCoupon->code]);

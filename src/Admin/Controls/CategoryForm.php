@@ -11,7 +11,6 @@ use Eshop\DB\Category;
 use Eshop\DB\CategoryRepository;
 use Eshop\ShopperUser;
 use Nette\Application\UI\Control;
-use Nette\Application\UI\Presenter;
 use Nette\Utils\Image;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
@@ -56,7 +55,7 @@ class CategoryForm extends Control
 			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce ' . $this->shopperUser->getCategoriesImage()['detail']['height'] . 'px.');
 		}
 
-		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
+		$this->monitor(CategoryPresenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
 			$imagePicker->onDelete[] = function (array $directories, $filename) use ($category, $presenter): void {
 				$presenter->onDeleteImagePublic($category);
 				$presenter->redirect('this');
@@ -81,7 +80,7 @@ class CategoryForm extends Control
 			$imagePicker->setHtmlAttribute('data-info', 'Vkládejte obrázky o minimální výšce ' . $this->shopperUser->getCategoriesFallbackImage()['detail']['height'] . 'px.');
 		}
 
-		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
+		$this->monitor(CategoryPresenter::class, function (CategoryPresenter $presenter) use ($imagePicker, $category): void {
 			$imagePicker->onDelete[] = function (array $directories, $filename) use ($category, $presenter): void {
 				$presenter->onDeleteImagePublic($category, 'productFallbackImageFileName');
 				$presenter->redirect('this');
@@ -103,7 +102,7 @@ class CategoryForm extends Control
 		]);
 		$form->addLocaleRichEdit('defaultProductContent', 'Výchozí obsah produktů');
 
-		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($form, $category): void {
+		$this->monitor(CategoryPresenter::class, function (CategoryPresenter $presenter) use ($form, $category): void {
 			$categories = $this->categoryRepository->getTreeArrayForSelect(true, $presenter->tab !== 'none' ? $presenter->tab : $category?->getValue('type'));
 
 			if ($category) {
@@ -159,7 +158,7 @@ class CategoryForm extends Control
 			$form->addCheckbox('showDescendantProducts', 'Zobrazit produkty podkategorií v této kategorii')->setDefaultValue(true);
 		}
 
-		$this->monitor(Presenter::class, function (CategoryPresenter $presenter) use ($form): void {
+		$this->monitor(CategoryPresenter::class, function (CategoryPresenter $presenter) use ($form): void {
 			$form->addHidden('type', $presenter->tab);
 		});
 
