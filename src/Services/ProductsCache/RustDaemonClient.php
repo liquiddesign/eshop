@@ -35,6 +35,12 @@ final class RustDaemonClient
 	/** Seconds to wait after spawning the daemon before retrying the socket. */
 	private const SPAWN_WAIT_SEC = 2;
 
+	/** Connect attempts before giving up. Pokrývá ~3 s restart window (watchdog respawn / deploy). */
+	private const MAX_CONNECT_ATTEMPTS = 3;
+
+	/** Backoff mezi connect pokusy v mikrosekundách (1 s). */
+	private const CONNECT_RETRY_BACKOFF_US = 1000000;
+
 	/** @var resource|null */
 	private mixed $socket = null;
 
@@ -341,10 +347,22 @@ final class RustDaemonClient
 			return;
 		}
 
-		$this->socket = $this->openSocket();
+		// Retry pokrývá restart okno daemonu (watchdog respawn / deploy / SIGTERM): mezi
+		// `shutdown signal received` a `socket listening` typicky uplyne 3–5 s, během kterých
+		// socket file neexistuje nebo není bindnutý. Bez retry každý PHP request v tom okně
+		// padá s HTTP 500 (žádný PHP fallback neexistuje).
+		for ($attempt = 1; $attempt <= self::MAX_CONNECT_ATTEMPTS; $attempt++) {
+			$this->socket = $this->openSocket();
 
-		if ($this->socket !== null) {
-			return;
+			if ($this->socket !== null) {
+				return;
+			}
+
+			if ($attempt >= self::MAX_CONNECT_ATTEMPTS) {
+				continue;
+			}
+
+			\usleep(self::CONNECT_RETRY_BACKOFF_US);
 		}
 
 		if ($this->spawnOnDemand && $this->binaryPath !== null && \is_executable($this->binaryPath)) {

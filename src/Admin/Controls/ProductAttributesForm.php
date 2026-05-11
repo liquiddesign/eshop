@@ -12,7 +12,6 @@ use Eshop\DB\AttributeRepository;
 use Eshop\DB\AttributeValueRepository;
 use Eshop\DB\Product;
 use Nette\Application\UI\Control;
-use Nette\Application\UI\Presenter;
 use Nette\Utils\Arrays;
 use Nette\Utils\Random;
 use Nette\Utils\Strings;
@@ -47,7 +46,7 @@ class ProductAttributesForm extends Control
 
 		$form = $adminFormFactory->create(false, false, false, false, false);
 
-		$this->monitor(Presenter::class, function (ProductPresenter $productPresenter) use ($form): void {
+		$this->monitor(ProductPresenter::class, function (ProductPresenter $productPresenter) use ($form): void {
 			$form->addHidden('editTab')->setDefaultValue($productPresenter->editTab);
 		});
 

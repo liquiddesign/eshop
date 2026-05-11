@@ -33,7 +33,7 @@ class ApiGeneratorDiscountCouponForm extends Control
 
 		$codeInput = $form->addText('code', 'Kód')->setRequired();
 
-		$this->monitor(Presenter::class, function (BackendPresenter $presenter) use ($codeInput, $apiGeneratorDiscountCoupon): void {
+		$this->monitor(BackendPresenter::class, function (BackendPresenter $presenter) use ($codeInput, $apiGeneratorDiscountCoupon): void {
 			if ($apiGeneratorDiscountCoupon) {
 				try {
 					$url = $presenter->link('//:Eshop:ApiGenerator:default', [
