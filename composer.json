@@ -67,10 +67,12 @@
     },
     "scripts": {
         "post-install-cmd": [
-            "git config core.hooksPath scripts/hooks 2>/dev/null || true"
+            "git config core.hooksPath scripts/hooks 2>/dev/null || true",
+            "git config merge.ours.driver true 2>/dev/null || true"
         ],
         "post-update-cmd": [
-            "git config core.hooksPath scripts/hooks 2>/dev/null || true"
+            "git config core.hooksPath scripts/hooks 2>/dev/null || true",
+            "git config merge.ours.driver true 2>/dev/null || true"
         ],
         "cf": "@fix-code",
         "ch": "@check-code",
