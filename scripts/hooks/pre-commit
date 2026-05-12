@@ -52,7 +52,15 @@ if [ $check_rc -eq 0 ]; then
 	exit 0
 fi
 
-# check-code failed — try Claude Code auto-fix
+# check-code failed
+# When invoked from within Claude Code, skip auto-fix — Claude will read errors above and fix them itself.
+if [ "${CLAUDECODE:-}" = "1" ]; then
+	echo ""
+	echo "=== Pre-commit: check-code failed (running inside Claude Code — skipping auto-fix) ==="
+	echo "Errors are printed above. Fix them in the current session, then retry the commit."
+	exit 1
+fi
+
 echo ""
 echo "=== Pre-commit: check-code failed, running Claude Code auto-fix ==="
 
