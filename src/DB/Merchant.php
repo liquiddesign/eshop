@@ -183,7 +183,7 @@ class Merchant extends ShopEntity implements IIdentity, IUser
 	}
 
 	/**
-	 * @return array<object>
+	 * @return array<int, string>
 	 */
 	public function getRoles(): array
 	{
