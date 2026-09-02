@@ -47,7 +47,7 @@
         "dfridrich/qr-platba": "^2.0",
         "latte/latte": "^3.0",
         "ramsey/uuid": "^4.7",
-        "liquiddesign/liquid-monitor-connector": "^1.0.19",
+        "liquiddesign/liquid-monitor-connector": "^1.0.19 || ^2.0 || ^3.0",
         "illuminate/database": "^12.0",
         "illuminate/support": "^12.0",
         "dave-liddament/php-language-extensions": "^0.10",
